@@ -1,0 +1,65 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2025-11-10 12:16:35.544287",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "lead_time_hours",
+  "max_advance_days",
+  "column_break_iscu",
+  "use_erpnext_pricing"
+ ],
+ "fields": [
+  {
+   "default": "0",
+   "description": "If checked defers pricing to ERPNext price list, item prices",
+   "fieldname": "use_erpnext_pricing",
+   "fieldtype": "Check",
+   "label": "Use ERPNext Pricing"
+  },
+  {
+   "description": "Minimum hours required before booking.",
+   "fieldname": "lead_time_hours",
+   "fieldtype": "Int",
+   "label": "Lead Time Hours"
+  },
+  {
+   "default": "30",
+   "description": "How many days ahead bookings are allowed",
+   "fieldname": "max_advance_days",
+   "fieldtype": "Int",
+   "label": "Max Advance Days"
+  },
+  {
+   "fieldname": "column_break_iscu",
+   "fieldtype": "Column Break"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "issingle": 1,
+ "links": [],
+ "modified": "2025-11-10 12:18:47.912634",
+ "modified_by": "Administrator",
+ "module": "Frappoint",
+ "name": "Service Appointment Settings",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "rows_threshold_for_grid_search": 20,
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}
