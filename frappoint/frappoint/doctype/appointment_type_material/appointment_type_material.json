@@ -28,6 +28,7 @@
    "fieldtype": "Link",
    "in_list_view": 1,
    "label": "Item",
+   "link_filters": "[[\"Item\",\"is_stock_item\",\"=\",1]]",
    "options": "Item",
    "reqd": 1
   },
@@ -116,7 +117,7 @@
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2025-11-10 13:13:11.280531",
+ "modified": "2025-11-12 06:18:03.376142",
  "modified_by": "Administrator",
  "module": "Frappoint",
  "name": "Appointment Type Material",

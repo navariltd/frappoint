@@ -7,16 +7,13 @@
  "engine": "InnoDB",
  "field_order": [
   "price_name",
+  "rate",
+  "column_break_kokw",
   "price_list",
-  "price"
+  "currency",
+  "uom"
  ],
  "fields": [
-  {
-   "fieldname": "price",
-   "fieldtype": "Currency",
-   "in_list_view": 1,
-   "label": "Price"
-  },
   {
    "fieldname": "price_name",
    "fieldtype": "Data",
@@ -30,13 +27,43 @@
    "in_list_view": 1,
    "label": "Price List",
    "options": "Price List"
+  },
+  {
+   "default": "0",
+   "fieldname": "rate",
+   "fieldtype": "Currency",
+   "in_list_view": 1,
+   "label": "Rate",
+   "non_negative": 1,
+   "reqd": 1
+  },
+  {
+   "fieldname": "column_break_kokw",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fetch_from": "price_list.currency",
+   "fieldname": "currency",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Currency",
+   "options": "Currency",
+   "read_only": 1
+  },
+  {
+   "fieldname": "uom",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "UOM",
+   "options": "UOM",
+   "reqd": 1
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2025-11-07 10:09:39.889990",
+ "modified": "2025-11-12 12:42:09.828901",
  "modified_by": "Administrator",
  "module": "Frappoint",
  "name": "Appointment Type Price",
