@@ -28,7 +28,6 @@
   "more_info_section",
   "description",
   "materials_tab",
-  "bom",
   "section_break_epzh",
   "consumables"
  ],
@@ -101,7 +100,8 @@
    "fieldname": "item",
    "fieldtype": "Link",
    "label": "Item",
-   "options": "Item"
+   "options": "Item",
+   "reqd": 1
   },
   {
    "fieldname": "item_name",
@@ -128,12 +128,6 @@
    "fieldname": "materials_tab",
    "fieldtype": "Tab Break",
    "label": "Materials"
-  },
-  {
-   "fieldname": "bom",
-   "fieldtype": "Link",
-   "label": "BOM",
-   "options": "BOM"
   },
   {
    "fieldname": "section_break_epzh",
@@ -178,7 +172,7 @@
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-11-10 14:23:48.040403",
+ "modified": "2025-11-12 07:13:36.270941",
  "modified_by": "Administrator",
  "module": "Frappoint",
  "name": "Appointment Type",
@@ -200,7 +194,11 @@
  ],
  "row_format": "Dynamic",
  "rows_threshold_for_grid_search": 20,
+ "show_title_field_in_link": 1,
  "sort_field": "modified",
  "sort_order": "DESC",
- "states": []
+ "states": [],
+ "title_field": "appointment_type",
+ "track_changes": 1,
+ "track_seen": 1
 }
