@@ -7,16 +7,24 @@
  "engine": "InnoDB",
  "field_order": [
   "details_section",
+  "first_name",
+  "middle_name_optional",
+  "last_name",
   "provider_name",
-  "employee",
-  "designation",
   "column_break_ffid",
   "active",
   "color_code",
+  "user_details_section",
+  "employee",
+  "designation",
+  "grade",
+  "column_break_ocid",
+  "user",
   "section_break_tyao",
   "email",
+  "google_calendar",
   "column_break_rctc",
-  "phone"
+  "mobile_no"
  ],
  "fields": [
   {
@@ -24,22 +32,13 @@
    "fieldtype": "Data",
    "in_list_view": 1,
    "label": "Provider Name",
+   "read_only": 1,
    "reqd": 1
   },
   {
    "fieldname": "email",
    "fieldtype": "Data",
    "label": "Email"
-  },
-  {
-   "fieldname": "phone",
-   "fieldtype": "Data",
-   "label": "Phone"
-  },
-  {
-   "fieldname": "designation",
-   "fieldtype": "Data",
-   "label": "Designation"
   },
   {
    "fieldname": "employee",
@@ -54,7 +53,7 @@
    "label": "Active"
   },
   {
-   "description": "Color to be displayed on the Appointments page",
+   "description": "Color to be displayed on the Appointments Portal page",
    "fieldname": "color_code",
    "fieldtype": "Color",
    "label": "Color Code"
@@ -76,12 +75,66 @@
   {
    "fieldname": "column_break_rctc",
    "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "first_name",
+   "fieldtype": "Data",
+   "label": "First Name",
+   "reqd": 1
+  },
+  {
+   "fieldname": "middle_name_optional",
+   "fieldtype": "Data",
+   "label": "Middle name (Optional)"
+  },
+  {
+   "fieldname": "last_name",
+   "fieldtype": "Data",
+   "label": "Last Name"
+  },
+  {
+   "fieldname": "user_details_section",
+   "fieldtype": "Section Break",
+   "label": "User Details"
+  },
+  {
+   "fieldname": "user",
+   "fieldtype": "Link",
+   "label": "User",
+   "options": "User"
+  },
+  {
+   "fieldname": "column_break_ocid",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "mobile_no",
+   "fieldtype": "Data",
+   "label": "Mobile"
+  },
+  {
+   "fieldname": "google_calendar",
+   "fieldtype": "Link",
+   "label": "Google Calendar",
+   "options": "Google Calendar"
+  },
+  {
+   "fieldname": "designation",
+   "fieldtype": "Link",
+   "label": "Designation",
+   "options": "Designation"
+  },
+  {
+   "fieldname": "grade",
+   "fieldtype": "Link",
+   "label": "Grade",
+   "options": "Employee Grade"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-11-10 20:27:09.824315",
+ "modified": "2025-11-15 08:06:59.632717",
  "modified_by": "Administrator",
  "module": "Frappoint",
  "name": "Appointment Provider",
