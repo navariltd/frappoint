@@ -10,7 +10,15 @@
   "column_break_iscu",
   "use_erpnext_pricing",
   "auto_create_service_items",
-  "default_item_group"
+  "default_item_group",
+  "section_break_iodw",
+  "default_google_calendar",
+  "alerts_tab",
+  "appointment_confirmation",
+  "appointment_confirmation_msg",
+  "column_break_wnne",
+  "appointment_reminder",
+  "appointment_reminder_msg"
  ],
  "fields": [
   {
@@ -50,13 +58,56 @@
    "fieldtype": "Link",
    "label": "Default Item Group",
    "options": "Item Group"
+  },
+  {
+   "fieldname": "section_break_iodw",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "default_google_calendar",
+   "fieldtype": "Link",
+   "label": "Default Google Calendar",
+   "options": "Google Calendar"
+  },
+  {
+   "fieldname": "alerts_tab",
+   "fieldtype": "Tab Break",
+   "label": "Alerts"
+  },
+  {
+   "default": "0",
+   "fieldname": "appointment_confirmation",
+   "fieldtype": "Check",
+   "label": "Appointment Confirmation"
+  },
+  {
+   "fieldname": "column_break_wnne",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "0",
+   "fieldname": "appointment_reminder",
+   "fieldtype": "Check",
+   "label": "Appointment Reminder"
+  },
+  {
+   "default": "Hello {{ doc.full_name }},\n\nYour appointment with {{ doc.appointment_provider }} has been successfully scheduled for {{ doc.appointment_date }}, from {{ doc.start_time }} to {{ doc.end_time }}, at {{ doc.company }}.\n\nThank you for choosing us. Have a great day!",
+   "fieldname": "appointment_confirmation_msg",
+   "fieldtype": "Small Text",
+   "label": "Confirmation Message"
+  },
+  {
+   "default": "Hello {{ doc.full_name }},\n\nThis is a reminder of your appointment with {{ doc.appointment_provider }} on {{ doc.appointment_date }}, scheduled from {{ doc.start_time }} to {{ doc.end_time }}, at {{ doc.company }}.\n\nWe look forward to seeing you!",
+   "fieldname": "appointment_reminder_msg",
+   "fieldtype": "Small Text",
+   "label": "Reminder Message"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2025-11-12 07:32:31.830752",
+ "modified": "2025-11-17 13:03:47.163039",
  "modified_by": "Administrator",
  "module": "Frappoint",
  "name": "Service Appointment Settings",

@@ -14,7 +14,12 @@ class ServiceAppointmentSettings(Document):
 	if TYPE_CHECKING:
 		from frappe.types import DF
 
+		appointment_confirmation: DF.Check
+		appointment_confirmation_msg: DF.SmallText | None
+		appointment_reminder: DF.Check
+		appointment_reminder_msg: DF.SmallText | None
 		auto_create_service_items: DF.Check
+		default_google_calendar: DF.Link | None
 		default_item_group: DF.Link | None
 		lead_time_hours: DF.Int
 		max_advance_days: DF.Int

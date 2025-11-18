@@ -13,9 +13,9 @@
   "naming_series",
   "customer_details_section",
   "customer",
-  "name1",
+  "full_name",
   "email",
-  "phone",
+  "mobile_no",
   "column_break_gsph",
   "details",
   "appointment_details_section",
@@ -24,7 +24,12 @@
   "appointment_provider",
   "column_break_bguz",
   "start_time",
+  "duration",
   "end_time",
+  "google_sync_section",
+  "add_video_conferencing",
+  "event",
+  "google_meet_link",
   "payment_details_section",
   "payment_status",
   "mode_of_payment",
@@ -64,7 +69,7 @@
    "fieldname": "status",
    "fieldtype": "Select",
    "label": "Status",
-   "options": "Open\nCompleted\nCancelled\nClosed\nNo Show"
+   "options": "Open\nConfirmed\nRescheduled\nCompleted\nCancelled\nClosed\nNo Show"
   },
   {
    "fieldname": "customer_details_section",
@@ -72,21 +77,9 @@
    "label": "Customer Details"
   },
   {
-   "fieldname": "name1",
-   "fieldtype": "Data",
-   "in_list_view": 1,
-   "label": "Name",
-   "reqd": 1
-  },
-  {
    "fieldname": "email",
    "fieldtype": "Data",
    "label": "Email"
-  },
-  {
-   "fieldname": "phone",
-   "fieldtype": "Data",
-   "label": "Phone"
   },
   {
    "fieldname": "customer",
@@ -111,23 +104,28 @@
   {
    "fieldname": "appointment_date",
    "fieldtype": "Date",
-   "label": "Appointment Date"
+   "label": "Appointment Date",
+   "reqd": 1
   },
   {
    "fieldname": "start_time",
    "fieldtype": "Time",
-   "label": "Start Time"
+   "label": "Start Time",
+   "reqd": 1
   },
   {
    "fieldname": "end_time",
    "fieldtype": "Time",
-   "label": "End Time"
+   "label": "End Time",
+   "read_only": 1,
+   "reqd": 1
   },
   {
    "fieldname": "appointment_type",
    "fieldtype": "Link",
    "label": "Appointment Type",
-   "options": "Appointment Type"
+   "options": "Appointment Type",
+   "reqd": 1
   },
   {
    "fieldname": "payment_details_section",
@@ -191,7 +189,8 @@
    "fieldname": "appointment_provider",
    "fieldtype": "Link",
    "label": "Appointment Provider",
-   "options": "Appointment Provider"
+   "options": "Appointment Provider",
+   "reqd": 1
   },
   {
    "fieldname": "column_break_bguz",
@@ -202,13 +201,57 @@
    "fieldtype": "Select",
    "label": "Naming Series",
    "options": "SVC-APP-.MM.-.YY.-.###."
+  },
+  {
+   "fieldname": "full_name",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Full Name",
+   "reqd": 1
+  },
+  {
+   "fieldname": "mobile_no",
+   "fieldtype": "Data",
+   "label": "Phone",
+   "reqd": 1
+  },
+  {
+   "fetch_from": "appointment_type.default_duration_in_minutes",
+   "fieldname": "duration",
+   "fieldtype": "Int",
+   "label": "Duration",
+   "read_only": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "add_video_conferencing",
+   "fieldtype": "Check",
+   "label": "Add Video Conferencing"
+  },
+  {
+   "fieldname": "google_sync_section",
+   "fieldtype": "Section Break",
+   "label": "Google Sync"
+  },
+  {
+   "fieldname": "event",
+   "fieldtype": "Link",
+   "label": "Event",
+   "options": "Event",
+   "read_only": 1
+  },
+  {
+   "fieldname": "google_meet_link",
+   "fieldtype": "Data",
+   "label": "Google Meet Link",
+   "read_only": 1
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2025-11-10 20:23:56.044255",
+ "modified": "2025-11-18 14:15:46.681653",
  "modified_by": "Administrator",
  "module": "Frappoint",
  "name": "Service Appointment",
