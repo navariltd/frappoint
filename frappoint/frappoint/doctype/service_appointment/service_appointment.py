@@ -181,13 +181,18 @@ class ServiceAppointment(Document):
 		)
 
 		if overlapping_customer_appointments:
-			frappe.msgprint(
+			frappe.throw(
 				_("Customer {0} has another appointment at the same time: {1}").format(
 					frappe.bold(self.customer),
-					", ".join([appt["name"] for appt in overlapping_customer_appointments]),
+					", ".join(
+						[
+							get_link_to_form(self.doctype, appt["name"])
+							for appt in overlapping_customer_appointments
+						]
+					),
 				),
-				indicator="orange",
-				alert=True,
+				OverlapError,
+				title=_("Overlapping Appointment"),
 			)
 
 	def insert_calendar_event(self):
