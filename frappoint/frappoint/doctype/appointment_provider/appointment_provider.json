@@ -32,8 +32,7 @@
    "fieldtype": "Data",
    "in_list_view": 1,
    "label": "Provider Name",
-   "read_only": 1,
-   "reqd": 1
+   "read_only": 1
   },
   {
    "fieldname": "email",
@@ -134,7 +133,7 @@
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-11-15 08:06:59.632717",
+ "modified": "2025-11-18 13:04:57.954763",
  "modified_by": "Administrator",
  "module": "Frappoint",
  "name": "Appointment Provider",
