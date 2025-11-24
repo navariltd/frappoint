@@ -1,17 +1,50 @@
-import './index.css'
+import { createApp } from "vue";
 
-import { createApp } from 'vue'
-import router from './router'
-import App from './App.vue'
+import App from "./App.vue";
+import router from "./router";
+import { initSocket } from "./socket";
 
-import { Button, setConfig, frappeRequest, resourcesPlugin } from 'frappe-ui'
+import {
+	Alert,
+	Badge,
+	Button,
+	Dialog,
+	ErrorMessage,
+	FormControl,
+	Input,
+	TextInput,
+	frappeRequest,
+	pageMetaPlugin,
+	resourcesPlugin,
+	setConfig,
+} from "frappe-ui";
 
-let app = createApp(App)
+import "./index.css";
 
-setConfig('resourceFetcher', frappeRequest)
+const globalComponents = {
+	Button,
+	TextInput,
+	Input,
+	FormControl,
+	ErrorMessage,
+	Dialog,
+	Alert,
+	Badge,
+};
 
-app.use(router)
-app.use(resourcesPlugin)
+const app = createApp(App);
 
-app.component('Button', Button)
-app.mount('#app')
+setConfig("resourceFetcher", frappeRequest);
+
+app.use(router);
+app.use(resourcesPlugin);
+app.use(pageMetaPlugin);
+
+const socket = initSocket();
+app.config.globalProperties.$socket = socket;
+
+for (const key in globalComponents) {
+	app.component(key, globalComponents[key]);
+}
+
+app.mount("#app");
