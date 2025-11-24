@@ -9,7 +9,7 @@
 					label="EY"
 					size="md"
 				/>
-				<h2 class="text-2xl font-bold text-gray-800">Frappoint</h2>
+				<h2 class="text-2xl font-bold text-blue-500">Frappoint</h2>
 			</div>
 			<nav class="p-4 flex flex-col h-[calc(100%-65px)]">
 				<div class="flex-grow">
@@ -41,41 +41,19 @@
 			</nav>
 		</aside>
 		<main class="flex-1 p-8 overflow-auto">
-			<div class="max-w-3xl py-12 mx-auto">
-				<h2 class="font-bold text-lg text-gray-600 mb-4">Welcome {{ session.user }}!</h2>
-
-				<Button
-					theme="gray"
-					variant="solid"
-					icon-left="code"
-					@click="ping.fetch"
-					:loading="ping.loading"
-				>
-					Click to send 'ping' request
-				</Button>
-				<div>
-					{{ ping.data }}
-				</div>
-				<pre>{{ ping }}</pre>
-
-				<div class="flex flex-row space-x-2 mt-4">
-					<Button @click="showDialog = true">Open Dialog</Button>
-					<Button @click="session.logout.submit()">Logout</Button>
-				</div>
-
-				<!-- Dialog -->
-				<Dialog title="Title" v-model="showDialog"> Dialog content </Dialog>
-			</div>
+			<Welcome :username="session.user" />
 		</main>
 	</div>
 </template>
 
 <script setup>
-import { Dialog, Avatar } from "frappe-ui";
+import { Avatar } from "frappe-ui";
+
 import { createResource } from "frappe-ui";
 import { LayoutDashboard, LogOut, User } from "lucide-vue-next";
 import { ref } from "vue";
 import { session } from "../data/session";
+import Welcome from "../components/Welcome.vue";
 
 const ping = createResource({
 	url: "ping",
