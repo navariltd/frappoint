@@ -48,6 +48,7 @@
 
 <script setup>
 import { Avatar } from "frappe-ui";
+
 import { createResource } from "frappe-ui";
 import { LayoutDashboard, LogOut, User } from "lucide-vue-next";
 import { ref } from "vue";
