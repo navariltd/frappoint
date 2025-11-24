@@ -1,7 +1,14 @@
 <template>
 	<div class="flex h-screen bg-gray-100">
 		<aside class="w-44 bg-white shadow-lg">
-			<div class="p-6 border-b">
+			<div class="p-6 border-b flex gap-2 hover:cursor-pointer">
+				<Avatar
+					:shape="'square'"
+					:ref_for="true"
+					image="/favicon.png"
+					label="EY"
+					size="md"
+				/>
 				<h2 class="text-2xl font-bold text-gray-800">Frappoint</h2>
 			</div>
 			<nav class="p-4 flex flex-col h-[calc(100%-65px)]">
@@ -64,7 +71,7 @@
 </template>
 
 <script setup>
-import { Dialog } from "frappe-ui";
+import { Dialog, Avatar } from "frappe-ui";
 import { createResource } from "frappe-ui";
 import { LayoutDashboard, LogOut, User } from "lucide-vue-next";
 import { ref } from "vue";
