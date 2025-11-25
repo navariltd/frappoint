@@ -8,13 +8,25 @@
 						:class="[
 							'text-sm font-medium pb-2 border-b-2 transition-all duration-200',
 							'hover:text-blue-600',
+							activeTab === 'upcoming'
+								? 'text-blue-600 border-blue-600'
+								: 'text-gray-600 border-transparent',
+						]"
+						@click="activeTab = 'upcoming'"
+					>
+						Upcoming
+					</button>
+					<button
+						:class="[
+							'text-sm font-medium pb-2 border-b-2 transition-all duration-200',
+							'hover:text-blue-600',
 							activeTab === 'current'
 								? 'text-blue-600 border-blue-600'
 								: 'text-gray-600 border-transparent',
 						]"
 						@click="activeTab = 'current'"
 					>
-						Current Appointments
+						Current
 					</button>
 					<button
 						:class="[
@@ -26,7 +38,7 @@
 						]"
 						@click="activeTab = 'previous'"
 					>
-						Previous Appointments
+						Previous
 					</button>
 				</div>
 			</div>
@@ -68,13 +80,15 @@ const props = defineProps({
 	username: string,
 });
 
-const activeTab = ref("current"); // current or previous
+const activeTab = ref("upcoming"); // upcoming, current or previous
 
 const appointmentFilters = computed(() => {
 	const today = new Date().toISOString().split("T")[0];
 
 	if (activeTab.value === "current") {
-		return [["appointment_date", ">=", today]];
+		return [["appointment_date", "=", today]];
+	} else if (activeTab.value === "upcoming") {
+		return [["appointment_date", ">", today]];
 	} else {
 		return [["appointment_date", "<", today]];
 	}
