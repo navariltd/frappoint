@@ -9,6 +9,7 @@ export {}
 declare module 'vue' {
   export interface GlobalComponents {
     AppointmentCard: typeof import('./src/components/AppointmentCard.vue')['default']
+    Appointments: typeof import('./src/components/Appointments.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']
     ScheduleCard: typeof import('./src/components/ScheduleCard.vue')['default']
