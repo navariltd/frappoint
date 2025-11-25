@@ -17,8 +17,8 @@
 						href="#"
 						class="flex items-center gap-3 px-4 py-3 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
 					>
-						<LayoutDashboard :size="20" />
-						<span>Dashboard</span>
+						<CalendarCheck :size="20" color="#000000" />
+						<span>Appointments</span>
 					</a>
 					<a
 						href="#"
@@ -49,16 +49,7 @@
 <script setup>
 import { Avatar } from "frappe-ui";
 
-import { createResource } from "frappe-ui";
-import { LayoutDashboard, LogOut, User } from "lucide-vue-next";
-import { ref } from "vue";
+import { CalendarCheck, LogOut, User } from "lucide-vue-next";
 import { session } from "../data/session";
 import Welcome from "../components/Welcome.vue";
-
-const ping = createResource({
-	url: "ping",
-	auto: true,
-});
-
-const showDialog = ref(false);
 </script>
