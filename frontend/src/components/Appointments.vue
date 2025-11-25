@@ -94,10 +94,10 @@
 </template>
 
 <script setup>
-import { computed, ref, watch } from "vue";
-import { string } from "postcss-selector-parser";
 import { createListResource } from "frappe-ui";
 import { CalendarX } from "lucide-vue-next";
+import { string } from "postcss-selector-parser";
+import { computed, ref, watch } from "vue";
 import AppointmentCard from "./AppointmentCard.vue";
 
 const props = defineProps({
@@ -111,14 +111,14 @@ const appointmentFilters = computed(() => {
 
 	if (activeTab.value === "current") {
 		return [["appointment_date", "=", today]];
-	} else if (activeTab.value === "upcoming") {
-		return [["appointment_date", ">", today]];
-	} else {
-		return [["appointment_date", "<", today]];
 	}
+	if (activeTab.value === "upcoming") {
+		return [["appointment_date", ">", today]];
+	}
+	return [["appointment_date", "<", today]];
 });
 
-let appointmentDocs = createListResource({
+const appointmentDocs = createListResource({
 	doctype: "Service Appointment",
 	fields: [
 		"name",
@@ -144,10 +144,10 @@ watch(activeTab, () => {
 function getEmptyStateMessage() {
 	if (activeTab.value === "upcoming") {
 		return "You don't have any upcoming appointments scheduled.";
-	} else if (activeTab.value === "current") {
-		return "You don't have any appointments scheduled for today.";
-	} else {
-		return "You don't have any past appointments.";
 	}
+	if (activeTab.value === "current") {
+		return "You don't have any appointments scheduled for today.";
+	}
+	return "You don't have any past appointments.";
 }
 </script>

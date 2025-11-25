@@ -50,6 +50,6 @@
 import { Avatar } from "frappe-ui";
 
 import { CalendarCheck, LogOut, User } from "lucide-vue-next";
-import { session } from "../data/session";
 import Appointments from "../components/Appointments.vue";
+import { session } from "../data/session";
 </script>
