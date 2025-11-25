@@ -1,6 +1,6 @@
 <template>
 	<div class="flex h-screen bg-gray-100">
-		<aside class="w-44 bg-white shadow-lg">
+		<aside class="w-46 bg-white shadow-lg">
 			<div class="p-6 border-b flex gap-2 hover:cursor-pointer">
 				<Avatar
 					:shape="'square'"
@@ -15,9 +15,9 @@
 				<div class="flex-grow">
 					<a
 						href="#"
-						class="flex items-center gap-3 px-4 py-3 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+						class="flex w-auto items-center gap-3 px-4 py-3 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
 					>
-						<CalendarCheck :size="20" color="#000000" />
+						<CalendarCheck :size="20" />
 						<span>Appointments</span>
 					</a>
 					<a
@@ -41,7 +41,7 @@
 			</nav>
 		</aside>
 		<main class="flex-1 p-8 overflow-auto">
-			<Welcome :username="session.user" />
+			<Appointments :username="session.user" />
 		</main>
 	</div>
 </template>
@@ -51,5 +51,5 @@ import { Avatar } from "frappe-ui";
 
 import { CalendarCheck, LogOut, User } from "lucide-vue-next";
 import { session } from "../data/session";
-import Welcome from "../components/Welcome.vue";
+import Appointments from "../components/Appointments.vue";
 </script>
