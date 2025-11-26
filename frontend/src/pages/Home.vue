@@ -41,7 +41,7 @@
 			</nav>
 		</aside>
 		<main class="flex-1 p-8 overflow-auto">
-			<Appointments :username="session.user" />
+			<Appointments :username="userDocResource.data.full_name" />
 		</main>
 	</div>
 </template>
@@ -51,5 +51,7 @@ import { Avatar } from "frappe-ui";
 
 import { CalendarCheck, LogOut, User } from "lucide-vue-next";
 import Appointments from "../components/Appointments.vue";
-import { session } from "../data/session";
+import { useUserStore } from "../data/user";
+
+const { userDocResource } = useUserStore();
 </script>
