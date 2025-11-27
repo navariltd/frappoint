@@ -4,7 +4,7 @@ export interface SignUp {
   email: string;
   gender: string;
   phone: string;
-  new_password: string;
+  password: string;
 }
 
 export const initialForm: SignUp = {
@@ -13,7 +13,7 @@ export const initialForm: SignUp = {
   email: "",
   gender: "",
   phone: "",
-  new_password: ""
+  password: ""
 };
 
 export function resetSignUpForm(form: SignUp) {
