@@ -61,13 +61,15 @@ export const sessionStore = defineStore("frappoint-session", () => {
 	const login = createResource({
 		url: "login",
 		onError() {
-			throw new Error("Session store: Invalid email or password");
+			throw new Error("Invalid email or password");
 		},
 		onSuccess() {
+			console.log("Login successful");
 			userDocResource.reload();
 			user.value = sessionUser();
 			login.reset();
 			router.replace({ path: "/" });
+			window.location.reload();
 		},
 	});
 

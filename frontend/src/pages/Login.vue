@@ -103,13 +103,12 @@ const createSignup = createResource({
 function submit() {
 	if (isLogin.value) {
 		session.login.submit(
-			{ usr: userEmail, pwd: password.value },
+			{ usr: userEmail.value, pwd: password.value },
 			{
 				onSuccess: () => {
 					const redirectTo = route.query.redirectTo;
 
 					if (redirectTo) {
-						// Convert to string if it's an array, take first value
 						const destination = Array.isArray(redirectTo) ? redirectTo[0] : redirectTo;
 						router.push(destination || "/");
 					} else {
