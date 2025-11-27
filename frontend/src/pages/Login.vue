@@ -35,7 +35,13 @@
 							@click="isPwdVisible = !isPwdVisible"
 						/>
 					</div>
-					<Button :loading="session.login.loading" variant="solid">Login</Button>
+					<Button
+						:loading="isLogin ? session.login.loading : createSignup.loading"
+						variant="solid"
+						type="submit"
+						theme="blue"
+						>Login</Button
+					>
 				</template>
 			</form>
 		</Card>
@@ -45,8 +51,10 @@
 <script lang="ts" setup>
 import { createResource } from "frappe-ui";
 import { sessionStore } from "../data/session";
+import Button from "frappe-ui/src/components/Button/Button.vue";
 import Card from "frappe-ui/src/components/Card.vue";
 import Input from "frappe-ui/src/components/Input.vue";
+import ErrorMessage from "frappe-ui/src/components/ErrorMessage/ErrorMessage.vue";
 import { computed, reactive, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { Eye, EyeOff } from "lucide-vue-next";
