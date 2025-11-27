@@ -1,7 +1,8 @@
-import router from "@/router";
+import { useRouter } from "vue-router";
 import { createResource } from "frappe-ui";
 import { defineStore } from "pinia";
 
+const router = useRouter();
 export const userResource = createResource({
 	url: "frappe.auth.get_logged_user",
 	cache: "User",

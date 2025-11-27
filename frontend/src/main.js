@@ -34,7 +34,6 @@ const globalComponents = {
 };
 
 const pinia = createPinia();
-
 const app = createApp(App);
 
 setConfig("resourceFetcher", frappeRequest);
