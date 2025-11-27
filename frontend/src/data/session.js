@@ -1,9 +1,10 @@
 import router from "@/router";
 import { createResource } from "frappe-ui";
-import { computed, reactive } from "vue";
+import { computed, reactive, ref } from "vue";
+import { defineStore } from "pinia";
+import { userResource, useUserStore } from "./user";
 
-import { userResource } from "./user";
-
+// TODO: Remove once sessionStore is functional
 export function sessionUser() {
 	const cookies = new URLSearchParams(document.cookie.split("; ").join("&"));
 	let _sessionUser = cookies.get("user_id");
@@ -13,6 +14,7 @@ export function sessionUser() {
 	return _sessionUser;
 }
 
+// TODO: Remove once sessionStore is functional
 export const session = reactive({
 	login: createResource({
 		url: "login",
@@ -39,4 +41,54 @@ export const session = reactive({
 	}),
 	user: sessionUser(),
 	isLoggedIn: computed(() => !!session.user),
+});
+
+export const sessionStore = defineStore("frappoint-session", () => {
+	let { userDocResource } = useUserStore();
+
+	function sessionUser() {
+		const cookies = new URLSearchParams(document.cookie.split("; ").join("&"));
+		let _sessionUser = cookies.get("user_id");
+		if (_sessionUser === "Guest") {
+			_sessionUser = null;
+		}
+		return _sessionUser;
+	}
+
+	let user = ref(sessionUser());
+	const isLoggedIn = computed(() => !!user.value);
+
+	const login = createResource({
+		url: "login",
+		onError() {
+			throw new Error("Invalid email or password");
+		},
+		onSuccess() {
+			console.log("Login successful");
+			userDocResource.reload();
+			user.value = sessionUser();
+			login.reset();
+			router.replace({ path: "/" });
+			window.location.reload();
+		},
+	});
+
+	const logout = createResource({
+		url: "logout",
+		onSuccess() {
+			userDocResource.reset();
+			user.value = null;
+			window.location.reload();
+		},
+		onError() {
+			throw new Error("Session store: Logout failed");
+		},
+	});
+
+	return {
+		user,
+		isLoggedIn,
+		login,
+		logout,
+	};
 });

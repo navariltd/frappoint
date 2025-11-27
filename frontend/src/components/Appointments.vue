@@ -43,11 +43,11 @@
 				</div>
 			</div>
 			<div class="flex-shrink-0">
-				<Button
-					class="bg-gray-900 text-white hover:bg-gray-800 shadow-sm hover:shadow-md transition-all duration-200"
+				<button
+					class="p-2 rounded bg-blue-500 text-white hover:bg-gray-800 shadow-sm hover:shadow-md transition-all duration-200"
 				>
-					+ Book New Appointments
-				</Button>
+					Book New Appointments
+				</button>
 			</div>
 		</div>
 
@@ -66,12 +66,12 @@
 				<p class="text-gray-500 mb-6">
 					{{ getEmptyStateMessage() }}
 				</p>
-				<Button
-					v-if="activeTab === 'upcoming'"
-					class="bg-gray-900 text-white hover:bg-gray-800 shadow-sm hover:shadow-md transition-all duration-200"
+				<button
+					v-if="activeTab === 'upcoming' || activeTab === 'current'"
+					class="p-2 rounded bg-blue-500 text-white hover:bg-gray-800 shadow-sm hover:shadow-md transition-all duration-200"
 				>
-					+ Book New Appointments
-				</Button>
+					Book New Appointments
+				</button>
 			</div>
 
 			<!-- Appointments grid -->

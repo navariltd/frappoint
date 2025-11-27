@@ -3,6 +3,7 @@ import { createApp } from "vue";
 import App from "./App.vue";
 import router from "./router";
 import { initSocket } from "./socket";
+import { createPinia } from "pinia";
 
 import {
 	Alert,
@@ -32,11 +33,13 @@ const globalComponents = {
 	Badge,
 };
 
+const pinia = createPinia();
 const app = createApp(App);
 
 setConfig("resourceFetcher", frappeRequest);
 
 app.use(router);
+app.use(pinia);
 app.use(resourcesPlugin);
 app.use(pageMetaPlugin);
 
