@@ -78,6 +78,9 @@ export const sessionStore = defineStore("frappoint-session", () => {
 			user.value = null;
 			window.location.reload();
 		},
+		onError() {
+			throw new Error("Session store: Logout failed");
+		},
 	});
 
 	return {

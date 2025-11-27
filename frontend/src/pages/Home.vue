@@ -30,13 +30,13 @@
 				</div>
 
 				<div>
-					<a
-						href="#"
+					<button
+						@click="() => session.logout.submit()"
 						class="flex items-center gap-3 px-4 py-3 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
 					>
 						<LogOut :size="20" />
 						<span>Logout</span>
-					</a>
+					</button>
 				</div>
 			</nav>
 		</aside>
@@ -52,6 +52,9 @@ import { Avatar } from "frappe-ui";
 import { CalendarCheck, LogOut, User } from "lucide-vue-next";
 import Appointments from "../components/Appointments.vue";
 import { useUserStore } from "../data/user";
+import { sessionStore } from "../data/session";
+
+const session = sessionStore();
 
 const { userDocResource } = useUserStore();
 </script>
