@@ -36,7 +36,7 @@
 						/>
 					</div>
 					<Button
-						:loading="isLogin ? session.login.loading : createSignup.loading"
+						:loading="isLogin ? session.login.loading : createSignUp.loading"
 						variant="solid"
 						type="submit"
 						theme="blue"
@@ -44,6 +44,10 @@
 					>
 				</template>
 			</form>
+
+			<div class="mt-2 text-center">
+				<ErrorMessage :message="isLogin ? session.login.error : createSignUp.error" />
+			</div>
 		</Card>
 	</div>
 </template>
@@ -58,6 +62,7 @@ import ErrorMessage from "frappe-ui/src/components/ErrorMessage/ErrorMessage.vue
 import { computed, reactive, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { Eye, EyeOff } from "lucide-vue-next";
+import { initialForm, resetSignUpForm } from "../utils/user";
 
 const route = useRoute();
 const router = useRouter();
@@ -66,13 +71,7 @@ const userEmail = ref("");
 const password = ref("");
 const isPwdVisible = ref(false);
 const signInState = ref(false);
-const signUpForm = reactive({
-	first_name: String,
-	last_name: String,
-	email: String,
-	gender: String,
-	phone: String,
-});
+const signUpForm = reactive({ ...initialForm });
 
 const session = sessionStore();
 
@@ -82,16 +81,7 @@ function toggleForm() {
 	isLogin.value ? router.replace({ hash: "#signup" }) : router.replace({ hash: "#login" });
 }
 
-function resetSignUpForm(form: any) {
-	// TODO: Resolve the type issue
-	form.first_name = "";
-	form.last_name = "";
-	form.email = "";
-	form.gender = "";
-	form.phone = "";
-}
-
-const createSignup = createResource({
+const createSignUp = createResource({
 	url: "frappoint.frappoint.api.user.create_user",
 	onSuccess() {
 		signInState.value = true;
@@ -118,7 +108,7 @@ function submit() {
 			}
 		);
 	} else {
-		createSignup.submit({
+		createSignUp.submit({
 			...signUpForm,
 		});
 	}
