@@ -13,6 +13,7 @@ export const initialForm: SignUp = {
   email: "",
   gender: "",
   phone: "",
+  new_password: ""
 };
 
 export function resetSignUpForm(form: SignUp) {
@@ -21,4 +22,18 @@ export function resetSignUpForm(form: SignUp) {
   form.email = "";
   form.gender = "";
   form.phone = "";
+}
+
+
+export function validatePasswordMatch(password1: string, password2: string) {
+    if (!password1 || !password2) {
+        throw new Error("Please enter both password fields")
+    }
+    if (password1 !== password2) {
+        throw new Error("Password mismatch!")
+    }
+
+    if (password1.length < 8) {
+        throw new Error("Password must be atleast 8 characters long!")
+    }
 }

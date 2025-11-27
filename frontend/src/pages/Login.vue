@@ -92,6 +92,18 @@
 							@click="isPwdVisible = !isPwdVisible"
 						/>
 					</div>
+					<div class="flex items-center space-x-2">
+						<Input
+							required
+							name="confirmPassword"
+							:type="isPwdVisible ? 'text' : 'password'"
+							placeholder="••••••"
+							label="Confirm Password"
+							class="w-full"
+							v-model="confirmPassword"
+						/>
+					</div>
+					<ErrorMessage v-if="passwordError" :message="passwordError" />
 				</template>
 				<Button
 					:loading="isLogin ? session.login.loading : createSignUp.loading"
@@ -105,7 +117,8 @@
 			</form>
 
 			<div class="mt-2 text-center">
-				<ErrorMessage :message="isLogin ? session.login.error : createSignUp.error" />
+				<ErrorMessage v-if="isLogin" :message="session.login.error" />
+				<ErrorMessage v-else :message="signUpError || createSignUp.error" />
 			</div>
 			<div class="flex mt-4 text-center justify-center text-sm gap-1">
 				<span v-if="isLogin">{{ "Don’t have an account?" }} </span>
@@ -132,22 +145,34 @@ import ErrorMessage from "frappe-ui/src/components/ErrorMessage/ErrorMessage.vue
 import { computed, reactive, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { Eye, EyeOff } from "lucide-vue-next";
-import { initialForm, resetSignUpForm } from "../utils/user";
+import { initialForm, resetSignUpForm, validatePasswordMatch } from "../utils/user";
 
 const route = useRoute();
 const router = useRouter();
 
 const userEmail = ref("");
 const password = ref("");
+const confirmPassword = ref("");
 const isPwdVisible = ref(false);
 const signInState = ref(false);
 const signUpForm = reactive({ ...initialForm });
+
+const passwordError = ref("");
+const signUpError = ref("");
 
 const session = sessionStore();
 
 const isLogin = computed(() => route.hash !== "#signup");
 
 function toggleForm() {
+	passwordError.value = "";
+	signUpError.value = "";
+	password.value = "";
+	confirmPassword.value = "";
+	userEmail.value = "";
+
+	resetSignUpForm(signUpForm);
+
 	isLogin.value ? router.replace({ hash: "#signup" }) : router.replace({ hash: "#login" });
 }
 
@@ -161,6 +186,9 @@ const createSignUp = createResource({
 });
 
 function submit() {
+	passwordError.value = "";
+	signUpError.value = "";
+
 	if (isLogin.value) {
 		session.login.submit(
 			{ usr: userEmail.value, pwd: password.value },
@@ -178,9 +206,22 @@ function submit() {
 			}
 		);
 	} else {
-		createSignUp.submit({
-			...signUpForm,
-		});
+		try {
+			validatePasswordMatch(password.value, confirmPassword.value);
+		} catch (error: any) {
+			passwordError.value = error.message;
+			return;
+		}
+		createSignUp.submit(
+			{
+				...signUpForm,
+			},
+			{
+				onError: (error: any) => {
+					signUpError.value = error.message || "Registration failed, please try again";
+				},
+			}
+		);
 	}
 }
 </script>
