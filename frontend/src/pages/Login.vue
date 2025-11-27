@@ -71,6 +71,7 @@
 						label="Phone Number"
 						v-model="signUpForm.phone"
 					/>
+					<ErrorMessage v-if="phoneNumberError" :message="phoneNumberError" />
 					<div class="flex items-center space-x-2">
 						<Input
 							required
@@ -145,7 +146,12 @@ import ErrorMessage from "frappe-ui/src/components/ErrorMessage/ErrorMessage.vue
 import { computed, reactive, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { Eye, EyeOff } from "lucide-vue-next";
-import { initialForm, resetSignUpForm, validatePasswordMatch } from "../utils/user";
+import {
+	initialForm,
+	resetSignUpForm,
+	validatePasswordMatch,
+	validatePhoneNumber,
+} from "../utils/user";
 
 const route = useRoute();
 const router = useRouter();
@@ -158,6 +164,7 @@ const signInState = ref(false);
 const signUpForm = reactive({ ...initialForm });
 
 const passwordError = ref("");
+const phoneNumberError = ref("");
 const signUpError = ref("");
 
 const session = sessionStore();
@@ -188,6 +195,7 @@ const createSignUp = createResource({
 function submit() {
 	passwordError.value = "";
 	signUpError.value = "";
+	phoneNumberError.value = "";
 
 	if (isLogin.value) {
 		session.login.submit(
@@ -208,8 +216,13 @@ function submit() {
 	} else {
 		try {
 			validatePasswordMatch(password.value, confirmPassword.value);
+			validatePhoneNumber(signUpForm.phone);
 		} catch (error: any) {
-			passwordError.value = error.message;
+			if (error.message.toLowerCase().includes("password")) {
+				passwordError.value = error.message;
+			} else {
+				phoneNumberError.value = error.message;
+			}
 			return;
 		}
 		createSignUp.submit(
