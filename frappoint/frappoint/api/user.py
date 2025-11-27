@@ -14,7 +14,7 @@ def get_user_details():
 	}
 
 
-@frappe.whitelist(allow_guest=False)
+@frappe.whitelist(allow_guest=True)
 def create_user(**kwargs):
 	try:
 		frappe.db.begin()

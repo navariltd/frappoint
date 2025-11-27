@@ -35,18 +35,88 @@
 							@click="isPwdVisible = !isPwdVisible"
 						/>
 					</div>
-					<Button
-						:loading="isLogin ? session.login.loading : createSignUp.loading"
-						variant="solid"
-						type="submit"
-						theme="blue"
-						>Login</Button
-					>
 				</template>
+				<template v-else>
+					<div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+						<Input
+							required
+							name="firstname"
+							type="text"
+							:placeholder="'John'"
+							:label="'First Name'"
+							v-model="signUpForm.first_name"
+						/>
+						<Input
+							required
+							name="lastname"
+							type="text"
+							placeholder="Doe"
+							label="Last Name"
+							v-model="signUpForm.last_name"
+						/>
+					</div>
+					<Input
+						required
+						name="email"
+						type="text"
+						placeholder="johndoe@email.com"
+						label="Email"
+						v-model="signUpForm.email"
+					/>
+					<Input
+						required
+						name="phone"
+						type="text"
+						placeholder="0712345678"
+						label="Phone Number"
+						v-model="signUpForm.phone"
+					/>
+					<div class="flex items-center space-x-2">
+						<Input
+							required
+							name="password"
+							:type="isPwdVisible ? 'text' : 'password'"
+							placeholder="••••••"
+							label="Password"
+							class="w-full"
+							v-model="password"
+						/>
+						<Eye
+							v-if="!isPwdVisible"
+							class="w-5 h-5 mt-6 cursor-pointer text-gray-600"
+							@click="isPwdVisible = !isPwdVisible"
+						/>
+						<EyeOff
+							v-if="isPwdVisible"
+							class="w-5 h-5 mt-6 cursor-pointer text-gray-600"
+							@click="isPwdVisible = !isPwdVisible"
+						/>
+					</div>
+				</template>
+				<Button
+					:loading="isLogin ? session.login.loading : createSignUp.loading"
+					variant="solid"
+					type="submit"
+					theme="blue"
+					class="font-semibold"
+				>
+					{{ isLogin ? "Login" : "Register" }}
+				</Button>
 			</form>
 
 			<div class="mt-2 text-center">
 				<ErrorMessage :message="isLogin ? session.login.error : createSignUp.error" />
+			</div>
+			<div class="flex mt-4 text-center justify-center text-sm gap-1">
+				<span v-if="isLogin">{{ "Don’t have an account?" }} </span>
+				<span v-else>{{ "Already have an account?" }} </span>
+				<button
+					class="text-blue-500 hover:underline font-medium"
+					@click="toggleForm"
+					type="button"
+				>
+					{{ isLogin ? "Sign up" : "Login" }}
+				</button>
 			</div>
 		</Card>
 	</div>

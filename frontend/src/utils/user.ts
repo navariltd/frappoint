@@ -4,6 +4,7 @@ export interface SignUp {
   email: string;
   gender: string;
   phone: string;
+  new_password: string;
 }
 
 export const initialForm: SignUp = {
