@@ -70,6 +70,9 @@ def generate_for_shift(shift_assignment):
 	sa = frappe.get_doc("Provider Shift Assignment", shift_assignment)
 	st = frappe.get_doc("Provider Shift Type", sa.shift_type)
 
+	if sa.status == "Inactive":
+		return
+
 	provider = sa.provider
 	slot_size = get_global_slot_size()
 	holiday_list = st.holiday_list
