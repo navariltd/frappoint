@@ -78,32 +78,17 @@ class ProviderShiftAssignment(Document):
 					self.throw_overlap_error(d)
 
 	def validate_same_date_multiple_shifts(self, overlapping_dates):
-		if cint(frappe.db.get_single_value("HR Settings", "allow_multiple_shift_assignments")):
-			if not self.docstatus:
-				frappe.msgprint(
-					_(
-						"Warning: {0} already has an active Shift Assignment {1} for some/all of these dates."
-					).format(
-						frappe.bold(self.provider),
-						get_link_to_form("Provider Shift Assignment", overlapping_dates[0].name),
-					)
-				)
-		else:
-			msg = _("{0} already has an active Shift Assignment {1} for some/all of these dates.").format(
-				frappe.bold(self.employee),
-				get_link_to_form("Shift Assignment", overlapping_dates[0].name),
-			)
-			msg += "<br><br>"
-			msg += _("To allow this, enable {0} under {1}.").format(
-				frappe.bold(_("Allow Multiple Shift Assignments for Same Date")),
-				get_link_to_form("HR Settings", "HR Settings"),
-			)
+		# TODO: Consider adding multiple shift assignments
+		msg = _("{0} already has an active Shift Assignment {1} for some/all of these dates.").format(
+			frappe.bold(self.provider),
+			get_link_to_form("Shift Assignment", overlapping_dates[0].name),
+		)
 
-			frappe.throw(
-				title=_("Multiple Shift Assignments"),
-				msg=msg,
-				exc=MultipleShiftError,
-			)
+		frappe.throw(
+			title=_("Multiple Shift Assignments"),
+			msg=msg,
+			exc=MultipleShiftError,
+		)
 
 	def get_overlapping_dates(self):
 		if not self.name:
