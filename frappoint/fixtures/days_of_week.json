@@ -1,0 +1,51 @@
+[
+ {
+  "docstatus": 0,
+  "doctype": "Days Of Week",
+  "modified": "2025-11-27 17:51:56.814241",
+  "name": "Wednesday",
+  "weekday": "Wednesday"
+ },
+ {
+  "docstatus": 0,
+  "doctype": "Days Of Week",
+  "modified": "2025-11-27 17:52:07.142123",
+  "name": "Thursday",
+  "weekday": "Thursday"
+ },
+ {
+  "docstatus": 0,
+  "doctype": "Days Of Week",
+  "modified": "2025-11-27 17:52:13.060095",
+  "name": "Friday",
+  "weekday": "Friday"
+ },
+ {
+  "docstatus": 0,
+  "doctype": "Days Of Week",
+  "modified": "2025-11-27 17:52:22.998588",
+  "name": "Saturday",
+  "weekday": "Saturday"
+ },
+ {
+  "docstatus": 0,
+  "doctype": "Days Of Week",
+  "modified": "2025-11-27 17:52:28.180600",
+  "name": "Sunday",
+  "weekday": "Sunday"
+ },
+ {
+  "docstatus": 0,
+  "doctype": "Days Of Week",
+  "modified": "2025-11-27 17:51:37.501453",
+  "name": "Monday",
+  "weekday": "Monday"
+ },
+ {
+  "docstatus": 0,
+  "doctype": "Days Of Week",
+  "modified": "2025-11-27 17:51:47.468688",
+  "name": "Tuesday",
+  "weekday": "Tuesday"
+ }
+]
