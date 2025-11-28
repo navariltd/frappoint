@@ -5,14 +5,18 @@
  "doctype": "DocType",
  "engine": "InnoDB",
  "field_order": [
-  "lead_time_hours",
   "max_advance_days",
+  "lead_time_hours",
+  "default_slot_size",
   "column_break_iscu",
   "use_erpnext_pricing",
   "auto_create_service_items",
   "default_item_group",
   "section_break_iodw",
   "default_google_calendar",
+  "buffer_tab",
+  "buffer_before_minutes",
+  "buffer_after_minutes",
   "alerts_tab",
   "appointment_confirmation",
   "appointment_confirmation_msg",
@@ -39,7 +43,10 @@
    "description": "How many days ahead bookings are allowed",
    "fieldname": "max_advance_days",
    "fieldtype": "Int",
-   "label": "Max Advance Days"
+   "in_list_view": 1,
+   "label": "Max Advance Days",
+   "non_negative": 1,
+   "reqd": 1
   },
   {
    "fieldname": "column_break_iscu",
@@ -101,13 +108,36 @@
    "fieldname": "appointment_reminder_msg",
    "fieldtype": "Small Text",
    "label": "Reminder Message"
+  },
+  {
+   "fieldname": "buffer_before_minutes",
+   "fieldtype": "Int",
+   "label": "Buffer Before Minutes"
+  },
+  {
+   "fieldname": "buffer_after_minutes",
+   "fieldtype": "Int",
+   "label": "Buffer After Minutes"
+  },
+  {
+   "fieldname": "buffer_tab",
+   "fieldtype": "Tab Break",
+   "label": "Buffer"
+  },
+  {
+   "default": "10",
+   "fieldname": "default_slot_size",
+   "fieldtype": "Int",
+   "label": "Default Slot Size",
+   "non_negative": 1,
+   "reqd": 1
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2025-11-17 13:03:47.163039",
+ "modified": "2025-11-27 20:54:40.741199",
  "modified_by": "Administrator",
  "module": "Frappoint",
  "name": "Service Appointment Settings",
