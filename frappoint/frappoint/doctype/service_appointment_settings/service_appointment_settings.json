@@ -8,6 +8,8 @@
   "max_advance_days",
   "lead_time_hours",
   "default_slot_size",
+  "allow_past_booking",
+  "max_past_days",
   "column_break_iscu",
   "use_erpnext_pricing",
   "auto_create_service_items",
@@ -131,13 +133,27 @@
    "label": "Default Slot Size",
    "non_negative": 1,
    "reqd": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "allow_past_booking",
+   "fieldtype": "Check",
+   "label": "Allow Past Booking"
+  },
+  {
+   "depends_on": "eval: doc.allow_past_booking",
+   "fieldname": "max_past_days",
+   "fieldtype": "Int",
+   "label": "Max Past Days",
+   "mandatory_depends_on": "eval: doc.allow_past_booking",
+   "non_negative": 1
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2025-11-27 20:54:40.741199",
+ "modified": "2025-11-28 10:05:10.907817",
  "modified_by": "Administrator",
  "module": "Frappoint",
  "name": "Service Appointment Settings",
