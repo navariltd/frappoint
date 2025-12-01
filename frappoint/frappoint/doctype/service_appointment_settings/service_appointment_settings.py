@@ -14,15 +14,20 @@ class ServiceAppointmentSettings(Document):
 	if TYPE_CHECKING:
 		from frappe.types import DF
 
+		allow_past_booking: DF.Check
 		appointment_confirmation: DF.Check
 		appointment_confirmation_msg: DF.SmallText | None
 		appointment_reminder: DF.Check
 		appointment_reminder_msg: DF.SmallText | None
 		auto_create_service_items: DF.Check
+		buffer_after_minutes: DF.Int
+		buffer_before_minutes: DF.Int
 		default_google_calendar: DF.Link | None
 		default_item_group: DF.Link | None
+		default_slot_size: DF.Int
 		lead_time_hours: DF.Int
 		max_advance_days: DF.Int
+		max_past_days: DF.Int
 		use_erpnext_pricing: DF.Check
 	# end: auto-generated types
 	pass

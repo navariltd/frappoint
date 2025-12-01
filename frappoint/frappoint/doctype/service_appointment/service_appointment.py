@@ -50,12 +50,12 @@ class ServiceAppointment(Document):
 		notes: DF.Text | None
 		payment_status: DF.Literal["Unpaid", "Paid", "Refunded", "Cancellation"]
 		scheduled_time: DF.Datetime
+		selected_slot_ids: DF.SmallText | None
 		source: DF.Literal["Desk", "Portal"]
 		start_time: DF.Time
 		status: DF.Literal["Open", "Confirmed", "Rescheduled", "Completed", "Cancelled", "Closed", "No Show"]
 		total_amount: DF.Currency
 	# end: auto-generated types
-	pass
 
 	def validate(self):
 		self.validate_appointment_date_and_times()
@@ -64,6 +64,25 @@ class ServiceAppointment(Document):
 
 	def after_insert(self):
 		self.insert_calendar_event()
+
+	def before_save(self):
+		"""Book slots before saving if slot selection was made"""
+		if (
+			self.selected_slot_ids
+			and self.appointment_provider
+			and self.appointment_date
+			and self.start_time
+			and not self._slots_already_booked()
+		):
+			self.book_selected_slots()
+
+	def on_cancel(self):
+		"""Release slots when appointment is cancelled"""
+		self.release_slots()
+
+	def on_trash(self):
+		"""Release slots when appointment is deleted"""
+		self.release_slots()
 
 	def validate_appointment_date_and_times(self):
 		start_dt = get_datetime(f"{self.appointment_date} {self.start_time}")
@@ -237,6 +256,7 @@ class ServiceAppointment(Document):
 		participants.append(
 			{"reference_doctype": "Appointment Provider", "reference_docname": self.appointment_provider}
 		)
+		# TODO: Make Customer Mandatory if ERPNext is installed or add installed apps guard
 		participants.append({"reference_doctype": "Customer", "reference_docname": self.customer})
 
 		event.update({"event_participants": participants})
@@ -279,3 +299,57 @@ class ServiceAppointment(Document):
 			send_sms(number, message)
 		except Exception:
 			frappe.msgprint(_("SMS not sent, please check SMS Settings"), alert=True)
+
+	def _slots_already_booked(self):
+		"""Check if slots are already booked for this appointment"""
+		if not self.name:
+			return False
+
+		booked_count = frappe.db.count("Appointment Provider Slot", {"service_appointment": self.name})
+		return booked_count > 0
+
+	def book_selected_slots(self):
+		"""Book the selected slots"""
+		try:
+			slot_ids = json.loads(self.selected_slot_ids)
+		except (json.JSONDecodeError, TypeError):
+			frappe.throw(_("Invalid slot selection data"))
+
+		# Validate all slots are still available
+		for slot_id in slot_ids:
+			slot = frappe.get_doc("Appointment Provider Slot", slot_id)
+
+			if not slot.is_available or (slot.service_appointment and slot.service_appointment != self.name):
+				frappe.throw(
+					_("Slot {0} is no longer available. Please select another time slot.").format(slot_id),
+					title=_("Slot Not Available"),
+				)
+
+		# Book all slots
+		for slot_id in slot_ids:
+			frappe.db.set_value(
+				"Appointment Provider Slot", slot_id, {"service_appointment": self.name, "is_available": 0}
+			)
+
+		frappe.msgprint(_("Appointment slots booked successfully"), indicator="green", alert=True)
+
+	def release_slots(self):
+		"""Release all booked slots for this appointment"""
+		from frappoint.frappoint.doctype.appointment_provider_slot.appointment_provider_slot import (
+			release_appointment_slots,
+		)
+
+		release_appointment_slots(self.name)
+
+
+@frappe.whitelist()
+def get_appointment_slots(appointment_type, provider=None, date=None, days_ahead=30):
+	"""
+	Wrapper method for getting available slots
+	Can be called from frontend
+	"""
+	from frappoint.frappoint.doctype.appointment_provider_slot.appointment_provider_slot import (
+		get_available_slots,
+	)
+
+	return get_available_slots(appointment_type, provider, date, days_ahead)
