@@ -19,6 +19,7 @@
   "start_time",
   "duration",
   "end_time",
+  "selected_slot_ids",
   "customer_details_section",
   "customer",
   "full_name",
@@ -63,10 +64,12 @@
    "fieldtype": "Datetime",
    "in_list_view": 1,
    "label": "Scheduled Time",
+   "no_copy": 1,
    "read_only": 1,
    "reqd": 1
   },
   {
+   "allow_on_submit": 1,
    "fieldname": "status",
    "fieldtype": "Select",
    "label": "Status",
@@ -106,18 +109,21 @@
    "fieldname": "appointment_date",
    "fieldtype": "Date",
    "label": "Appointment Date",
+   "no_copy": 1,
    "reqd": 1
   },
   {
    "fieldname": "start_time",
    "fieldtype": "Time",
    "label": "Start Time",
+   "no_copy": 1,
    "reqd": 1
   },
   {
    "fieldname": "end_time",
    "fieldtype": "Time",
    "label": "End Time",
+   "no_copy": 1,
    "read_only": 1,
    "reqd": 1
   },
@@ -152,7 +158,8 @@
   {
    "fieldname": "confirmation_token",
    "fieldtype": "Data",
-   "label": "Confirmation Token"
+   "label": "Confirmation Token",
+   "no_copy": 1
   },
   {
    "fieldname": "source",
@@ -163,7 +170,8 @@
   {
    "fieldname": "notes",
    "fieldtype": "Text",
-   "label": "Notes"
+   "label": "Notes",
+   "no_copy": 1
   },
   {
    "fieldname": "column_break_ahpd",
@@ -238,6 +246,7 @@
    "fieldname": "event",
    "fieldtype": "Link",
    "label": "Event",
+   "no_copy": 1,
    "options": "Event",
    "read_only": 1
   },
@@ -245,6 +254,16 @@
    "fieldname": "google_meet_link",
    "fieldtype": "Data",
    "label": "Google Meet Link",
+   "no_copy": 1,
+   "read_only": 1
+  },
+  {
+   "allow_on_submit": 1,
+   "fieldname": "selected_slot_ids",
+   "fieldtype": "Small Text",
+   "hidden": 1,
+   "label": "Selected Slot Ids",
+   "no_copy": 1,
    "read_only": 1
   }
  ],
@@ -252,7 +271,7 @@
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2025-11-25 14:32:43.722780",
+ "modified": "2025-12-01 12:25:03.752263",
  "modified_by": "Administrator",
  "module": "Frappoint",
  "name": "Service Appointment",
