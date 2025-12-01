@@ -30,6 +30,8 @@ class AppointmentType(Document):
 		)
 
 		appointment_type: DF.Data
+		buffer_after: DF.Int
+		buffer_before: DF.Int
 		company: DF.Link
 		consumables: DF.Table[AppointmentTypeMaterial]
 		default_duration_in_minutes: DF.Int

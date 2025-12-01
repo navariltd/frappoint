@@ -6,7 +6,7 @@ from datetime import datetime, timedelta
 import frappe
 from frappe import _
 from frappe.model.document import Document
-from frappe.utils import date_diff, get_time, getdate
+from frappe.utils import add_days, date_diff, get_datetime, get_time, getdate, now_datetime, nowdate
 
 
 class AppointmentProviderSlot(Document):
@@ -323,10 +323,14 @@ def get_available_slots(appointment_type, provider=None, date=None, days_ahead=3
 	Returns:
 		List of available slots grouped by provider and date
 	"""
-	from frappe.utils import add_days, getdate, nowdate
 
 	apt_type = frappe.get_doc("Appointment Type", appointment_type)
 	duration = apt_type.default_duration_in_minutes
+
+	settings = frappe.get_single("Service Appointment Settings")
+	buffer_before = apt_type.buffer_before or settings.buffer_before or 0
+	buffer_after = apt_type.buffer_after or settings.buffer_after or 0
+	allow_past_booking = settings.allow_past_booking
 
 	if provider:
 		providers = [provider]
@@ -341,13 +345,20 @@ def get_available_slots(appointment_type, provider=None, date=None, days_ahead=3
 		end_date = start_date
 	else:
 		start_date = getdate(nowdate())
-		days_ahead = (
-			frappe.db.get_single_value("Service Appointment Settings", "max_advance_days") or days_ahead
-		)
+		days_ahead = settings.max_advance_days or days_ahead
 		end_date = add_days(start_date, days_ahead)
 
+	past_booking_filter = ""
+	if not allow_past_booking:
+		past_booking_filter = """
+		AND (
+			s.posting_date > CURDATE()
+			OR (s.posting_date = CURDATE() AND s.start_time > CURTIME())
+		)
+	"""
+
 	slots = frappe.db.sql(
-		"""
+		f"""
 		SELECT
 			s.name,
 			s.provider,
@@ -364,31 +375,35 @@ def get_available_slots(appointment_type, provider=None, date=None, days_ahead=3
 		AND s.is_available = 1
 		AND (s.service_appointment IS NULL OR s.service_appointment = '')
 		AND p.active = 1
+		{past_booking_filter}
 		ORDER BY s.posting_date, s.start_time, p.provider_name
 	""",
 		{"providers": providers, "start_date": start_date, "end_date": end_date},
 		as_dict=True,
 	)
 
-	available_slots = group_slots_by_duration(slots, duration)
+	available_slots = group_slots_by_duration(slots, duration, buffer_before, buffer_after)
 
 	return format_available_slots(available_slots)
 
 
-def group_slots_by_duration(slots, required_duration):
+def group_slots_by_duration(slots, required_duration, buffer_before=0, buffer_after=0):
 	"""
-	Group consecutive slots that can accommodate the required duration
+	Group consecutive slots that can accommodate the required duration plus buffers
 
 	Args:
 		slots: List of slot dictionaries
 		required_duration: Required duration in minutes
+		buffer_before: Buffer time before appointment in minutes
+		buffer_after: Buffer time after appointment in minutes
+
 
 	Returns:
 		List of available time slots with their component slots
 	"""
-	from datetime import datetime, timedelta
 
 	available_slots = []
+	total_duration_needed = required_duration + buffer_before + buffer_after
 
 	# Group by provider and date
 	grouped = {}
@@ -446,17 +461,20 @@ def group_slots_by_duration(slots, required_duration):
 				accumulated_minutes += slot_duration
 
 				# If we have enough duration, create an available slot
-				if accumulated_minutes >= required_duration:
-					end_time = get_end_time_for_duration(start_time, required_duration)
+				if accumulated_minutes >= total_duration_needed:
+					actual_start_time = get_end_time_for_duration(start_time, buffer_before)
+					actual_end_time = get_end_time_for_duration(actual_start_time, required_duration)
 
 					available_slots.append(
 						{
 							"provider": provider,
 							"provider_name": current_slot.provider_name,
 							"date": date,
-							"start_time": start_time,
-							"end_time": end_time,
+							"start_time": actual_start_time,
+							"end_time": actual_end_time,
 							"duration": required_duration,
+							"buffer_before": buffer_before,
+							"buffer_after": buffer_after,
 							"slot_ids": [s.name for s in component_slots],
 							"shift_assignment": current_slot.shift_assignment,
 						}
@@ -467,14 +485,11 @@ def group_slots_by_duration(slots, required_duration):
 
 			i += 1
 
-	print(frappe.as_json(available_slots, indent=2))
-
 	return available_slots
 
 
 def get_end_time_for_duration(start_time, duration_minutes):
 	"""Calculate end time given start time and duration"""
-	from datetime import datetime, timedelta
 
 	if isinstance(start_time, str):
 		start_time = datetime.strptime(start_time, "%H:%M:%S").time()
@@ -507,6 +522,8 @@ def format_available_slots(slots):
 				"start_time": str(slot["start_time"]),
 				"end_time": str(slot["end_time"]),
 				"duration": slot["duration"],
+				"buffer_before": slot.get("buffer_before", 0),
+				"buffer_after": slot.get("buffer_after", 0),
 				"slot_ids": slot["slot_ids"],
 				"shift_assignment": slot["shift_assignment"],
 			}
