@@ -4,6 +4,7 @@
 from datetime import datetime, timedelta
 
 import frappe
+from frappe import _
 from frappe.model.document import Document
 from frappe.utils import date_diff, get_time, getdate
 
@@ -306,3 +307,290 @@ def delete_slots_for_specific_days(shift_assignment, weekdays):
 
 	count = deleted_count if isinstance(deleted_count, int) else len(dates_to_delete)
 	return f"Deleted slots for {', '.join(weekdays)} ({count} dates processed)"
+
+
+@frappe.whitelist()
+def get_available_slots(appointment_type, provider=None, date=None, days_ahead=30):
+	"""
+	Get available slots for an appointment type
+
+	Args:
+		appointment_type: Name of the Appointment Type
+		provider: Optional - Filter by specific provider
+		date: Optional - Filter by specific date (YYYY-MM-DD)
+		days_ahead: Number of days to look ahead if no date specified
+
+	Returns:
+		List of available slots grouped by provider and date
+	"""
+	from frappe.utils import add_days, getdate, nowdate
+
+	apt_type = frappe.get_doc("Appointment Type", appointment_type)
+	duration = apt_type.default_duration_in_minutes
+
+	if provider:
+		providers = [provider]
+	else:
+		providers = [p.provider for p in apt_type.providers]
+
+	if not providers:
+		return []
+
+	if date:
+		start_date = getdate(date)
+		end_date = start_date
+	else:
+		start_date = getdate(nowdate())
+		days_ahead = (
+			frappe.db.get_single_value("Service Appointment Settings", "max_advance_days") or days_ahead
+		)
+		end_date = add_days(start_date, days_ahead)
+
+	slots = frappe.db.sql(
+		"""
+		SELECT
+			s.name,
+			s.provider,
+			p.provider_name,
+			s.posting_date,
+			s.start_time,
+			s.end_time,
+			s.shift_assignment,
+			TIMEDIFF(s.end_time, s.start_time) as slot_duration_minutes
+		FROM `tabAppointment Provider Slot` s
+		INNER JOIN `tabAppointment Provider` p ON s.provider = p.name
+		WHERE s.provider IN %(providers)s
+		AND s.posting_date BETWEEN %(start_date)s AND %(end_date)s
+		AND s.is_available = 1
+		AND (s.service_appointment IS NULL OR s.service_appointment = '')
+		AND p.active = 1
+		ORDER BY s.posting_date, s.start_time, p.provider_name
+	""",
+		{"providers": providers, "start_date": start_date, "end_date": end_date},
+		as_dict=True,
+	)
+
+	available_slots = group_slots_by_duration(slots, duration)
+
+	return format_available_slots(available_slots)
+
+
+def group_slots_by_duration(slots, required_duration):
+	"""
+	Group consecutive slots that can accommodate the required duration
+
+	Args:
+		slots: List of slot dictionaries
+		required_duration: Required duration in minutes
+
+	Returns:
+		List of available time slots with their component slots
+	"""
+	from datetime import datetime, timedelta
+
+	available_slots = []
+
+	# Group by provider and date
+	grouped = {}
+	for slot in slots:
+		key = (slot.provider, slot.posting_date)
+		if key not in grouped:
+			grouped[key] = []
+		grouped[key].append(slot)
+
+	# For each provider-date combination, find consecutive slots
+	for (provider, date), day_slots in grouped.items():
+		i = 0
+		while i < len(day_slots):
+			current_slot = day_slots[i]
+			start_time_raw = current_slot.start_time
+			if isinstance(start_time_raw, timedelta):
+				start_time = (datetime.min + start_time_raw).time()
+			else:
+				start_time = start_time_raw
+
+			accumulated_minutes = 0
+			component_slots = []
+
+			# Try to accumulate consecutive slots
+			j = i
+			while j < len(day_slots):
+				slot = day_slots[j]
+
+				# Check if this slot is consecutive with the previous
+				if component_slots:
+					last_slot = component_slots[-1]
+					if isinstance(last_slot.end_time, timedelta):
+						last_slot_end_time = (datetime.min + last_slot.end_time).time()
+					else:
+						last_slot_end_time = last_slot.end_time
+
+					last_end_dt = datetime.combine(datetime.today(), last_slot_end_time)
+
+					if isinstance(slot.start_time, timedelta):
+						current_slot_start_time = (datetime.min + slot.start_time).time()
+					else:
+						current_slot_start_time = slot.start_time
+
+					current_start_dt = datetime.combine(datetime.today(), current_slot_start_time)
+					gap = current_start_dt - last_end_dt
+
+					# Ensure no gaps > 1 minute or overlaps
+					if gap > timedelta(minutes=1) or gap < timedelta(seconds=-1):
+						break
+
+				component_slots.append(slot)
+
+				slot_duration_timedelta = slot.slot_duration_minutes
+				slot_duration = int(slot_duration_timedelta.total_seconds() / 60)
+				accumulated_minutes += slot_duration
+
+				# If we have enough duration, create an available slot
+				if accumulated_minutes >= required_duration:
+					end_time = get_end_time_for_duration(start_time, required_duration)
+
+					available_slots.append(
+						{
+							"provider": provider,
+							"provider_name": current_slot.provider_name,
+							"date": date,
+							"start_time": start_time,
+							"end_time": end_time,
+							"duration": required_duration,
+							"slot_ids": [s.name for s in component_slots],
+							"shift_assignment": current_slot.shift_assignment,
+						}
+					)
+					break
+
+				j += 1
+
+			i += 1
+
+	print(frappe.as_json(available_slots, indent=2))
+
+	return available_slots
+
+
+def get_end_time_for_duration(start_time, duration_minutes):
+	"""Calculate end time given start time and duration"""
+	from datetime import datetime, timedelta
+
+	if isinstance(start_time, str):
+		start_time = datetime.strptime(start_time, "%H:%M:%S").time()
+
+	start_dt = datetime.combine(datetime.today(), start_time)
+	end_dt = start_dt + timedelta(minutes=duration_minutes)
+
+	return end_dt.time()
+
+
+def format_available_slots(slots):
+	"""Format slots for frontend consumption"""
+	# Group by provider
+	by_provider = {}
+	for slot in slots:
+		provider = slot["provider"]
+		if provider not in by_provider:
+			by_provider[provider] = {
+				"provider": provider,
+				"provider_name": slot["provider_name"],
+				"dates": {},
+			}
+
+		date = str(slot["date"])
+		if date not in by_provider[provider]["dates"]:
+			by_provider[provider]["dates"][date] = []
+
+		by_provider[provider]["dates"][date].append(
+			{
+				"start_time": str(slot["start_time"]),
+				"end_time": str(slot["end_time"]),
+				"duration": slot["duration"],
+				"slot_ids": slot["slot_ids"],
+				"shift_assignment": slot["shift_assignment"],
+			}
+		)
+
+	# Convert to list
+	result = []
+	for provider_data in by_provider.values():
+		# Convert dates dict to sorted list
+		dates_list = []
+		for date, times in sorted(provider_data["dates"].items()):
+			dates_list.append({"date": date, "slots": times})
+
+		result.append(
+			{
+				"provider": provider_data["provider"],
+				"provider_name": provider_data["provider_name"],
+				"available_dates": dates_list,
+			}
+		)
+
+	return result
+
+
+@frappe.whitelist()
+def book_appointment_slot(appointment, provider, date, start_time, slot_ids):
+	"""
+	Book slots for an appointment
+
+	Args:
+		appointment: Service Appointment name
+		provider: Provider ID
+		date: Appointment date
+		start_time: Start time
+		slot_ids: JSON array of slot IDs to book
+	"""
+	import json
+
+	if isinstance(slot_ids, str):
+		slot_ids = json.loads(slot_ids)
+
+	# Validate all slots are still available
+	for slot_id in slot_ids:
+		slot = frappe.get_doc("Appointment Provider Slot", slot_id)
+
+		if not slot.is_available or slot.service_appointment:
+			frappe.throw(
+				_("Slot {0} is no longer available. Please select another time.").format(slot_id),
+				title=_("Slot Not Available"),
+			)
+
+	# Book all slots
+	for slot_id in slot_ids:
+		frappe.db.set_value(
+			"Appointment Provider Slot", slot_id, {"service_appointment": appointment, "is_available": 0}
+		)
+
+	frappe.db.commit()
+
+	return {
+		"success": True,
+		"message": _("Appointment slots booked successfully"),
+		"slots_booked": len(slot_ids),
+	}
+
+
+@frappe.whitelist()
+def release_appointment_slots(appointment):
+	"""
+	Release slots when appointment is cancelled
+
+	Args:
+		appointment: Service Appointment name
+	"""
+	frappe.db.sql(
+		"""
+		UPDATE `tabAppointment Provider Slot`
+		SET service_appointment = NULL,
+			is_available = 1
+		WHERE service_appointment = %s
+	""",
+		appointment,
+	)
+
+	frappe.db.commit()
+
+	return {"success": True, "message": _("Appointment slots released")}
