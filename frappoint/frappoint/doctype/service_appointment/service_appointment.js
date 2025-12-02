@@ -2,7 +2,85 @@
 // For license information, please see license.txt
 
 frappe.ui.form.on("Service Appointment", {
-	refresh(frm) {},
+	refresh(frm) {
+		// Show Available Slots button
+		if (frm.doc.appointment_type && !frm.doc.docstatus) {
+			frm.add_custom_button(__("Show Available Slots"), function () {
+				show_slot_picker(frm);
+			});
+		}
+
+		// Confirm Appointment button
+		if (frm.doc.docstatus === 0 && frm.doc.status === "Open" && !frm.is_new()) {
+			frm.add_custom_button(__("Confirm Appointment"), function () {
+				confirm_appointment(frm);
+			}).addClass("btn-primary");
+		}
+
+		// Complete Appointment button
+		if (frm.doc.docstatus === 1 && frm.doc.status === "Confirmed") {
+			frm.add_custom_button(__("Complete & Invoice"), function () {
+				frappe.confirm(__("Mark appointment as completed and create invoice?"), () => {
+					frm.set_value("status", "Completed").then(() => {
+						frm.save("Update");
+					});
+				});
+			}).addClass("btn-primary");
+		}
+
+		// Issue Consumables button (if not auto-issued)
+		if (frm.doc.docstatus === 1 && frm.doc.status === "Completed") {
+			frm.add_custom_button(
+				__("Issue Consumables"),
+				function () {
+					frappe.call({
+						method: "frappoint.frappoint.doctype.service_appointment.service_appointment.issue_consumables_manual",
+						args: {
+							appointment: frm.doc.name,
+						},
+						callback: function (r) {
+							frm.reload_doc();
+						},
+					});
+				},
+				__("Stock")
+			);
+
+			// Material Request button
+			frm.add_custom_button(
+				__("Create Material Request"),
+				function () {
+					frappe.call({
+						method: "frappoint.frappoint.doctype.service_appointment.service_appointment.create_material_request_manual",
+						args: {
+							appointment: frm.doc.name,
+						},
+						callback: function (r) {
+							if (r.message) {
+								frappe.set_route("Form", "Material Request", r.message);
+							}
+						},
+					});
+				},
+				__("Stock")
+			);
+		}
+
+		// Cancel Appointment button
+		if (frm.doc.docstatus === 1 && frm.doc.status !== "Cancelled") {
+			frm.add_custom_button(
+				__("Cancel Appointment"),
+				function () {
+					frappe.confirm(__("Are you sure you want to cancel this appointment?"), () => {
+						frm.set_value("status", "Cancelled").then(() => {
+							frm.save("Cancel");
+						});
+					});
+				},
+				__("Actions")
+			);
+		}
+	},
 
 	start_time(frm) {
 		calculate_end_time(frm);
@@ -22,6 +100,37 @@ frappe.ui.form.on("Service Appointment", {
 		calculate_end_time(frm);
 
 		if (frm.doc.appointment_type) {
+			// Load appointment type details including prices
+			frappe.call({
+				method: "frappe.client.get",
+				args: {
+					doctype: "Appointment Type",
+					name: frm.doc.appointment_type,
+				},
+				callback: function (r) {
+					if (r.message) {
+						let apt_type = r.message;
+
+						// Set duration
+						if (apt_type.default_duration_in_minutes) {
+							frm.set_value("duration", apt_type.default_duration_in_minutes);
+						}
+
+						// Handle price selection
+						if (apt_type.prices && apt_type.prices.length > 0) {
+							if (apt_type.prices.length === 1) {
+								// Only one price, auto-select
+								frm.set_value("appointment_price", apt_type.prices[0].price_name);
+								frm.set_value("total_amount", apt_type.prices[0].rate);
+							} else {
+								// Multiple prices, let user select
+								show_price_selector(frm, apt_type.prices);
+							}
+						}
+					}
+				},
+			});
+
 			frm.add_custom_button(__("Show Available Slots"), function () {
 				show_slot_picker(frm);
 			});
@@ -275,4 +384,115 @@ window.selectSlot = function (btn) {
 		end_time: btn.dataset.end,
 		slot_ids: JSON.parse(btn.dataset.slots),
 	};
+};
+
+function confirm_appointment(frm) {
+	// Check if price is selected
+	if (!frm.doc.appointment_price) {
+		frappe.msgprint(__("Please select a price for this appointment"));
+		return;
+	}
+
+	frm.set_value("status", "Confirmed").then(() => {
+		frm.save("Submit");
+	});
+}
+
+function show_price_selector(frm, prices) {
+	let d = new frappe.ui.Dialog({
+		title: __("Select Appointment Price"),
+		fields: [
+			{
+				fieldname: "price_selection",
+				fieldtype: "HTML",
+			},
+		],
+		primary_action_label: __("Select"),
+		primary_action: function () {
+			let selected_price = d.selected_price;
+			if (!selected_price) {
+				frappe.msgprint(__("Please select a price"));
+				return;
+			}
+
+			frm.set_value("appointment_price", selected_price.price_name);
+			frm.set_value("total_amount", selected_price.rate);
+			d.hide();
+		},
+	});
+
+	// Build price selection HTML
+	let html = '<div class="price-selector">';
+
+	prices.forEach((price) => {
+		html += `
+			<div class="price-card" data-price='${JSON.stringify(price)}' onclick="selectPrice(this)">
+				<div class="price-name">${price.price_name}</div>
+				<div class="price-amount">${format_currency(price.rate, price.currency)}</div>
+				<div class="price-details">
+					<small class="text-muted">Price List: ${price.price_list}</small>
+				</div>
+			</div>
+		`;
+	});
+
+	html += "</div>";
+
+	html += `
+		<style>
+			.price-selector {
+				display: grid;
+				grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+				gap: 15px;
+				margin-top: 15px;
+			}
+			.price-card {
+				border: 2px solid #d1d8dd;
+				border-radius: 8px;
+				padding: 15px;
+				cursor: pointer;
+				transition: all 0.3s;
+				text-align: center;
+			}
+			.price-card:hover {
+				border-color: #5e64ff;
+				transform: translateY(-2px);
+				box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+			}
+			.price-card.selected {
+				border-color: #5e64ff;
+				background-color: #f0f4ff;
+			}
+			.price-name {
+				font-weight: bold;
+				font-size: 16px;
+				margin-bottom: 8px;
+			}
+			.price-amount {
+				font-size: 24px;
+				color: #5e64ff;
+				font-weight: bold;
+				margin-bottom: 8px;
+			}
+			.price-details {
+				margin-top: 8px;
+			}
+		</style>
+	`;
+
+	d.fields_dict.price_selection.$wrapper.html(html);
+	d.show();
+}
+
+// Global function to handle price selection
+window.selectPrice = function (card) {
+	// Remove previous selection
+	document.querySelectorAll(".price-card").forEach((c) => c.classList.remove("selected"));
+
+	// Mark as selected
+	card.classList.add("selected");
+
+	// Store selected price
+	let dialog = cur_dialog;
+	dialog.selected_price = JSON.parse(card.dataset.price);
 };
