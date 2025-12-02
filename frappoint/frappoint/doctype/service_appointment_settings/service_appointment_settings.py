@@ -20,8 +20,9 @@ class ServiceAppointmentSettings(Document):
 		appointment_reminder: DF.Check
 		appointment_reminder_msg: DF.SmallText | None
 		auto_create_service_items: DF.Check
-		buffer_after_minutes: DF.Int
-		buffer_before_minutes: DF.Int
+		auto_issue_consumables: DF.Check
+		buffer_after: DF.Int
+		buffer_before: DF.Int
 		default_google_calendar: DF.Link | None
 		default_item_group: DF.Link | None
 		default_slot_size: DF.Int

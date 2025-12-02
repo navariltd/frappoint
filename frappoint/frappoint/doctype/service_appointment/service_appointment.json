@@ -15,6 +15,7 @@
   "appointment_type",
   "appointment_provider",
   "appointment_date",
+  "appointment_price",
   "column_break_bguz",
   "start_time",
   "duration",
@@ -148,7 +149,10 @@
   {
    "fieldname": "total_amount",
    "fieldtype": "Currency",
-   "label": "Total Amount"
+   "label": "Total Amount",
+   "non_negative": 1,
+   "read_only": 1,
+   "reqd": 1
   },
   {
    "fieldname": "more_info_section",
@@ -265,13 +269,19 @@
    "label": "Selected Slot Ids",
    "no_copy": 1,
    "read_only": 1
+  },
+  {
+   "fieldname": "appointment_price",
+   "fieldtype": "Data",
+   "label": "Appointment Price",
+   "reqd": 1
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2025-12-01 12:25:03.752263",
+ "modified": "2025-12-02 11:15:08.655289",
  "modified_by": "Administrator",
  "module": "Frappoint",
  "name": "Service Appointment",

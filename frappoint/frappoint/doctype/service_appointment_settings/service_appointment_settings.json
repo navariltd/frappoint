@@ -14,11 +14,12 @@
   "use_erpnext_pricing",
   "auto_create_service_items",
   "default_item_group",
+  "auto_issue_consumables",
   "section_break_iodw",
   "default_google_calendar",
   "buffer_tab",
-  "buffer_before_minutes",
-  "buffer_after_minutes",
+  "buffer_before",
+  "buffer_after",
   "alerts_tab",
   "appointment_confirmation",
   "appointment_confirmation_msg",
@@ -112,16 +113,6 @@
    "label": "Reminder Message"
   },
   {
-   "fieldname": "buffer_before_minutes",
-   "fieldtype": "Int",
-   "label": "Buffer Before Minutes"
-  },
-  {
-   "fieldname": "buffer_after_minutes",
-   "fieldtype": "Int",
-   "label": "Buffer After Minutes"
-  },
-  {
    "fieldname": "buffer_tab",
    "fieldtype": "Tab Break",
    "label": "Buffer"
@@ -147,13 +138,32 @@
    "label": "Max Past Days",
    "mandatory_depends_on": "eval: doc.allow_past_booking",
    "non_negative": 1
+  },
+  {
+   "fieldname": "buffer_before",
+   "fieldtype": "Int",
+   "label": "Buffer Before (In Minutes)",
+   "non_negative": 1
+  },
+  {
+   "fieldname": "buffer_after",
+   "fieldtype": "Int",
+   "label": "Buffer After (In Minutes)",
+   "non_negative": 1
+  },
+  {
+   "default": "0",
+   "description": "If Apt Type has consumables then a Stock Entry of Material Issue will automatically be created when status changes to Completed",
+   "fieldname": "auto_issue_consumables",
+   "fieldtype": "Check",
+   "label": "Auto Issue Consumables"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2025-11-28 10:05:10.907817",
+ "modified": "2025-12-02 09:32:08.754973",
  "modified_by": "Administrator",
  "module": "Frappoint",
  "name": "Service Appointment Settings",
