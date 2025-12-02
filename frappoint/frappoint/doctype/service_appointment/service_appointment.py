@@ -420,7 +420,7 @@ class ServiceAppointment(Document):
 		"""Handle actions based on status change"""
 		status_handlers = {
 			"Confirmed": self.create_sales_order,
-			"Completed": lambda: (self.create_sales_invoice()),
+			"Completed": lambda: (self.create_sales_invoice(), self.auto_issue_consumables()),
 			"Cancelled": self.handle_cancellation,
 		}
 
@@ -446,14 +446,18 @@ class ServiceAppointment(Document):
 	def get_linked_document(self, doctype, fields=None):
 		"""Generic method to get linked document"""
 		if fields is None:
-			fields = ["name", "docstatus"]
+			fields = ["name"]
 
 		direct_link_field = doctype.lower().replace(" ", "_")
 		if hasattr(self, direct_link_field) and self.get(direct_link_field):
 			doc = frappe.get_doc(doctype, self.get(direct_link_field))
-			return {field: doc.get(field) for field in fields}
+			if doc.docstatus == 1:
+				return {field: doc.get(field) for field in fields}
+			return None
 
-		docs = frappe.get_all(doctype, filters={"service_appointment": self.name}, fields=fields, limit=1)
+		docs = frappe.get_all(
+			doctype, filters={"service_appointment": self.name, "docstatus": 1}, fields=fields, limit=1
+		)
 		return docs[0] if docs else None
 
 	def get_all_linked_documents(self):
@@ -511,7 +515,7 @@ class ServiceAppointment(Document):
 		sales_order = self.get_linked_document("Sales Order")
 
 		if sales_order:
-			self.show_already_exists_message("Sales Order", sales_order)
+			self.show_already_exists_message("Sales Order", sales_order.name)
 			return
 
 		try:
@@ -665,7 +669,7 @@ class ServiceAppointment(Document):
 		sales_order = self.get_linked_document("Sales Order")
 
 		if sales_invoice:
-			self.show_already_exists_message("Sales Invoice", sales_invoice)
+			self.show_already_exists_message("Sales Invoice", sales_invoice.name)
 			return
 
 		if not sales_order:
@@ -693,6 +697,130 @@ class ServiceAppointment(Document):
 		self.status = "Cancelled"
 		self.release_slots()
 		self.cancel_sales_order()
+
+	def auto_issue_consumables(self):
+		"""Auto issue consumables if setting is enabled"""
+		if frappe.db.get_single_value("Service Appointment Settings", "auto_issue_consumables"):
+			self.issue_consumables()
+
+	def issue_consumables(self):
+		"""Issue consumables via Stock Entry when appointment is completed"""
+
+		stock_entry = self.get_linked_document("Stock Entry")
+
+		if stock_entry:
+			self.show_already_exists_message("Stock Entry", stock_entry.name)
+			return
+
+		if not self.appointment_type:
+			return
+
+		apt_type = frappe.get_doc("Appointment Type", self.appointment_type)
+
+		if not hasattr(apt_type, "consumables") or not apt_type.consumables:
+			return
+
+		try:
+			source_warehouse = self.get_source_warehouse
+
+			if not source_warehouse:
+				frappe.msgprint(
+					_("Please set Default Consumables Warehouse in Service Appointment Settings"),
+					indicator="orange",
+					alert=True,
+				)
+				return
+
+			# Create Stock Entry for Material Issue
+			stock_entry = frappe.get_doc(
+				{
+					"doctype": "Stock Entry",
+					"stock_entry_type": "Material Issue",
+					"company": self.company,
+					"posting_date": getdate(),
+					"service_appointment": self.name,
+					"items": self.get_stock_entry_items(apt_type),
+				}
+			)
+
+			stock_entry.insert(ignore_permissions=True)
+			stock_entry.submit()
+
+			self.show_success_message("Stock Entry", stock_entry.name)
+
+		except Exception as e:
+			self.log_error("issue consumables", e)
+			frappe.msgprint(_("Failed to issue consumables: {0}").format(str(e)), indicator="red", alert=True)
+
+	def get_stock_entry_items(self, apt_type):
+		"""Get items for stock entry from appointment type consumables"""
+		items = []
+
+		for consumable in apt_type.consumables:
+			items.append(
+				{
+					"item_code": consumable.item,
+					"qty": consumable.qty or 1,
+					"uom": consumable.uom or "Nos",
+					"s_warehouse": consumable.s_warehouse,
+					"cost_center": consumable.cost_center,
+				}
+			)
+		return items
+
+	def create_material_request_for_consumables(self, t_warehouse):
+		"""Create Material Request for consumables"""
+		material_request = self.get_linked_document("Material Request")
+
+		if material_request:
+			self.show_already_exists_message("Material Request", material_request.name)
+			return material_request
+
+		if not self.appointment_type:
+			return
+
+		apt_type = frappe.get_doc("Appointment Type", self.appointment_type)
+
+		if not hasattr(apt_type, "consumables") or not apt_type.consumables:
+			frappe.msgprint(_("No consumables configured for this appointment type"))
+			return
+
+		try:
+			# Create Material Request
+			mr = frappe.get_doc(
+				{
+					"doctype": "Material Request",
+					"material_request_type": "Material Transfer",
+					"company": self.company,
+					"transaction_date": getdate(),
+					"schedule_date": self.appointment_date,
+					"service_appointment": self.name,
+					"items": self.get_material_request_items(apt_type, t_warehouse),
+				}
+			)
+
+			mr.insert(ignore_permissions=True)
+			self.show_success_message("Material Request", mr.name)
+
+			return mr.name
+
+		except Exception as e:
+			self.log_and_throw_error("Material Request", e)
+
+	def get_material_request_items(self, apt_type, t_warehouse):
+		"""Get items for material request from appointment type consumables"""
+		items = []
+		for consumable in apt_type.consumables:
+			items.append(
+				{
+					"item_code": consumable.item,
+					"qty": consumable.qty,
+					"uom": consumable.uom,
+					"warehouse": t_warehouse,
+					"schedule_date": self.appointment_date,
+				}
+			)
+		return items
 
 	def show_already_exists_message(self, doctype, docname):
 		"""Show message when document already exists"""
@@ -736,3 +864,18 @@ def get_appointment_slots(appointment_type, provider=None, date=None, days_ahead
 	)
 
 	return get_available_slots(appointment_type, provider, date, days_ahead)
+
+
+@frappe.whitelist()
+def issue_consumables_manual(appointment):
+	"""Manually issue consumables for an appointment"""
+	doc = frappe.get_doc("Service Appointment", appointment)
+	doc.issue_consumables()
+	return doc.stock_entry
+
+
+@frappe.whitelist()
+def create_material_request_manual(appointment, t_warehouse):
+	"""Manually create material request for consumables"""
+	doc = frappe.get_doc("Service Appointment", appointment)
+	return doc.create_material_request_for_consumables(t_warehouse)

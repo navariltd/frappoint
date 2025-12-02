@@ -50,17 +50,36 @@ frappe.ui.form.on("Service Appointment", {
 			frm.add_custom_button(
 				__("Create Material Request"),
 				function () {
-					frappe.call({
-						method: "frappoint.frappoint.doctype.service_appointment.service_appointment.create_material_request_manual",
-						args: {
-							appointment: frm.doc.name,
-						},
-						callback: function (r) {
-							if (r.message) {
-								frappe.set_route("Form", "Material Request", r.message);
-							}
+					const d = new frappe.ui.Dialog({
+						title: "Select Target Warehouse",
+						fields: [
+							{
+								fieldname: "t_warehouse",
+								label: "Target Warehouse",
+								fieldtype: "Link",
+								options: "Warehouse",
+								reqd: 1,
+							},
+						],
+						primary_action_label: "Create Request",
+						primary_action(values) {
+							d.hide();
+
+							frappe.call({
+								method: "frappoint.frappoint.doctype.service_appointment.service_appointment.create_material_request_manual",
+								args: {
+									appointment: frm.doc.name,
+									t_warehouse: values.t_warehouse,
+								},
+								callback: function (r) {
+									if (r.message) {
+										frappe.set_route("Form", "Material Request", r.message);
+									}
+								},
+							});
 						},
 					});
+					d.show();
 				},
 				__("Stock")
 			);
