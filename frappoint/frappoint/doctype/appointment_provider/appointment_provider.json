@@ -14,6 +14,7 @@
   "column_break_ffid",
   "active",
   "color_code",
+  "default_slot_length",
   "user_details_section",
   "employee",
   "designation",
@@ -24,7 +25,8 @@
   "email",
   "google_calendar",
   "column_break_rctc",
-  "mobile_no"
+  "mobile_no",
+  "connections_tab"
  ],
  "fields": [
   {
@@ -46,7 +48,7 @@
    "options": "Employee"
   },
   {
-   "default": "0",
+   "default": "1",
    "fieldname": "active",
    "fieldtype": "Check",
    "label": "Active"
@@ -128,12 +130,33 @@
    "fieldtype": "Link",
    "label": "Grade",
    "options": "Employee Grade"
+  },
+  {
+   "fieldname": "default_slot_length",
+   "fieldtype": "Int",
+   "label": "Default Slot Length"
+  },
+  {
+   "fieldname": "connections_tab",
+   "fieldtype": "Tab Break",
+   "label": "Connections",
+   "show_dashboard": 1
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
- "links": [],
- "modified": "2025-11-18 13:04:57.954763",
+ "links": [
+  {
+   "link_doctype": "Service Appointment",
+   "link_fieldname": "appointment_provider"
+  },
+  {
+   "link_doctype": "Appointment Type",
+   "link_fieldname": "provider",
+   "table_fieldname": "providers"
+  }
+ ],
+ "modified": "2025-12-05 11:05:10.073181",
  "modified_by": "Administrator",
  "module": "Frappoint",
  "name": "Appointment Provider",
@@ -159,5 +182,6 @@
  "sort_field": "modified",
  "sort_order": "DESC",
  "states": [],
- "title_field": "provider_name"
+ "title_field": "provider_name",
+ "track_changes": 1
 }
