@@ -1,6 +1,8 @@
 # Copyright (c) 2025, Navari LTD and contributors
 # For license information, please see license.txt
 
+import random
+
 import frappe
 from frappe import _
 from frappe.model.document import Document
@@ -18,6 +20,7 @@ class AppointmentProvider(Document):
 
 		active: DF.Check
 		color_code: DF.Color | None
+		default_slot_length: DF.Int
 		designation: DF.Link | None
 		email: DF.Data | None
 		employee: DF.Link | None
@@ -36,6 +39,64 @@ class AppointmentProvider(Document):
 		self.set_full_name()
 		self.validate_user()
 		self.validate_employee()
+		self.assign_unique_color()
+		if not self.active:
+			self.ensure_no_upcoming_appointments()
+
+	def on_trash(self):
+		self.ensure_no_upcoming_appointments
+
+	def ensure_no_upcoming_appointments(self):
+		"""Checks if provider has upcoming appointments and blocks disable/delete."""
+		upcoming = frappe.db.get_value(
+			"Service Appointment",
+			{
+				"appointment_provider": self.name,
+				"appointment_date": (">=", frappe.utils.today()),
+				"status": ["!=", "Cancelled"],
+				"docstatus": ["<", 2],
+			},
+			["name", "appointment_date", "start_time"],
+			as_dict=True,
+		)
+
+		if upcoming:
+			frappe.throw(
+				_(
+					"This provider has upcoming appointments, e.g. {0} on {1} at {2}. Cannot disable or delete."
+				).format(upcoming.name, upcoming.appointment_date, upcoming.start_time),
+				title=_("Active Appointments Found"),
+			)
+
+	@staticmethod
+	def generate_random_color():
+		min_val = 0x222222
+		max_val = 0xDDDDDD
+		return f"#{random.randint(min_val, max_val):06X}"
+
+	def assign_unique_color(self):
+		"""Generate a unique color code if empty."""
+		if self.color_code:
+			return
+
+		existing_colors = {
+			row.get("color_code")
+			for row in frappe.get_all(
+				"Appointment Provider", fields=["color_code"], filters={"color_code": ["!=", ""]}
+			)
+		}
+
+		color = self.generate_random_color()
+		attempts = 0
+
+		while color in existing_colors:
+			color = self.generate_random_color()
+			attempts += 1
+			if attempts > 20:
+				color = f"#{random.getrandbits(24):06X}"
+				break
+
+		self.color_code = color
 
 	def set_full_name(self):
 		if self.last_name:

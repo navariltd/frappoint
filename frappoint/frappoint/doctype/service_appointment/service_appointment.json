@@ -42,7 +42,8 @@
   "source",
   "notes",
   "section_break_ykh1",
-  "amended_from"
+  "amended_from",
+  "connections_tab"
  ],
  "fields": [
   {
@@ -111,7 +112,8 @@
    "fieldtype": "Date",
    "label": "Appointment Date",
    "no_copy": 1,
-   "reqd": 1
+   "reqd": 1,
+   "search_index": 1
   },
   {
    "fieldname": "start_time",
@@ -133,7 +135,8 @@
    "fieldtype": "Link",
    "label": "Appointment Type",
    "options": "Appointment Type",
-   "reqd": 1
+   "reqd": 1,
+   "search_index": 1
   },
   {
    "fieldname": "payment_details_section",
@@ -203,7 +206,8 @@
    "fieldtype": "Link",
    "label": "Appointment Provider",
    "options": "Appointment Provider",
-   "reqd": 1
+   "reqd": 1,
+   "search_index": 1
   },
   {
    "fieldname": "column_break_bguz",
@@ -251,8 +255,7 @@
    "fieldtype": "Link",
    "label": "Event",
    "no_copy": 1,
-   "options": "Event",
-   "read_only": 1
+   "options": "Event"
   },
   {
    "fieldname": "google_meet_link",
@@ -275,13 +278,45 @@
    "fieldtype": "Data",
    "label": "Appointment Price",
    "reqd": 1
+  },
+  {
+   "fieldname": "connections_tab",
+   "fieldtype": "Tab Break",
+   "label": "Connections",
+   "show_dashboard": 1
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
- "links": [],
- "modified": "2025-12-02 11:15:08.655289",
+ "links": [
+  {
+   "group": "Calendar",
+   "link_doctype": "Event",
+   "link_fieldname": "reference_docname"
+  },
+  {
+   "group": "Accounts",
+   "link_doctype": "Sales Order",
+   "link_fieldname": "service_appointment"
+  },
+  {
+   "group": "Accounts",
+   "link_doctype": "Sales Invoice",
+   "link_fieldname": "service_appointment"
+  },
+  {
+   "group": "Stock",
+   "link_doctype": "Material Request",
+   "link_fieldname": "service_appointment"
+  },
+  {
+   "group": "Stock",
+   "link_doctype": "Stock Entry",
+   "link_fieldname": "service_appointment"
+  }
+ ],
+ "modified": "2025-12-05 11:05:00.185395",
  "modified_by": "Administrator",
  "module": "Frappoint",
  "name": "Service Appointment",
@@ -306,5 +341,7 @@
  "rows_threshold_for_grid_search": 20,
  "sort_field": "modified",
  "sort_order": "DESC",
- "states": []
+ "states": [],
+ "track_changes": 1,
+ "track_seen": 1
 }

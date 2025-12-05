@@ -105,7 +105,7 @@ class ProviderShiftAssignment(Document):
 			self.handle_weekday_changes()
 
 	def validate_active_provider(self):
-		if self.provider and frappe.db.get_value("Appointment Provider", self.provider, "active") == "0":
+		if self.provider and frappe.db.get_value("Appointment Provider", self.provider, "active") == 0:
 			frappe.throw(
 				_("Transactions cannot be created for an Inactive Appointment Provider {0}.").format(
 					get_link_to_form("Appointment Provider", self.provider)
