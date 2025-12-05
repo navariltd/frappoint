@@ -8,6 +8,8 @@ import json
 import frappe
 from frappe import _
 from frappe.core.doctype.sms_settings.sms_settings import send_sms
+from frappe.desk.calendar import get_event_conditions
+from frappe.desk.reportview import build_match_conditions
 from frappe.model.document import Document
 from frappe.utils import flt, get_datetime, get_link_to_form, get_time, getdate, now_datetime
 
@@ -879,3 +881,52 @@ def create_material_request_manual(appointment, t_warehouse):
 	"""Manually create material request for consumables"""
 	doc = frappe.get_doc("Service Appointment", appointment)
 	return doc.create_material_request_for_consumables(t_warehouse)
+
+
+@frappe.whitelist()
+def get_events(start, end, filters=None):
+	"""Returns events for Gantt / Calendar view rendering.
+
+	:param start: Start date-time.
+	:param end: End date-time.
+	:param filters: Filters (JSON).
+	"""
+
+	conditions = get_event_conditions("Service Appointment", filters)
+	match_conditions = build_match_conditions("Service Appointment")
+
+	if match_conditions:
+		conditions += "and" + match_conditions
+
+	data = frappe.db.sql(
+		f"""
+		select
+			`tabService Appointment`.name,
+			`tabService Appointment`.customer,
+			`tabService Appointment`.appointment_provider,
+			`tabService Appointment`.status,
+			`tabService Appointment`.duration,
+			timestamp(
+				`tabService Appointment`.appointment_date,
+				`tabService Appointment`.start_time
+			) as start,
+			`tabAppointment Provider`.color_code as color
+		from
+			`tabService Appointment`
+		left join `tabAppointment Provider`
+			on `tabService Appointment`.appointment_provider = `tabAppointment Provider`.name
+		where
+			(`tabService Appointment`.appointment_date between %(start)s and %(end)s)
+			and `tabService Appointment`.status != 'Cancelled'
+			and `tabService Appointment`.docstatus < 2
+			{conditions}
+		""",
+		{"start": start, "end": end},
+		as_dict=True,
+		update={"allDay": 0},
+	)
+
+	for item in data:
+		item.end = item.start + datetime.timedelta(minutes=item.duration)
+
+	return data
