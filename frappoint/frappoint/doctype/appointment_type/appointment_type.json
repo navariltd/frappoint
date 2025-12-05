@@ -31,7 +31,8 @@
   "description",
   "materials_tab",
   "section_break_epzh",
-  "consumables"
+  "consumables",
+  "connections_tab"
  ],
  "fields": [
   {
@@ -183,12 +184,23 @@
    "fieldtype": "Int",
    "label": "Buffer After (In Minutes)",
    "non_negative": 1
+  },
+  {
+   "fieldname": "connections_tab",
+   "fieldtype": "Tab Break",
+   "label": "Connections",
+   "show_dashboard": 1
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
- "links": [],
- "modified": "2025-12-01 17:59:08.270284",
+ "links": [
+  {
+   "link_doctype": "Service Appointment",
+   "link_fieldname": "appointment_type"
+  }
+ ],
+ "modified": "2025-12-05 08:12:48.419306",
  "modified_by": "Administrator",
  "module": "Frappoint",
  "name": "Appointment Type",
