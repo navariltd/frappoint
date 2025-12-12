@@ -21,7 +21,7 @@
 							:type="isPwdVisible ? 'text' : 'password'"
 							placeholder="••••••"
 							label="Password"
-							class="w-full pr-10 py-0.5 px-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-gray-300 focus:border-gray-500"
+							class="w-full"
 							v-model="password"
 						/>
 						<Eye
@@ -79,7 +79,7 @@
 							:type="isPwdVisible ? 'text' : 'password'"
 							placeholder="••••••"
 							label="Password"
-							class="w-full pr-10 py-0.5 px-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-gray-300 focus:border-gray-500"
+							class="w-full"
 							v-model="password"
 						/>
 						<Eye
