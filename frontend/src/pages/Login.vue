@@ -14,7 +14,7 @@
 						label="Email/User ID"
 						v-model="userEmail"
 					/>
-					<div class="flex items-center space-x-2">
+					<div class="relative">
 						<Input
 							required
 							name="password"
@@ -26,12 +26,12 @@
 						/>
 						<Eye
 							v-if="!isPwdVisible"
-							class="w-5 h-5 mt-6 cursor-pointer text-gray-600"
+							class="w-5 h-5 absolute right-3 top-7 cursor-pointer text-gray-600"
 							@click="isPwdVisible = !isPwdVisible"
 						/>
 						<EyeOff
 							v-if="isPwdVisible"
-							class="w-5 h-5 mt-6 cursor-pointer text-gray-600"
+							class="w-5 h-5 absolute right-3 top-7 cursor-pointer text-gray-600"
 							@click="isPwdVisible = !isPwdVisible"
 						/>
 					</div>
