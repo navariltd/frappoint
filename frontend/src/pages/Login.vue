@@ -14,9 +14,8 @@
 						label="Email/User ID"
 						v-model="userEmail"
 					/>
-					<div class="relative w-full">
-						<label class="block text-sm font-medium mb-2 text-gray-700">Password</label>
-						<input
+					<div class="relative">
+						<Input
 							required
 							name="password"
 							:type="isPwdVisible ? 'text' : 'password'"
@@ -25,20 +24,16 @@
 							class="w-full pr-10 py-0.5 px-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-gray-300 focus:border-gray-500"
 							v-model="password"
 						/>
-
-					
-						<div class="absolute mt-6 inset-y-0 right-2 flex items-center">
-							<Eye
-								v-if="!isPwdVisible"
-								class="w-5 h-5 cursor-pointer text-gray-600"
-								@click="isPwdVisible = !isPwdVisible"
-							/>
-							<EyeOff
-								v-if="isPwdVisible"
-								class="w-5 h-5 cursor-pointer text-gray-600"
-								@click="isPwdVisible = !isPwdVisible"
-							/>
-						</div>
+						<Eye
+							v-if="!isPwdVisible"
+							class="w-5 h-5 absolute right-3 top-7 cursor-pointer text-gray-600"
+							@click="isPwdVisible = !isPwdVisible"
+						/>
+						<EyeOff
+							v-if="isPwdVisible"
+							class="w-5 h-5 absolute right-3 top-7 cursor-pointer text-gray-600"
+							@click="isPwdVisible = !isPwdVisible"
+						/>
 					</div>
 				</template>
 				<template v-else>
@@ -77,9 +72,8 @@
 						v-model="signUpForm.phone"
 					/>
 					<ErrorMessage v-if="phoneNumberError" :message="phoneNumberError" />
-					<div class="relative w-full">
-						<label class="block text-sm font-medium mb-2 text-gray-700">Password</label>
-						<input
+					<div class="flex relative">
+						<Input
 							required
 							name="password"
 							:type="isPwdVisible ? 'text' : 'password'"
@@ -88,20 +82,16 @@
 							class="w-full pr-10 py-0.5 px-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-gray-300 focus:border-gray-500"
 							v-model="password"
 						/>
-
-					
-						<div class="absolute mt-6 inset-y-0 right-2 flex items-center">
-							<Eye
-								v-if="!isPwdVisible"
-								class="w-5 h-5 cursor-pointer text-gray-600"
-								@click="isPwdVisible = !isPwdVisible"
-							/>
-							<EyeOff
-								v-if="isPwdVisible"
-								class="w-5 h-5 cursor-pointer text-gray-600"
-								@click="isPwdVisible = !isPwdVisible"
-							/>
-						</div>
+						<Eye
+							v-if="!isPwdVisible"
+							class="w-5 h-5 absolute right-3 top-7 cursor-pointer text-gray-600"
+							@click="isPwdVisible = !isPwdVisible"
+						/>
+						<EyeOff
+							v-if="isPwdVisible"
+							class="w-5 h-5 absolute right-3 top-7 cursor-pointer text-gray-600"
+							@click="isPwdVisible = !isPwdVisible"
+						/>
 					</div>
 					<div class="flex items-center space-x-2">
 						<Input
