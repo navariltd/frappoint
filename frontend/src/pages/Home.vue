@@ -1,60 +1,36 @@
 <template>
-	<div class="flex h-screen bg-gray-100">
-		<aside class="w-46 bg-white shadow-lg">
-			<div class="p-6 border-b flex gap-2 hover:cursor-pointer">
-				<Avatar
-					:shape="'square'"
-					:ref_for="true"
-					image="/favicon.png"
-					label="EY"
-					size="md"
-				/>
-				<h2 class="text-2xl font-bold text-blue-500">Frappoint</h2>
-			</div>
-			<nav class="p-4 flex flex-col h-[calc(100%-65px)]">
-				<div class="flex-grow">
-					<a
-						href="#"
-						class="flex w-auto items-center gap-3 px-4 py-3 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
-					>
-						<CalendarCheck :size="20" />
-						<span>Appointments</span>
-					</a>
-					<a
-						href="#"
-						class="flex items-center gap-3 px-4 py-3 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
-					>
-						<User :size="20" />
-						<span>Profile</span>
-					</a>
-				</div>
+  <div class="flex h-screen bg-gray-100 relative">
+    <AppLayout>
+    
+      <button
+        @click="goToAppointments"
+        class="absolute bottom-4 right-4 bg-blue-600 text-white px-6 py-3 rounded-lg shadow-lg hover:bg-blue-700 transition flex items-center gap-2 z-50"
+      >
+      
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24"
+          stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+        </svg>
+        View Appointments
+      </button>
 
-				<div>
-					<button
-						@click="() => session.logout.submit()"
-						class="flex items-center gap-3 px-4 py-3 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
-					>
-						<LogOut :size="20" />
-						<span>Logout</span>
-					</button>
-				</div>
-			</nav>
-		</aside>
-		<main class="flex-1 p-8 overflow-auto">
-			<Appointments :username="userDocResource.data.full_name" />
-		</main>
-	</div>
+      <div class="p-8">
+        <CalendarComponent />
+      </div>
+    </AppLayout>
+  </div>
 </template>
 
 <script setup>
-import { Avatar } from "frappe-ui";
+import { useRouter } from "vue-router";
+import CalendarComponent from "@/components/Calendar.vue";
+import AppLayout from "@/components/AppLayout.vue";
 
-import { CalendarCheck, LogOut, User } from "lucide-vue-next";
-import Appointments from "../components/Appointments.vue";
-import { useUserStore } from "../data/user";
-import { sessionStore } from "../data/session";
+const router = useRouter();
 
-const session = sessionStore();
-
-const { userDocResource } = useUserStore();
+function goToAppointments() {
+  router.push({ name: "Appointments" });
+}
 </script>
+
