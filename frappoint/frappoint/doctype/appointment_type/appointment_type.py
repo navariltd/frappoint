@@ -15,19 +15,10 @@ class AppointmentType(Document):
 
 	if TYPE_CHECKING:
 		from frappe.types import DF
-
-		from frappoint.frappoint.doctype.appointment_type_material.appointment_type_material import (
-			AppointmentTypeMaterial,
-		)
-		from frappoint.frappoint.doctype.appointment_type_price.appointment_type_price import (
-			AppointmentTypePrice,
-		)
-		from frappoint.frappoint.doctype.appointment_type_provider.appointment_type_provider import (
-			AppointmentTypeProvider,
-		)
-		from frappoint.frappoint.doctype.appointment_type_service_unit.appointment_type_service_unit import (
-			AppointmentTypeServiceUnit,
-		)
+		from frappoint.frappoint.doctype.appointment_type_material.appointment_type_material import AppointmentTypeMaterial
+		from frappoint.frappoint.doctype.appointment_type_price.appointment_type_price import AppointmentTypePrice
+		from frappoint.frappoint.doctype.appointment_type_provider.appointment_type_provider import AppointmentTypeProvider
+		from frappoint.frappoint.doctype.appointment_type_service_unit.appointment_type_service_unit import AppointmentTypeServiceUnit
 
 		appointment_type: DF.Data
 		buffer_after: DF.Int
@@ -357,3 +348,23 @@ class AppointmentType(Document):
 			}
 
 		return {"price_found": False, "multiple_prices": False}
+	
+	
+@frappe.whitelist()
+def get_service_cards():
+		return frappe.get_all(
+		   "Appointment Type",
+		filters={
+			"disabled": 0
+		},
+		fields=[
+			"appointment_type",
+			"description",
+			"custom_image",
+			"default_duration_in_minutes",
+		],
+		order_by="creation desc",
+			
+		
+		
+		)
