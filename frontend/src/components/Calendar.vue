@@ -1,64 +1,64 @@
 <template>
-  <div class="p-6">
-    <FullCalendar :options="calendarOptions" />
+  <div class="flex h-screen flex-col overflow-hidden p-5">
+    <Calendar
+      :config="calendarConfig"
+      :events="events"
+      @click="onEventClick"
+      @dblClick="onEventDblClick"
+      @cellClick="onCellClick"
+    />
   </div>
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import { call } from 'frappe-ui'
-import FullCalendar from '@fullcalendar/vue3'
-import dayGridPlugin from '@fullcalendar/daygrid'
-import timeGridPlugin from '@fullcalendar/timegrid'
-import interactionPlugin from '@fullcalendar/interaction'
+import { Calendar } from 'frappe-ui'
 
-const calendarOptions = ref({
-  plugins: [dayGridPlugin, timeGridPlugin, interactionPlugin],
-  initialView: 'dayGridMonth',
-  height: 'auto',
-  selectable: true,
-  editable: false,
-  expandRows: true,
-  eventDisplay: 'block',
+const events = ref([])
 
+const calendarConfig = {
+  defaultMode: 'Month',
+  isEditMode: false,
+  allowCustomClickEvents: true,
+  enableShortcuts: false,
+}
 
-
-  headerToolbar: {
-    left: 'prev,next today',
-    center: 'title',
-    right: 'dayGridMonth,timeGridWeek,timeGridDay',
-  },
-
-  events: async (info, success, failure) => {
-    try {
-      const data = await call(
-        'frappoint.frappoint.doctype.service_appointment.service_appointment.get_events',
-        {
-          start: info.startStr,
-          end: info.endStr,
-        }
-      )
-
-      const events = data.map(e => ({
-        id: e.name,
-        title: `${e.customer} • ${e.appointment_provider}`,
-        start: e.start,
-        end: e.end,
-        color: e.color,
-        allDay: false,
-        extendedProps: e,
-      }))
-
-      success(events)
-    } catch (err) {
-      failure(err)
+const loadEvents = async () => {
+  const data = await call(
+    'frappoint.frappoint.doctype.service_appointment.service_appointment.get_events',
+    {
+      start: '2025-12-01',
+      end: '2025-12-31',
     }
-  },
+  )
 
-  eventClick(info) {
-    console.log(info.event.extendedProps)
-  },
-})
+  events.value = data.map(e => ({
+    id: e.name,
+    title: `${e.customer} • ${e.appointment_provider}`,
+    participant: e.appointment_provider,
+    venue: e.location || '',
+    fromDate: e.start.split(' ')[0],
+    toDate: e.end.split(' ')[0],
+    fromTime: e.start.split(' ')[1].slice(0, 5),
+    toTime: e.end.split(' ')[1].slice(0, 5),
+    color: e.color || 'blue',
+  }))
+}
+
+onMounted(loadEvents)
+
+// Events
+const onEventClick = (event) => {
+  console.log('Clicked event:', event)
+}
+
+const onEventDblClick = (event) => {
+  console.log('Double clicked:', event)
+}
+
+const onCellClick = (data) => {
+  console.log('Clicked empty cell:', data)
+}
 </script>
-
-
+ 
