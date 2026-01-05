@@ -15,7 +15,7 @@
         View Appointments
       </button>
 
-      <div class="p-8">
+      <div class="flex-1 flex flex-col h-full overflow-hidden p-5">
         <CalendarComponent />
       </div>
     </AppLayout>

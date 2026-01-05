@@ -11,6 +11,7 @@ declare module 'vue' {
     AppLayout: typeof import('./src/components/AppLayout.vue')['default']
     AppointmentCard: typeof import('./src/components/AppointmentCard.vue')['default']
     Appointments: typeof import('./src/components/Appointments.vue')['default']
+    Booking: typeof import('./src/components/Booking.vue')['default']
     Calendar: typeof import('./src/components/Calendar.vue')['default']
     Calender: typeof import('./src/components/Calender.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']

@@ -1,7 +1,7 @@
 <template>
 	<div class="flex h-screen bg-gray-300">
 		<!-- SIDEBAR -->
-		<aside class="w-46 bg-white shadow-lg">
+		<aside class="w-46 bg-white shadow-lg flex-shrink-0">
 			<div class="p-6 border-b flex gap-2 hover:cursor-pointer">
 				<Avatar shape="square" image="/frappoint.jpeg" label="EY" size="lg" />
 				<h2 class="text-2xl font-bold text-blue-500">Frappoint</h2>
@@ -49,8 +49,7 @@
 			</nav>
 		</aside>
 
-		<!-- PAGE CONTENT -->
-		<main class="flex-1 p-8 overflow-auto">
+		<main class="flex-1 flex flex-col overflow-hidden">
 			<slot />
 		</main>
 	</div>
