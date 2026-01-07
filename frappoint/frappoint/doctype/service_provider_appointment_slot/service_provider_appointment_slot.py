@@ -9,7 +9,7 @@ from frappe.model.document import Document
 from frappe.utils import add_days, date_diff, get_datetime, get_time, getdate, now_datetime, nowdate
 
 
-class AppointmentProviderSlot(Document):
+class ServiceProviderAppointmentSlot(Document):
 	# begin: auto-generated types
 	# This code is auto-generated. Do not modify anything in this block.
 
@@ -48,7 +48,7 @@ def get_global_max_advance_days():
 
 def insert_slot(provider, slot_date, start_time, end_time, shift_assignment):
 	exists = frappe.db.exists(
-		"Appointment Provider Slot",
+		"Service Provider Appointment Slot",
 		{"provider": provider, "posting_date": slot_date, "start_time": start_time, "end_time": end_time},
 	)
 	if exists:
@@ -56,7 +56,7 @@ def insert_slot(provider, slot_date, start_time, end_time, shift_assignment):
 
 	frappe.get_doc(
 		{
-			"doctype": "Appointment Provider Slot",
+			"doctype": "Service Provider Appointment Slot",
 			"provider": provider,
 			"posting_date": slot_date,
 			"start_time": start_time,
@@ -68,17 +68,17 @@ def insert_slot(provider, slot_date, start_time, end_time, shift_assignment):
 
 @frappe.whitelist()
 def generate_for_shift(shift_assignment):
-	sa = frappe.get_doc("Provider Shift Assignment", shift_assignment)
-	st = frappe.get_doc("Provider Shift Type", sa.shift_type)
+	sa = frappe.get_doc("Service Provider Shift Assignment", shift_assignment)
+	st = frappe.get_doc("Service Provider Shift Type", sa.shift_type)
 
 	if sa.status == "Inactive":
 		frappe.db.set_value(
-			"Appointment Provider Slot", {"shift_assignment": shift_assignment}, "is_available", 0
+			"Service Provider Appointment Slot", {"shift_assignment": shift_assignment}, "is_available", 0
 		)
 		frappe.db.commit()
 		return "Slots marked as unavailable"
 
-	frappe.db.delete("Appointment Provider Slot", {"shift_assignment": shift_assignment})
+	frappe.db.delete("Service Provider Appointment Slot", {"shift_assignment": shift_assignment})
 	frappe.db.commit()
 
 	provider = sa.provider
@@ -102,8 +102,10 @@ def generate_for_shift(shift_assignment):
 	# allowed weekdays for weekly repeat
 	allowed_weekdays = set()
 	if sa.repeat_type == "Weekly":
-		for row in sa.days:
-			allowed_weekdays.add(DAYS.index(row.weekday))
+		day_fields = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"]
+		for idx, day_field in enumerate(day_fields):
+			if sa.get(day_field):
+				allowed_weekdays.add(idx)
 
 	slots_to_insert = []
 
@@ -145,7 +147,7 @@ def generate_for_shift(shift_assignment):
 
 			slots_to_insert.append(
 				{
-					"doctype": "Appointment Provider Slot",
+					"doctype": "Service Provider Appointment Slot",
 					"provider": provider,
 					"posting_date": dt,
 					"start_time": start_t,
@@ -176,7 +178,7 @@ def purge_old_slots():
 	else:
 		purge_date = today
 
-	frappe.db.delete("Appointment Provider Slot", {"posting_date": ["<", purge_date]})
+	frappe.db.delete("Service Provider Appointment Slot", {"posting_date": ["<", purge_date]})
 
 	frappe.db.commit()
 	return f"Purged slots older than {purge_date}"
@@ -184,8 +186,8 @@ def purge_old_slots():
 
 def generate_slots_for_specific_days(shift_assignment, weekdays):
 	"""Generate slots only for specific weekdays"""
-	sa = frappe.get_doc("Provider Shift Assignment", shift_assignment)
-	st = frappe.get_doc("Provider Shift Type", sa.shift_type)
+	sa = frappe.get_doc("Service Provider Shift Assignment", shift_assignment)
+	st = frappe.get_doc("Service Provider Shift Type", sa.shift_type)
 
 	if sa.status == "Inactive":
 		return
@@ -244,14 +246,14 @@ def generate_slots_for_specific_days(shift_assignment, weekdays):
 
 			# Check if slot already exists
 			exists = frappe.db.exists(
-				"Appointment Provider Slot",
+				"Service Provider Appointment Slot",
 				{"provider": provider, "posting_date": dt, "start_time": start_t, "end_time": end_t},
 			)
 
 			if not exists:
 				slots_to_insert.append(
 					{
-						"doctype": "Appointment Provider Slot",
+						"doctype": "Service Provider Appointment Slot",
 						"provider": provider,
 						"posting_date": dt,
 						"start_time": start_t,
@@ -275,7 +277,7 @@ def generate_slots_for_specific_days(shift_assignment, weekdays):
 
 def delete_slots_for_specific_days(shift_assignment, weekdays):
 	"""Delete slots only for specific weekdays (only unbooked slots)"""
-	sa = frappe.get_doc("Provider Shift Assignment", shift_assignment)
+	sa = frappe.get_doc("Service Provider Shift Assignment", shift_assignment)
 
 	start_date = sa.start_date
 	end_date = sa.end_date or (start_date + timedelta(days=get_global_max_advance_days()))
@@ -295,7 +297,7 @@ def delete_slots_for_specific_days(shift_assignment, weekdays):
 	# Delete unbooked slots for these specific dates
 	deleted_count = frappe.db.sql(
 		"""
-		DELETE FROM `tabAppointment Provider Slot`
+		DELETE FROM `tabService Provider Appointment Slot`
 		WHERE shift_assignment = %s
 		AND (service_appointment IS NULL OR service_appointment = '')
 		AND posting_date IN %s
@@ -324,8 +326,9 @@ def get_available_slots(appointment_type, provider=None, date=None, days_ahead=3
 		List of available slots grouped by provider and date
 	"""
 
-	apt_type = frappe.get_doc("Appointment Type", appointment_type)
+	apt_type = frappe.get_doc("Service Type", appointment_type)
 	duration = apt_type.default_duration_in_minutes
+	# service_unit_type = apt_type.service_unit_type
 
 	settings = frappe.get_single("Service Appointment Settings")
 	buffer_before = apt_type.buffer_before or settings.buffer_before or 0
@@ -333,9 +336,25 @@ def get_available_slots(appointment_type, provider=None, date=None, days_ahead=3
 	allow_past_booking = settings.allow_past_booking
 
 	if provider:
+		can_provide = frappe.db.exists(
+			"Service Provider Service", {"parent": provider, "service_type": appointment_type, "disabled": 0}
+		)
+		if not can_provide:
+			frappe.throw(_("Provider {0} cannot provide service type {1}").format(provider, appointment_type))
 		providers = [provider]
 	else:
-		providers = [p.provider for p in apt_type.providers]
+		providers = frappe.db.sql(
+			"""
+			SELECT DISTINCT sps.parent
+			FROM `tabService Provider Service` sps
+			INNER JOIN `tabService Provider` p ON sps.parent = p.name
+			WHERE sps.service_type = %s
+			AND sps.disabled = 0
+			AND p.active = 1
+		""",
+			appointment_type,
+			pluck="parent",
+		)
 
 	if not providers:
 		return []
@@ -368,8 +387,8 @@ def get_available_slots(appointment_type, provider=None, date=None, days_ahead=3
 			s.end_time,
 			s.shift_assignment,
 			TIMEDIFF(s.end_time, s.start_time) as slot_duration_minutes
-		FROM `tabAppointment Provider Slot` s
-		INNER JOIN `tabAppointment Provider` p ON s.provider = p.name
+		FROM `tabService Provider Appointment Slot` s
+		INNER JOIN `tabService Provider` p ON s.provider = p.name
 		WHERE s.provider IN %(providers)s
 		AND s.posting_date BETWEEN %(start_date)s AND %(end_date)s
 		AND s.is_available = 1
@@ -567,7 +586,7 @@ def book_appointment_slot(appointment, provider, date, start_time, slot_ids):
 
 	# Validate all slots are still available
 	for slot_id in slot_ids:
-		slot = frappe.get_doc("Appointment Provider Slot", slot_id)
+		slot = frappe.get_doc("Service Provider Appointment Slot", slot_id)
 
 		if not slot.is_available or slot.service_appointment:
 			frappe.throw(
@@ -578,7 +597,9 @@ def book_appointment_slot(appointment, provider, date, start_time, slot_ids):
 	# Book all slots
 	for slot_id in slot_ids:
 		frappe.db.set_value(
-			"Appointment Provider Slot", slot_id, {"service_appointment": appointment, "is_available": 0}
+			"Service Provider Appointment Slot",
+			slot_id,
+			{"service_appointment": appointment, "is_available": 0},
 		)
 
 	frappe.db.commit()
@@ -600,7 +621,7 @@ def release_appointment_slots(appointment):
 	"""
 	frappe.db.sql(
 		"""
-		UPDATE `tabAppointment Provider Slot`
+		UPDATE `tabService Provider Appointment Slot`
 		SET service_appointment = NULL,
 			is_available = 1
 		WHERE service_appointment = %s

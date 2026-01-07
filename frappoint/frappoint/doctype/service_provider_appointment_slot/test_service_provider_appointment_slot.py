@@ -5,5 +5,5 @@
 from frappe.tests.utils import FrappeTestCase
 
 
-class TestAppointmentProviderSlot(FrappeTestCase):
+class TestServiceProviderAppointmentSlot(FrappeTestCase):
 	pass
