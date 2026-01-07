@@ -21,6 +21,8 @@
   "grade",
   "column_break_ocid",
   "user",
+  "section_break_nixn",
+  "services",
   "section_break_tyao",
   "email",
   "google_calendar",
@@ -141,6 +143,16 @@
    "fieldtype": "Tab Break",
    "label": "Connections",
    "show_dashboard": 1
+  },
+  {
+   "fieldname": "section_break_nixn",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "services",
+   "fieldtype": "Table",
+   "label": "Services",
+   "options": "Service Provider Service"
   }
  ],
  "grid_page_length": 50,
@@ -149,17 +161,12 @@
   {
    "link_doctype": "Service Appointment",
    "link_fieldname": "appointment_provider"
-  },
-  {
-   "link_doctype": "Appointment Type",
-   "link_fieldname": "provider",
-   "table_fieldname": "providers"
   }
  ],
- "modified": "2025-12-05 11:05:10.073181",
+ "modified": "2026-01-06 16:39:35.996730",
  "modified_by": "Administrator",
  "module": "Frappoint",
- "name": "Appointment Provider",
+ "name": "Service Provider",
  "naming_rule": "Expression",
  "owner": "Administrator",
  "permissions": [
