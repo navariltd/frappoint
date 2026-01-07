@@ -6,21 +6,14 @@
  "editable_grid": 1,
  "engine": "InnoDB",
  "field_order": [
-  "service_unit",
+  "service_unit_type",
   "capacity",
   "column_break_vgbu",
   "auto_assign"
  ],
  "fields": [
   {
-   "fieldname": "service_unit",
-   "fieldtype": "Link",
-   "in_list_view": 1,
-   "label": "Service Unit",
-   "options": "Appointment Service Unit",
-   "reqd": 1
-  },
-  {
+   "default": "1",
    "fieldname": "capacity",
    "fieldtype": "Int",
    "in_list_view": 1,
@@ -36,16 +29,24 @@
   {
    "fieldname": "column_break_vgbu",
    "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "service_unit_type",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Service Unit Type",
+   "options": "Service Unit Type",
+   "reqd": 1
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2025-11-10 14:24:32.581614",
+ "modified": "2026-01-06 11:22:12.158782",
  "modified_by": "Administrator",
  "module": "Frappoint",
- "name": "Appointment Type Service Unit",
+ "name": "Service Type Unit Type",
  "owner": "Administrator",
  "permissions": [],
  "row_format": "Dynamic",
