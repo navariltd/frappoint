@@ -362,7 +362,6 @@ class ServiceProviderShiftAssignment(Document):
 		""",
 			self.name,
 		)
-		frappe.db.commit()
 
 	def reactivate_slots(self):
 		"""Mark all unbooked future slots as available when shift is reactivated"""
@@ -391,7 +390,6 @@ class ServiceProviderShiftAssignment(Document):
 			""",
 			(self.name, today),
 		)
-		frappe.db.commit()
 
 	def handle_slot_cleanup_on_cancel(self):
 		"""
