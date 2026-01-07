@@ -440,7 +440,10 @@ def get_available_slots(appointment_type, provider=None, date=None, days_ahead=3
 				s.name,
 				s.provider,
 				p.provider_name,
-				s.service_unit,
+				NULL as service_unit,
+				NULL as unit_name,
+				NULL as unit_type,
+				NULL as capacity,
 				s.posting_date,
 				s.start_time,
 				s.end_time,
@@ -448,13 +451,11 @@ def get_available_slots(appointment_type, provider=None, date=None, days_ahead=3
 				TIMEDIFF(s.end_time, s.start_time) as slot_duration_minutes
 			FROM `tabService Provider Appointment Slot` s
 			INNER JOIN `tabService Provider` p ON s.provider = p.name
-			LEFT JOIN `tabService Unit` su ON s.service_unit = su.name
 			WHERE s.provider IN %(providers)s
 			AND s.posting_date BETWEEN %(start_date)s AND %(end_date)s
 			AND s.is_available = 1
 			AND (s.service_appointment IS NULL OR s.service_appointment = '')
 			AND p.active = 1
-			AND (s.service_unit IS NULL OR su.active = 1)
 			{past_booking_filter}
 			ORDER BY s.posting_date, s.start_time, p.provider_name
 		""",
@@ -561,12 +562,15 @@ def group_slots_by_duration_and_capacity(
 
 				# If we have enough duration, create an available slot
 				if accumulated_minutes >= total_duration_needed:
+					actual_start_time = get_end_time_for_duration(start_time, buffer_before)
+					actual_end_time = get_end_time_for_duration(actual_start_time, required_duration)
+
 					if requires_unit:
 						capacity_available = check_service_unit_capacity(
 							service_unit,
 							date,
-							start_time,
-							get_end_time_for_duration(start_time, total_duration_needed),
+							actual_start_time,
+							actual_end_time,
 							appointment_type,
 							max_clients,
 						)
@@ -574,8 +578,13 @@ def group_slots_by_duration_and_capacity(
 						if not capacity_available:
 							break
 
-					actual_start_time = get_end_time_for_duration(start_time, buffer_before)
-					actual_end_time = get_end_time_for_duration(actual_start_time, required_duration)
+					else:
+						capacity_available = check_provider_slot_capacity(
+							provider, date, actual_start_time, actual_end_time, max_clients
+						)
+
+						if not capacity_available:
+							break
 
 					available_slots.append(
 						{
@@ -655,6 +664,29 @@ def check_service_unit_capacity(
 	)
 
 	return existing_count < effective_capacity
+
+
+def check_provider_slot_capacity(provider, date, start_time, end_time, max_clients_per_slot):
+	"""
+	Check provider capacity for services that don't require service units
+	Uses max_clients_per_slot from Service Type
+	"""
+	# Count existing appointments for this provider in this time slot
+	# regardless of service unit
+	existing_count = frappe.db.count(
+		"Service Appointment",
+		{
+			"appointment_provider": provider,
+			"appointment_date": date,
+			"status": ["not in", ["Cancelled", "No Show"]],
+			"docstatus": ["!=", 2],
+			# Check for time overlap
+			"start_time": ["<", end_time],
+			"end_time": [">", start_time],
+		},
+	)
+
+	return existing_count < max_clients_per_slot
 
 
 def get_end_time_for_duration(start_time, duration_minutes):

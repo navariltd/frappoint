@@ -14,6 +14,7 @@ from frappe.model.document import Document
 from frappe.utils import flt, get_datetime, get_link_to_form, get_time, getdate, now_datetime
 
 from ..service_provider_appointment_slot.service_provider_appointment_slot import (
+	check_provider_slot_capacity,
 	check_service_unit_capacity,
 	service_type_requires_service_unit,
 )
@@ -70,7 +71,7 @@ class ServiceAppointment(Document):
 		self.validate_appointment_date_and_times()
 		self.validate_overlaps()
 		self.validate_customer_overlap()
-		self.validate_service_unit_capacity()
+		self.validate_appointment_capacity()
 
 		if self.appointment_type and not self.duration:
 			self.set_duration_from_type()
@@ -275,30 +276,45 @@ class ServiceAppointment(Document):
 				)
 			)
 
-	def validate_service_unit_capacity(self):
-		"""Check if service unit has capacity for this appointment"""
-		if not self.service_unit or not self.appointment_type:
+	def validate_appointment_capacity(self):
+		"""Check if service unit or service provider has capacity for this appointment"""
+		if not self.appointment_type:
 			return
 
+		requires_unit, unit_types = service_type_requires_service_unit(self.appointment_type)
 		apt_type = frappe.get_doc("Service Type", self.appointment_type)
 		max_clients = apt_type.max_clients_per_slot or 1
 
-		capacity_ok = check_service_unit_capacity(
-			self.service_unit,
-			self.appointment_date,
-			self.start_time,
-			self.end_time,
-			self.appointment_type,
-			max_clients,
-		)
-
-		if not capacity_ok:
-			frappe.throw(
-				_("Service Unit {0} is at full capacity for the selected time slot").format(
-					frappe.bold(self.service_unit)
-				),
-				title=_("Capacity Exceeded"),
+		if requires_unit and self.service_unit:
+			capacity_ok = check_service_unit_capacity(
+				self.service_unit,
+				self.appointment_date,
+				self.start_time,
+				self.end_time,
+				self.appointment_type,
+				max_clients,
 			)
+
+			if not capacity_ok:
+				frappe.throw(
+					_("Service Unit {0} is at full capacity for the selected time slot").format(
+						frappe.bold(self.service_unit)
+					),
+					title=_("Capacity Exceeded"),
+				)
+
+		else:
+			capacity_ok = check_provider_slot_capacity(
+				self.appointment_provider, self.appointment_date, self.start_time, self.end_time, max_clients
+			)
+
+			if not capacity_ok:
+				frappe.throw(
+					_("Provider {0} is at full capacity for the selected time slot (max: {1})").format(
+						frappe.bold(self.appointment_provider), max_clients
+					),
+					title=_("Capacity Exceeded"),
+				)
 
 	def assign_service_unit_to_appointment(self):
 		"""
@@ -306,6 +322,12 @@ class ServiceAppointment(Document):
 		Called from Service Appointment's before_save or validate
 		"""
 		if not self.selected_slot_ids:
+			return
+
+		requires_unit, _unit_types = service_type_requires_service_unit(self.appointment_type)
+
+		if not requires_unit:
+			self.service_unit = None
 			return
 
 		slot_ids = (
