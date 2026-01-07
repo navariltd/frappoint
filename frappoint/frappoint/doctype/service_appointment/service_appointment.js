@@ -123,7 +123,7 @@ frappe.ui.form.on("Service Appointment", {
 			frappe.call({
 				method: "frappe.client.get",
 				args: {
-					doctype: "Appointment Type",
+					doctype: "Service Type",
 					name: frm.doc.appointment_type,
 				},
 				callback: function (r) {
@@ -276,7 +276,7 @@ function show_slot_picker(frm) {
 						fieldname: "provider_filter",
 						fieldtype: "Link",
 						label: __("Provider"),
-						options: "Appointment Provider",
+						options: "Service Provider",
 						get_query: function () {
 							return {
 								filters: {

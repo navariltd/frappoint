@@ -39,7 +39,7 @@ class ServiceAppointment(Document):
 		appointment_type: DF.Link
 		company: DF.Link
 		confirmation_token: DF.Data | None
-		customer: DF.Link | None
+		customer: DF.Link
 		details: DF.SmallText | None
 		duration: DF.Int
 		email: DF.Data | None
@@ -54,6 +54,7 @@ class ServiceAppointment(Document):
 		payment_status: DF.Literal["Unpaid", "Paid", "Refunded", "Cancellation"]
 		scheduled_time: DF.Datetime
 		selected_slot_ids: DF.SmallText | None
+		service_unit: DF.Link | None
 		source: DF.Literal["Desk", "Portal"]
 		start_time: DF.Time
 		status: DF.Literal["Open", "Confirmed", "Rescheduled", "Completed", "Cancelled", "Closed", "No Show"]
@@ -101,7 +102,6 @@ class ServiceAppointment(Document):
 
 	def on_cancel(self):
 		"""Release slots when appointment is cancelled"""
-		self.release_slots()
 		self.handle_cancellation()
 
 	def on_update(self):
@@ -121,6 +121,7 @@ class ServiceAppointment(Document):
 	def on_trash(self):
 		"""Release slots when appointment is deleted and prevent deletion if billing exists"""
 		self.check_linked_documents_before_delete()
+		self.delete_linked_event()
 		self.release_slots()
 
 	def validate_appointment_date_and_times(self):
@@ -252,7 +253,7 @@ class ServiceAppointment(Document):
 		required_fields = {
 			"customer": "Customer",
 			"company": "Company",
-			"appointment_type": "Appointment Type",
+			"appointment_type": "Service Type",
 		}
 
 		missing_fields = [label for field, label in required_fields.items() if not self.get(field)]
@@ -266,9 +267,7 @@ class ServiceAppointment(Document):
 
 	def set_duration_from_type(self):
 		"""Set duration from appointment type"""
-		duration = frappe.db.get_value(
-			"Appointment Type", self.appointment_type, "default_duration_in_minutes"
-		)
+		duration = frappe.db.get_value("Service Type", self.appointment_type, "default_duration_in_minutes")
 		if duration:
 			self.duration = duration
 
@@ -280,14 +279,14 @@ class ServiceAppointment(Document):
 		ends_on = datetime.datetime.combine(getdate(self.appointment_date), get_time(self.end_time))
 
 		google_calendar = frappe.db.get_value(
-			"Appointment Provider", self.appointment_provider, "google_calendar"
+			"Service Provider", self.appointment_provider, "google_calendar"
 		)
 		if not google_calendar:
 			google_calendar = frappe.db.get_single_value(
 				"Service Appointment Settings", "default_google_calendar"
 			)
 
-		color = frappe.db.get_value("Appointment Provider", self.appointment_provider, "color_code")
+		color = frappe.db.get_value("Service Provider", self.appointment_provider, "color_code")
 		if not color:
 			color = ""
 
@@ -314,7 +313,7 @@ class ServiceAppointment(Document):
 		participants = []
 
 		participants.append(
-			{"reference_doctype": "Appointment Provider", "reference_docname": self.appointment_provider}
+			{"reference_doctype": "Service Provider", "reference_docname": self.appointment_provider}
 		)
 
 		if self.customer:
@@ -366,7 +365,9 @@ class ServiceAppointment(Document):
 		if not self.name:
 			return False
 
-		booked_count = frappe.db.count("Appointment Provider Slot", {"service_appointment": self.name})
+		booked_count = frappe.db.count(
+			"Service Provider Appointment Slot", {"service_appointment": self.name}
+		)
 		return booked_count > 0
 
 	def book_selected_slots(self):
@@ -378,7 +379,7 @@ class ServiceAppointment(Document):
 
 		# Validate all slots are still available
 		for slot_id in slot_ids:
-			slot = frappe.get_doc("Appointment Provider Slot", slot_id)
+			slot = frappe.get_doc("Service Provider Appointment Slot", slot_id)
 
 			if not slot.is_available or (slot.service_appointment and slot.service_appointment != self.name):
 				frappe.throw(
@@ -389,14 +390,16 @@ class ServiceAppointment(Document):
 		# Book all slots
 		for slot_id in slot_ids:
 			frappe.db.set_value(
-				"Appointment Provider Slot", slot_id, {"service_appointment": self.name, "is_available": 0}
+				"Service Provider Appointment Slot",
+				slot_id,
+				{"service_appointment": self.name, "is_available": 0},
 			)
 
 		frappe.msgprint(_("Appointment slots booked successfully"), indicator="green", alert=True)
 
 	def release_slots(self):
 		"""Release all booked slots for this appointment"""
-		from frappoint.frappoint.doctype.appointment_provider_slot.appointment_provider_slot import (
+		from frappoint.frappoint.doctype.service_provider_appointment_slot.service_provider_appointment_slot import (
 			release_appointment_slots,
 		)
 
@@ -497,6 +500,8 @@ class ServiceAppointment(Document):
 		"""Check if any billing or stock documents are linked to this appointment"""
 		linked_docs = self.get_all_linked_documents()
 
+		linked_docs = [doc for doc in linked_docs if doc.get("doctype") != "Event"]
+
 		if linked_docs:
 			doc_list = "<br>".join(
 				[
@@ -512,6 +517,38 @@ class ServiceAppointment(Document):
 				title=_("Linked Documents Exist"),
 			)
 
+	def delete_linked_event(self):
+		"""Delete linked event if appointment is in draft or if it's the only linked document"""
+		if not self.event:
+			return
+
+		try:
+			event_status = frappe.db.get_value("Event", self.event, "status")
+
+			if event_status == "Open":
+				frappe.delete_doc("Event", self.event, force=True, ignore_permissions=True)
+		except Exception as e:
+			frappe.log_error(
+				title=f"Event Deletion Failed for Appointment {self.name}",
+				message=f"Failed to delete event {self.event}: {e}",
+			)
+
+	def cancel_linked_event(self):
+		"""Cancel linked event if appointment is submitted"""
+		if not self.event:
+			return
+
+		try:
+			event_status = frappe.db.get_value("Event", self.event, "status")
+
+			if event_status == "Open":
+				frappe.db.set_value("Event", self.event, "status", "Cancelled")
+		except Exception as e:
+			frappe.log_error(
+				title=f"Event Cancellation Failed for Appointment {self.name}",
+				message=f"Failed to cancel event {self.event}: {e}",
+			)
+
 	def create_sales_order(self):
 		"""Create Sales Order when appointment is confirmed"""
 		sales_order = self.get_linked_document("Sales Order")
@@ -521,7 +558,7 @@ class ServiceAppointment(Document):
 			return
 
 		try:
-			apt_type = frappe.get_doc("Appointment Type", self.appointment_type)
+			apt_type = frappe.get_doc("Service Type", self.appointment_type)
 
 			so = frappe.get_doc(
 				{
@@ -577,12 +614,10 @@ class ServiceAppointment(Document):
 
 	def get_appointment_description(self):
 		"""Generate description for sales order item"""
-		provider_name = frappe.db.get_value(
-			"Appointment Provider", self.appointment_provider, "provider_name"
-		)
+		provider_name = frappe.db.get_value("Service Provider", self.appointment_provider, "provider_name")
 
 		description = f"""
-		Appointment Type: {self.appointment_type}
+		Service Type: {self.appointment_type}
 		Provider: {provider_name or self.appointment_provider}
 		Date: {frappe.format(self.appointment_date, {"fieldtype": "Date"})}
 		Time: {self.start_time} - {self.end_time}
@@ -620,7 +655,7 @@ class ServiceAppointment(Document):
 			# Update delivery date and item description
 			so.delivery_date = self.appointment_date
 			for item in so.items:
-				if item.item_code == frappe.db.get_value("Appointment Type", self.appointment_type, "item"):
+				if item.item_code == frappe.db.get_value("Service Type", self.appointment_type, "item"):
 					item.delivery_date = self.appointment_date
 					item.description = self.get_appointment_description()
 
@@ -697,6 +732,7 @@ class ServiceAppointment(Document):
 		"""Handle appointment cancellation"""
 		# Release slots
 		self.status = "Cancelled"
+		self.cancel_linked_event()
 		self.release_slots()
 		self.cancel_sales_order()
 
@@ -717,7 +753,7 @@ class ServiceAppointment(Document):
 		if not self.appointment_type:
 			return
 
-		apt_type = frappe.get_doc("Appointment Type", self.appointment_type)
+		apt_type = frappe.get_doc("Service Type", self.appointment_type)
 
 		if not hasattr(apt_type, "consumables") or not apt_type.consumables:
 			return
@@ -781,7 +817,7 @@ class ServiceAppointment(Document):
 		if not self.appointment_type:
 			return
 
-		apt_type = frappe.get_doc("Appointment Type", self.appointment_type)
+		apt_type = frappe.get_doc("Service Type", self.appointment_type)
 
 		if not hasattr(apt_type, "consumables") or not apt_type.consumables:
 			frappe.msgprint(_("No consumables configured for this appointment type"))
@@ -861,7 +897,7 @@ def get_appointment_slots(appointment_type, provider=None, date=None, days_ahead
 	Wrapper method for getting available slots
 	Can be called from frontend
 	"""
-	from frappoint.frappoint.doctype.appointment_provider_slot.appointment_provider_slot import (
+	from frappoint.frappoint.doctype.service_provider_appointment_slot.service_provider_appointment_slot import (
 		get_available_slots,
 	)
 
@@ -910,11 +946,11 @@ def get_events(start, end, filters=None):
 				`tabService Appointment`.appointment_date,
 				`tabService Appointment`.start_time
 			) as start,
-			`tabAppointment Provider`.color_code as color
+			`tabService Provider`.color_code as color
 		from
 			`tabService Appointment`
-		left join `tabAppointment Provider`
-			on `tabService Appointment`.appointment_provider = `tabAppointment Provider`.name
+		left join `tabService Provider`
+			on `tabService Appointment`.appointment_provider = `tabService Provider`.name
 		where
 			(`tabService Appointment`.appointment_date between %(start)s and %(end)s)
 			and `tabService Appointment`.status != 'Cancelled'
