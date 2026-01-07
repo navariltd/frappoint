@@ -14,6 +14,7 @@
   "appointment_details_section",
   "appointment_type",
   "appointment_provider",
+  "service_unit",
   "appointment_date",
   "appointment_price",
   "column_break_bguz",
@@ -91,7 +92,8 @@
    "fieldname": "customer",
    "fieldtype": "Link",
    "label": "Customer",
-   "options": "Customer"
+   "options": "Customer",
+   "reqd": 1
   },
   {
    "fieldname": "column_break_gsph",
@@ -133,8 +135,8 @@
   {
    "fieldname": "appointment_type",
    "fieldtype": "Link",
-   "label": "Appointment Type",
-   "options": "Appointment Type",
+   "label": "Service Type",
+   "options": "Service Type",
    "reqd": 1,
    "search_index": 1
   },
@@ -204,8 +206,8 @@
   {
    "fieldname": "appointment_provider",
    "fieldtype": "Link",
-   "label": "Appointment Provider",
-   "options": "Appointment Provider",
+   "label": "Service Provider",
+   "options": "Service Provider",
    "reqd": 1,
    "search_index": 1
   },
@@ -284,6 +286,12 @@
    "fieldtype": "Tab Break",
    "label": "Connections",
    "show_dashboard": 1
+  },
+  {
+   "fieldname": "service_unit",
+   "fieldtype": "Link",
+   "label": "Service Unit",
+   "options": "Service Unit"
   }
  ],
  "grid_page_length": 50,
@@ -316,7 +324,7 @@
    "link_fieldname": "service_appointment"
   }
  ],
- "modified": "2025-12-05 11:05:00.185395",
+ "modified": "2026-01-06 12:19:25.193255",
  "modified_by": "Administrator",
  "module": "Frappoint",
  "name": "Service Appointment",
