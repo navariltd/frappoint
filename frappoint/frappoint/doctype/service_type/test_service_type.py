@@ -5,5 +5,5 @@
 from frappe.tests.utils import FrappeTestCase
 
 
-class TestAppointmentType(FrappeTestCase):
+class TestServiceType(FrappeTestCase):
 	pass

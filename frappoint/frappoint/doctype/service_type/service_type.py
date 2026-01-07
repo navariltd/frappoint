@@ -7,7 +7,7 @@ from frappe.model.document import Document
 from frappe.utils import get_link_to_form, getdate, today
 
 
-class AppointmentType(Document):
+class ServiceType(Document):
 	# begin: auto-generated types
 	# This code is auto-generated. Do not modify anything in this block.
 
@@ -16,24 +16,19 @@ class AppointmentType(Document):
 	if TYPE_CHECKING:
 		from frappe.types import DF
 
-		from frappoint.frappoint.doctype.appointment_type_material.appointment_type_material import (
-			AppointmentTypeMaterial,
+		from frappoint.frappoint.doctype.service_type_material.service_type_material import (
+			ServiceTypeMaterial,
 		)
-		from frappoint.frappoint.doctype.appointment_type_price.appointment_type_price import (
-			AppointmentTypePrice,
-		)
-		from frappoint.frappoint.doctype.appointment_type_provider.appointment_type_provider import (
-			AppointmentTypeProvider,
-		)
-		from frappoint.frappoint.doctype.appointment_type_service_unit.appointment_type_service_unit import (
-			AppointmentTypeServiceUnit,
+		from frappoint.frappoint.doctype.service_type_price.service_type_price import ServiceTypePrice
+		from frappoint.frappoint.doctype.service_type_unit_type.service_type_unit_type import (
+			ServiceTypeUnitType,
 		)
 
 		appointment_type: DF.Data
 		buffer_after: DF.Int
 		buffer_before: DF.Int
 		company: DF.Link
-		consumables: DF.Table[AppointmentTypeMaterial]
+		consumables: DF.Table[ServiceTypeMaterial]
 		default_duration_in_minutes: DF.Int
 		description: DF.SmallText | None
 		disabled: DF.Check
@@ -41,9 +36,8 @@ class AppointmentType(Document):
 		item_group: DF.Data | None
 		item_name: DF.Data | None
 		max_clients_per_slot: DF.Int
-		prices: DF.Table[AppointmentTypePrice]
-		providers: DF.Table[AppointmentTypeProvider]
-		service_units: DF.Table[AppointmentTypeServiceUnit]
+		prices: DF.Table[ServiceTypePrice]
+		service_unit_types: DF.Table[ServiceTypeUnitType]
 	# end: auto-generated types
 	pass
 
@@ -51,8 +45,7 @@ class AppointmentType(Document):
 		self.validate_default_duration()
 		self.validate_max_clients()
 		self.validate_item_link()
-		self.validate_providers()
-		self.validate_service_units()
+		self.validate_service_unit_types()
 		self.validate_prices()
 		self.validate_consumables()
 		self.auto_create_item_if_missing()
@@ -75,27 +68,17 @@ class AppointmentType(Document):
 			if frappe.db.get_value("Item", self.item, "is_stock_item"):
 				frappe.throw(_("Item {0} must be a non-stock/service item").format(self.item))
 
-	def validate_providers(self):
-		valid_providers = [p for p in self.providers if p.provider]
-		if not valid_providers:
-			frappe.throw("At least one valid <b>Provider</b> is required.", title="Missing Provider")
-
+	def validate_service_unit_types(self):
 		self._validate_no_duplicates(
-			items=self.providers,
-			fields_to_check=["provider"],
-			error_title="Duplicate Providers",
-			item_label="provider",
-		)
-
-	def validate_service_units(self):
-		self._validate_no_duplicates(
-			items=self.service_units,
-			fields_to_check=["service_unit"],
-			error_title="Duplicate Service Units",
-			item_label="service unit",
+			items=self.service_unit_types,
+			fields_to_check=["service_unit_type"],
+			error_title="Duplicate Service Unit Types",
+			item_label="service unit type",
 		)
 
 	def validate_prices(self):
+		if not self.prices:
+			frappe.throw(_("At least one valid Price is required."), title=_("Missing Price."))
 		self._validate_no_duplicates(
 			items=self.prices,
 			fields_to_check=["price_list", "uom"],
@@ -289,7 +272,7 @@ class AppointmentType(Document):
 		if self.item and frappe.db.exists("Item", self.item):
 			return
 
-		item_name = self.appointment_type
+		item_name = self.service_type
 
 		item_doc = frappe.get_doc(
 			{

@@ -1,7 +1,7 @@
 // Copyright (c) 2025, Navari LTD and contributors
 // For license information, please see license.txt
 
-frappe.ui.form.on("Appointment Type", {
+frappe.ui.form.on("Service Type", {
 	setup(frm) {
 		frm.appointment_settings = null;
 
@@ -47,19 +47,6 @@ frappe.ui.form.on("Appointment Type", {
 				);
 			}
 		}
-
-		// Warning if no providers
-		// if (!frm.doc.providers || frm.doc.providers.length === 0) {
-		//     frappe.warn(
-		//         __('No Providers Assigned'),
-		//         __('This appointment type has no providers assigned. Clients may not be able to book appointments.'),
-		//         function() {
-		//             // Continue saving
-		//         },
-		//         __('Continue'),
-		//         true
-		//     );
-		// }
 	},
 
 	disabled(frm) {
@@ -148,18 +135,28 @@ frappe.ui.form.on("Appointment Type", {
 	apply_pricing_settings(frm) {
 		if (!frm.appointment_settings) return;
 
-		let is_mandatory = frm.appointment_settings.use_erpnext_pricing;
+		let use_erpnext_pricing = frm.appointment_settings.use_erpnext_pricing;
 
 		let prices_grid = frm.fields_dict["prices"].grid;
 
-		if (prices_grid && prices_grid.docfields) {
-			prices_grid.docfields.forEach(function (df) {
-				if (df.fieldname === "price_list") {
-					df.reqd = is_mandatory ? 1 : 0;
-				}
-			});
-			prices_grid.refresh();
-		}
+		if (!prices_grid) return;
+
+		prices_grid.docfields.forEach(function (df) {
+			if (df.fieldname === "price_list") {
+				df.reqd = use_erpnext_pricing ? 1 : 0;
+			}
+		});
+
+		frm.set_query("price_list", "prices", function () {
+			if (!use_erpnext_pricing) return {};
+			return {
+				filters: {
+					selling: 1,
+				},
+			};
+		});
+
+		prices_grid.refresh();
 
 		frm.refresh_field("prices");
 	},
@@ -223,7 +220,7 @@ frappe.ui.form.on("Appointment Type", {
 	},
 });
 
-frappe.ui.form.on("Appointment Type Price", {
+frappe.ui.form.on("Service Type Price", {
 	price_list(frm, cdt, cdn) {
 		let row = locals[cdt][cdn];
 

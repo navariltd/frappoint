@@ -23,10 +23,8 @@
   "buffer_after",
   "section_break_xzvq",
   "prices",
-  "section_break_mmzr",
-  "providers",
-  "section_break_xqnp",
-  "service_units",
+  "section_break_zfet",
+  "service_unit_types",
   "more_info_section",
   "description",
   "materials_tab",
@@ -86,18 +84,7 @@
    "fieldname": "prices",
    "fieldtype": "Table",
    "label": "Prices",
-   "options": "Appointment Type Price"
-  },
-  {
-   "fieldname": "section_break_mmzr",
-   "fieldtype": "Section Break",
-   "label": "Providers"
-  },
-  {
-   "fieldname": "providers",
-   "fieldtype": "Table",
-   "label": "Providers",
-   "options": "Appointment Type Provider"
+   "options": "Service Type Price"
   },
   {
    "fieldname": "item",
@@ -140,7 +127,7 @@
    "fieldname": "consumables",
    "fieldtype": "Table",
    "label": "Consumables",
-   "options": "Appointment Type Material"
+   "options": "Service Type Material"
   },
   {
    "fieldname": "company",
@@ -163,17 +150,6 @@
    "fieldtype": "Column Break"
   },
   {
-   "fieldname": "section_break_xqnp",
-   "fieldtype": "Section Break",
-   "label": "Service Units"
-  },
-  {
-   "fieldname": "service_units",
-   "fieldtype": "Table",
-   "label": "Service Units",
-   "options": "Appointment Type Service Unit"
-  },
-  {
    "fieldname": "buffer_before",
    "fieldtype": "Int",
    "label": "Buffer Before (In Minutes)",
@@ -190,6 +166,16 @@
    "fieldtype": "Tab Break",
    "label": "Connections",
    "show_dashboard": 1
+  },
+  {
+   "fieldname": "section_break_zfet",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "service_unit_types",
+   "fieldtype": "Table",
+   "label": "Service Unit Types",
+   "options": "Service Type Unit Type"
   }
  ],
  "grid_page_length": 50,
@@ -200,10 +186,10 @@
    "link_fieldname": "appointment_type"
   }
  ],
- "modified": "2025-12-05 08:12:48.419306",
+ "modified": "2026-01-06 14:11:21.709646",
  "modified_by": "Administrator",
  "module": "Frappoint",
- "name": "Appointment Type",
+ "name": "Service Type",
  "naming_rule": "By fieldname",
  "owner": "mwendwa@navari.co.ke",
  "permissions": [
