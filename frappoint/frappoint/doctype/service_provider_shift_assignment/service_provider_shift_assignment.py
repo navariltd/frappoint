@@ -6,16 +6,16 @@ from datetime import timedelta
 import frappe
 from frappe import _
 from frappe.model.document import Document
-from frappe.utils import cint, get_link_to_form
+from frappe.utils import cint, get_link_to_form, nowdate
 
-from ..appointment_provider_slot.appointment_provider_slot import generate_for_shift
+from ..service_provider_appointment_slot.service_provider_appointment_slot import generate_for_shift
 
 
 class MultipleShiftError(frappe.ValidationError):
 	pass
 
 
-class ProviderShiftAssignment(Document):
+class ServiceProviderShiftAssignment(Document):
 	# begin: auto-generated types
 	# This code is auto-generated. Do not modify anything in this block.
 
@@ -24,20 +24,22 @@ class ProviderShiftAssignment(Document):
 	if TYPE_CHECKING:
 		from frappe.types import DF
 
-		from frappoint.frappoint.doctype.provider_shift_assignment_day.provider_shift_assignment_day import (
-			ProviderShiftAssignmentDay,
-		)
-
 		amended_from: DF.Link | None
 		company: DF.Link
-		days: DF.TableMultiSelect[ProviderShiftAssignmentDay]
 		end_date: DF.Date | None
+		friday: DF.Check
+		monday: DF.Check
 		provider: DF.Link
 		provider_name: DF.Data | None
 		repeat_type: DF.Literal["Daily", "Weekly"]
+		saturday: DF.Check
 		shift_type: DF.Link
 		start_date: DF.Date
 		status: DF.Literal["Active", "Inactive"]
+		sunday: DF.Check
+		thursday: DF.Check
+		tuesday: DF.Check
+		wednesday: DF.Check
 	# end: auto-generated types
 
 	def validate(self):
@@ -49,7 +51,7 @@ class ProviderShiftAssignment(Document):
 	def before_update_after_submit(self):
 		"""Store old values and validate before update"""
 		if not self.is_new() and self.docstatus == 1:
-			old_doc = frappe.get_doc("Provider Shift Assignment", self.name)
+			old_doc = frappe.get_doc("Service Provider Shift Assignment", self.name)
 
 			self.flags.old_shift_type = old_doc.shift_type
 			self.flags.old_start_date = old_doc.start_date
@@ -58,7 +60,11 @@ class ProviderShiftAssignment(Document):
 			self.flags.old_status = old_doc.status
 
 			if old_doc.repeat_type == "Weekly":
-				self.flags.old_days = {d.weekday for d in old_doc.days}
+				day_fields = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"]
+				DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
+				self.flags.old_days = {
+					DAYS[idx] for idx, field in enumerate(day_fields) if old_doc.get(field)
+				}
 
 			if self.repeat_type == "Weekly" and old_doc.repeat_type == "Weekly":
 				self.validate_weekday_changes(old_doc)
@@ -81,7 +87,7 @@ class ProviderShiftAssignment(Document):
 			and self.flags.old_status == "Inactive"
 		):
 			frappe.msgprint(_("Shift reactivated. Regenerating slots..."), indicator="green", alert=True)
-			generate_for_shift(self.name)
+			self.reactivate_slots()
 			return
 
 		regeneration_type = self.check_for_slot_regeneration()
@@ -94,7 +100,7 @@ class ProviderShiftAssignment(Document):
 				alert=True,
 			)
 			frappe.enqueue(
-				"frappoint.frappoint.doctype.appointment_provider_slot.appointment_provider_slot.generate_for_shift",
+				"frappoint.frappoint.doctype.service_provider_appointment_slot.service_provider_appointment_slot.generate_for_shift",
 				shift_assignment=self.name,
 				queue="default",
 				timeout=300,
@@ -104,11 +110,14 @@ class ProviderShiftAssignment(Document):
 			# Partial regeneration (only weekdays changed)
 			self.handle_weekday_changes()
 
+	def on_cancel(self):
+		self.handle_slot_cleanup_on_cancel()
+
 	def validate_active_provider(self):
-		if self.provider and frappe.db.get_value("Appointment Provider", self.provider, "active") == 0:
+		if self.provider and frappe.db.get_value("Service Provider", self.provider, "active") == 0:
 			frappe.throw(
-				_("Transactions cannot be created for an Inactive Appointment Provider {0}.").format(
-					get_link_to_form("Appointment Provider", self.provider)
+				_("Transactions cannot be created for an Inactive Service Provider {0}.").format(
+					get_link_to_form("Service Provider", self.provider)
 				),
 			)
 
@@ -128,7 +137,7 @@ class ProviderShiftAssignment(Document):
 		# TODO: Consider adding multiple shift assignments
 		msg = _("{0} already has an active Shift Assignment {1} for some/all of these dates.").format(
 			frappe.bold(self.provider),
-			get_link_to_form("Shift Assignment", overlapping_dates[0].name),
+			get_link_to_form("Service Provider Shift Assignment", overlapping_dates[0].name),
 		)
 
 		frappe.throw(
@@ -141,7 +150,7 @@ class ProviderShiftAssignment(Document):
 		if not self.name:
 			self.name = "New Provider Shift Assignment"
 
-		shift = frappe.qb.DocType("Provider Shift Assignment")
+		shift = frappe.qb.DocType("Service Provider Shift Assignment")
 		query = (
 			frappe.qb.from_(shift)
 			.select(shift.name, shift.shift_type, shift.docstatus, shift.status)
@@ -165,8 +174,12 @@ class ProviderShiftAssignment(Document):
 		Accepts two shift types and checks whether their timings are overlapping
 		"""
 
-		s1 = frappe.db.get_value("Provider Shift Type", shift_1, ["start_time", "end_time"], as_dict=True)
-		s2 = frappe.db.get_value("Provider Shift Type", shift_2, ["start_time", "end_time"], as_dict=True)
+		s1 = frappe.db.get_value(
+			"Service Provider Shift Type", shift_1, ["start_time", "end_time"], as_dict=True
+		)
+		s2 = frappe.db.get_value(
+			"Service Provider Shift Type", shift_2, ["start_time", "end_time"], as_dict=True
+		)
 
 		for d in [s1, s2]:
 			if d.end_time <= d.start_time:
@@ -179,16 +192,18 @@ class ProviderShiftAssignment(Document):
 		if self.repeat_type != "Weekly" or old_doc.repeat_type != "Weekly":
 			return
 
-		old_days = {d.weekday for d in old_doc.days}
-		new_days = {d.weekday for d in self.days}
+		# Map weekday names to indices
+		day_fields = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"]
+		DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
+
+		old_days = {DAYS[idx] for idx, field in enumerate(day_fields) if old_doc.get(field)}
+		new_days = {DAYS[idx] for idx, field in enumerate(day_fields) if self.get(field)}
 		removed_days = old_days - new_days
 
 		if not removed_days:
 			return
 
-		# Map weekday names to indices
-		DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
-		removed_indices = [DAYS.index(day) for day in removed_days]
+		removed_indices = [(DAYS.index(day) + 1) % 7 + 1 for day in removed_days]
 
 		# Check if any booked appointments exist on removed days
 		booked_slots = frappe.db.sql(
@@ -198,7 +213,7 @@ class ProviderShiftAssignment(Document):
 				start_time,
 				end_time,
 				service_appointment
-			FROM `tabAppointment Provider Slot`
+			FROM `tabService Provider Appointment Slot`
 			WHERE shift_assignment = %s
 			AND service_appointment IS NOT NULL
 			AND service_appointment != ''
@@ -249,7 +264,10 @@ class ProviderShiftAssignment(Document):
 
 		# Check if only weekdays changed for Weekly repeat (partial regeneration)
 		if self.repeat_type == "Weekly" and hasattr(self.flags, "old_days"):
-			new_days = {d.weekday for d in self.days}
+			day_fields = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"]
+			DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
+			new_days = {DAYS[idx] for idx, field in enumerate(day_fields) if self.get(field)}
+
 			if self.flags.old_days != new_days:
 				return "partial"
 
@@ -258,7 +276,10 @@ class ProviderShiftAssignment(Document):
 	def handle_weekday_changes(self):
 		"""Handle partial regeneration when only weekdays change"""
 		old_days = self.flags.old_days
-		new_days = {d.weekday for d in self.days}
+
+		day_fields = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"]
+		DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
+		new_days = {DAYS[idx] for idx, field in enumerate(day_fields) if self.get(field)}
 
 		added_days = new_days - old_days
 		removed_days = old_days - new_days
@@ -271,7 +292,7 @@ class ProviderShiftAssignment(Document):
 				alert=True,
 			)
 			frappe.enqueue(
-				"frappoint.frappoint.doctype.appointment_provider_slot.appointment_provider_slot.delete_slots_for_specific_days",
+				"frappoint.frappoint.doctype.service_provider_appointment_slot.service_provider_appointment_slot.delete_slots_for_specific_days",
 				shift_assignment=self.name,
 				weekdays=list(removed_days),
 				queue="default",
@@ -287,7 +308,7 @@ class ProviderShiftAssignment(Document):
 				alert=True,
 			)
 			frappe.enqueue(
-				"frappoint.frappoint.doctype.appointment_provider_slot.appointment_provider_slot.generate_slots_for_specific_days",
+				"frappoint.frappoint.doctype.service_provider_appointment_slot.service_provider_appointment_slot.generate_slots_for_specific_days",
 				shift_assignment=self.name,
 				weekdays=list(added_days),
 				queue="default",
@@ -299,7 +320,7 @@ class ProviderShiftAssignment(Document):
 		"""Mark all slots as unavailable when shift becomes inactive"""
 		frappe.db.sql(
 			"""
-			UPDATE `tabAppointment Provider Slot`
+			UPDATE `tabService Provider Appointment Slot`
 			SET is_available = 0
 			WHERE shift_assignment = %s
 			AND service_appointment IS NULL
@@ -307,3 +328,86 @@ class ProviderShiftAssignment(Document):
 			self.name,
 		)
 		frappe.db.commit()
+
+	def reactivate_slots(self):
+		"""Mark all unbooked future slots as available when shift is reactivated"""
+		today = nowdate()
+
+		slot_count = frappe.db.count(
+			"Service Provider Appointment Slot",
+			{"shift_assignment": self.name, "posting_date": [">=", today]},
+		)
+
+		if slot_count == 0:
+			# No slots exist, need to generate them
+			frappe.msgprint(
+				_("No existing slots found. Generating new slots..."), indicator="blue", alert=True
+			)
+			generate_for_shift(self.name)
+			return
+
+		frappe.db.sql(
+			"""
+			UPDATE `tabService Provider Appointment Slot`
+			SET is_available = 1
+			WHERE shift_assignment = %s
+			AND posting_date >= %s
+			AND (service_appointment IS NULL OR service_appointment = '')
+			""",
+			(self.name, today),
+		)
+		frappe.db.commit()
+
+	def handle_slot_cleanup_on_cancel(self):
+		"""
+		When a shift assignment is cancelled:
+		1. Check for any booked appointments
+		2. If booked appointments exist, prevent cancellation
+		3. If no bookings, delete all associated slots
+		"""
+		# Check for booked slots
+		booked_slots = frappe.db.sql(
+			"""
+			SELECT
+				COUNT(*) as count,
+				GROUP_CONCAT(DISTINCT service_appointment) as appointments
+			FROM `tabService Provider Appointment Slot`
+			WHERE shift_assignment = %s
+			AND service_appointment IS NOT NULL
+			AND service_appointment != ''
+		""",
+			self.name,
+			as_dict=True,
+		)
+
+		if booked_slots and booked_slots[0].count > 0:
+			appointments = booked_slots[0].appointments.split(",")
+			frappe.throw(
+				_(
+					"Cannot cancel shift assignment. There are {0} booked appointment(s): {1}.<br><br>"
+					"Please cancel or reschedule these appointments first."
+				).format(
+					booked_slots[0].count,
+					", ".join(appointments[:5]),  # Show first 5
+				),
+				title=_("Cannot Cancel - Active Bookings Exist"),
+			)
+
+		# Delete all slots for this shift assignment
+		deleted_count = frappe.db.sql(
+			"""
+			DELETE FROM `tabService Provider Appointment Slot`
+			WHERE shift_assignment = %s
+		""",
+			self.name,
+		)
+
+		frappe.db.commit()
+
+		frappe.msgprint(
+			_("Deleted {0} appointment slots for this shift assignment").format(
+				deleted_count if isinstance(deleted_count, int) else "all"
+			),
+			indicator="blue",
+			alert=True,
+		)
