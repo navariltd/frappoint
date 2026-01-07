@@ -217,8 +217,6 @@ class ServiceProvider(Document):
 			(self.name, today),
 		)
 
-		frappe.db.commit()
-
 		frappe.msgprint(_("Marked future unbooked slots as unavailable"), indicator="blue", alert=True)
 
 	def reactivate_future_slots(self):
@@ -245,8 +243,6 @@ class ServiceProvider(Document):
 			""",
 				(self.name, today, active_shifts),
 			)
-
-			frappe.db.commit()
 
 			frappe.msgprint(
 				_("Reactivated future slots for active shift assignments"), indicator="green", alert=True

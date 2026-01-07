@@ -846,7 +846,7 @@ class ServiceAppointment(Document):
 	def handle_cancellation(self):
 		"""Handle appointment cancellation"""
 		# Release slots
-		self.status = "Cancelled"
+		self.db_set("status", "Cancelled")
 		self.cancel_linked_event()
 		self.release_slots()
 		self.cancel_sales_order()
