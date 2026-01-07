@@ -9,7 +9,7 @@ from frappe.model.document import Document
 from frappe.utils import add_days, get_time, getdate, time_diff
 
 
-class ProviderShiftType(Document):
+class ServiceProviderShiftType(Document):
 	# begin: auto-generated types
 	# This code is auto-generated. Do not modify anything in this block.
 
@@ -71,7 +71,7 @@ class ProviderShiftType(Document):
 		or_filters = [["end_date", ">=", from_date], ["end_date", "is", "not set"]]
 
 		assigned_providers = frappe.get_all(
-			"Provider Shift Assignment", filters=filters, or_filters=or_filters, pluck="provider"
+			"Service Provider Shift Assignment", filters=filters, or_filters=or_filters, pluck="provider"
 		)
 
 		# exclude inactive providers

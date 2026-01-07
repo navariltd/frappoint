@@ -5,5 +5,5 @@
 from frappe.tests.utils import FrappeTestCase
 
 
-class TestProviderShiftType(FrappeTestCase):
+class TestServiceProviderShiftType(FrappeTestCase):
 	pass

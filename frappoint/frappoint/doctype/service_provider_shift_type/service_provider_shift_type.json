@@ -6,12 +6,15 @@
  "doctype": "DocType",
  "engine": "InnoDB",
  "field_order": [
+  "working_hours_section",
   "start_time",
   "end_time",
-  "break_start_time",
-  "break_end_time",
   "column_break_wvds",
-  "holiday_list"
+  "holiday_list",
+  "break_section",
+  "break_start_time",
+  "column_break_xhfj",
+  "break_end_time"
  ],
  "fields": [
   {
@@ -47,15 +50,29 @@
    "fieldtype": "Link",
    "label": "Holiday List",
    "options": "Holiday List"
+  },
+  {
+   "fieldname": "break_section",
+   "fieldtype": "Section Break",
+   "label": "Break"
+  },
+  {
+   "fieldname": "column_break_xhfj",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "working_hours_section",
+   "fieldtype": "Section Break",
+   "label": "Working Hours"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-11-27 18:10:13.874167",
+ "modified": "2026-01-06 14:47:15.632091",
  "modified_by": "Administrator",
  "module": "Frappoint",
- "name": "Provider Shift Type",
+ "name": "Service Provider Shift Type",
  "naming_rule": "Set by user",
  "owner": "Administrator",
  "permissions": [
