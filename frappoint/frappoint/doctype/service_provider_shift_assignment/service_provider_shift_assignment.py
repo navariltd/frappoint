@@ -8,7 +8,10 @@ from frappe import _
 from frappe.model.document import Document
 from frappe.utils import cint, get_link_to_form, nowdate
 
-from ..service_provider_appointment_slot.service_provider_appointment_slot import generate_for_shift
+from ..service_provider_appointment_slot.service_provider_appointment_slot import (
+	generate_for_shift,
+	service_type_requires_service_unit,
+)
 
 
 class MultipleShiftError(frappe.ValidationError):
@@ -33,6 +36,7 @@ class ServiceProviderShiftAssignment(Document):
 		provider_name: DF.Data | None
 		repeat_type: DF.Literal["Daily", "Weekly"]
 		saturday: DF.Check
+		service_unit: DF.Link | None
 		shift_type: DF.Link
 		start_date: DF.Date
 		status: DF.Literal["Active", "Inactive"]
@@ -47,6 +51,7 @@ class ServiceProviderShiftAssignment(Document):
 		if self.end_date:
 			self.validate_from_to_dates("start_date", "end_date")
 		self.validate_overlapping_shifts()
+		self.validate_shift_service_unit()
 
 	def before_update_after_submit(self):
 		"""Store old values and validate before update"""
@@ -244,6 +249,36 @@ class ServiceProviderShiftAssignment(Document):
 				).format(frappe.bold(removed_day_names), details_str),
 				title=_("Cannot Remove Days with Bookings"),
 			)
+
+	def validate_shift_service_unit(self):
+		"""
+		Validate shift assignment based on provider's services
+		Called from Service Provider Shift Assignment's validate
+		"""
+		if not self.service_unit:
+			# Check if any of the provider's services require a service unit
+			provider_services = frappe.get_all(
+				"Service Provider Service",
+				filters={"parent": self.provider, "disabled": 0},
+				pluck="service_type",
+			)
+
+			requires_unit = False
+			for service_type in provider_services:
+				req, _unit_types = service_type_requires_service_unit(service_type)
+				if req:
+					requires_unit = True
+					break
+
+			if requires_unit:
+				frappe.throw(
+					_(
+						"Warning: This provider offers services that require a service unit, "
+						"but no service unit is assigned to this shift. "
+						"Appointments requiring service units will not be available during this shift."
+					),
+					title=_("Missing Service Unit"),
+				)
 
 	def check_for_slot_regeneration(self):
 		"""

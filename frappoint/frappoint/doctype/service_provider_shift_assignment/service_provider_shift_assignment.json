@@ -23,6 +23,7 @@
   "sunday",
   "section_break_falx",
   "shift_type",
+  "service_unit",
   "column_break_izxx",
   "start_date",
   "end_date",
@@ -169,13 +170,20 @@
    "fieldname": "sunday",
    "fieldtype": "Check",
    "label": "Sunday"
+  },
+  {
+   "fieldname": "service_unit",
+   "fieldtype": "Link",
+   "label": "Service Unit",
+   "link_filters": "[[\"Service Unit\",\"is_group\",\"=\",0]]",
+   "options": "Service Unit"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2026-01-06 11:19:11.924578",
+ "modified": "2026-01-07 14:19:35.189324",
  "modified_by": "Administrator",
  "module": "Frappoint",
  "name": "Service Provider Shift Assignment",
