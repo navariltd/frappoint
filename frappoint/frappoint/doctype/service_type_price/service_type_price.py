@@ -5,7 +5,7 @@
 from frappe.model.document import Document
 
 
-class AppointmentTypeMaterial(Document):
+class ServiceTypePrice(Document):
 	# begin: auto-generated types
 	# This code is auto-generated. Do not modify anything in this block.
 
@@ -14,18 +14,13 @@ class AppointmentTypeMaterial(Document):
 	if TYPE_CHECKING:
 		from frappe.types import DF
 
-		conversion_factor: DF.Float
-		cost_center: DF.Link | None
-		description: DF.SmallText | None
-		item: DF.Link
-		item_name: DF.Data | None
+		currency: DF.Link | None
 		parent: DF.Data
 		parentfield: DF.Data
 		parenttype: DF.Data
-		qty: DF.Float
-		s_warehouse: DF.Link | None
-		stock_uom: DF.Link | None
+		price_list: DF.Link | None
+		price_name: DF.Data
+		rate: DF.Currency
 		uom: DF.Link
-		valuation_rate: DF.Float
 	# end: auto-generated types
 	pass

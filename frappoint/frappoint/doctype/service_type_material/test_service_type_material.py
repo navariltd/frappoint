@@ -5,5 +5,5 @@
 from frappe.tests.utils import FrappeTestCase
 
 
-class TestAppointmentTypeMaterial(FrappeTestCase):
+class TestServiceTypeMaterial(FrappeTestCase):
 	pass

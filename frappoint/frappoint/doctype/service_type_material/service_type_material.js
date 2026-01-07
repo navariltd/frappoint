@@ -1,7 +1,7 @@
 // Copyright (c) 2025, Navari LTD and contributors
 // For license information, please see license.txt
 
-// frappe.ui.form.on("Appointment Type Material", {
+// frappe.ui.form.on("Service Type Material", {
 // 	refresh(frm) {
 
 // 	},

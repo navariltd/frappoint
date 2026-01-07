@@ -120,7 +120,7 @@
  "modified": "2025-11-12 06:18:03.376142",
  "modified_by": "Administrator",
  "module": "Frappoint",
- "name": "Appointment Type Material",
+ "name": "Service Type Material",
  "owner": "Administrator",
  "permissions": [],
  "row_format": "Dynamic",
