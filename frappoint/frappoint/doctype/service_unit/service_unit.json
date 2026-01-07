@@ -18,7 +18,7 @@
   "allow_overlap",
   "capacity",
   "section_break_pkuw",
-  "parent_appointment_service_unit",
+  "parent_service_unit",
   "column_break_psdz",
   "is_group",
   "section_break_vxaz",
@@ -40,7 +40,8 @@
    "fieldname": "unit_type",
    "fieldtype": "Link",
    "label": "Unit Type",
-   "options": "Appointment Service Unit Type"
+   "options": "Service Unit Type",
+   "reqd": 1
   },
   {
    "fieldname": "location",
@@ -52,7 +53,7 @@
    "default": "0",
    "fieldname": "active",
    "fieldtype": "Check",
-   "label": "Active"
+   "label": "Disabled"
   },
   {
    "fieldname": "lft",
@@ -81,14 +82,14 @@
    "fieldtype": "Link",
    "hidden": 1,
    "label": "Old Parent",
-   "options": "Appointment Service Unit"
+   "options": "Service Unit"
   },
   {
-   "fieldname": "parent_appointment_service_unit",
+   "fieldname": "parent_service_unit",
    "fieldtype": "Link",
    "ignore_user_permissions": 1,
-   "label": "Parent Appointment Service Unit",
-   "options": "Appointment Service Unit"
+   "label": "Parent Service Unit",
+   "options": "Service Unit"
   },
   {
    "fieldname": "details_section",
@@ -135,6 +136,7 @@
   },
   {
    "default": "0",
+   "depends_on": "eval: doc.capacity > 1",
    "fieldname": "allow_overlap",
    "fieldtype": "Check",
    "label": "Allow Overlap"
@@ -150,12 +152,12 @@
  "index_web_pages_for_search": 1,
  "is_tree": 1,
  "links": [],
- "modified": "2025-11-10 14:19:53.350922",
+ "modified": "2026-01-06 13:54:24.629275",
  "modified_by": "Administrator",
  "module": "Frappoint",
- "name": "Appointment Service Unit",
+ "name": "Service Unit",
  "naming_rule": "By fieldname",
- "nsm_parent_field": "parent_appointment_service_unit",
+ "nsm_parent_field": "parent_service_unit",
  "owner": "Administrator",
  "permissions": [
   {
