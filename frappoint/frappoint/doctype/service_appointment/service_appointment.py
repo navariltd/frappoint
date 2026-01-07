@@ -13,6 +13,11 @@ from frappe.desk.reportview import build_match_conditions
 from frappe.model.document import Document
 from frappe.utils import flt, get_datetime, get_link_to_form, get_time, getdate, now_datetime
 
+from ..service_provider_appointment_slot.service_provider_appointment_slot import (
+	check_service_unit_capacity,
+	service_type_requires_service_unit,
+)
+
 
 class MaximumCapacityError(frappe.ValidationError):
 	pass
@@ -65,6 +70,7 @@ class ServiceAppointment(Document):
 		self.validate_appointment_date_and_times()
 		self.validate_overlaps()
 		self.validate_customer_overlap()
+		self.validate_service_unit_capacity()
 
 		if self.appointment_type and not self.duration:
 			self.set_duration_from_type()
@@ -77,6 +83,10 @@ class ServiceAppointment(Document):
 
 	def before_save(self):
 		"""Book slots before saving if slot selection was made"""
+
+		self.assign_service_unit_to_appointment()
+		self.validate_service_unit_requirement()
+
 		# Track if this is a reschedule
 		if not self.is_new():
 			old_doc = self.get_doc_before_save()
@@ -264,6 +274,89 @@ class ServiceAppointment(Document):
 					", ".join(missing_fields)
 				)
 			)
+
+	def validate_service_unit_capacity(self):
+		"""Check if service unit has capacity for this appointment"""
+		if not self.service_unit or not self.appointment_type:
+			return
+
+		apt_type = frappe.get_doc("Service Type", self.appointment_type)
+		max_clients = apt_type.max_clients_per_slot or 1
+
+		capacity_ok = check_service_unit_capacity(
+			self.service_unit,
+			self.appointment_date,
+			self.start_time,
+			self.end_time,
+			self.appointment_type,
+			max_clients,
+		)
+
+		if not capacity_ok:
+			frappe.throw(
+				_("Service Unit {0} is at full capacity for the selected time slot").format(
+					frappe.bold(self.service_unit)
+				),
+				title=_("Capacity Exceeded"),
+			)
+
+	def assign_service_unit_to_appointment(self):
+		"""
+		Assign service unit to appointment based on booked slots
+		Called from Service Appointment's before_save or validate
+		"""
+		if not self.selected_slot_ids:
+			return
+
+		slot_ids = (
+			json.loads(self.selected_slot_ids)
+			if isinstance(self.selected_slot_ids, str)
+			else self.selected_slot_ids
+		)
+
+		if not slot_ids:
+			return
+
+		# Get service unit from the first slot
+		first_slot = frappe.db.get_value(
+			"Service Provider Appointment Slot", slot_ids[0], ["service_unit", "provider"], as_dict=True
+		)
+
+		if first_slot:
+			self.service_unit = first_slot.service_unit
+			self.appointment_provider = first_slot.provider
+
+	def validate_service_unit_requirement(self):
+		"""
+		Validate that service unit is provided when required
+		Called from Service Appointment's validate method
+		"""
+		if not self.appointment_type:
+			return
+
+		requires_unit, unit_types = service_type_requires_service_unit(self.appointment_type)
+
+		if requires_unit and not self.service_unit:
+			frappe.throw(
+				_("Service Unit is required for appointment type {0}. " "Required unit types: {1}").format(
+					frappe.bold(self.appointment_type), ", ".join(unit_types)
+				),
+				title=_("Service Unit Required"),
+			)
+
+		# Validate that the assigned service unit matches the required type
+		if self.service_unit:
+			service_unit_doc = frappe.get_doc("Service Unit", self.service_unit)
+
+			if requires_unit and service_unit_doc.unit_type not in unit_types:
+				frappe.throw(
+					_("Service Unit {0} is of type {1}, but this appointment requires: {2}").format(
+						frappe.bold(self.service_unit),
+						frappe.bold(service_unit_doc.unit_type),
+						", ".join(unit_types),
+					),
+					title=_("Invalid Service Unit Type"),
+				)
 
 	def set_duration_from_type(self):
 		"""Set duration from appointment type"""
