@@ -24,6 +24,7 @@ class ServiceProviderAppointmentSlot(Document):
 		posting_date: DF.Date
 		provider: DF.Link
 		service_appointment: DF.Link | None
+		service_unit: DF.Link | None
 		shift_assignment: DF.Link
 		start_time: DF.Time
 	# end: auto-generated types
@@ -149,6 +150,7 @@ def generate_for_shift(shift_assignment):
 				{
 					"doctype": "Service Provider Appointment Slot",
 					"provider": provider,
+					"service_unit": sa.service_unit,
 					"posting_date": dt,
 					"start_time": start_t,
 					"end_time": end_t,
@@ -311,6 +313,20 @@ def delete_slots_for_specific_days(shift_assignment, weekdays):
 	return f"Deleted slots for {', '.join(weekdays)} ({count} dates processed)"
 
 
+def service_type_requires_service_unit(service_type):
+	"""
+	Check if a service type requires a service unit
+	Returns: (requires_unit: bool, unit_types: list)
+	"""
+	apt_type = frappe.get_doc("Service Type", service_type)
+
+	if not apt_type.service_unit_types or len(apt_type.service_unit_types) == 0:
+		return False, []
+
+	unit_types = [row.service_unit_type for row in apt_type.service_unit_types]
+	return True, unit_types
+
+
 @frappe.whitelist()
 def get_available_slots(appointment_type, provider=None, date=None, days_ahead=30):
 	"""
@@ -328,7 +344,9 @@ def get_available_slots(appointment_type, provider=None, date=None, days_ahead=3
 
 	apt_type = frappe.get_doc("Service Type", appointment_type)
 	duration = apt_type.default_duration_in_minutes
-	# service_unit_type = apt_type.service_unit_type
+
+	# Check if service unit is required
+	requires_unit, required_unit_types = service_type_requires_service_unit(appointment_type)
 
 	settings = frappe.get_single("Service Appointment Settings")
 	buffer_before = apt_type.buffer_before or settings.buffer_before or 0
@@ -376,45 +394,94 @@ def get_available_slots(appointment_type, provider=None, date=None, days_ahead=3
 		)
 	"""
 
-	slots = frappe.db.sql(
-		f"""
-		SELECT
-			s.name,
-			s.provider,
-			p.provider_name,
-			s.posting_date,
-			s.start_time,
-			s.end_time,
-			s.shift_assignment,
-			TIMEDIFF(s.end_time, s.start_time) as slot_duration_minutes
-		FROM `tabService Provider Appointment Slot` s
-		INNER JOIN `tabService Provider` p ON s.provider = p.name
-		WHERE s.provider IN %(providers)s
-		AND s.posting_date BETWEEN %(start_date)s AND %(end_date)s
-		AND s.is_available = 1
-		AND (s.service_appointment IS NULL OR s.service_appointment = '')
-		AND p.active = 1
-		{past_booking_filter}
-		ORDER BY s.posting_date, s.start_time, p.provider_name
-	""",
-		{"providers": providers, "start_date": start_date, "end_date": end_date},
-		as_dict=True,
-	)
+	if requires_unit:
+		slots = frappe.db.sql(
+			f"""
+			SELECT
+				s.name,
+				s.provider,
+				p.provider_name,
+				s.service_unit,
+				su.unit_name,
+				su.unit_type,
+				su.capacity,
+				s.posting_date,
+				s.start_time,
+				s.end_time,
+				s.shift_assignment,
+				TIMEDIFF(s.end_time, s.start_time) as slot_duration_minutes
+			FROM `tabService Provider Appointment Slot` s
+			INNER JOIN `tabService Provider` p ON s.provider = p.name
+			INNER JOIN `tabService Unit` su ON s.service_unit = su.name
+			WHERE s.provider IN %(providers)s
+			AND s.posting_date BETWEEN %(start_date)s AND %(end_date)s
+			AND s.is_available = 1
+			AND (s.service_appointment IS NULL OR s.service_appointment = '')
+			AND p.active = 1
+			AND su.unit_type IN %(required_unit_types)s
+			AND su.active = 1
+			AND su.allow_appointments = 1
+			{past_booking_filter}
+			ORDER BY s.posting_date, s.start_time, p.provider_name, su.unit_name
+		""",
+			{
+				"providers": providers,
+				"start_date": start_date,
+				"end_date": end_date,
+				"required_unit_types": required_unit_types,
+			},
+			as_dict=True,
+		)
 
-	available_slots = group_slots_by_duration(slots, duration, buffer_before, buffer_after)
+	else:
+		slots = frappe.db.sql(
+			f"""
+			SELECT
+				s.name,
+				s.provider,
+				p.provider_name,
+				s.service_unit,
+				s.posting_date,
+				s.start_time,
+				s.end_time,
+				s.shift_assignment,
+				TIMEDIFF(s.end_time, s.start_time) as slot_duration_minutes
+			FROM `tabService Provider Appointment Slot` s
+			INNER JOIN `tabService Provider` p ON s.provider = p.name
+			LEFT JOIN `tabService Unit` su ON s.service_unit = su.name
+			WHERE s.provider IN %(providers)s
+			AND s.posting_date BETWEEN %(start_date)s AND %(end_date)s
+			AND s.is_available = 1
+			AND (s.service_appointment IS NULL OR s.service_appointment = '')
+			AND p.active = 1
+			AND (s.service_unit IS NULL OR su.active = 1)
+			{past_booking_filter}
+			ORDER BY s.posting_date, s.start_time, p.provider_name
+		""",
+			{"providers": providers, "start_date": start_date, "end_date": end_date},
+			as_dict=True,
+		)
+
+	available_slots = group_slots_by_duration_and_capacity(
+		slots, duration, buffer_before, buffer_after, appointment_type, requires_unit
+	)
 
 	return format_available_slots(available_slots)
 
 
-def group_slots_by_duration(slots, required_duration, buffer_before=0, buffer_after=0):
+def group_slots_by_duration_and_capacity(
+	slots, required_duration, buffer_before, buffer_after, appointment_type, requires_unit
+):
 	"""
-	Group consecutive slots that can accommodate the required duration plus buffers
+	Group consecutive slots that can accommodate the required duration plus buffers and capacity constraints
 
 	Args:
 		slots: List of slot dictionaries
 		required_duration: Required duration in minutes
 		buffer_before: Buffer time before appointment in minutes
 		buffer_after: Buffer time after appointment in minutes
+		appointment_type: Service being rendered
+		requires_unit: Does service require a physical/logical resource
 
 
 	Returns:
@@ -424,16 +491,29 @@ def group_slots_by_duration(slots, required_duration, buffer_before=0, buffer_af
 	available_slots = []
 	total_duration_needed = required_duration + buffer_before + buffer_after
 
+	apt_type = frappe.get_doc("Service Type", appointment_type)
+	max_clients = apt_type.max_clients_per_slot or 1
+
 	# Group by provider and date
 	grouped = {}
 	for slot in slots:
-		key = (slot.provider, slot.posting_date)
+		if requires_unit:
+			key = (slot.provider, slot.posting_date, slot.service_unit)
+		else:
+			key = (slot.provider, slot.posting_date)
+
 		if key not in grouped:
 			grouped[key] = []
 		grouped[key].append(slot)
 
 	# For each provider-date combination, find consecutive slots
-	for (provider, date), day_slots in grouped.items():
+	for key, day_slots in grouped.items():
+		if requires_unit:
+			provider, date, service_unit = key
+		else:
+			provider, date = key
+			service_unit = None
+
 		i = 0
 		while i < len(day_slots):
 			current_slot = day_slots[i]
@@ -481,6 +561,19 @@ def group_slots_by_duration(slots, required_duration, buffer_before=0, buffer_af
 
 				# If we have enough duration, create an available slot
 				if accumulated_minutes >= total_duration_needed:
+					if requires_unit:
+						capacity_available = check_service_unit_capacity(
+							service_unit,
+							date,
+							start_time,
+							get_end_time_for_duration(start_time, total_duration_needed),
+							appointment_type,
+							max_clients,
+						)
+
+						if not capacity_available:
+							break
+
 					actual_start_time = get_end_time_for_duration(start_time, buffer_before)
 					actual_end_time = get_end_time_for_duration(actual_start_time, required_duration)
 
@@ -488,6 +581,8 @@ def group_slots_by_duration(slots, required_duration, buffer_before=0, buffer_af
 						{
 							"provider": provider,
 							"provider_name": current_slot.provider_name,
+							"service_unit": service_unit,
+							"service_unit_name": getattr(current_slot, "unit_name", None),
 							"date": date,
 							"start_time": actual_start_time,
 							"end_time": actual_end_time,
@@ -505,6 +600,61 @@ def group_slots_by_duration(slots, required_duration, buffer_before=0, buffer_af
 			i += 1
 
 	return available_slots
+
+
+def check_service_unit_capacity(
+	service_unit, date, start_time, end_time, appointment_type, max_clients_per_slot
+):
+	"""
+	Check if service unit has capacity for this time slot
+
+	Logic:
+	1. Get service unit capacity (default from Service Unit if not specified in Service Type)
+	2. Check how many appointments already exist for this time slot
+	3. Account for overlapping appointments if allow_overlap is true
+	4. Return True if capacity is available
+	"""
+
+	service_unit_doc = frappe.get_doc("Service Unit", service_unit)
+
+	# Determine effective capacity
+	# Priority: Service Type > Service Unit
+	apt_type = frappe.get_doc("Service Type", appointment_type)
+	capacity = None
+
+	# Check if capacity is specified in Service Type's service_unit_types
+	for row in apt_type.service_unit_types:
+		if row.service_unit_type == service_unit_doc.unit_type:
+			if row.capacity:
+				capacity = row.capacity
+			break
+
+	# Fallback to Service Unit's capacity
+	if capacity is None:
+		capacity = service_unit_doc.capacity or 1
+
+	# If allow_overlap is true, capacity can be higher
+	if service_unit_doc.allow_overlap:
+		# Use max_clients_per_slot if specified, otherwise use capacity
+		effective_capacity = max(capacity, max_clients_per_slot)
+	else:
+		effective_capacity = min(capacity, max_clients_per_slot)
+
+	# Count existing appointments in this time slot
+	existing_count = frappe.db.count(
+		"Service Appointment",
+		{
+			"service_unit": service_unit,
+			"appointment_date": date,
+			"status": ["not in", ["Cancelled", "No Show"]],
+			"docstatus": ["!=", 2],  # Not cancelled
+			# Check for time overlap
+			"start_time": ["<=", end_time],
+			"end_time": [">=", start_time],
+		},
+	)
+
+	return existing_count < effective_capacity
 
 
 def get_end_time_for_duration(start_time, duration_minutes):
