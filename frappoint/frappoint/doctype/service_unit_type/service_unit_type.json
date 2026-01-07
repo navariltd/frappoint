@@ -1,6 +1,7 @@
 {
  "actions": [],
  "allow_rename": 1,
+ "autoname": "prompt",
  "creation": "2025-10-20 07:38:27.799048",
  "doctype": "DocType",
  "engine": "InnoDB",
@@ -16,7 +17,8 @@
   "item_code",
   "uom",
   "column_break_mmot",
-  "rate__uom"
+  "rate__uom",
+  "connections_tab"
  ],
  "fields": [
   {
@@ -83,15 +85,27 @@
    "fieldname": "allow_overlap",
    "fieldtype": "Check",
    "label": "Allow Overlap"
+  },
+  {
+   "fieldname": "connections_tab",
+   "fieldtype": "Tab Break",
+   "label": "Connections",
+   "show_dashboard": 1
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
- "links": [],
- "modified": "2025-11-10 14:18:35.531325",
+ "links": [
+  {
+   "link_doctype": "Service Unit",
+   "link_fieldname": "unit_type"
+  }
+ ],
+ "modified": "2026-01-06 14:46:11.096286",
  "modified_by": "Administrator",
  "module": "Frappoint",
- "name": "Appointment Service Unit Type",
+ "name": "Service Unit Type",
+ "naming_rule": "Set by user",
  "owner": "Administrator",
  "permissions": [
   {
