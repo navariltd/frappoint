@@ -12,7 +12,7 @@
 					<router-link
 						to="/"
 						class="flex items-center gap-3 px-4 py-3 text-gray-700 hover:bg-gray-100 rounded-lg"
-						active-class="text-red-500"
+						active-class="!text-blue-500"
 					>
 						<CalendarCheck :size="20" />
 						<span>Appointments</span>
@@ -21,7 +21,7 @@
 					<router-link
 						to="/services"
 						class="flex items-center gap-3 px-4 py-3 text-gray-700 hover:bg-gray-100 rounded-lg"
-						active-class="text-red-500"
+						active-class="!text-blue-500"
 					>
 						<CalendarCheck :size="20" />
 						<span>Services</span>
@@ -30,7 +30,7 @@
 					<router-link
 						to="/dashboard"
 						class="flex items-center gap-3 px-4 py-3 text-gray-700 hover:bg-gray-100 rounded-lg"
-						active-class="text-red-500"
+						active-class="!text-blue-500"
 					>
 						<User :size="20" />
 						<span>Dashboard</span>
