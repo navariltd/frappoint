@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" href="/assets/frappoint/frontend/favicon.png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Frappoint</title>
+    <script type="module" crossorigin src="/assets/frappoint/frontend/assets/index-DfkK5Zd4.js"></script>
+    <link rel="stylesheet" crossorigin href="/assets/frappoint/frontend/assets/index-C-yanump.css">
+  </head>
+  <body>
+    <div id="app"></div>
+  
+          <script>
+              {% for key in boot %}
+              window["{{ key }}"] = {{ boot[key] | tojson }};
+              {% endfor %}
+          </script>
+          </body>
+          
+</html>

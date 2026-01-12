@@ -44,6 +44,7 @@
 			</div>
 			<div class="flex-shrink-0">
 				<button
+					@click="goToServices"
 					class="p-2 rounded bg-blue-500 text-white hover:bg-gray-800 shadow-sm hover:shadow-md transition-all duration-200"
 				>
 					Book New Appointments
@@ -68,6 +69,7 @@
 				</p>
 				<button
 					v-if="activeTab === 'upcoming' || activeTab === 'current'"
+					@click="goToServices"
 					class="p-2 rounded bg-blue-500 text-white hover:bg-gray-800 shadow-sm hover:shadow-md transition-all duration-200"
 				>
 					Book New Appointments
@@ -99,6 +101,13 @@ import { CalendarX } from "lucide-vue-next";
 import { string } from "postcss-selector-parser";
 import { computed, ref, watch } from "vue";
 import AppointmentCard from "./AppointmentCard.vue";
+import { useRouter } from "vue-router";
+
+const router = useRouter();
+
+const goToServices = () => {
+	router.push({ name: "Services" });
+};
 
 const props = defineProps({
 	username: string,
