@@ -23,11 +23,6 @@ const routes = [
 		path: "/appointments",
 		component: () => import("@/pages/AppointmentPage.vue"),
 	},
-	{
-		name: "Booking",
-		path: "/booking",
-		component: () => import("@/components/Booking.vue"),
-	},
 ];
 
 const router = createRouter({
