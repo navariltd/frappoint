@@ -42,7 +42,7 @@ import ServiceCard from "@/components/ServiceCard.vue";
 const router = useRouter();
 
 const serviceResource = createResource({
-	url: "frappoint.frappoint.doctype.appointment_type.appointment_type.get_service_cards",
+	url: "frappoint.frappoint.api.service_type.get_service_types",
 	auto: true,
 });
 

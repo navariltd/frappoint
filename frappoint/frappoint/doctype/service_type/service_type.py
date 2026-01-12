@@ -340,25 +340,3 @@ class ServiceType(Document):
 			}
 
 		return {"price_found": False, "multiple_prices": False}
-
-
-@frappe.whitelist()
-def get_service_cards(service=None):  # Accept the service ID here
-	filters = {"disabled": 0}
-
-	# If a specific service is requested, add it to the filter
-	if service:
-		filters["name"] = service
-
-	return frappe.get_all(
-		"Appointment Type",
-		filters=filters,
-		fields=[
-			"name",
-			"appointment_type",
-			"description",
-			"custom_image",
-			"default_duration_in_minutes",
-		],
-		order_by="creation desc",
-	)
