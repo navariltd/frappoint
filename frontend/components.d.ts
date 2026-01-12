@@ -8,11 +8,14 @@ export {}
 /* prettier-ignore */
 declare module 'vue' {
   export interface GlobalComponents {
+    AppLayout: typeof import('./src/components/AppLayout.vue')['default']
     AppointmentCard: typeof import('./src/components/AppointmentCard.vue')['default']
     Appointments: typeof import('./src/components/Appointments.vue')['default']
+    Booking: typeof import('./src/components/Booking.vue')['default']
+    Calendar: typeof import('./src/components/Calendar.vue')['default']
+    Calender: typeof import('./src/components/Calender.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']
-    ScheduleCard: typeof import("./src/components/ScheduleCard.vue")["default"]
-    Welcome: typeof import("./src/components/Welcome.vue")["default"]
+    ServiceCard: typeof import('./src/components/ServiceCard.vue')['default']
   }
 }

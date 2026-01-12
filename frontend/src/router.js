@@ -13,6 +13,21 @@ const routes = [
 		path: "/account/login",
 		component: () => import("@/pages/Login.vue"),
 	},
+	{
+		name: "Services",
+		path: "/services",
+		component: () => import("@/pages/Services.vue"),
+	},
+	{
+		name: "Appointments",
+		path: "/appointments",
+		component: () => import("@/pages/AppointmentPage.vue"),
+	},
+	{
+		name: "Booking",
+		path: "/booking",
+		component: () => import("@/components/Booking.vue"),
+	},
 ];
 
 const router = createRouter({
