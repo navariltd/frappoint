@@ -273,6 +273,11 @@ function show_slot_picker(frm) {
 				title: __("Select Appointment Slot"),
 				fields: [
 					{
+						fieldname: "focus_sink",
+						fieldtype: "HTML",
+						options: "<div tabindex='-1'></div>",
+					},
+					{
 						fieldname: "provider_filter",
 						fieldtype: "Link",
 						label: __("Provider"),
@@ -293,6 +298,7 @@ function show_slot_picker(frm) {
 						fieldtype: "HTML",
 					},
 				],
+				size: "extra-large",
 				primary_action_label: __("Book Selected Slot"),
 				primary_action: function (values) {
 					let selected_slot = d.selected_slot;
@@ -342,47 +348,117 @@ function update_slot_display(dialog, frm) {
 		slots = slots.filter((s) => s.provider === provider_filter);
 	}
 
-	let html = '<div class="slot-picker">';
+	let html = `<div class="slot-picker">`;
 
 	slots.forEach((provider_data) => {
-		html += `<div class="provider-section">
-			<h4>${provider_data.provider_name}</h4>`;
+		html += `
+		<div class="provider-card">
+			<div class="provider-header">
+				<span class="provider-name">${provider_data.provider_name}</span>
+			</div>
+		`;
 
 		provider_data.available_dates.forEach((date_data) => {
-			html += `<div class="date-section">
-				<h5>${frappe.datetime.str_to_user(date_data.date)}</h5>
-				<div class="slot-grid">`;
+			html += `
+			<div class="date-block">
+				<div class="date-label">
+					${frappe.datetime.str_to_user(date_data.date)}
+				</div>
+				<div class="slot-grid">
+			`;
 
 			date_data.slots.forEach((slot) => {
-				let slot_id = `${provider_data.provider}_${date_data.date}_${slot.start_time}`;
-				html += `<button class="btn btn-default btn-sm slot-btn"
+				html += `
+				<button
+					type="button"
+					class="slot-btn"
 					data-provider="${provider_data.provider}"
 					data-provider-name="${provider_data.provider_name}"
 					data-date="${date_data.date}"
 					data-start="${slot.start_time}"
 					data-end="${slot.end_time}"
 					data-slots='${JSON.stringify(slot.slot_ids)}'
-					onclick="selectSlot(this)">
-					${slot.start_time} - ${slot.end_time}
-				</button>`;
+					onclick="selectSlot(this)"
+				>
+					<span class="slot-time">
+						${slot.start_time} – ${slot.end_time}
+					</span>
+				</button>
+				`;
 			});
 
-			html += "</div></div>";
+			html += `</div></div>`;
 		});
 
-		html += "</div>";
+		html += `</div>`;
 	});
 
-	html += "</div>";
+	html += `</div>`;
 
-	html += `<style>
-		.slot-picker { padding: 15px; }
-		.provider-section { margin-bottom: 20px; }
-		.date-section { margin-bottom: 15px; }
-		.slot-grid { display: flex; flex-wrap: wrap; gap: 10px; }
-		.slot-btn { min-width: 150px; }
-		.slot-btn.selected { background-color: #5e64ff; color: white; }
-	</style>`;
+	html += `
+	<style>
+		.slot-picker {
+			padding: 16px;
+		}
+
+		.provider-card {
+			border: 1px solid var(--border-color);
+			border-radius: 10px;
+			padding: 14px;
+			margin-bottom: 18px;
+			background: var(--card-bg);
+		}
+
+		.provider-header {
+			font-weight: 600;
+			font-size: 15px;
+			margin-bottom: 10px;
+		}
+
+		.date-block {
+			margin-bottom: 14px;
+		}
+
+		.date-label {
+			font-size: 13px;
+			font-weight: 500;
+			color: var(--text-muted);
+			margin-bottom: 8px;
+		}
+
+		.slot-grid {
+			display: grid;
+			grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+			gap: 8px;
+		}
+
+		.slot-btn {
+			border: 1px solid var(--border-color);
+			border-radius: 8px;
+			padding: 8px 6px;
+			background: white;
+			cursor: pointer;
+			transition: all 0.15s ease;
+			text-align: center;
+		}
+
+		.slot-btn:hover {
+			border-color: var(--primary);
+			background: var(--primary-extra-light);
+		}
+
+		.slot-btn.selected {
+			background: var(--primary);
+			color: white;
+			border-color: var(--primary);
+		}
+
+		.slot-time {
+			font-size: 13px;
+			font-weight: 500;
+		}
+	</style>
+	`;
 
 	dialog.fields_dict.slot_display.$wrapper.html(html);
 }
