@@ -21,12 +21,12 @@ const routes = [
 	{
 		name: "Appointments",
 		path: "/appointments",
-		component: () => import("@/pages/AppointmentPage.vue"), 
+		component: () => import("@/pages/AppointmentPage.vue"),
 	},
 ];
 
 const router = createRouter({
-	history: createWebHistory("/frontend"),
+	history: createWebHistory("/frappoint"),
 	routes,
 });
 

@@ -11,7 +11,7 @@
 		"test": "vitest",
 		"test:run": "vitest run",
 		"test:coverage": "vitest run --coverage",
-		"copy-html-entry": "cp ../frappoint/public/frontend/index.html ../frappoint/www/frontend.html"
+		"copy-html-entry": "cp ../frappoint/public/frontend/index.html ../frappoint/www/frappoint/index.html"
 	},
 	"dependencies": {
 		"@fullcalendar/core": "^6.1.19",
@@ -21,6 +21,7 @@
 		"@fullcalendar/vue3": "^6.1.19",
 		"feather-icons": "^4.29.2",
 		"frappe-ui": "^0.1.192",
+		"lucide-vue-next": "^0.562.0",
 		"pinia": "^3.0.4",
 		"socket.io-client": "^4.7.2",
 		"vue": "^3.5.13",

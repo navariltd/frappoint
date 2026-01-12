@@ -1,0 +1,129 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "autoname": "prompt",
+ "creation": "2025-10-20 07:38:27.799048",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "company",
+  "section_break_ajki",
+  "disabled",
+  "is_billable",
+  "column_break_tcga",
+  "allow_appointments",
+  "allow_overlap",
+  "section_break_pifw",
+  "item_code",
+  "uom",
+  "column_break_mmot",
+  "rate__uom",
+  "connections_tab"
+ ],
+ "fields": [
+  {
+   "fieldname": "item_code",
+   "fieldtype": "Link",
+   "label": "Item Code",
+   "options": "Item"
+  },
+  {
+   "fieldname": "uom",
+   "fieldtype": "Link",
+   "label": "UOM",
+   "options": "UOM"
+  },
+  {
+   "fieldname": "rate__uom",
+   "fieldtype": "Float",
+   "label": "Rate / UOM"
+  },
+  {
+   "default": "0",
+   "fieldname": "disabled",
+   "fieldtype": "Check",
+   "label": "Disabled"
+  },
+  {
+   "default": "0",
+   "fieldname": "is_billable",
+   "fieldtype": "Check",
+   "label": "Is Billable"
+  },
+  {
+   "fieldname": "section_break_pifw",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "column_break_mmot",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Company",
+   "options": "Company",
+   "reqd": 1
+  },
+  {
+   "fieldname": "section_break_ajki",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "column_break_tcga",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "1",
+   "fieldname": "allow_appointments",
+   "fieldtype": "Check",
+   "label": "Allow Appointments"
+  },
+  {
+   "default": "0",
+   "fieldname": "allow_overlap",
+   "fieldtype": "Check",
+   "label": "Allow Overlap"
+  },
+  {
+   "fieldname": "connections_tab",
+   "fieldtype": "Tab Break",
+   "label": "Connections",
+   "show_dashboard": 1
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "links": [
+  {
+   "link_doctype": "Service Unit",
+   "link_fieldname": "unit_type"
+  }
+ ],
+ "modified": "2026-01-06 14:46:11.096286",
+ "modified_by": "Administrator",
+ "module": "Frappoint",
+ "name": "Service Unit Type",
+ "naming_rule": "Set by user",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "rows_threshold_for_grid_search": 20,
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}
