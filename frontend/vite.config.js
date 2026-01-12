@@ -11,7 +11,7 @@ export default defineConfig({
 			jinjaBootData: true,
 			lucideIcons: true,
 			buildConfig: {
-				indexHtmlPath: "../frappoint/www/frontend.html",
+				indexHtmlPath: "../frappoint/www/frappoint/index.html",
 				emptyOutDir: true,
 				sourcemap: true,
 			},

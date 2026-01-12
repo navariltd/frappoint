@@ -31,7 +31,7 @@ const routes = [
 ];
 
 const router = createRouter({
-	history: createWebHistory("/frontend"),
+	history: createWebHistory("/frappoint"),
 	routes,
 });
 
