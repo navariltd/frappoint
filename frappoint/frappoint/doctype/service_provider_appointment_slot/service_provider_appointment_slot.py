@@ -677,17 +677,15 @@ def check_provider_slot_capacity(
 	"""
 	# Count existing appointments for this provider in this time slot
 	# regardless of service unit
-	filters = (
-		{
-			"appointment_provider": provider,
-			"appointment_date": date,
-			"status": ["not in", ["Cancelled", "No Show"]],
-			"docstatus": ["!=", 2],
-			# Check for time overlap
-			"start_time": ["<", end_time],
-			"end_time": [">", start_time],
-		},
-	)
+	filters = {
+		"appointment_provider": provider,
+		"appointment_date": date,
+		"status": ["not in", ["Cancelled", "No Show"]],
+		"docstatus": ["!=", 2],
+		# Check for time overlap
+		"start_time": ["<", end_time],
+		"end_time": [">", start_time],
+	}
 
 	if exclude_appointment:
 		filters["name"] = ["!=", exclude_appointment]
