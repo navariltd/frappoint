@@ -259,6 +259,66 @@ class ServiceAppointment(Document):
 				title=_("Overlapping Appointment"),
 			)
 
+	@frappe.whitelist()
+	def get_customer_contact_details(self, customer):
+		primary_contact = frappe.db.get_value("Customer", customer, "customer_primary_contact")
+
+		if primary_contact:
+			return self._get_contact_payload(primary_contact)
+
+		contact_name = frappe.db.get_value(
+			"Contact",
+			{"is_primary_contact": 1},
+			"name",
+			filters={
+				"name": [
+					"in",
+					frappe.db.get_all(
+						"Dynamic Link",
+						{
+							"link_doctype": "Customer",
+							"link_name": customer,
+							"parenttype": "Contact",
+						},
+						pluck="parent",
+					),
+				]
+			},
+		)
+
+		if contact_name:
+			return self._get_contact_payload(contact_name)
+
+		contact_name = frappe.db.get_value(
+			"Dynamic Link",
+			{
+				"link_doctype": "Customer",
+				"link_name": customer,
+				"parenttype": "Contact",
+			},
+			"parent",
+			order_by="modified desc",
+		)
+
+		if contact_name:
+			return self._get_contact_payload(contact_name)
+
+		return {}
+
+	def _get_contact_payload(self, contact_name):
+		contact = frappe.get_doc("Contact", contact_name)
+		contact.check_permission()
+
+		return {
+			"contact_person": contact.get("name"),
+			"contact_display": contact.get("full_name"),
+			"contact_email": contact.get("email_id"),
+			"contact_mobile": contact.get("mobile_no"),
+			"contact_phone": contact.get("phone"),
+			"contact_designation": contact.get("designation"),
+			"contact_department": contact.get("department"),
+		}
+
 	def validate_required_for_billing(self):
 		"""Validate required fields before creating billing documents"""
 		required_fields = {
