@@ -26,21 +26,46 @@
 				<p class="text-gray-600">No services available at the moment.</p>
 			</div>
 		</main>
+
+		<!-- Booking Modal -->
+		<BookingModal
+			:isVisible="showBookingModal"
+			:service="selectedService"
+			@close="closeBookingModal"
+			@success="handleBookingSuccess"
+		/>
 	</AppLayout>
 </template>
 
 <script setup>
+import { ref } from "vue";
 import { createResource } from "frappe-ui";
 import AppLayout from "@/components/AppLayout.vue";
 import ServiceCard from "@/components/ServiceCard.vue";
+import BookingModal from "@/components/BookingModal.vue";
 
 const serviceTypes = createResource({
 	url: "frappoint.frappoint.api.service_type.get_service_types",
 	auto: true,
 });
 
+const showBookingModal = ref(false);
+const selectedService = ref(null);
+
 const bookService = (service) => {
 	console.log("Book clicked:", service);
-	// next step → router push to calendar
+	selectedService.value = service;
+	showBookingModal.value = true;
+};
+
+const closeBookingModal = () => {
+	showBookingModal.value = false;
+	selectedService.value = null;
+};
+
+const handleBookingSuccess = () => {
+	console.log("Booking successful!");
+	// TODO: Show success message, redirect to appointments page, etc.
+	alert("Appointment booked successfully!");
 };
 </script>
