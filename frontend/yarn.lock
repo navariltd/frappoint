@@ -157,10 +157,32 @@
 
 "@fullcalendar/core@^6.1.19":
   version "6.1.19"
-  resolved "https://registry.npmjs.org/@fullcalendar/core/-/core-6.1.19.tgz"
+  resolved "https://registry.yarnpkg.com/@fullcalendar/core/-/core-6.1.19.tgz#60379111ba0cfb9fd9bc6594fee47cf855fc77b2"
   integrity sha512-z0aVlO5e4Wah6p6mouM0UEqtRf1MZZPt4mwzEyU6kusaNL+dlWQgAasF2cK23hwT4cmxkEmr4inULXgpyeExdQ==
   dependencies:
     preact "~10.12.1"
+
+"@fullcalendar/daygrid@^6.1.19", "@fullcalendar/daygrid@~6.1.19":
+  version "6.1.19"
+  resolved "https://registry.yarnpkg.com/@fullcalendar/daygrid/-/daygrid-6.1.19.tgz#1d70a7f3f4cc13d3f27f55ed6880aae09a1a367b"
+  integrity sha512-IAAfnMICnVWPjpT4zi87i3FEw0xxSza0avqY/HedKEz+l5MTBYvCDPOWDATpzXoLut3aACsjktIyw9thvIcRYQ==
+
+"@fullcalendar/interaction@^6.1.19":
+  version "6.1.19"
+  resolved "https://registry.yarnpkg.com/@fullcalendar/interaction/-/interaction-6.1.19.tgz#48d85601a4203ede7cb400323fe5a9c163e28804"
+  integrity sha512-GOciy79xe8JMVp+1evAU3ytdwN/7tv35t5i1vFkifiuWcQMLC/JnLg/RA2s4sYmQwoYhTw/p4GLcP0gO5B3X5w==
+
+"@fullcalendar/timegrid@^6.1.19":
+  version "6.1.19"
+  resolved "https://registry.yarnpkg.com/@fullcalendar/timegrid/-/timegrid-6.1.19.tgz#bb4b2e3039c995b61284ee5b76ad9dcc696b71ce"
+  integrity sha512-OuzpUueyO9wB5OZ8rs7TWIoqvu4v3yEqdDxZ2VcsMldCpYJRiOe7yHWKr4ap5Tb0fs7Rjbserc/b6Nt7ol6BRg==
+  dependencies:
+    "@fullcalendar/daygrid" "~6.1.19"
+
+"@fullcalendar/vue3@^6.1.19":
+  version "6.1.19"
+  resolved "https://registry.yarnpkg.com/@fullcalendar/vue3/-/vue3-6.1.19.tgz#43cecccfaca27679823b98c73ba2e042c60e98cb"
+  integrity sha512-j5eUSxx0xIy3ADljo0f5B9PhjqXnCQ+7nUMPfsslc2eGVjp4F74YvY3dyd6OBbg13IvpsjowkjncGipYMQWmTA==
 
 "@headlessui/vue@^1.7.14":
   version "1.7.23"
@@ -802,14 +824,14 @@
 
 "@vue/devtools-api@^7.7.7":
   version "7.7.9"
-  resolved "https://registry.npmjs.org/@vue/devtools-api/-/devtools-api-7.7.9.tgz"
+  resolved "https://registry.yarnpkg.com/@vue/devtools-api/-/devtools-api-7.7.9.tgz#999dbea50da6b00cf59a1336f11fdc2b43d9e063"
   integrity sha512-kIE8wvwlcZ6TJTbNeU2HQNtaxLx3a84aotTITUuL/4bzfPxzajGBOoqjMhwZJ8L9qFYDU/lAYMEEm11dnZOD6g==
   dependencies:
     "@vue/devtools-kit" "^7.7.9"
 
 "@vue/devtools-kit@^7.7.9":
   version "7.7.9"
-  resolved "https://registry.npmjs.org/@vue/devtools-kit/-/devtools-kit-7.7.9.tgz"
+  resolved "https://registry.yarnpkg.com/@vue/devtools-kit/-/devtools-kit-7.7.9.tgz#bc218a815616e8987df7ab3e10fc1fb3b8706c58"
   integrity sha512-PyQ6odHSgiDVd4hnTP+aDk2X4gl2HmLDfiyEnn3/oV+ckFDuswRs4IbBT7vacMuGdwY/XemxBoh302ctbsptuA==
   dependencies:
     "@vue/devtools-shared" "^7.7.9"
@@ -822,7 +844,7 @@
 
 "@vue/devtools-shared@^7.7.9":
   version "7.7.9"
-  resolved "https://registry.npmjs.org/@vue/devtools-shared/-/devtools-shared-7.7.9.tgz"
+  resolved "https://registry.yarnpkg.com/@vue/devtools-shared/-/devtools-shared-7.7.9.tgz#fa4c096b744927081a7dda5fcf05f34b1ae6ca14"
   integrity sha512-iWAb0v2WYf0QWmxCGy0seZNDPdO3Sp5+u78ORnyeonS6MT4PC7VPrryX2BpMJrwlDeaZ6BD4vP4XKjK0SZqaeA==
   dependencies:
     rfdc "^1.4.1"
@@ -1015,7 +1037,7 @@ binary-extensions@^2.0.0:
 
 birpc@^2.3.0:
   version "2.9.0"
-  resolved "https://registry.npmjs.org/birpc/-/birpc-2.9.0.tgz"
+  resolved "https://registry.yarnpkg.com/birpc/-/birpc-2.9.0.tgz#b59550897e4cd96a223e2a6c1475b572236ed145"
   integrity sha512-KrayHS5pBi69Xi9JmvoqrIgYGDkD6mcSe/i6YKi3w5kekCLzrX4+nawcXqrj2tIp50Kw/mT/s3p+GVK0A0sKxw==
 
 bl@^4.1.0:
@@ -1180,7 +1202,7 @@ confbox@^0.2.2:
 
 copy-anything@^4:
   version "4.0.5"
-  resolved "https://registry.npmjs.org/copy-anything/-/copy-anything-4.0.5.tgz"
+  resolved "https://registry.yarnpkg.com/copy-anything/-/copy-anything-4.0.5.tgz#16cabafd1ea4bb327a540b750f2b4df522825aea"
   integrity sha512-7Vv6asjS4gMOuILabD3l739tsaxFQmC+a7pLZm02zyvs8p977bL3zEgq3yDk5rn9B0PbYgIv++jmHcuUab4RhA==
   dependencies:
     is-what "^5.2.0"
@@ -1702,7 +1724,7 @@ highlight.js@^11, highlight.js@^11.11.1, highlight.js@~11.11.0:
 
 hookable@^5.5.3:
   version "5.5.3"
-  resolved "https://registry.npmjs.org/hookable/-/hookable-5.5.3.tgz"
+  resolved "https://registry.yarnpkg.com/hookable/-/hookable-5.5.3.tgz#6cfc358984a1ef991e2518cb9ed4a778bbd3215d"
   integrity sha512-Yc+BQe8SvoXH1643Qez1zqLRmbA5rCL+sSmk6TVos0LWVfNIB7PGncdlId77WzLGSIB5KaWgTaNTs2lNVEI6VQ==
 
 html-encoding-sniffer@^4.0.0:
@@ -1815,7 +1837,7 @@ is-unicode-supported@^0.1.0:
 
 is-what@^5.2.0:
   version "5.5.0"
-  resolved "https://registry.npmjs.org/is-what/-/is-what-5.5.0.tgz"
+  resolved "https://registry.yarnpkg.com/is-what/-/is-what-5.5.0.tgz#a3031815757cfe1f03fed990bf6355a2d3f628c4"
   integrity sha512-oG7cgbmg5kLYae2N5IVd3jm2s+vldjxJzK1pcu9LfpGuQ93MQSzo0okvRna+7y5ifrD+20FE8FvjusyGaz14fw==
 
 isexe@^2.0.0:
@@ -2067,7 +2089,7 @@ minimatch@^9.0.4:
 
 mitt@^3.0.1:
   version "3.0.1"
-  resolved "https://registry.npmjs.org/mitt/-/mitt-3.0.1.tgz"
+  resolved "https://registry.yarnpkg.com/mitt/-/mitt-3.0.1.tgz#ea36cf0cc30403601ae074c8f77b7092cdab36d1"
   integrity sha512-vKivATfr97l2/QBCYAkXYDbrIWPM2IIKEl7YPhjCvKlG3kE2gm+uBo6nEXK3M5/Ffh/FLpKExzOQ3JJoJGFKBw==
 
 mlly@^1.7.4:
@@ -2218,7 +2240,7 @@ pathval@^2.0.0:
 
 perfect-debounce@^1.0.0:
   version "1.0.0"
-  resolved "https://registry.npmjs.org/perfect-debounce/-/perfect-debounce-1.0.0.tgz"
+  resolved "https://registry.yarnpkg.com/perfect-debounce/-/perfect-debounce-1.0.0.tgz#9c2e8bc30b169cc984a58b7d5b28049839591d2a"
   integrity sha512-xCy9V055GLEqoFaHoC1SoLIaLmWctgCUaBaWxDZ7/Zx4CTyX7cJQLJOok/orfjZAh9kEYpjJa4d0KcJmCbctZA==
 
 picocolors@^1.1.1:
@@ -2253,7 +2275,7 @@ pify@^2.3.0:
 
 pinia@^3.0.4:
   version "3.0.4"
-  resolved "https://registry.npmjs.org/pinia/-/pinia-3.0.4.tgz"
+  resolved "https://registry.yarnpkg.com/pinia/-/pinia-3.0.4.tgz#75dde12784a61e34c1fa6abcd13c1a1061c360c0"
   integrity sha512-l7pqLUFTI/+ESXn6k3nu30ZIzW5E2WZF/LaHJEpoq6ElcLD+wduZoB2kBN19du6K/4FDpPMazY2wJr+IndBtQw==
   dependencies:
     "@vue/devtools-api" "^7.7.7"
@@ -2343,7 +2365,7 @@ postcss@^8.0.0, postcss@^8.1.0, postcss@^8.2.14, postcss@^8.4.21, postcss@^8.4.4
 
 preact@~10.12.1:
   version "10.12.1"
-  resolved "https://registry.npmjs.org/preact/-/preact-10.12.1.tgz"
+  resolved "https://registry.yarnpkg.com/preact/-/preact-10.12.1.tgz#8f9cb5442f560e532729b7d23d42fd1161354a21"
   integrity sha512-l8386ixSsBdbreOAkqtrwqHwdvR35ID8c3rKPa8lCWuO86dBi32QWHV4vfsZK1utLLFMvw+Z5Ad4XLkZzchscg==
 
 prettier@^3.3.2:
@@ -2605,7 +2627,7 @@ reusify@^1.0.4:
 
 rfdc@^1.4.1:
   version "1.4.1"
-  resolved "https://registry.npmjs.org/rfdc/-/rfdc-1.4.1.tgz"
+  resolved "https://registry.yarnpkg.com/rfdc/-/rfdc-1.4.1.tgz#778f76c4fb731d93414e8f925fbecf64cce7f6ca"
   integrity sha512-q1b3N5QkRUWUl7iyylaaj3kOpIT0N2i9MqIEQXP73GVsN9cw3fdx8X63cEmWhJGi2PPCF23Ijp7ktmd39rawIA==
 
 rollup@^4.20.0:
@@ -2740,7 +2762,7 @@ source-map-js@^1.2.0, source-map-js@^1.2.1:
 
 speakingurl@^14.0.1:
   version "14.0.1"
-  resolved "https://registry.npmjs.org/speakingurl/-/speakingurl-14.0.1.tgz"
+  resolved "https://registry.yarnpkg.com/speakingurl/-/speakingurl-14.0.1.tgz#f37ec8ddc4ab98e9600c1c9ec324a8c48d772a53"
   integrity sha512-1POYv7uv2gXoyGFpBCmpDVSNV74IfsWlDW216UPjbWufNf+bSU6GdbDsxdcxtfwb4xlI3yxzOTKClUosxARYrQ==
 
 stackback@0.0.2:
@@ -2830,7 +2852,7 @@ sucrase@^3.35.0:
 
 superjson@^2.2.2:
   version "2.2.6"
-  resolved "https://registry.npmjs.org/superjson/-/superjson-2.2.6.tgz"
+  resolved "https://registry.yarnpkg.com/superjson/-/superjson-2.2.6.tgz#a223a3a988172a5f9656e2063fe5f733af40d099"
   integrity sha512-H+ue8Zo4vJmV2nRjpx86P35lzwDT3nItnIsocgumgr0hHMQ+ZGq5vrERg9kJBo5AWGmxZDhzDo+WVIJqkB0cGA==
   dependencies:
     copy-anything "^4"

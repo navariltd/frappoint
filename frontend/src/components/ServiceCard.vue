@@ -32,3 +32,4 @@ defineProps({
 	service: Object,
 });
 </script>
+

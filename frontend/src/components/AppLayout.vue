@@ -1,6 +1,7 @@
 <template>
 	<div class="flex h-screen bg-gray-300">
 		<!-- SIDEBAR -->
+
 		<aside class="w-46 bg-white shadow-lg flex-shrink-0">
 			<div class="p-6 border-b flex gap-2 hover:cursor-pointer">
 				<Avatar shape="square" image="/frappoint.jpeg" label="EY" size="lg" />
