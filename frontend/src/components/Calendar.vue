@@ -5,7 +5,6 @@
 			:config="calendarConfig"
 			:events="appointments.data"
 			@click="onEventClick"
-			@dblClick="onEventDblClick"
 			@cellClick="onCellClick"
 			class="flex-1 w-full h-full"
 		/>
@@ -60,30 +59,19 @@ const appointments = createResource({
 	},
 });
 
-// Event Handlers
 const onEventClick = (eventData) => {
-	console.log("Event clicked:", eventData);
-
-	// The frappe-ui Calendar passes an object with calendarEvent property
 	const event = eventData?.calendarEvent;
 
 	if (event && event.id) {
-		console.log("Opening event card for:", event.id);
 		selectedAppointmentId.value = event.id;
 		showEventCard.value = true;
 	} else {
 		console.error("No valid event found:", eventData);
 	}
 };
-const onEventDblClick = (event) => {
-	console.log("Double clicked:", event);
-	// Could navigate to full appointment page
-	handleViewDetails(event);
-};
 
 const onCellClick = (data) => {
 	console.log("Clicked empty cell:", data);
-	// Could open a form to create new appointment
 };
 
 const closeEventCard = () => {

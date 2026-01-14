@@ -6,9 +6,8 @@
 	>
 		<div class="bg-white rounded-lg shadow-xl max-w-md w-full mx-4 overflow-hidden">
 			<!-- Header -->
-			<div class="bg-blue-600 text-white p-4 flex justify-between items-center">
-				<h3 class="text-lg font-semibold">Appointment Details</h3>
-				<button @click="close" class="text-white hover:text-gray-200 transition-colors">
+			<div class="text-white p-4 flex justify-between items-center">
+				<button @click="close" class="text-gray-700 hover:text-gray-200 transition-colors">
 					<svg
 						xmlns="http://www.w3.org/2000/svg"
 						class="h-6 w-6"
@@ -36,10 +35,6 @@
 
 			<!-- Content -->
 			<div v-else-if="appointment" class="p-6 space-y-4">
-				<!-- Debug Info (remove after testing) -->
-				<div class="text-xs text-gray-400 mb-2 p-2 bg-gray-50 rounded">
-					Debug: {{ Object.keys(appointment).length }} fields loaded
-				</div>
 				<!-- Customer Info -->
 				<div class="flex items-start space-x-3">
 					<svg
@@ -222,25 +217,6 @@
 					Close
 				</button>
 			</div>
-
-			<!-- Footer Actions -->
-			<div
-				v-if="appointment && !error"
-				class="bg-gray-50 px-6 py-4 flex justify-end space-x-3"
-			>
-				<button
-					@click="close"
-					class="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg transition-colors"
-				>
-					Close
-				</button>
-				<button
-					@click="viewDetails"
-					class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
-				>
-					View Full Details
-				</button>
-			</div>
 		</div>
 	</div>
 </template>
@@ -276,22 +252,22 @@ const appointmentResource = createResource({
 	},
 });
 
-// // Watch for changes in visibility and appointmentId together
-// watch(
-// 	() => [props.isVisible, props.appointmentId],
-// 	([visible, id]) => {
-// 		console.log("EventCard watch triggered:", { visible, id });
-// 		if (visible && id) {
-// 			fetchAppointment(id);
-// 		} else if (!visible) {
-// 			// Reset state when modal closes
-// 			appointment.value = null;
-// 			error.value = false;
-// 			loading.value = false;
-// 		}
-// 	},
-// 	{ immediate: true },
-// );
+// Watch for changes in visibility and appointmentId together
+watch(
+	() => [props.isVisible, props.appointmentId],
+	([visible, id]) => {
+		console.log("EventCard watch triggered:", { visible, id });
+		if (visible && id) {
+			fetchAppointment(id);
+		} else if (!visible) {
+			// Reset state when modal closes
+			appointment.value = null;
+			error.value = false;
+			loading.value = false;
+		}
+	},
+	{ immediate: true }
+);
 
 function fetchAppointment(id) {
 	console.log("Fetching appointment:", id);
@@ -307,10 +283,6 @@ function fetchAppointment(id) {
 
 function close() {
 	emit("close");
-}
-
-function viewDetails() {
-	emit("viewDetails", appointment.value);
 }
 
 function formatDate(dateStr) {
