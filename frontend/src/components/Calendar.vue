@@ -14,7 +14,7 @@
 </template>
 
 <script setup>
-import { computed } from "vue";
+
 import { createResource, Calendar } from "frappe-ui";
 
 const calendarConfig = {
