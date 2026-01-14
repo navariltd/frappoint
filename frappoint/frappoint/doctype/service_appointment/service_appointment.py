@@ -353,6 +353,7 @@ class ServiceAppointment(Document):
 				self.end_time,
 				self.appointment_type,
 				max_clients,
+				exclude_appointment=self.name,
 			)
 
 			if not capacity_ok:
@@ -365,7 +366,12 @@ class ServiceAppointment(Document):
 
 		else:
 			capacity_ok = check_provider_slot_capacity(
-				self.appointment_provider, self.appointment_date, self.start_time, self.end_time, max_clients
+				self.appointment_provider,
+				self.appointment_date,
+				self.start_time,
+				self.end_time,
+				max_clients,
+				exclude_appointment=self.name,
 			)
 
 			if not capacity_ok:
