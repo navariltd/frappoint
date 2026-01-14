@@ -1,5 +1,5 @@
 <template>
-	<div class="flex h-screen bg-gray-100 relative w-screen">
+	<div class="flex h-screen bg-gray-100 relative w-screen overflow-hidden">
 		<AppLayout>
 			<button
 				@click="goToAppointments"
