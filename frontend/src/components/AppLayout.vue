@@ -1,5 +1,5 @@
 <template>
-	<div class="flex h-screen bg-gray-300">
+	<div class="flex h-screen bg-gray-300 w-full">
 		<!-- SIDEBAR -->
 
 		<aside class="w-46 bg-white shadow-lg flex-shrink-0">
