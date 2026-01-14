@@ -1146,5 +1146,4 @@ def get_events(start, end, filters=None):
 	for item in data:
 		item.end = item.start + datetime.timedelta(minutes=item.duration)
 
-	print("\n\n\n\nDATA:", data)
 	return data
