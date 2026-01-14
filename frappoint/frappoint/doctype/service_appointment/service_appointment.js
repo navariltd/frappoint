@@ -166,6 +166,31 @@ frappe.ui.form.on("Service Appointment", {
 			frm.doc.__booking_required = true;
 		}
 	},
+
+	customer(frm) {
+		if (frm.doc.customer) {
+			frappe.call({
+				method: "get_customer_contact_details",
+				doc: frm.doc,
+				args: {
+					customer: frm.doc.customer,
+				},
+				callback: function (res) {
+					if (!frm.doc.full_name && res.message.contact_display) {
+						frm.set_value("full_name", res.message.contact_display);
+					}
+
+					if (!frm.doc.email && res.message.contact_email) {
+						frm.set_value("email", res.message.message.contact_email);
+					}
+
+					if (!frm.doc.phone && res.message.contact_phone) {
+						frm.set_value("mobile_no", res.message.contact_phone);
+					}
+				},
+			});
+		}
+	},
 });
 
 // Helper: Convert date + time strings into a JS Date object

@@ -612,7 +612,7 @@ def group_slots_by_duration_and_capacity(
 
 
 def check_service_unit_capacity(
-	service_unit, date, start_time, end_time, appointment_type, max_clients_per_slot
+	service_unit, date, start_time, end_time, appointment_type, max_clients_per_slot, exclude_appointment=None
 ):
 	"""
 	Check if service unit has capacity for this time slot
@@ -649,42 +649,48 @@ def check_service_unit_capacity(
 	else:
 		effective_capacity = min(capacity, max_clients_per_slot)
 
+	filters = {
+		"service_unit": service_unit,
+		"appointment_date": date,
+		"status": ["not in", ["Cancelled", "No Show"]],
+		"docstatus": ["!=", 2],  # Not cancelled
+		# Check for time overlap
+		"start_time": ["<=", end_time],
+		"end_time": [">=", start_time],
+	}
+
+	if exclude_appointment:
+		filters["name"] = ["!=", exclude_appointment]
+
 	# Count existing appointments in this time slot
-	existing_count = frappe.db.count(
-		"Service Appointment",
-		{
-			"service_unit": service_unit,
-			"appointment_date": date,
-			"status": ["not in", ["Cancelled", "No Show"]],
-			"docstatus": ["!=", 2],  # Not cancelled
-			# Check for time overlap
-			"start_time": ["<=", end_time],
-			"end_time": [">=", start_time],
-		},
-	)
+	existing_count = frappe.db.count("Service Appointment", filters)
 
 	return existing_count < effective_capacity
 
 
-def check_provider_slot_capacity(provider, date, start_time, end_time, max_clients_per_slot):
+def check_provider_slot_capacity(
+	provider, date, start_time, end_time, max_clients_per_slot, exclude_appointment=None
+):
 	"""
 	Check provider capacity for services that don't require service units
 	Uses max_clients_per_slot from Service Type
 	"""
 	# Count existing appointments for this provider in this time slot
 	# regardless of service unit
-	existing_count = frappe.db.count(
-		"Service Appointment",
-		{
-			"appointment_provider": provider,
-			"appointment_date": date,
-			"status": ["not in", ["Cancelled", "No Show"]],
-			"docstatus": ["!=", 2],
-			# Check for time overlap
-			"start_time": ["<", end_time],
-			"end_time": [">", start_time],
-		},
-	)
+	filters = {
+		"appointment_provider": provider,
+		"appointment_date": date,
+		"status": ["not in", ["Cancelled", "No Show"]],
+		"docstatus": ["!=", 2],
+		# Check for time overlap
+		"start_time": ["<", end_time],
+		"end_time": [">", start_time],
+	}
+
+	if exclude_appointment:
+		filters["name"] = ["!=", exclude_appointment]
+
+	existing_count = frappe.db.count("Service Appointment", filters)
 
 	return existing_count < max_clients_per_slot
 

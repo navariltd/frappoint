@@ -16,15 +16,19 @@ before_tests = "frappoint.setup.utils.before_tests"
 
 
 # Each item in the list will be shown as an app in the apps page
-# add_to_apps_screen = [
-# 	{
-# 		"name": "frappoint",
-# 		"logo": "/assets/frappoint/logo.png",
-# 		"title": "Frappe Appointments",
-# 		"route": "/frappoint",
-# 		"has_permission": "frappoint.api.permission.has_app_permission"
-# 	}
-# ]
+add_to_apps_screen = [
+	{
+		"name": "frappoint",
+		"logo": "/assets/frappoint/images/logo_img.png",
+		"title": "Frappoint",
+		"route": "/app/frappoint",
+		"has_permission": "frappoint.check_app_permission",
+	}
+]
+
+website_route_rules = [
+	{"from_route": "/frappoint/<path:app_path>", "to_route": "frappoint"},
+]
 
 # Includes in <head>
 # ------------------
@@ -88,7 +92,7 @@ before_tests = "frappoint.setup.utils.before_tests"
 # ------------
 
 # before_install = "frappoint.install.before_install"
-# after_install = "frappoint.install.after_install"
+after_install = "frappoint.setup.setup.execute"
 
 # Uninstallation
 # ------------
@@ -244,7 +248,3 @@ before_tests = "frappoint.setup.utils.before_tests"
 # default_log_clearing_doctypes = {
 # 	"Logging DocType Name": 30  # days to retain logs
 # }
-
-website_route_rules = [
-	{"from_route": "/frontend/<path:app_path>", "to_route": "frontend"},
-]
