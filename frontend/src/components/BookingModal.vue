@@ -126,40 +126,18 @@
 						></div>
 					</div>
 
-					<div v-else>
-						<!-- Simple date picker - showing available dates -->
-						<div class="grid grid-cols-7 gap-2">
-							<div
-								v-for="day in ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']"
-								:key="day"
-								class="text-center text-sm font-medium text-gray-600 py-2"
-							>
-								{{ day }}
-							</div>
-
-							<!-- Calendar days -->
-							<div
-								v-for="(date, index) in calendarDates"
-								:key="index"
-								class="aspect-square"
-							>
-								<button
-									v-if="date"
-									@click="selectDate(date)"
-									:disabled="!isDateAvailable(date)"
-									class="w-full h-full rounded-lg text-sm transition-all"
-									:class="
-										selectedDate === date
-											? 'bg-blue-600 text-white font-semibold'
-											: isDateAvailable(date)
-											? 'bg-gray-100 hover:bg-gray-200 text-gray-900'
-											: 'bg-gray-50 text-gray-300 cursor-not-allowed'
-									"
-								>
-									{{ new Date(date).getDate() }}
-								</button>
-							</div>
-						</div>
+					<div v-else class="flex justify-center">
+						<!-- VueDatePicker in inline mode -->
+						<VueDatePicker
+							v-model="selectedDate"
+							:inline="true"
+							:enable-time-picker="false"
+							:disabled-dates="disabledDates"
+							:min-date="new Date()"
+							auto-apply
+							@update:model-value="handleDateSelect"
+							:highlight="highlightedDates"
+						/>
 					</div>
 				</div>
 
@@ -344,6 +322,8 @@
 <script setup>
 import { ref, computed, watch } from "vue";
 import { createResource } from "frappe-ui";
+import { VueDatePicker } from "@vuepic/vue-datepicker";
+import "@vuepic/vue-datepicker/dist/main.css";
 
 const props = defineProps({
 	isVisible: Boolean,
@@ -417,18 +397,78 @@ function loadProviders() {
 }
 
 function loadAvailableSlots() {
-	slotsResource.fetch({
-		service_type: props.service.name,
+	console.log("Loading available slots for:", {
+		service: props.service?.name,
 		provider: selectedProvider.value,
-		days_ahead: 30,
 	});
+
+	slotsResource
+		.fetch({
+			service_type: props.service.name,
+			provider: selectedProvider.value,
+			days_ahead: 30,
+		})
+		.then(() => {
+			console.log("Slots loaded:", slotsResource.data);
+
+			// Log available dates for debugging
+			if (slotsResource.data && Array.isArray(slotsResource.data)) {
+				const allDates = new Set();
+				slotsResource.data.forEach((providerData) => {
+					if (providerData.available_dates) {
+						providerData.available_dates.forEach((d) => {
+							if (d.slots && d.slots.length > 0) {
+								allDates.add(d.date);
+							}
+						});
+					}
+				});
+				console.log("Available dates:", Array.from(allDates));
+			}
+		});
 }
 
-// Calendar dates computation
+// Computed properties for VueDatePicker
+const disabledDates = computed(() => {
+	// Return a function that checks if a date should be disabled
+	return (date) => {
+		const dateStr = date.toISOString().split("T")[0];
+		return !isDateAvailable(dateStr);
+	};
+});
+
+const highlightedDates = computed(() => {
+	// Highlight dates that have available slots
+	if (!slotsResource.data || !Array.isArray(slotsResource.data)) return [];
+
+	const dates = [];
+	slotsResource.data.forEach((providerData) => {
+		if (providerData.available_dates) {
+			providerData.available_dates.forEach((d) => {
+				if (d.slots && d.slots.length > 0) {
+					dates.push(new Date(d.date));
+				}
+			});
+		}
+	});
+
+	return dates;
+});
+
+function handleDateSelect(date) {
+	if (date) {
+		const dateStr = typeof date === "string" ? date : date.toISOString().split("T")[0];
+		selectDate(dateStr);
+	}
+}
+
+// Calendar dates computation (keeping for backwards compatibility if needed)
 const calendarDates = computed(() => {
-	if (!slotsResource.data) return [];
+	if (!slotsResource.data || !Array.isArray(slotsResource.data)) return [];
 
 	const today = new Date();
+	today.setHours(0, 0, 0, 0);
+
 	const dates = [];
 	const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
 	const lastDay = new Date(today.getFullYear(), today.getMonth() + 2, 0);
@@ -438,23 +478,54 @@ const calendarDates = computed(() => {
 		dates.push(null);
 	}
 
-	// Add all days in the month
-	for (let d = new Date(firstDay); d <= lastDay; d.setDate(d.getDate() + 1)) {
-		dates.push(d.toISOString().split("T")[0]);
+	// Add all days in the range
+	const currentDate = new Date(firstDay);
+	while (currentDate <= lastDay) {
+		const dateStr = currentDate.toISOString().split("T")[0];
+		const date = new Date(currentDate);
+
+		// Only add dates that are today or in the future
+		if (date >= today) {
+			dates.push(dateStr);
+		} else {
+			dates.push(null); // Past dates as null
+		}
+
+		currentDate.setDate(currentDate.getDate() + 1);
 	}
 
 	return dates;
 });
 
 function isDateAvailable(date) {
-	if (!slotsResource.data) return false;
-
-	for (const providerData of slotsResource.data) {
-		const hasSlots = providerData.available_dates?.some(
-			(d) => d.date === date && d.slots?.length > 0
-		);
-		if (hasSlots) return true;
+	if (!date || !slotsResource.data || !Array.isArray(slotsResource.data)) {
+		return false;
 	}
+
+	// Check if the date is in the past
+	const selectedDate = new Date(date);
+	const today = new Date();
+	today.setHours(0, 0, 0, 0);
+
+	if (selectedDate < today) {
+		return false;
+	}
+
+	// Check if any provider has available slots for this date
+	for (const providerData of slotsResource.data) {
+		if (!providerData.available_dates || !Array.isArray(providerData.available_dates)) {
+			continue;
+		}
+
+		const hasSlots = providerData.available_dates.some(
+			(d) => d.date === date && d.slots && d.slots.length > 0
+		);
+
+		if (hasSlots) {
+			return true;
+		}
+	}
+
 	return false;
 }
 
@@ -595,3 +666,51 @@ function close() {
 	emit("close");
 }
 </script>
+
+<style scoped>
+/* Custom VueDatePicker styling */
+:deep(.dp__theme_light) {
+	--dp-primary-color: #2563eb;
+	--dp-primary-text-color: #fff;
+	--dp-secondary-color: #dbeafe;
+	--dp-border-color: #e5e7eb;
+	--dp-menu-border-color: #e5e7eb;
+	--dp-border-color-hover: #d1d5db;
+	--dp-disabled-color: #f3f4f6;
+	--dp-scroll-bar-background: #f3f4f6;
+	--dp-scroll-bar-color: #9ca3af;
+	--dp-success-color: #10b981;
+	--dp-success-color-disabled: #d1fae5;
+	--dp-icon-color: #6b7280;
+	--dp-danger-color: #ef4444;
+	--dp-highlight-color: rgba(37, 99, 235, 0.1);
+}
+
+:deep(.dp__calendar) {
+	font-family: inherit;
+}
+
+:deep(.dp__calendar_header_item) {
+	font-weight: 600;
+	color: #4b5563;
+}
+
+:deep(.dp__cell_inner) {
+	border-radius: 0.5rem;
+}
+
+:deep(.dp__cell_disabled) {
+	color: #d1d5db !important;
+	background-color: #f9fafb !important;
+	cursor: not-allowed;
+}
+
+:deep(.dp__today) {
+	border: 2px solid #2563eb;
+}
+
+:deep(.dp__active_date) {
+	background-color: #2563eb !important;
+	color: white !important;
+}
+</style>
