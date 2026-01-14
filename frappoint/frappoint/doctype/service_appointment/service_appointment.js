@@ -173,12 +173,10 @@ frappe.ui.form.on("Service Appointment", {
 				method: "get_customer_contact_details",
 				doc: frm.doc,
 				args: {
-					// doctype: "Customer",
 					customer: frm.doc.customer,
 				},
 				callback: function (res) {
 					if (!frm.doc.full_name && res.message.contact_display) {
-						console.log("Have I been run");
 						frm.set_value("full_name", res.message.contact_display);
 					}
 
