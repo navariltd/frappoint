@@ -310,7 +310,7 @@
 
 <script setup>
 import { ref, computed, watch } from "vue";
-import { createResource } from "frappe-ui";
+import { createResource, toast } from "frappe-ui";
 import { VueDatePicker } from "@vuepic/vue-datepicker";
 import "@vuepic/vue-datepicker/dist/main.css";
 
@@ -354,13 +354,14 @@ const bookingResource = createResource({
 		};
 	},
 	onSuccess(response) {
-		console.log("Booking successful:", response);
 		emit("success", response);
+		toast.success("Appointment Booked Successfully!");
 		close();
 	},
 	onError(error) {
 		console.error("Booking error:", error);
-		alert(error.messages?.[0] || "Failed to create booking. Please try again.");
+		// alert(error.messages?.[0] || "Failed to create booking. Please try again.");
+		toast.error(error.messages?.[0] || "Failed to create booking. Please try again.");
 	},
 });
 
@@ -399,10 +400,6 @@ function resetForm() {
 }
 
 function loadAvailableSlots() {
-	console.log("Loading available slots for:", {
-		service: props.service?.name,
-	});
-
 	slotsResource
 		.fetch({
 			service_type: props.service.name,
@@ -410,8 +407,6 @@ function loadAvailableSlots() {
 			days_ahead: 30,
 		})
 		.then(() => {
-			console.log("Slots loaded:", slotsResource.data);
-
 			// Log available dates for debugging
 			if (slotsResource.data && Array.isArray(slotsResource.data)) {
 				const allDates = new Set();
@@ -424,7 +419,6 @@ function loadAvailableSlots() {
 						});
 					}
 				});
-				console.log("Available dates:", Array.from(allDates));
 			}
 		});
 }
