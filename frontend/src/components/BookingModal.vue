@@ -539,7 +539,7 @@ const canSubmit = computed(() => {
 });
 
 function nextStep() {
-	if (step.value === 0 && selectedProvider.value !== null) {
+	if (step.value === 0 && selectedSlotProvider.value !== null) {
 		// Reload slots for specific provider
 		loadAvailableSlots();
 	}
