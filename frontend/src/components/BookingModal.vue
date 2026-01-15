@@ -254,7 +254,7 @@
 							</div>
 							<div class="flex justify-between">
 								<span class="text-gray-600">Time:</span>
-								<span class="font-medium">{{ selectedSlot?.from_time }}</span>
+								<span class="font-medium">{{ selectedSlot?.start_time }}</span>
 							</div>
 							<div class="flex justify-between">
 								<span class="text-gray-600">Duration:</span>
