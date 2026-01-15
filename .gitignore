@@ -7,3 +7,5 @@ node_modules
 __pycache__
 docs/
 **.idea/
+frappoint/www/frappoint
+frappoint/public/frontend

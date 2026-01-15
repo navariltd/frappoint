@@ -16,6 +16,45 @@
   {
    "hidden": 0,
    "is_query_report": 0,
+   "label": "Configuration",
+   "link_count": 3,
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Card Break"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Service Type",
+   "link_count": 0,
+   "link_to": "Service Type",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Service Provider",
+   "link_count": 0,
+   "link_to": "Service Provider",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Service Appointment Settings",
+   "link_count": 0,
+   "link_to": "Service Appointment Settings",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
    "label": "Appointments",
    "link_count": 1,
    "link_type": "DocType",
@@ -44,9 +83,9 @@
   {
    "hidden": 0,
    "is_query_report": 0,
-   "label": "Appointment Service Unit",
+   "label": "Service Unit",
    "link_count": 0,
-   "link_to": "Appointment Service Unit",
+   "link_to": "Service Unit",
    "link_type": "DocType",
    "onboard": 0,
    "type": "Link"
@@ -54,68 +93,9 @@
   {
    "hidden": 0,
    "is_query_report": 0,
-   "label": "Appointment Service Unit Type",
+   "label": "Service Unit Type",
    "link_count": 0,
-   "link_to": "Appointment Service Unit Type",
-   "link_type": "DocType",
-   "onboard": 0,
-   "type": "Link"
-  },
-  {
-   "hidden": 0,
-   "is_query_report": 0,
-   "label": "Configuration",
-   "link_count": 5,
-   "link_type": "DocType",
-   "onboard": 0,
-   "type": "Card Break"
-  },
-  {
-   "hidden": 0,
-   "is_query_report": 0,
-   "label": "Appointment Type",
-   "link_count": 0,
-   "link_to": "Appointment Type",
-   "link_type": "DocType",
-   "onboard": 0,
-   "type": "Link"
-  },
-  {
-   "hidden": 0,
-   "is_query_report": 0,
-   "label": "Appointment Provider",
-   "link_count": 0,
-   "link_to": "Appointment Provider",
-   "link_type": "DocType",
-   "onboard": 0,
-   "type": "Link"
-  },
-  {
-   "hidden": 0,
-   "is_query_report": 0,
-   "label": "Appointment Service Unit",
-   "link_count": 0,
-   "link_to": "Appointment Service Unit",
-   "link_type": "DocType",
-   "onboard": 0,
-   "type": "Link"
-  },
-  {
-   "hidden": 0,
-   "is_query_report": 0,
-   "label": "Appointment Service Unit Type",
-   "link_count": 0,
-   "link_to": "Appointment Service Unit Type",
-   "link_type": "DocType",
-   "onboard": 0,
-   "type": "Link"
-  },
-  {
-   "hidden": 0,
-   "is_query_report": 0,
-   "label": "Service Appointment Settings",
-   "link_count": 0,
-   "link_to": "Service Appointment Settings",
+   "link_to": "Service Unit Type",
    "link_type": "DocType",
    "onboard": 0,
    "type": "Link"
@@ -132,9 +112,9 @@
   {
    "hidden": 0,
    "is_query_report": 0,
-   "label": "Provider Shift Type",
+   "label": "Service Provider Shift Type",
    "link_count": 0,
-   "link_to": "Provider Shift Type",
+   "link_to": "Service Provider Shift Type",
    "link_type": "DocType",
    "onboard": 0,
    "type": "Link"
@@ -142,15 +122,15 @@
   {
    "hidden": 0,
    "is_query_report": 0,
-   "label": "Provider Shift Assignment",
+   "label": "Service Provider Shift Assignment",
    "link_count": 0,
-   "link_to": "Provider Shift Assignment",
+   "link_to": "Service Provider Shift Assignment",
    "link_type": "DocType",
    "onboard": 0,
    "type": "Link"
   }
  ],
- "modified": "2025-11-27 17:39:10.301334",
+ "modified": "2026-01-06 11:44:18.689673",
  "modified_by": "Administrator",
  "module": "Frappoint",
  "name": "Frappoint",

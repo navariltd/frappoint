@@ -88,14 +88,13 @@ import { ref, computed } from "vue";
 import { createResource } from "frappe-ui";
 import { Calendar } from "frappe-ui";
 import { useRoute } from "vue-router";
-import { watch } from "vue";
 
 const route = useRoute();
 
 const serviceId = computed(() => route.query.service);
 
 const serviceResource = createResource({
-	url: "frappoint.frappoint.doctype.appointment_type.appointment_type.get_service_cards",
+	url: "frappoint.frappoint.api.service_type.get_service_types",
 	params: () => ({
 		service: serviceId.value,
 	}),
@@ -135,7 +134,6 @@ const formattedSelectedDate = computed(() => {
 });
 
 const onCellClick = (date) => {
-
 	selectedDate.value = date;
 	selectedTime.value = null;
 };
@@ -144,4 +142,3 @@ const submitBooking = () => {
 	alert(`Booking confirmed for ${selectedDate.value} at ${selectedTime.value}`);
 };
 </script>
-

@@ -1,61 +1,71 @@
 <template>
 	<AppLayout>
 		<main class="p-6">
-			<div class="flex items-center justify-between mb-6">
-				<h1 class="text-2xl font-bold">Appointment Type</h1>
-				<span v-if="serviceResource.loading" class="text-sm text-gray-500">
-					Updating...
-				</span>
+			<h1 class="text-2xl font-bold mb-6">Appointment Type</h1>
+
+			<!-- Loading State -->
+			<div v-if="serviceTypes.loading" class="flex justify-center items-center py-12">
+				<div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
 			</div>
 
-			<div v-if="serviceResource.error" class="text-red-500 p-4 bg-red-50 rounded-lg">
-				{{ serviceResource.error }}
-			</div>
-
-			<div class="grid grid-cols-[repeat(auto-fill,minmax(260px,1fr))] gap-8">
+			<!-- Service Types Grid -->
+			<div
+				v-else-if="serviceTypes.data && serviceTypes.data.length > 0"
+				class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"
+			>
 				<ServiceCard
-					v-for="service in services"
+					v-for="service in serviceTypes.data"
 					:key="service.name"
 					:service="service"
 					@book="bookService"
 				/>
 			</div>
 
-			<div
-				v-if="!serviceResource.loading && !services.length"
-				class="text-center py-20 text-gray-500"
-			>
-				No services available.
+			<!-- Empty State -->
+			<div v-else class="text-center py-12">
+				<p class="text-gray-600">No services available at the moment.</p>
 			</div>
 		</main>
+
+		<!-- Booking Modal -->
+		<BookingModal
+			:isVisible="showBookingModal"
+			:service="selectedService"
+			@close="closeBookingModal"
+			@success="handleBookingSuccess"
+		/>
 	</AppLayout>
 </template>
 
 <script setup>
-import { computed } from "vue";
+import { ref } from "vue";
 import { createResource } from "frappe-ui";
-import { useRouter } from "vue-router";
-
 import AppLayout from "@/components/AppLayout.vue";
 import ServiceCard from "@/components/ServiceCard.vue";
+import BookingModal from "@/components/BookingModal.vue";
 
-const router = useRouter();
-
-const serviceResource = createResource({
-	url: "frappoint.frappoint.doctype.appointment_type.appointment_type.get_service_cards",
+const serviceTypes = createResource({
+	url: "frappoint.frappoint.api.service_type.get_service_types",
 	auto: true,
 });
 
-const services = computed(() => {
-	return serviceResource.data || [];
-});
+const showBookingModal = ref(false);
+const selectedService = ref(null);
 
 const bookService = (service) => {
-	router.push({
-		path: "/booking",
-		query: {
-			service: service.name,
-		},
-	});
+	console.log("Book clicked:", service);
+	selectedService.value = service;
+	showBookingModal.value = true;
+};
+
+const closeBookingModal = () => {
+	showBookingModal.value = false;
+	selectedService.value = null;
+};
+
+const handleBookingSuccess = () => {
+	console.log("Booking successful!");
+	// TODO: Show success message, redirect to appointments page, etc.
+	alert("Appointment booked successfully!");
 };
 </script>
