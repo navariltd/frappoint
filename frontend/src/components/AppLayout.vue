@@ -49,7 +49,7 @@
 			</nav>
 		</aside>
 
-		<main class="flex-1 flex flex-col overflow-hidden">
+		<main class="flex-1 w-full min-h-0 overflow-auto">
 			<slot />
 		</main>
 	</div>

@@ -8,13 +8,13 @@
 			@dblClick="onEventDblClick"
 			@cellClick="onCellClick"
 			class="flex-1 w-full h-full"
+			
 		/>
 		<div v-else class="flex-1 flex items-center justify-center">Loading calendar...</div>
 	</div>
 </template>
 
 <script setup>
-
 import { createResource, Calendar } from "frappe-ui";
 
 const calendarConfig = {
