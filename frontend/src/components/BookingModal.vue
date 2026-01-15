@@ -228,7 +228,7 @@
 								Additional Notes (Optional)
 							</label>
 							<textarea
-								v-model="customerDetails.notes"
+								v-model="customerDetails.details"
 								rows="3"
 								class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
 								placeholder="Any special requests or information..."
@@ -337,12 +337,40 @@ const slotsResource = createResource({
 	auto: false,
 });
 
+// Create resource for booking submission
+const bookingResource = createResource({
+	url: "frappoint.frappoint.api.service_appointment.create_service_appointment",
+	makeParams(data) {
+		return {
+			service_type: data.service_type,
+			appointment_date: data.appointment_date,
+			appointment_time: data.appointment_time,
+			customer_name: data.customer_name,
+			customer_email: data.customer_email,
+			customer_mobile: data.customer_mobile,
+			provider: data.provider,
+			start_time: data.start_time,
+			details: data.details,
+		};
+	},
+	onSuccess(response) {
+		console.log("Booking successful:", response);
+		emit("success", response);
+		close();
+	},
+	onError(error) {
+		console.error("Booking error:", error);
+		alert(error.messages?.[0] || "Failed to create booking. Please try again.");
+	},
+});
+
 // Step 4: Customer Details
 const customerDetails = ref({
+	customer: "",
 	full_name: "",
 	email: "",
 	mobile_no: "",
-	notes: "",
+	details: "",
 });
 
 // Watch for modal visibility
@@ -529,12 +557,14 @@ const canProceed = computed(() => {
 	return false;
 });
 
+// Update canSubmit to check resource loading state
 const canSubmit = computed(() => {
 	return (
 		customerDetails.value.full_name &&
 		customerDetails.value.email &&
 		customerDetails.value.mobile_no &&
-		selectedSlot.value
+		selectedSlot.value &&
+		!bookingResource.loading
 	);
 });
 
@@ -555,49 +585,21 @@ function previousStep() {
 }
 
 async function submitBooking() {
-	if (!canSubmit.value || submitting.value) return;
+	if (!canSubmit.value || bookingResource.loading) return;
 
-	submitting.value = true;
+	const bookingData = {
+		service_type: props.service.name,
+		appointment_date: selectedDate.value,
+		appointment_time: selectedSlot.value.start_time,
+		customer_name: customerDetails.value.full_name,
+		customer_email: customerDetails.value.email,
+		customer_mobile: customerDetails.value.mobile_no,
+		provider: selectedSlotProvider.value,
+		start_time: selectedSlot.value.start_time,
+		details: customerDetails.value.details,
+	};
 
-	try {
-		// TODO: Replace with actual API call to create appointment
-		const response = await fetch("/api/method/frappe.client.insert", {
-			method: "POST",
-			headers: {
-				"Content-Type": "application/json",
-			},
-			body: JSON.stringify({
-				doc: {
-					doctype: "Service Appointment",
-					appointment_type: props.service.name,
-					appointment_provider: selectedSlotProvider.value,
-					appointment_date: selectedDate.value,
-					start_time: selectedSlot.value.from_time,
-					end_time: selectedSlot.value.to_time,
-					duration: props.service.default_duration_in_minutes,
-					full_name: customerDetails.value.full_name,
-					email: customerDetails.value.email,
-					mobile_no: customerDetails.value.mobile_no,
-					notes: customerDetails.value.notes,
-					selected_slot_ids: JSON.stringify([selectedSlot.value.slot_id]),
-					status: "Open",
-					source: "Portal",
-				},
-			}),
-		});
-
-		if (response.ok) {
-			emit("success");
-			close();
-		} else {
-			throw new Error("Failed to create appointment");
-		}
-	} catch (error) {
-		console.error("Booking error:", error);
-		alert("Failed to create booking. Please try again.");
-	} finally {
-		submitting.value = false;
-	}
+	bookingResource.submit(bookingData);
 }
 
 function close() {
