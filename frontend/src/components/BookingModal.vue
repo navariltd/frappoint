@@ -72,53 +72,9 @@
 
 			<!-- Content -->
 			<div class="flex-1 overflow-y-auto p-6">
-				<!-- Step 1: Select Provider -->
+				<!-- Step 1: Select Date & Time (Combined) -->
 				<div v-if="step === 0">
-					<h4 class="font-semibold mb-4 text-lg">Select a Service Provider</h4>
-
-					<div v-if="providersResource.loading" class="flex justify-center py-8">
-						<div
-							class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"
-						></div>
-					</div>
-
-					<div v-else class="space-y-3">
-						<label
-							v-for="provider in providersResource.data"
-							:key="provider.name"
-							class="flex items-center p-4 border-2 rounded-lg cursor-pointer transition-all"
-							:class="
-								selectedProvider === provider.name
-									? 'border-blue-600 bg-blue-50'
-									: 'border-gray-200 hover:border-gray-300'
-							"
-						>
-							<input
-								type="radio"
-								name="provider"
-								:value="provider.name"
-								v-model="selectedProvider"
-								class="w-4 h-4 text-blue-600"
-							/>
-							<div class="ml-3 flex-1">
-								<div class="font-medium">{{ provider.provider_name }}</div>
-								<div v-if="provider.designation" class="text-sm text-gray-500">
-									{{ provider.designation }}
-								</div>
-							</div>
-							<div
-								v-if="provider.is_default"
-								class="ml-2 px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded"
-							>
-								Recommended
-							</div>
-						</label>
-					</div>
-				</div>
-
-				<!-- Step 2: Select Date -->
-				<div v-if="step === 1">
-					<h4 class="font-semibold mb-4 text-lg">Select Date</h4>
+					<h4 class="font-semibold mb-4 text-lg">Select Date & Time</h4>
 
 					<div v-if="slotsResource.loading" class="flex justify-center py-8">
 						<div
@@ -126,72 +82,105 @@
 						></div>
 					</div>
 
-					<div v-else class="flex justify-center">
-						<!-- VueDatePicker in inline mode -->
-						<VueDatePicker
-							v-model="selectedDate"
-							:inline="true"
-							:enable-time-picker="false"
-							:disabled-dates="disabledDates"
-							:min-date="new Date()"
-							auto-apply
-							@update:model-value="handleDateSelect"
-							:highlight="highlightedDates"
-						/>
-					</div>
-				</div>
+					<div v-else class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+						<!-- Left: Date Picker -->
+						<div>
+							<h5 class="text-sm font-medium text-gray-700 mb-3">Choose a date</h5>
+							<div class="flex justify-center">
+								<VueDatePicker
+									v-model="selectedDate"
+									:inline="true"
+									:enable-time-picker="false"
+									:disabled-dates="disabledDates"
+									:min-date="new Date()"
+									auto-apply
+									@update:model-value="handleDateSelect"
+									:highlight="highlightedDates"
+								/>
+							</div>
+						</div>
 
-				<!-- Step 3: Select Time Slot -->
-				<div v-if="step === 2">
-					<h4 class="font-semibold mb-4 text-lg">
-						Select Time Slot
-						<span v-if="selectedDate" class="text-sm font-normal text-gray-600">
-							- {{ formatDate(selectedDate) }}
-						</span>
-					</h4>
-
-					<div v-if="loadingTimeSlots" class="flex justify-center py-8">
-						<div
-							class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"
-						></div>
-					</div>
-
-					<div v-else-if="availableTimeSlots.length === 0" class="text-center py-8">
-						<p class="text-gray-600">No available time slots for this date.</p>
-						<button @click="step = 1" class="mt-4 text-blue-600 hover:text-blue-700">
-							Select different date
-						</button>
-					</div>
-
-					<div v-else class="space-y-4">
-						<div
-							v-for="providerSlots in availableTimeSlots"
-							:key="providerSlots.provider"
-						>
-							<h5 class="font-medium text-sm text-gray-700 mb-2">
-								{{ providerSlots.provider_name }}
+						<!-- Right: Time Slots -->
+						<div>
+							<h5 class="text-sm font-medium text-gray-700 mb-3">
+								{{ selectedDate ? "Choose a time slot" : "Select a date first" }}
 							</h5>
-							<div class="grid grid-cols-3 gap-2">
-								<button
-									v-for="slot in providerSlots.slots"
-									:key="slot.slot_id"
-									@click="selectTimeSlot(slot, providerSlots.provider)"
-									class="p-3 border-2 rounded-lg text-sm transition-all"
-									:class="
-										selectedSlot?.slot_id === slot.slot_id
-											? 'border-blue-600 bg-blue-50 text-blue-900 font-medium'
-											: 'border-gray-200 hover:border-gray-300 text-gray-700'
-									"
+
+							<div
+								v-if="!selectedDate"
+								class="flex items-center justify-center h-64 text-gray-400"
+							>
+								<div class="text-center">
+									<svg
+										xmlns="http://www.w3.org/2000/svg"
+										class="h-16 w-16 mx-auto mb-3"
+										fill="none"
+										viewBox="0 0 24 24"
+										stroke="currentColor"
+									>
+										<path
+											stroke-linecap="round"
+											stroke-linejoin="round"
+											stroke-width="2"
+											d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+										/>
+									</svg>
+									<p class="text-sm">
+										Please select a date to view available time slots
+									</p>
+								</div>
+							</div>
+
+							<div v-else-if="loadingTimeSlots" class="flex justify-center py-8">
+								<div
+									class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"
+								></div>
+							</div>
+
+							<div
+								v-else-if="availableTimeSlots.length === 0"
+								class="text-center py-8"
+							>
+								<p class="text-gray-600 mb-2">
+									No available time slots for this date.
+								</p>
+								<p class="text-sm text-gray-500">Please select a different date</p>
+							</div>
+
+							<div v-else class="space-y-4 max-h-96 overflow-y-auto pr-2">
+								<div
+									v-for="providerSlots in availableTimeSlots"
+									:key="providerSlots.provider"
 								>
-									{{ slot.from_time }}
-								</button>
+									<h6
+										class="font-medium text-sm text-gray-700 mb-2 sticky top-0 bg-white py-1"
+									>
+										{{ providerSlots.provider_name }}
+									</h6>
+									<div class="grid grid-cols-2 gap-2">
+										<button
+											v-for="slot in providerSlots.slots"
+											:key="slot.slot_ids"
+											@click="selectTimeSlot(slot, providerSlots.provider)"
+											class="p-3 border-2 rounded-lg text-sm transition-all"
+											:class="
+												selectedSlot?.start_time === slot.start_time &&
+												selectedSlot?.end_time === slot.end_time
+													? 'border-blue-600 bg-blue-50 text-blue-900 font-medium'
+													: 'border-gray-200 hover:border-gray-300 text-gray-700'
+											"
+										>
+											{{ slot.start_time }}
+										</button>
+									</div>
+								</div>
 							</div>
 						</div>
 					</div>
 				</div>
 
-				<!-- Step 4: Customer Details -->
-				<div v-if="step === 3">
+				<!-- Step 2: Customer Details -->
+				<div v-if="step === 1">
 					<h4 class="font-semibold mb-4 text-lg">Your Details</h4>
 
 					<div class="space-y-4">
@@ -332,18 +321,11 @@ const props = defineProps({
 
 const emit = defineEmits(["close", "success"]);
 
-const steps = ["Provider", "Date", "Time", "Details"];
+const steps = ["Date & Time", "Details"];
 const step = ref(0);
 const submitting = ref(false);
 
-// Step 1: Provider Selection
-const selectedProvider = ref(null);
-const providersResource = createResource({
-	url: "frappoint.frappoint.api.service_provider.get_providers_for_service",
-	auto: false,
-});
-
-// Step 2 & 3: Date and Time Selection
+// Date and Time Selection (combined)
 const selectedDate = ref(null);
 const selectedSlot = ref(null);
 const selectedSlotProvider = ref(null);
@@ -369,7 +351,6 @@ watch(
 	(visible) => {
 		if (visible && props.service) {
 			resetForm();
-			loadProviders();
 			loadAvailableSlots();
 		}
 	}
@@ -377,7 +358,6 @@ watch(
 
 function resetForm() {
 	step.value = 0;
-	selectedProvider.value = null;
 	selectedDate.value = null;
 	selectedSlot.value = null;
 	selectedSlotProvider.value = null;
@@ -390,22 +370,15 @@ function resetForm() {
 	};
 }
 
-function loadProviders() {
-	providersResource.fetch({
-		service_type: props.service.name,
-	});
-}
-
 function loadAvailableSlots() {
 	console.log("Loading available slots for:", {
 		service: props.service?.name,
-		provider: selectedProvider.value,
 	});
 
 	slotsResource
 		.fetch({
 			service_type: props.service.name,
-			provider: selectedProvider.value,
+			provider: null, // Load all providers
 			days_ahead: 30,
 		})
 		.then(() => {
@@ -461,41 +434,6 @@ function handleDateSelect(date) {
 		selectDate(dateStr);
 	}
 }
-
-// Calendar dates computation (keeping for backwards compatibility if needed)
-const calendarDates = computed(() => {
-	if (!slotsResource.data || !Array.isArray(slotsResource.data)) return [];
-
-	const today = new Date();
-	today.setHours(0, 0, 0, 0);
-
-	const dates = [];
-	const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
-	const lastDay = new Date(today.getFullYear(), today.getMonth() + 2, 0);
-
-	// Add empty cells for days before month start
-	for (let i = 0; i < firstDay.getDay(); i++) {
-		dates.push(null);
-	}
-
-	// Add all days in the range
-	const currentDate = new Date(firstDay);
-	while (currentDate <= lastDay) {
-		const dateStr = currentDate.toISOString().split("T")[0];
-		const date = new Date(currentDate);
-
-		// Only add dates that are today or in the future
-		if (date >= today) {
-			dates.push(dateStr);
-		} else {
-			dates.push(null); // Past dates as null
-		}
-
-		currentDate.setDate(currentDate.getDate() + 1);
-	}
-
-	return dates;
-});
 
 function isDateAvailable(date) {
 	if (!date || !slotsResource.data || !Array.isArray(slotsResource.data)) {
@@ -585,9 +523,9 @@ function formatDate(dateStr) {
 }
 
 const canProceed = computed(() => {
-	if (step.value === 0) return true; // Can always proceed from provider selection
-	if (step.value === 1) return selectedDate.value !== null;
-	if (step.value === 2) return selectedSlot.value !== null;
+	if (step.value === 0) {
+		return selectedDate.value && selectedSlot.value;
+	}
 	return false;
 });
 
