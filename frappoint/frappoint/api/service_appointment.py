@@ -53,7 +53,6 @@ def create_service_appointment(
 	)
 
 	appointment.insert()
-	appointment.submit()
 	frappe.db.commit()
 
 	return {
