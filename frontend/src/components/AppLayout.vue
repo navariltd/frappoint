@@ -1,5 +1,5 @@
 <template>
-	<div class="flex h-screen bg-gray-300">
+	<div class="flex h-screen bg-gray-300 w-full">
 		<!-- SIDEBAR -->
 
 		<aside class="w-46 bg-white shadow-lg flex-shrink-0">
@@ -24,7 +24,7 @@
 						class="flex items-center gap-3 px-4 py-3 text-gray-700 hover:bg-gray-100 rounded-lg"
 						active-class="!text-blue-500"
 					>
-						<CalendarCheck :size="20" />
+						<Toolbox :size="20" />
 						<span>Services</span>
 					</router-link>
 
@@ -59,7 +59,7 @@
 <script setup>
 import { Avatar } from "frappe-ui";
 import { RouterLink } from "vue-router";
-import { CalendarCheck, LogOut, User } from "lucide-vue-next";
+import { CalendarCheck, LogOut, User, Toolbox, ToolboxIcon } from "lucide-vue-next";
 import { sessionStore } from "../data/session";
 
 const session = sessionStore();

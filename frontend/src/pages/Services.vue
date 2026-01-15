@@ -1,38 +1,71 @@
 <template>
-  <AppLayout>
-    <main class="p-6">
-      <h1 class="text-2xl font-bold mb-6">Appointment Type</h1>
+	<AppLayout>
+		<main class="p-6">
+			<h1 class="text-2xl font-bold mb-6">Appointment Type</h1>
 
-      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-        <ServiceCard
-          v-for="service in services"
-          :key="service.name"
-          :service="service"
-          @book="bookService"
-        />
-      </div>
-    </main>
-  </AppLayout>
+			<!-- Loading State -->
+			<div v-if="serviceTypes.loading" class="flex justify-center items-center py-12">
+				<div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+			</div>
+
+			<!-- Service Types Grid -->
+			<div
+				v-else-if="serviceTypes.data && serviceTypes.data.length > 0"
+				class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"
+			>
+				<ServiceCard
+					v-for="service in serviceTypes.data"
+					:key="service.name"
+					:service="service"
+					@book="bookService"
+				/>
+			</div>
+
+			<!-- Empty State -->
+			<div v-else class="text-center py-12">
+				<p class="text-gray-600">No services available at the moment.</p>
+			</div>
+		</main>
+
+		<!-- Booking Modal -->
+		<BookingModal
+			:isVisible="showBookingModal"
+			:service="selectedService"
+			@close="closeBookingModal"
+			@success="handleBookingSuccess"
+		/>
+	</AppLayout>
 </template>
 
 <script setup>
-import { ref, onMounted } from "vue"
-import { call } from "frappe-ui"
-import AppLayout from "@/components/AppLayout.vue"
-import ServiceCard from "@/components/ServiceCard.vue"
+import { ref } from "vue";
+import { createResource } from "frappe-ui";
+import AppLayout from "@/components/AppLayout.vue";
+import ServiceCard from "@/components/ServiceCard.vue";
+import BookingModal from "@/components/BookingModal.vue";
 
-const services = ref([])
+const serviceTypes = createResource({
+	url: "frappoint.frappoint.api.service_type.get_service_types",
+	auto: true,
+});
 
-const loadServices = async () => {
-  services.value = await call(
-    "frappoint.frappoint.doctype.appointment_type.appointment_type.get_service_cards"
-  )
-}
+const showBookingModal = ref(false);
+const selectedService = ref(null);
 
 const bookService = (service) => {
-  console.log("Book clicked:", service)
-  // next step → router push to calendar
-}
+	console.log("Book clicked:", service);
+	selectedService.value = service;
+	showBookingModal.value = true;
+};
 
-onMounted(loadServices)
+const closeBookingModal = () => {
+	showBookingModal.value = false;
+	selectedService.value = null;
+};
+
+const handleBookingSuccess = () => {
+	console.log("Booking successful!");
+	// TODO: Show success message, redirect to appointments page, etc.
+	alert("Appointment booked successfully!");
+};
 </script>

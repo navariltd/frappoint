@@ -5,17 +5,27 @@
 			:config="calendarConfig"
 			:events="appointments.data"
 			@click="onEventClick"
-			@dblClick="onEventDblClick"
 			@cellClick="onCellClick"
 			class="flex-1 w-full h-full"
 		/>
 		<div v-else class="flex-1 flex items-center justify-center">Loading calendar...</div>
+
+		<EventCard
+			:isVisible="showEventCard"
+			:appointmentId="selectedAppointmentId"
+			@close="closeEventCard"
+			@viewDetails="handleViewDetails"
+		/>
 	</div>
 </template>
 
 <script setup>
-
+import { ref } from "vue";
 import { createResource, Calendar } from "frappe-ui";
+import EventCard from "./EventCard.vue";
+
+const showEventCard = ref(false);
+const selectedAppointmentId = ref(null);
 
 const calendarConfig = {
 	defaultMode: "Month",
@@ -28,6 +38,7 @@ const calendarConfig = {
 const appointments = createResource({
 	url: "frappoint.frappoint.doctype.service_appointment.service_appointment.get_events",
 	params: {
+		// TODO: Remove this hard coded values
 		start: "2026-01-01",
 		end: "2026-12-31",
 	},
@@ -48,11 +59,29 @@ const appointments = createResource({
 	},
 });
 
-// Event Handlers
-const onEventClick = (event) => console.log("Clicked event:", event);
-const onEventDblClick = (event) => console.log("Double clicked:", event);
-const onCellClick = (data) => console.log("Clicked empty cell:", data);
+const onEventClick = (eventData) => {
+	const event = eventData?.calendarEvent;
+
+	if (event && event.id) {
+		selectedAppointmentId.value = event.id;
+		showEventCard.value = true;
+	} else {
+		console.error("No valid event found:", eventData);
+	}
+};
+
+const onCellClick = (data) => {
+	console.log("Clicked empty cell:", data);
+};
+
+const closeEventCard = () => {
+	showEventCard.value = false;
+	selectedAppointmentId.value = null;
+};
+
+const handleViewDetails = (appointment) => {
+	console.log("View full details:", appointment);
+	// TODO: Navigate to full appointment details page
+	// router.push({ name: 'AppointmentDetails', params: { id: appointment.name } })
+};
 </script>
-
-
-

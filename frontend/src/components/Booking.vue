@@ -88,7 +88,6 @@ import { ref, computed } from "vue";
 import { createResource } from "frappe-ui";
 import { Calendar } from "frappe-ui";
 import { useRoute } from "vue-router";
-import { watch } from "vue";
 
 const route = useRoute();
 

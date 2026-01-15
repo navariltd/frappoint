@@ -19,6 +19,7 @@
 		"@fullcalendar/interaction": "^6.1.19",
 		"@fullcalendar/timegrid": "^6.1.19",
 		"@fullcalendar/vue3": "^6.1.19",
+		"@vuepic/vue-datepicker": "^12.1.0",
 		"feather-icons": "^4.29.2",
 		"frappe-ui": "^0.1.192",
 		"lucide-vue-next": "^0.562.0",
