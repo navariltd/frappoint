@@ -266,37 +266,33 @@ class ServiceAppointment(Document):
 		if primary_contact:
 			return self._get_contact_payload(primary_contact)
 
-		contact_name = frappe.db.get_value(
-			"Contact",
-			{"is_primary_contact": 1},
-			"name",
-			filters={
-				"name": [
-					"in",
-					frappe.db.get_all(
-						"Dynamic Link",
-						{
-							"link_doctype": "Customer",
-							"link_name": customer,
-							"parenttype": "Contact",
-						},
-						pluck="parent",
-					),
-				]
-			},
-		)
-
-		if contact_name:
-			return self._get_contact_payload(contact_name)
-
-		contact_name = frappe.db.get_value(
+		linked_contacts = frappe.db.get_all(
 			"Dynamic Link",
-			{
+			filters={
 				"link_doctype": "Customer",
 				"link_name": customer,
 				"parenttype": "Contact",
 			},
-			"parent",
+			pluck="parent",
+		)
+
+		if linked_contacts:
+			contact_name = frappe.db.get_value(
+				"Contact",
+				filters={
+					"name": ["in", linked_contacts],
+					"is_primary_contact": 1,
+				},
+				fieldname="name",
+			)
+
+			if contact_name:
+				return self._get_contact_payload(contact_name)
+
+		contact_name = frappe.db.get_value(
+			"Contact",
+			filters={"name": ["in", linked_contacts]},
+			fieldname="name",
 			order_by="modified desc",
 		)
 
