@@ -9,14 +9,18 @@ export {}
 declare module 'vue' {
   export interface GlobalComponents {
     AppLayout: typeof import('./src/components/AppLayout.vue')['default']
+    Appointmentcard: typeof import('./src/components/Appointmentcard.vue')['default']
     AppointmentCard: typeof import('./src/components/AppointmentCard.vue')['default']
+    AppointmentDialog: typeof import('./src/components/AppointmentDialog.vue')['default']
     Appointments: typeof import('./src/components/Appointments.vue')['default']
     Booking: typeof import('./src/components/Booking.vue')['default']
     BookingModal: typeof import('./src/components/BookingModal.vue')['default']
     Calendar: typeof import('./src/components/Calendar.vue')['default']
-    EventCard: typeof import('./src/components/EventCard.vue')['default']
+    Calender: typeof import('./src/components/Calender.vue')['default']
+    ProviderPortalView: typeof import('./src/components/ProviderPortalView.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']
     ServiceCard: typeof import('./src/components/ServiceCard.vue')['default']
+    TabButtons: typeof import('./src/components/TabButtons.vue')['default']
   }
 }
