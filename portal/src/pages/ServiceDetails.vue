@@ -33,9 +33,9 @@
 				</div>
 
 				<div>
-					Top Specialists
+					<h3 class="mb-6 font-semibold text-2xl">Top Specialists</h3>
 
-					<div class="grid lg:grid-cols-2 gap-4">
+					<div class="grid lg:grid-cols-2 gap-4 mb-4">
 						<ProviderCard
 							v-for="provider in serviceDetails.providers"
 							:provider="provider"
