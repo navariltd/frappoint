@@ -19,7 +19,7 @@
 
 		<div class="p-5 flex flex-col flex-grow">
 			<div class="flex justify-between items-start mb-2">
-				<h3>{{ serviceType.appointment_type }}</h3>
+				<h3 class="text-2xl font-semibold">{{ serviceType.name }}</h3>
 			</div>
 
 			<p
@@ -29,22 +29,22 @@
 
 			<div class="mt-auto pt-4 border-t border-gray-100 flex items-center justify-between">
 				<div class="flex flex-col">
-					<span class="text-xs text-gray-400 font-medium">Price</span>
+					<span class="text-xs text-gray-400 font-medium mb-2">Price</span>
 					<span class="text-base font-bold text-gray-900">{{
 						formatCurrency(serviceType.price.rate, serviceType.price.currency)
 					}}</span>
 				</div>
 
 				<div
-					class="flex items-center gap-1 text-xs font-medium text-gray-500 bg-gray-50 px-2 py-1 rounded-md"
+					class="flex items-center justify-center gap-1 text-xs font-medium text-gray-500 bg-gray-100 px-2 py-1 rounded-md"
 				>
-					<FeatherIcon class="h-16px" name="clock" />
-					<p>{{ serviceType.default_duration_in_minutes }}</p>
+					<FeatherIcon class="h-4" name="clock" />
+					<p>{{ serviceType.default_duration_in_minutes }}m</p>
 				</div>
 			</div>
 
 			<Button
-				class="mt-4 w-full bg-background-light text-gray-900 font-semibold py-2.5 rounded-xl hover:bg-primary hover:text-white transition-all duration-300"
+				class="mt-4 w-full bg-background-light text-gray-900 font-semibold py-5 rounded-xl hover:!bg-primary hover:!text-white transition-all duration-300"
 			>
 				Book Now
 			</Button>
