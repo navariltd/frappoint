@@ -7,9 +7,9 @@
 			:src="provider.image"
 			:alt="provider.name"
 		/>
-		<div>
-			<h2>{{ provider.provider_name }}</h2>
-			<p>{{ provider.designation }}</p>
+		<div class="px-2">
+			<h2 class="font-bold text-xl mb-1">{{ provider.provider_name }}</h2>
+			<p class="text-gray-700">{{ provider.designation }}</p>
 		</div>
 	</div>
 </template>

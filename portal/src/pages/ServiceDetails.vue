@@ -1,5 +1,5 @@
 <template>
-	<div class="my-4 w-full max-w-7xl mx-auto px-4">
+	<div class="my-10 w-full max-w-7xl mx-auto px-4">
 		<div class="grid grid-cols-1 lg:grid-cols-12 lg:gap-12">
 			<!-- Left Section  -->
 			<div class="lg:col-span-8 flex flex-col gap-10">
@@ -19,13 +19,17 @@
 					</div>
 				</div>
 				<div class="flex flex-col gap-3">
-					<h2>{{ serviceDetails.name }}</h2>
-					<p>{{ serviceDetails.short_description }}</p>
+					<h2 class="text-3xl font-black">{{ serviceDetails.name }}</h2>
+					<p class="text-m text-gray-700">{{ serviceDetails.short_description }}</p>
 				</div>
 
-				<div class="bg-white p-8 rounded-xl shadow-sm border border-slate-100">
-					<p>About the Service</p>
-					<div v-html="serviceDetails.description"></div>
+				<div class="bg-white p-8 rounded-xl shadow-lg border border-slate-100">
+					<div class="flex gap-2 items-center mb-6">
+						<FeatherIcon class="h-6" name="file-text" color="#2c7677" />
+						<p class="text-lg font-semibold">About the Service</p>
+					</div>
+
+					<div class="text-xl/6 text-gray-700" v-html="serviceDetails.description"></div>
 				</div>
 
 				<div>
@@ -42,38 +46,55 @@
 			</div>
 			<!-- Right section  -->
 			<div class="lg:col-span-4 relative">
-				<div class="flex flex-col gap-4 bg-white/80 p-8">
-					<div class="flex justify-between">
+				<div
+					class="flex flex-col gap-4 bg-white/80 p-8 rounded-lg shadow-lg border-gray-300"
+				>
+					<div class="flex justify-between mb-4">
 						<div>
-							<p>Starting from</p>
-							<span
-								>{{
+							<p class="text-gray-700 mb-2">Starting from</p>
+							<h2 class="text-2xl font-black">
+								{{
 									formatCurrency(
 										serviceDetails.prices[0].rate,
 										serviceDetails.prices[0].currency
 									)
 								}}
-								/ session</span
+								<span class="text-lg text-gray-700">/ session</span>
+							</h2>
+						</div>
+						<div class="bg-background-light rounded-full p-4">
+							<FeatherIcon
+								class="h-6"
+								name="tag"
+								color="#236061"
+								stroke-width="3px"
+							/>
+						</div>
+					</div>
+					<div>
+						<h3 class="font-medium text-lg mb-4">DURATION</h3>
+						<div
+							class="border-primary border-2 px-6 py-4 rounded-lg text-center max-w-40"
+						>
+							<span class="font-semibold text-primary text-xl">
+								{{ serviceDetails.default_duration_in_minutes }} min</span
 							>
 						</div>
-						<FeatherIcon class="h-12" name="tag" />
 					</div>
 					<div>
-						<h3>Duration</h3>
-						<div>
-							<span> {{ serviceDetails.default_duration_in_minutes }} min</span>
-						</div>
-					</div>
-					<div>
-						<p>DATE & TIME</p>
-						<input type="" placeholder="Select a slot" />
+						<p class="text-gray-900 font-medium mb-4">DATE & TIME</p>
+						<FormControl type="text" size="lg" placeholder="Select a Slot">
+							<template #suffix>
+								<FeatherIcon class="w-4" name="calendar" />
+							</template>
+						</FormControl>
 					</div>
 
 					<div>
 						<Button
-							class="mt-4 w-full bg-primary text-gray-900 font-semibold py-2.5 rounded-xl hover:bg-primary-dark hover:text-white transition-all duration-300"
+							class="mt-4 w-full !bg-primary !text-white/80 font-semibold py-6 rounded-xl hover:!bg-primary-dark hover:!text-white transition-all duration-300 text-lg"
 						>
-							Book Now
+							Book Appointment
 						</Button>
 					</div>
 				</div>
@@ -85,7 +106,7 @@
 
 <script setup>
 import { useRoute } from "vue-router";
-import { createResource, FeatherIcon, Button } from "frappe-ui";
+import { createResource, FeatherIcon, Button, FormControl } from "frappe-ui";
 import ServiceTag from "@/components/ServiceTag.vue";
 import ProviderCard from "@/components/ProviderCard.vue";
 import { formatCurrency } from "@/utils";
