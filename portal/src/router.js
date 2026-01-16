@@ -13,7 +13,7 @@ const routes = [
 		path: "/services/:name",
 		name: "ServiceDetails",
 		component: () => import("@/pages/ServiceDetails.vue"),
-		meta: { requiresLogin: true },
+		meta: { requiresLogin: false },
 	},
 	{
 		name: "Login",
