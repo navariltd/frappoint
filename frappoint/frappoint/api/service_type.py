@@ -1,5 +1,9 @@
+import re
+
 import frappe
 from frappe import _
+
+from .service_provider import get_providers_for_service
 
 
 @frappe.whitelist(allow_guest=True)
@@ -23,11 +27,11 @@ def get_service_types(company=None, active_only=True):
 		fields=[
 			"name",
 			"appointment_type",
-			"description",
+			"short_description",
 			"default_duration_in_minutes",
 			"item_name",
 			"item_group",
-			"disabled",
+			"image",
 		],
 		order_by="appointment_type",
 	)
@@ -60,15 +64,16 @@ def get_service_type_details(service_type):
 	"""
 	doc = frappe.get_doc("Service Type", service_type)
 
+	providers = get_providers_for_service(service_type)
+
 	return {
 		"name": doc.name,
 		"appointment_type": doc.appointment_type,
+		"short_description": doc.short_description,
+		"image": doc.image,
+		"tags": [t.strip() for t in re.split(r"[,\n]+", doc.tags or "") if t.strip()],
 		"description": doc.description,
 		"default_duration_in_minutes": doc.default_duration_in_minutes,
-		"max_clients_per_slot": doc.max_clients_per_slot,
-		"buffer_before": doc.buffer_before,
-		"buffer_after": doc.buffer_after,
-		"disabled": doc.disabled,
 		"prices": [
 			{"rate": p.rate, "currency": p.currency, "price_list": p.price_list, "uom": p.uom}
 			for p in doc.prices
@@ -83,4 +88,5 @@ def get_service_type_details(service_type):
 		"materials": [
 			{"item": m.item, "item_name": m.item_name, "qty": m.qty, "uom": m.uom} for m in doc.consumables
 		],
+		"providers": providers,
 	}

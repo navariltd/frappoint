@@ -14,14 +14,10 @@ def get_providers_for_service(service_type, company=None):
 	providers = frappe.db.sql(
 		"""
 		SELECT DISTINCT
-			sp.name,
 			sp.provider_name,
-			sp.first_name,
-			sp.last_name,
-			sp.email,
-			sp.mobile_no,
-			sp.color_code,
 			sp.designation,
+			sp.color_code,
+			sp.image,
 			sps.default as is_default
 		FROM `tabService Provider` sp
 		INNER JOIN `tabService Provider Service` sps ON sps.parent = sp.name
@@ -37,7 +33,7 @@ def get_providers_for_service(service_type, company=None):
 	return providers
 
 
-@frappe.whitelist(allow_guest=True)
+@frappe.whitelist()
 def get_provider_details(provider):
 	"""
 	Get detailed provider information
