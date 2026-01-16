@@ -23,6 +23,10 @@ export default {
 			fontFamily: {
 				display: ["Manrope", "sans-serif"],
 			},
+			fontSize: {
+				"3xl": "1.875rem",
+				"4xl": "2.25rem",
+			},
 			borderRadius: {
 				DEFAULT: "0.5rem",
 				lg: "1rem",
