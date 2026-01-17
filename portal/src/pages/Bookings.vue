@@ -23,7 +23,7 @@
 				<p>Confirmed</p>
 			</div>
 
-			<AppointmentCard :appointment="nextUp" variant="next" />
+			<AppointmentCard v-if="nextUp" :appointment="nextUp" variant="next" />
 
 			<div>
 				Upcoming
@@ -57,14 +57,17 @@
 import AppointmentCard from "@/components/AppointmentCard.vue";
 import { Calendar } from "frappe-ui";
 import { createListResource } from "frappe-ui";
-import { computed } from "vue";
+import { computed, onMounted } from "vue";
 
 const appointmentsResourceList = createListResource({
 	doctype: "Service Appointment",
 	fields: ["*"],
 	filters: {},
 	orderBy: "appointment_date asc, start_time asc",
-	auto: true,
+});
+
+onMounted(() => {
+	appointmentsResourceList.reload();
 });
 
 const appointments = computed(() => {
