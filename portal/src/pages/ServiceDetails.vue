@@ -52,23 +52,13 @@
 					<div class="flex justify-between mb-4">
 						<div>
 							<p class="text-gray-700 mb-2">Starting from</p>
-							<h2 class="text-2xl font-black">
-								{{
-									formatCurrency(
-										serviceDetails.prices[0].rate,
-										serviceDetails.prices[0].currency
-									)
-								}}
+							<h2 v-if="servicePrice" class="text-2xl font-black">
+								{{ formatCurrency(servicePrice.rate, servicePrice.currency) }}
 								<span class="text-lg text-gray-700">/ session</span>
 							</h2>
 						</div>
 						<div class="bg-background-light rounded-full p-4">
-							<FeatherIcon
-								class="h-6"
-								name="tag"
-								color="#236061"
-								stroke-width="3px"
-							/>
+							<FeatherIcon class="h-6" name="tag" color="#236061" :strokeWidth="3" />
 						</div>
 					</div>
 					<div>
@@ -92,10 +82,20 @@
 
 					<div>
 						<Button
+							@click="showBookingDialog"
 							class="mt-4 w-full !bg-primary !text-white/80 font-semibold py-6 rounded-xl hover:!bg-primary-dark hover:!text-white transition-all duration-300 text-lg"
 						>
 							Book Appointment
 						</Button>
+
+						<BookingDialog
+							v-model="openBooking"
+							:serviceType="serviceDetails.name"
+							:servicePrice="
+								formatCurrency(servicePrice.rate, servicePrice.currency)
+							"
+							@close="showBookingDialog = false"
+						/>
 					</div>
 				</div>
 				<div></div>
@@ -110,9 +110,15 @@ import { createResource, FeatherIcon, Button, FormControl } from "frappe-ui";
 import ServiceTag from "@/components/ServiceTag.vue";
 import ProviderCard from "@/components/ProviderCard.vue";
 import { formatCurrency } from "@/utils";
-import { computed, ref } from "vue";
+import { computed, ref, watch } from "vue";
+import BookingDialog from "@/components/BookingDialog.vue";
 
 const route = useRoute();
+const openBooking = ref(false);
+
+function showBookingDialog() {
+	openBooking.value = true;
+}
 
 const serviceTypeDetailsResource = createResource({
 	url: "frappoint.frappoint.api.service_type.get_service_type_details",
@@ -127,6 +133,13 @@ const serviceTypeDetailsResource = createResource({
 const serviceDetails = computed(() => {
 	if (serviceTypeDetailsResource.data) {
 		return serviceTypeDetailsResource.data;
+	}
+	return {};
+});
+
+const servicePrice = computed(() => {
+	if (serviceDetails.value.prices) {
+		return serviceDetails.value.prices[0];
 	}
 	return {};
 });
