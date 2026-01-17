@@ -177,5 +177,4 @@
 
 <script setup>
 import { FeatherIcon } from "frappe-ui";
-import ServiceTag from "@/components/ServiceTag.vue";
 </script>
