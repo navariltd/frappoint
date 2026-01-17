@@ -44,19 +44,35 @@
 			</div>
 
 			<Button
+				@click="showBookingDialog"
 				class="mt-4 w-full bg-background-light text-gray-900 font-semibold py-5 rounded-xl hover:!bg-primary hover:!text-white transition-all duration-300"
 			>
 				Book Now
 			</Button>
+
+			<BookingDialog
+				v-model="openBooking"
+				:serviceType="serviceType.name"
+				:servicePrice="formatCurrency(serviceType.price.rate, serviceType.price.currency)"
+				@close="showBookingDialog = false"
+			/>
 		</div>
 	</div>
 </template>
 
 <script setup>
+import { ref } from "vue";
 import { Button, FeatherIcon } from "frappe-ui";
 import { formatCurrency } from "@/utils";
+import BookingDialog from "./BookingDialog.vue";
 
-defineProps({
+const props = defineProps({
 	serviceType: Object,
 });
+
+const openBooking = ref(false);
+
+function showBookingDialog() {
+	openBooking.value = true;
+}
 </script>
