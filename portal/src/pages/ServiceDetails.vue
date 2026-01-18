@@ -52,7 +52,10 @@
 					<div class="flex justify-between mb-4">
 						<div>
 							<p class="text-gray-700 mb-2">Starting from</p>
-							<h2 v-if="servicePrice" class="text-2xl font-black">
+							<h2
+								v-if="servicePrice.rate && servicePrice.currency"
+								class="text-2xl font-black"
+							>
 								{{ formatCurrency(servicePrice.rate, servicePrice.currency) }}
 								<span class="text-lg text-gray-700">/ session</span>
 							</h2>
