@@ -342,7 +342,12 @@ def get_available_slots(appointment_type, provider=None, date=None, days_ahead=3
 		List of available slots grouped by provider and date
 	"""
 
-	apt_type = frappe.get_doc("Service Type", appointment_type)
+	apt_type = frappe.db.get_value(
+		"Service Type",
+		appointment_type,
+		["default_duration_in_minutes", "buffer_before", "buffer_after"],
+		as_dict=True,
+	)
 	duration = apt_type.default_duration_in_minutes
 
 	# Check if service unit is required
@@ -492,7 +497,7 @@ def group_slots_by_duration_and_capacity(
 	available_slots = []
 	total_duration_needed = required_duration + buffer_before + buffer_after
 
-	apt_type = frappe.get_doc("Service Type", appointment_type)
+	apt_type = frappe.db.get_value("Service Type", appointment_type, ["max_clients_per_slot"], as_dict=True)
 	max_clients = apt_type.max_clients_per_slot or 1
 
 	# Group by provider and date
