@@ -1,7 +1,7 @@
 <template>
 	<div class="bg-white/80 w-full">
 		<div class="w-full max-w-7xl mx-auto flex justify-between items-center py-4 px-6">
-			<RouterLink>
+			<RouterLink :to="{ name: 'Services' }">
 				<div class="flex gap-3">
 					<img src="" alt="logo" />
 					<h1>Frappoint</h1>
@@ -14,14 +14,16 @@
 			</div>
 
 			<div class="flex gap-4">
-				<RouterLink>
-					<FeatherIcon class="h-8" name="bell" />
-				</RouterLink>
-				<RouterLink>
-					<div class="flex">
+				<RouterLink
+					class="bg-primary/20 px-6 py-2 rounded-lg text-primary font-medium"
+					v-if="!auth.isLoggedIn"
+					:to="{ name: 'Login' }"
+					>Log In</RouterLink
+				>
+				<RouterLink v-else>
+					<div class="flex items-center">
 						<div>
-							<p>John Doe</p>
-							<p>Member</p>
+							<p>{{ auth.userName }}</p>
 						</div>
 						<div class="ps-4">
 							<img v-if="userProfile" src="" alt="profile" />
@@ -36,7 +38,7 @@
 
 <script setup>
 import { FeatherIcon } from "frappe-ui";
-import { ref } from "vue";
+import { useAuthStore } from "@/stores/auth";
 
-const userProfile = ref(false);
+const auth = useAuthStore();
 </script>

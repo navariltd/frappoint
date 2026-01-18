@@ -1,6 +1,5 @@
-import { userResource } from "@/data/user";
 import { createRouter, createWebHistory } from "vue-router";
-import { session } from "./data/session";
+import { useAuthStore } from "./stores/auth";
 
 const routes = [
 	{
@@ -34,20 +33,17 @@ const router = createRouter({
 	routes,
 });
 
-router.beforeEach(async (to, from, next) => {
-	let isLoggedIn = session.isLoggedIn;
-	try {
-		await userResource.promise;
-	} catch (error) {
-		isLoggedIn = false;
+router.beforeEach(async (to) => {
+	const auth = useAuthStore();
+
+	await auth.refreshUser?.();
+
+	if (to.meta.requiresLogin && !auth.isLoggedIn) {
+		return { name: "Login" };
 	}
 
-	if (to.meta.requiresLogin && !isLoggedIn) {
-		next({ name: "Login" });
-	} else if (to.name === "Login" && isLoggedIn) {
-		next({ name: "Home" });
-	} else {
-		next();
+	if (to.name === "Login" && auth.isLoggedIn) {
+		return { name: "Services" };
 	}
 });
 

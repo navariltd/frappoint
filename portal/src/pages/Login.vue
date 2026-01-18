@@ -16,23 +16,20 @@
 					placeholder="••••••"
 					label="Password"
 				/>
-				<Button type="submit" :loading="session.login.loading" variant="solid"
-					>Login</Button
-				>
+				<Button type="submit" :loading="auth.loading" variant="solid">Login</Button>
 			</form>
 		</Card>
 	</div>
 </template>
 
 <script lang="ts" setup>
-import { session } from "../data/session";
+import { Card, Input, Button } from "frappe-ui";
+import { useAuthStore } from "@/stores/auth";
+
+const auth = useAuthStore();
 
 function submit(e) {
-	console.log("Form submitted");
 	const formData = new FormData(e.target);
-	session.login.submit({
-		email: formData.get("email"),
-		password: formData.get("password"),
-	});
+	auth.login(formData.get("email"), formData.get("password"));
 }
 </script>
