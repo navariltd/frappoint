@@ -26,6 +26,12 @@ const routes = [
 		component: () => import("@/pages/Bookings.vue"),
 		meta: { requiresLogin: true },
 	},
+	{
+		name: "User",
+		path: "/user/:name",
+		component: () => import("@/pages/User.vue"),
+		meta: { requiresLogin: true },
+	},
 ];
 
 const router = createRouter({

@@ -20,7 +20,7 @@
 					:to="{ name: 'Login' }"
 					>Log In</RouterLink
 				>
-				<RouterLink v-else>
+				<RouterLink :to="{ name: 'User', params: { name: auth.userId } }" v-else>
 					<div class="flex items-center">
 						<div>
 							<p>{{ auth.userName }}</p>
