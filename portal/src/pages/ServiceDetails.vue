@@ -113,9 +113,9 @@ const booking = useBookingStore();
 
 function showBookingDialog() {
 	openBooking.value = true;
-	booking.setServiceType(serviceDetails.name);
-	booking.setPrice(servicePrice.rate);
-	booking.setCurrency(servicePrice.currency);
+	booking.setServiceType(serviceDetails.value.name);
+	booking.setPrice(servicePrice.value.rate);
+	booking.setCurrency(servicePrice.value.currency);
 }
 
 const serviceTypeDetailsResource = createResource({
