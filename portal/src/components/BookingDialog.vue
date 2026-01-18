@@ -29,129 +29,202 @@
 						</div>
 					</div>
 
-					<!-- Main Booking Card  -->
+					<!-- Main Booking Card Step Content  -->
 
 					<div
 						class="flex flex-col lg:flex-row min-h-[600px] justify-between items-start bg-surface-light rounded-2xl shadow-soft overflow-hidden"
 					>
-						<!-- LEFT COLUMN: Calendar  -->
+						<!-- Step 1: Date & Time  -->
 						<div
-							class="w-full lg:w-5/12 p-6 md:p-8 border-b lg:border-b-0 lg:border-r border-slate-100 bg-white flex flex-col"
+							v-if="currentStep === 1"
+							class="w-full lg:w-full flex flex-col lg:flex-row"
 						>
-							<DatePicker
-								v-model="selectedDate"
-								:allowed-dates="availableDates"
-								variant="subtle"
-								:disabled="false"
-							/>
-						</div>
-
-						<!-- RIGHT COLUMN: Time Slots  -->
-						<div
-							v-if="selectedDate"
-							class="w-full lg:w-7/12 p-6 md:p-8 flex flex-col bg-surface-light relative"
-						>
-							<!-- provider  -->
-							<div class="mb-8 border-collapse">
-								<FormControl
-									type="select"
-									:options="providerOptions"
-									v-model="selectedProvider"
-									size="xl"
+							<!-- LEFT COLUMN: Calendar  -->
+							<div
+								class="w-full lg:w-5/12 p-6 md:p-8 border-b lg:border-b-0 lg:border-r border-slate-100 bg-white flex flex-col"
+							>
+								<DatePicker
+									v-model="selectedDate"
+									:allowed-dates="availableDates"
 									variant="subtle"
-									placeholder="Any Available Staff"
 									:disabled="false"
-									label="Select Staff Member (Optional)"
-									class="w-full appearance-none bg-white text-slate-900 px-4 pr-10 focus:!outline-none focus:!ring-2 focus:!ring-primary/50 focus:!border-primary transition-shadow cursor-pointer"
 								/>
 							</div>
 
-							<!-- Date and slots  -->
-							<div>
-								<div class="flex items-center justify-between mb-4">
-									<h1 class="text-lg font-bold text-slate-900">
-										{{ formatSelectedDate(selectedDate) }}
-									</h1>
+							<!-- RIGHT COLUMN: Time Slots  -->
+							<div
+								v-if="selectedDate"
+								class="w-full lg:w-7/12 p-6 md:p-8 flex flex-col bg-surface-light relative"
+							>
+								<!-- provider  -->
+								<div class="mb-8 border-collapse">
+									<FormControl
+										type="select"
+										:options="providerOptions"
+										v-model="selectedProvider"
+										size="xl"
+										variant="subtle"
+										placeholder="Any Available Staff"
+										:disabled="false"
+										label="Select Staff Member (Optional)"
+										class="w-full appearance-none bg-white text-slate-900 px-4 pr-10 focus:!outline-none focus:!ring-2 focus:!ring-primary/50 focus:!border-primary transition-shadow cursor-pointer"
+									/>
 								</div>
 
-								<div
-									class="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-8 overflow-y-auto max-h-[320px] time-slot-scroll pr-2"
-								>
-									<div class="col-span-full mt-2 mb-1">
-										<p>Morning</p>
+								<!-- Date and slots  -->
+								<div>
+									<div class="flex items-center justify-between mb-4">
+										<h1 class="text-lg font-bold text-slate-900">
+											{{ formatSelectedDate(selectedDate) }}
+										</h1>
 									</div>
 
-									<Button
-										v-for="slot in morningSlots"
-										:key="slot.start_time + slot.provider"
-										@click="selectSlot(slot)"
-										:class="
-											selectedSlot === slot
-												? '!bg-primary !text-white'
-												: 'border hover-bg-primary/10'
-										"
-										class="py-4 px-4 rounded-lg border border-slate-200 text-slate-700 hover:border-primary hover:text-primary hover:bg-[#E2F0F9] transition-all text-sm font-medium"
-										>{{ formatTime(slot.start_time) }}</Button
+									<div
+										class="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-8 overflow-y-auto max-h-[320px] time-slot-scroll pr-2"
 									>
+										<div class="col-span-full mt-2 mb-1">
+											<p>Morning</p>
+										</div>
 
-									<div class="col-span-full mt-2 mb-1">
-										<p>Afternoon</p>
+										<Button
+											v-for="slot in morningSlots"
+											:key="slot.start_time + slot.provider"
+											@click="selectSlot(slot)"
+											:class="
+												selectedSlot === slot
+													? '!bg-primary !text-white'
+													: 'border hover-bg-primary/10'
+											"
+											class="py-4 px-4 rounded-lg border border-slate-200 text-slate-700 hover:border-primary hover:text-primary hover:bg-[#E2F0F9] transition-all text-sm font-medium"
+											>{{ formatTime(slot.start_time) }}</Button
+										>
+
+										<div class="col-span-full mt-2 mb-1">
+											<p>Afternoon</p>
+										</div>
+
+										<Button
+											v-for="slot in afternoonSlots"
+											:key="slot.start_time + slot.provider"
+											@click="selectSlot(slot)"
+											:class="
+												selectedSlot === slot
+													? '!bg-primary !text-white'
+													: 'broder hover-bg-primary/10'
+											"
+											class="py-4 px-4 rounded-lg border border-slate-200 text-slate-700 hover:border-primary hover:text-primary hover:bg-[#E2F0F9] transition-all text-sm font-medium"
+											>{{ formatTime(slot.start_time) }}</Button
+										>
 									</div>
+								</div>
 
-									<Button
-										v-for="slot in afternoonSlots"
-										:key="slot.start_time + slot.provider"
-										@click="selectSlot(slot)"
-										:class="
-											selectedSlot === slot
-												? '!bg-primary !text-white'
-												: 'broder hover-bg-primary/10'
-										"
-										class="py-4 px-4 rounded-lg border border-slate-200 text-slate-700 hover:border-primary hover:text-primary hover:bg-[#E2F0F9] transition-all text-sm font-medium"
-										>{{ formatTime(slot.start_time) }}</Button
+								<!-- Footer Action Area  -->
+								<div class="mt-auto pt-6 border-t border-slate-100">
+									<div
+										class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4"
 									>
+										<!-- Summary  -->
+										<div class="flex items-start gap-3">
+											<div
+												class="w-10 h-10 rounded-lg bg-slate-100 flex items-center justify-center text-slate-500"
+											>
+												<FeatherIcon class="h-4" name="clock" />
+											</div>
+											<div>
+												<p class="text-sm font-bold text-slate-900">
+													{{ serviceType }}
+												</p>
+												<p
+													v-if="selectedSlot"
+													class="text-xs text-slate-500"
+												>
+													{{ servicePrice }} .
+													{{ formatTime(selectedSlot.start_time) }}
+												</p>
+											</div>
+										</div>
+									</div>
 								</div>
 							</div>
+						</div>
 
-							<!-- Footer Action Area  -->
-							<div class="mt-auto pt-6 border-t border-slate-100">
-								<div
-									class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4"
-								>
-									<!-- Summary  -->
-									<div class="flex items-start gap-3">
-										<div
-											class="w-10 h-10 rounded-lg bg-slate-100 flex items-center justify-center text-slate-500"
-										>
-											<FeatherIcon class="h-4" name="clock" />
-										</div>
-										<div>
-											<p class="text-sm font-bold text-slate-900">
-												{{ serviceType }}
-											</p>
-											<p v-if="selectedSlot" class="text-xs text-slate-500">
-												{{ servicePrice }} .
-												{{ formatTime(selectedSlot.start_time) }}
-											</p>
-										</div>
-									</div>
+						<!-- Step 2: User Details  -->
+						<div v-if="currentStep === 2" class="w-full p-6 flex flex-col gap-4">
+							<h2 class="text-xl font-semibold mb-4">Your Details</h2>
 
-									<!-- Buttons  -->
-									<div class="flex items-center gap-3 w-full sm:w-auto">
-										<Button
-											@click="$emit('close')"
-											class="flex-1 sm:flex-none py-2.5 px-6 rounded-lg border border-slate-300 text-slate-700 font-semibold text-sm hover:bg-slate-50 transition-colors"
-											>Back</Button
-										>
-										<Button
-											:disabled="!selectedDate || !selectedSlot"
-											@click="submitBooking"
-											class="flex-1 sm:flex-none py-2.5 px-6 rounded-lg !bg-primary hover:!bg-primary-dark text-white font-semibold text-sm shadow-lg shadow-primary/30 transition-all flex items-center justify-center gap-2"
-											>Continue</Button
-										>
-									</div>
-								</div>
+							<FormControl
+								v-model="userDetails.name"
+								type="text"
+								label="Full Name"
+								placeholder="Enter your full name"
+								:disabled="isLoggedIn"
+								class="mb-4"
+							/>
+
+							<FormControl
+								v-model="userDetails.email"
+								type="email"
+								label="Email"
+								placeholder="Enter your email"
+								:disabled="isLoggedIn"
+								class="mb-4"
+							/>
+
+							<FormControl
+								v-model="userDetails.phone"
+								type="text"
+								label="Phone Number"
+								placeholder="Enter your phone number"
+								:disabled="isLoggedIn"
+							/>
+						</div>
+
+						<!-- Step 3: Payment  -->
+						<div v-if="currentStep === 3" class="w-full p-6 flex flex-col gap-4">
+							<h2 class="text-xl font-semibold mb-4">Payment</h2>
+							<p>Show booking summary and payment options here</p>
+							<div class="mt-4 border-t border-slate-200 pt-4">
+								<p><strong>Service:</strong> {{ serviceType }}</p>
+								<p>
+									<strong>Date & Time:</strong>
+									{{ formatSelectedDate(selectedDate) }}
+									{{ formatTime(selectedSlot?.start_time) }}
+								</p>
+								<p>
+									<strong>Staff:</strong>
+									{{ selectedProvider || "Any Available" }}
+								</p>
+								<p><strong>Name:</strong> {{ userDetails.name }}</p>
+								<p><strong>Email:</strong> {{ userDetails.email }}</p>
+								<p><strong>Phone:</strong> {{ userDetails.phone }}</p>
+								<p><strong>Price:</strong> {{ servicePrice }}</p>
 							</div>
+						</div>
+
+						<!-- Buttons  -->
+						<div class="flex items-center gap-3 w-full sm:w-auto">
+							<Button
+								v-if="currentStep > 1"
+								@click="currentStep--"
+								class="flex-1 sm:flex-none py-2.5 px-6 rounded-lg border border-slate-300 text-slate-700 font-semibold text-sm hover:bg-slate-50 transition-colors"
+								>Back</Button
+							>
+							<Button
+								v-if="currentStep < 3"
+								:disabled="!canProceed"
+								@click="currentStep++"
+								class="flex-1 sm:flex-none py-2.5 px-6 rounded-lg !bg-primary hover:!bg-primary-dark text-white font-semibold text-sm shadow-lg shadow-primary/30 transition-all flex items-center justify-center gap-2"
+								>Continue</Button
+							>
+
+							<Button
+								v-else
+								:disabled="!canProceed"
+								@click="submitBooking"
+								class="flex-1 sm:flex-none py-2.5 px-6 rounded-lg !bg-primary hover:!bg-primary-dark text-white font-semibold text-sm shadow-lg shadow-primary/30 transition-all flex items-center justify-center gap-2"
+							>
+								Pay
+							</Button>
 						</div>
 					</div>
 				</div>
@@ -195,6 +268,32 @@ const selectedSlot = ref(null);
 const selectedProvider = ref(null);
 const availableDates = ref([]);
 const availableSlots = ref([]);
+const currentStep = ref(1);
+
+const userDetails = ref({
+	name: "",
+	email: "",
+	phone: "",
+});
+const isLoggedIn = ref(false);
+
+const stepTitle = computed(() => {
+	if (currentStep.value === 1) return "Select a Date & Time";
+	if (currentStep.value === 2) return "Your Details";
+	return "Payment";
+});
+
+const stepSubtitle = computed(() => {
+	if (currentStep.value === 1) return `Choose the best time for your ${props.serviceType}`;
+	if (currentStep.value === 2) return "Enter your details or confirm your information";
+	return "Confirm your booking and proceed to payment";
+});
+
+const canProceed = computed(() => {
+	if (currentStep.value === 1) return selectedDate.value && selectedSlot.value;
+	if (currentStep.value === 2) return userDetails.value.name && userDetails.value.email;
+	return true;
+});
 
 const serviceAppointmentResource = createListResource({
 	doctype: "Service Appointment",
@@ -232,6 +331,7 @@ const checkSlotAvailability = createResource({
 });
 
 onMounted(async () => {
+	if (!props.openBooking) return;
 	availableDates.value = await getAvailableDates.fetch();
 });
 
