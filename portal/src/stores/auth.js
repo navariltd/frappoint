@@ -5,23 +5,29 @@ import { createResource } from "frappe-ui";
 function getSessionUser() {
 	const cookies = new URLSearchParams(document.cookie.split("; ").join("&"));
 	let user = cookies.get("user_id");
-	let userName = cookies.get("full_name");
-	user === "Guest" ? null : user;
-	userName === "Guest" ? null : userName;
+	if (!user || user === "Guest") {
+		return null;
+	}
 
-	return { user, userName };
+	return {
+		user,
+		userName: cookies.get("full_name") || null,
+		userImage: cookies.get("user_image") || null,
+	};
 }
 
 export const useAuthStore = defineStore("auth", {
 	state: () => ({
-		userId: getSessionUser().user,
-		userName: getSessionUser().userName,
+		user: getSessionUser(),
 		checked: false,
 		loading: false,
 	}),
 
 	getters: {
-		isLoggedIn: (state) => !!state.userId,
+		isLoggedIn: (state) => !!state.user,
+		userId: (state) => state.user?.user || null,
+		userName: (state) => state.user?.userName || null,
+		userImage: (state) => state.user?.userImage || null,
 	},
 
 	actions: {
@@ -73,8 +79,7 @@ export const useAuthStore = defineStore("auth", {
 		},
 
 		setUser() {
-			this.userId = getSessionUser().user;
-			this.userName = getSessionUser().userName;
+			this.user = getSessionUser();
 		},
 	},
 });

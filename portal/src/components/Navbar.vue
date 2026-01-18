@@ -26,8 +26,13 @@
 							<p>{{ auth.userName }}</p>
 						</div>
 						<div class="ps-4">
-							<img v-if="userProfile" src="" alt="profile" />
-							<FeatherIcon class="h-8" name="user" size="24px" />
+							<img
+								class="h-14 w-14 rounded-full object-cover"
+								v-if="auth.userImage"
+								:src="auth.userImage"
+								alt="profile"
+							/>
+							<FeatherIcon v-else class="h-8" name="user" size="24px" />
 						</div>
 					</div>
 				</RouterLink>
