@@ -88,14 +88,7 @@
 							Book Appointment
 						</Button>
 
-						<BookingDialog
-							v-model="openBooking"
-							:serviceType="serviceDetails.name"
-							:servicePrice="
-								formatCurrency(servicePrice.rate, servicePrice.currency)
-							"
-							@close="showBookingDialog = false"
-						/>
+						<BookingDialog v-model="openBooking" @close="showBookingDialog = false" />
 					</div>
 				</div>
 				<div></div>
@@ -112,12 +105,17 @@ import ProviderCard from "@/components/ProviderCard.vue";
 import { formatCurrency } from "@/utils";
 import { computed, ref, watch } from "vue";
 import BookingDialog from "@/components/BookingDialog.vue";
+import { useBookingStore } from "@/stores/bookingStore";
 
 const route = useRoute();
 const openBooking = ref(false);
+const booking = useBookingStore();
 
 function showBookingDialog() {
 	openBooking.value = true;
+	booking.setServiceType(serviceDetails.name);
+	booking.setPrice(servicePrice.rate);
+	booking.setCurrency(servicePrice.currency);
 }
 
 const serviceTypeDetailsResource = createResource({

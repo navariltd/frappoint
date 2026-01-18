@@ -171,14 +171,19 @@ import {
 	FormControl,
 } from "frappe-ui";
 import { ref, watch, computed, onMounted } from "vue";
+import { useBookingStore } from "@/stores/bookingStore";
+import { formatCurrency } from "@/utils";
 
 const props = defineProps({
-	serviceType: String,
-	servicePrice: String,
 	openBooking: Boolean,
 });
 
 const emit = defineEmits(["update:openBooking", "close"]);
+
+const booking = useBookingStore();
+
+const serviceType = computed(() => booking.draft.serviceType);
+const servicePrice = computed(() => formatCurrency(booking.draft.price, booking.draft.currency));
 
 function closeDialog() {
 	emit("update:openBooking", false);
@@ -200,7 +205,7 @@ const getAvailableDates = createResource({
 	method: "GET",
 	makeParams() {
 		return {
-			service_type: props.serviceType,
+			service_type: serviceType.value,
 		};
 	},
 });
@@ -210,7 +215,7 @@ const getAvailableTimeSlots = createResource({
 	method: "GET",
 	makeParams() {
 		return {
-			service_type: props.serviceType,
+			service_type: serviceType.value,
 			date: selectedDate.value,
 		};
 	},
@@ -297,11 +302,11 @@ async function submitBooking() {
 
 	// create appointment
 	await serviceAppointmentResource.create({
-		appointment_type: props.serviceType,
+		appointment_type: serviceType.value,
 		appointment_date: selectedDate.value,
 		start_time: selectedSlot.value.start_time,
 		end_time: selectedSlot.value.end_time,
-		provider: props.provider || selectedSlot.value.provider,
+		provider: selectedSlot.value.provider,
 	});
 
 	$emit("close");
