@@ -9,3 +9,5 @@ docs/
 **.idea/
 frappoint/www/frappoint
 frappoint/public/frontend
+frappoint/www/portal
+frappoint/public/portal

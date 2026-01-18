@@ -12,7 +12,7 @@ export default defineConfig({
 			lucideIcons: true,
 			buildConfig: {
 				outDir: "../frappoint/public/portal",
-				indexHtmlPath: "../frappoint/www/frappoint/index.html",
+				indexHtmlPath: "../frappoint/www/portal/index.html",
 				emptyOutDir: true,
 				sourcemap: true,
 			},
