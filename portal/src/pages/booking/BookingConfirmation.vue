@@ -14,7 +14,7 @@
 					</h1>
 					<p class="text-lg text-slate-500">
 						We've sent a confirmation email to
-						<span class="text-slate-800 font-medium">sarah@example.com</span>
+						<span class="text-slate-800 font-medium">{{ bookingResource.email }}</span>
 					</p>
 				</div>
 			</div>
@@ -33,9 +33,7 @@
 						<div
 							class="absolute inset-0 bg-cover bg-center transition-transform duration-700 group-hover:scale-105"
 							data-alt="Relaxing spa massage therapy session"
-							style="
-								background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuDHq0FteLQk66SqL0o5lBSYJL64JFPB_6jKHpMp6CS-V4bAGCo-DM6ooN21iD2YGhZI1lJHfDI5xpRGFCEmWBrvtSB3HoWDX7rBNMaWJQ6DIu_6PccY6HhTCnMjCOChyob6EwfJfEE9lj7iLLb2c_IrYLrKKaUOM5F_cdKkHEO02MFjGc7WNcOmvROEniJkk8DyfERUl_NgySQUBIpEdsMnoaueqqNh4nvX5BElOupY74wvawKfS1BfOc6mmuoaBDEajaLdXpwsMtUG');
-							"
+							:style="{ backgroundImage: `url(${serviceTypeDetails.image})` }"
 						></div>
 						<div class="absolute inset-0 bg-primary/10 mix-blend-overlay"></div>
 					</div>
@@ -46,16 +44,20 @@
 							>
 								Upcoming
 							</span>
-							<span class="text-slate-400 text-sm font-medium">#BK-7829-XJ</span>
+							<span class="text-slate-400 text-sm font-medium">{{
+								bookingResource.name
+							}}</span>
 						</div>
 						<h2 class="text-2xl font-bold text-slate-900 dark:text-white mb-2">
-							Deep Tissue Massage
+							{{ bookingResource.appointment_type }}
 						</h2>
 						<div
 							class="flex items-center gap-2 text-slate-500 dark:text-slate-400 mb-4"
 						>
 							<FeatherIcon class="h-4" name="clock" />
-							<span class="text-sm font-medium">60 Minutes</span>
+							<span class="text-sm font-medium"
+								>{{ bookingResource.duration }} Minutes</span
+							>
 						</div>
 						<div
 							class="flex items-center gap-3 mt-auto pt-4 border-t border-slate-100 dark:border-slate-700"
@@ -74,7 +76,7 @@
 									Provider
 								</p>
 								<p class="text-sm font-bold text-slate-800 dark:text-slate-200">
-									Dr. Sarah Mitchell
+									{{ bookingResource.appointment_provider }}
 								</p>
 							</div>
 						</div>
@@ -100,10 +102,10 @@
 								Date &amp; Time
 							</p>
 							<p class="text-base font-bold text-slate-900 dark:text-white">
-								Friday, Oct 24th
+								{{ formattedDate }}
 							</p>
 							<p class="text-sm text-slate-600 dark:text-slate-300">
-								2:00 PM - 3:00 PM
+								{{ formattedStartTime }} - {{ formattedEndTime }}
 							</p>
 							<div
 								class="mt-2 text-xs text-primary font-medium cursor-pointer hover:underline"
@@ -128,19 +130,16 @@
 								Location
 							</p>
 							<p class="text-base font-bold text-slate-900 dark:text-white">
-								Downtown Wellness Center
+								Coming Soon
 							</p>
 							<p class="text-sm text-slate-600 dark:text-slate-300">
-								Suite 404, Main Street
+								Street Coming Soon
 							</p>
 							<a
 								class="mt-2 text-xs text-primary font-medium inline-flex items-center gap-1 hover:underline"
 								href="#"
 							>
-								Get Directions
-								<span class="material-symbols-outlined text-[14px]"
-									>arrow_outward</span
-								>
+								Get Directions <FeatherIcon class="h-4" name="arrow-right" />
 							</a>
 						</div>
 					</div>
@@ -173,8 +172,90 @@
 			</div>
 		</div>
 	</div>
+	<pre>{{ serviceTypeDetailsResource }}</pre>
 </template>
 
 <script setup>
-import { FeatherIcon } from "frappe-ui";
+import { FeatherIcon, createResource, createDocumentResource } from "frappe-ui";
+import { computed, onMounted, watch } from "vue";
+import { useRoute } from "vue-router";
+
+const route = useRoute();
+const bookingId = route.params.bookingId;
+
+const serviceTypeDetailsResource = createResource({
+	url: "frappoint.frappoint.api.service_type.get_service_type_details",
+});
+
+const bookingDocument = createDocumentResource({
+	doctype: "Service Appointment",
+	name: bookingId,
+	onSuccess(doc) {
+		serviceTypeDetailsResource.fetch({
+			service_type: doc.appointment_type,
+		});
+	},
+});
+
+const serviceTypeDetails = computed(() => {
+	return serviceTypeDetailsResource.data || null;
+});
+
+const bookingResource = computed(() => bookingDocument.doc || null);
+
+/**
+ * Build Date objects from separate date + time fields
+ */
+const startDateTime = computed(() => {
+	if (!bookingResource.value) return null;
+
+	const { appointment_date, start_time } = bookingResource.value;
+	return new Date(`${appointment_date}T${start_time}`);
+});
+
+const endDateTime = computed(() => {
+	if (!bookingResource.value) return null;
+
+	const { appointment_date, end_time } = bookingResource.value;
+	return new Date(`${appointment_date}T${end_time}`);
+});
+
+/**
+ * Formatted date: Friday, Oct 24
+ */
+const formattedDate = computed(() => {
+	if (!startDateTime.value) return "";
+
+	return new Intl.DateTimeFormat("en-US", {
+		weekday: "long",
+		month: "short",
+		day: "numeric",
+	}).format(startDateTime.value);
+});
+
+/**
+ * Formatted start time: 12:00 PM
+ */
+const formattedStartTime = computed(() => {
+	if (!startDateTime.value) return "";
+
+	return new Intl.DateTimeFormat("en-US", {
+		hour: "numeric",
+		minute: "2-digit",
+		hour12: true,
+	}).format(startDateTime.value);
+});
+
+/**
+ * Formatted end time: 12:30 PM
+ */
+const formattedEndTime = computed(() => {
+	if (!endDateTime.value) return "";
+
+	return new Intl.DateTimeFormat("en-US", {
+		hour: "numeric",
+		minute: "2-digit",
+		hour12: true,
+	}).format(endDateTime.value);
+});
 </script>
