@@ -14,208 +14,68 @@
 					<div class="flex justify-between items-center">
 						<!-- header section  -->
 						<div>
-							<h1 class="font-semibold text-3xl">Select a Date & Time</h1>
-							<p class="text-lg text-gray-700">
-								Choose the best time for your {{ serviceType }}
-							</p>
+							<h1 class="font-semibold text-3xl">{{ stepTitle }}</h1>
+							<p class="text-lg text-gray-700">{{ stepSubtitle }}</p>
 						</div>
 
 						<!-- progress section  -->
-
 						<div class="flex gap-6">
-							<span>1 Select Time</span>
-							<span>2 Details</span>
-							<span>3 Payment</span>
+							<span :class="currentStep >= 1 ? 'font-bold' : ''">1 Select Time</span>
+							<span :class="currentStep >= 2 ? 'font-bold' : ''">2 Details</span>
+							<span :class="currentStep >= 3 ? 'font-bold' : ''">3 Payment</span>
 						</div>
 					</div>
 
 					<!-- Main Booking Card Step Content  -->
-
 					<div
 						class="flex flex-col lg:flex-row min-h-[600px] justify-between items-start bg-surface-light rounded-2xl shadow-soft overflow-hidden"
 					>
-						<!-- Step 1: Date & Time  -->
-						<div
+						<!-- Step Components -->
+						<SlotPicker
 							v-if="currentStep === 1"
-							class="w-full lg:w-full flex flex-col lg:flex-row"
-						>
-							<!-- LEFT COLUMN: Calendar  -->
-							<div
-								class="w-full lg:w-5/12 p-6 md:p-8 border-b lg:border-b-0 lg:border-r border-slate-100 bg-white flex flex-col"
-							>
-								<DatePicker
-									v-model="selectedDate"
-									:allowed-dates="availableDates"
-									variant="subtle"
-									:disabled="false"
-								/>
-							</div>
+							v-model:selected-date="selectedDate"
+							v-model:selected-provider="selectedProvider"
+							:selected-slot="selectedSlot"
+							:available-dates="availableDates"
+							:available-slots="availableSlots"
+							:service-type="serviceType"
+							:service-price="servicePrice"
+							@select-slot="selectSlot"
+						/>
 
-							<!-- RIGHT COLUMN: Time Slots  -->
-							<div
-								v-if="selectedDate"
-								class="w-full lg:w-7/12 p-6 md:p-8 flex flex-col bg-surface-light relative"
-							>
-								<!-- provider  -->
-								<div class="mb-8 border-collapse">
-									<FormControl
-										type="select"
-										:options="providerOptions"
-										v-model="selectedProvider"
-										size="xl"
-										variant="subtle"
-										placeholder="Any Available Staff"
-										:disabled="false"
-										label="Select Staff Member (Optional)"
-										class="w-full appearance-none bg-white text-slate-900 px-4 pr-10 focus:!outline-none focus:!ring-2 focus:!ring-primary/50 focus:!border-primary transition-shadow cursor-pointer"
-									/>
-								</div>
+						<UserDetails
+							v-if="currentStep === 2"
+							v-model:user-details="userDetails"
+							:is-logged-in="isLoggedIn"
+						/>
 
-								<!-- Date and slots  -->
-								<div>
-									<div class="flex items-center justify-between mb-4">
-										<h1 class="text-lg font-bold text-slate-900">
-											{{ formatSelectedDate(selectedDate) }}
-										</h1>
-									</div>
-
-									<div
-										class="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-8 overflow-y-auto max-h-[320px] time-slot-scroll pr-2"
-									>
-										<div class="col-span-full mt-2 mb-1">
-											<p>Morning</p>
-										</div>
-
-										<Button
-											v-for="slot in morningSlots"
-											:key="slot.start_time + slot.provider"
-											@click="selectSlot(slot)"
-											:class="
-												selectedSlot === slot
-													? '!bg-primary !text-white'
-													: 'border hover-bg-primary/10'
-											"
-											class="py-4 px-4 rounded-lg border border-slate-200 text-slate-700 hover:border-primary hover:text-primary hover:bg-[#E2F0F9] transition-all text-sm font-medium"
-											>{{ formatTime(slot.start_time) }}</Button
-										>
-
-										<div class="col-span-full mt-2 mb-1">
-											<p>Afternoon</p>
-										</div>
-
-										<Button
-											v-for="slot in afternoonSlots"
-											:key="slot.start_time + slot.provider"
-											@click="selectSlot(slot)"
-											:class="
-												selectedSlot === slot
-													? '!bg-primary !text-white'
-													: 'broder hover-bg-primary/10'
-											"
-											class="py-4 px-4 rounded-lg border border-slate-200 text-slate-700 hover:border-primary hover:text-primary hover:bg-[#E2F0F9] transition-all text-sm font-medium"
-											>{{ formatTime(slot.start_time) }}</Button
-										>
-									</div>
-								</div>
-
-								<!-- Footer Action Area  -->
-								<div class="mt-auto pt-6 border-t border-slate-100">
-									<div
-										class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4"
-									>
-										<!-- Summary  -->
-										<div class="flex items-start gap-3">
-											<div
-												class="w-10 h-10 rounded-lg bg-slate-100 flex items-center justify-center text-slate-500"
-											>
-												<FeatherIcon class="h-4" name="clock" />
-											</div>
-											<div>
-												<p class="text-sm font-bold text-slate-900">
-													{{ serviceType }}
-												</p>
-												<p
-													v-if="selectedSlot"
-													class="text-xs text-slate-500"
-												>
-													{{ servicePrice }} .
-													{{ formatTime(selectedSlot.start_time) }}
-												</p>
-											</div>
-										</div>
-									</div>
-								</div>
-							</div>
-						</div>
-
-						<!-- Step 2: User Details  -->
-						<div v-if="currentStep === 2" class="w-full p-6 flex flex-col gap-4">
-							<h2 class="text-xl font-semibold mb-4">Your Details</h2>
-
-							<FormControl
-								v-model="userDetails.name"
-								type="text"
-								label="Full Name"
-								placeholder="Enter your full name"
-								:disabled="isLoggedIn"
-								class="mb-4"
-							/>
-
-							<FormControl
-								v-model="userDetails.email"
-								type="email"
-								label="Email"
-								placeholder="Enter your email"
-								:disabled="isLoggedIn"
-								class="mb-4"
-							/>
-
-							<FormControl
-								v-model="userDetails.phone"
-								type="text"
-								label="Phone Number"
-								placeholder="Enter your phone number"
-								:disabled="isLoggedIn"
-							/>
-						</div>
-
-						<!-- Step 3: Payment  -->
-						<div v-if="currentStep === 3" class="w-full p-6 flex flex-col gap-4">
-							<h2 class="text-xl font-semibold mb-4">Payment</h2>
-							<p>Show booking summary and payment options here</p>
-							<div class="mt-4 border-t border-slate-200 pt-4">
-								<p><strong>Service:</strong> {{ serviceType }}</p>
-								<p>
-									<strong>Date & Time:</strong>
-									{{ formatSelectedDate(selectedDate) }}
-									{{ formatTime(selectedSlot?.start_time) }}
-								</p>
-								<p>
-									<strong>Staff:</strong>
-									{{ selectedProvider || "Any Available" }}
-								</p>
-								<p><strong>Name:</strong> {{ userDetails.name }}</p>
-								<p><strong>Email:</strong> {{ userDetails.email }}</p>
-								<p><strong>Phone:</strong> {{ userDetails.phone }}</p>
-								<p><strong>Price:</strong> {{ servicePrice }}</p>
-							</div>
-						</div>
+						<PaymentStep
+							v-if="currentStep === 3"
+							:service-type="serviceType"
+							:selected-date="selectedDate"
+							:selected-slot="selectedSlot"
+							:selected-provider="selectedProvider"
+							:user-details="userDetails"
+							:service-price="servicePrice"
+						/>
 
 						<!-- Buttons  -->
-						<div class="flex items-center gap-3 w-full sm:w-auto">
+						<div class="flex items-center gap-3 w-full sm:w-auto p-6">
 							<Button
 								v-if="currentStep > 1"
 								@click="currentStep--"
 								class="flex-1 sm:flex-none py-2.5 px-6 rounded-lg border border-slate-300 text-slate-700 font-semibold text-sm hover:bg-slate-50 transition-colors"
-								>Back</Button
 							>
+								Back
+							</Button>
 							<Button
 								v-if="currentStep < 3"
 								:disabled="!canProceed"
 								@click="currentStep++"
 								class="flex-1 sm:flex-none py-2.5 px-6 rounded-lg !bg-primary hover:!bg-primary-dark text-white font-semibold text-sm shadow-lg shadow-primary/30 transition-all flex items-center justify-center gap-2"
-								>Continue</Button
 							>
+								Continue
+							</Button>
 
 							<Button
 								v-else
@@ -234,18 +94,13 @@
 </template>
 
 <script setup>
-import {
-	Button,
-	createListResource,
-	createResource,
-	DatePicker,
-	Dialog,
-	FeatherIcon,
-	FormControl,
-} from "frappe-ui";
+import { Button, createListResource, createResource, Dialog } from "frappe-ui";
 import { ref, watch, computed, onMounted } from "vue";
 import { useBookingStore } from "@/stores/bookingStore";
 import { formatCurrency } from "@/utils";
+import SlotPicker from "./steps/ChooseTime.vue";
+import UserDetails from "./steps/CustomerDetails.vue";
+import PaymentStep from "./steps/PaymentAndConfirmation.vue";
 
 const props = defineProps({
 	openBooking: Boolean,
@@ -284,7 +139,7 @@ const stepTitle = computed(() => {
 });
 
 const stepSubtitle = computed(() => {
-	if (currentStep.value === 1) return `Choose the best time for your ${props.serviceType}`;
+	if (currentStep.value === 1) return `Choose the best time for your ${serviceType.value}`;
 	if (currentStep.value === 2) return "Enter your details or confirm your information";
 	return "Confirm your booking and proceed to payment";
 });
@@ -356,37 +211,6 @@ watch(selectedDate, async (date) => {
 	selectedSlot.value = null;
 });
 
-const providerOptions = computed(() => {
-	const map = new Map();
-
-	for (const slot of availableSlots.value) {
-		if (!map.has(slot.provider)) {
-			map.set(slot.provider, {
-				label: slot.provider_name,
-				value: slot.provider,
-			});
-		}
-	}
-
-	return [{ label: "Any Available Staff", value: null }, ...Array.from(map.values())];
-});
-
-const visibleSlots = computed(() => {
-	if (!selectedProvider.value) {
-		return availableSlots.value;
-	}
-
-	return availableSlots.value.filter((slot) => slot.provider === selectedProvider.value);
-});
-
-const morningSlots = computed(() =>
-	visibleSlots.value.filter((s) => Number(s.start_time.split(":")[0]) < 12)
-);
-
-const afternoonSlots = computed(() =>
-	visibleSlots.value.filter((s) => Number(s.start_time.split(":")[0]) >= 12)
-);
-
 function selectSlot(slot) {
 	selectedSlot.value = slot;
 }
@@ -409,32 +233,6 @@ async function submitBooking() {
 		provider: selectedSlot.value.provider,
 	});
 
-	$emit("close");
-}
-
-function formatTime(time) {
-	if (!time) return "";
-
-	const [h, m] = time.split(":");
-	const date = new Date();
-	date.setHours(h, m);
-	return date.toLocaleTimeString([], {
-		hour: "2-digit",
-		minute: "2-digit",
-	});
-}
-
-function formatSelectedDate(date) {
-	if (!date) return "";
-
-	const jsDate = new Date(`${date}T00:00:00`);
-
-	if (isNaN(jsDate.getTime())) return "";
-
-	return jsDate.toLocaleDateString("en-US", {
-		weekday: "long",
-		month: "long",
-		day: "numeric",
-	});
+	closeDialog();
 }
 </script>
