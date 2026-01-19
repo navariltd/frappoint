@@ -73,6 +73,7 @@ const openBooking = ref(false);
 function showBookingDialog() {
 	openBooking.value = true;
 	booking.setServiceType(props.serviceType.name);
+	booking.setPriceName(props.serviceType?.price.price_name);
 	booking.setPrice(props.serviceType.price?.rate);
 	booking.setCurrency(props.serviceType.price?.currency);
 }

@@ -10,6 +10,7 @@ export const useBookingStore = defineStore("booking", {
 			customer: null,
 			email: null,
 			mobileNo: null,
+			priceName: null,
 			price: null,
 			currency: null,
 			notes: null,
@@ -26,6 +27,7 @@ export const useBookingStore = defineStore("booking", {
 				state.draft.customer &&
 				state.draft.mobileNo &&
 				state.draft.email &&
+				state.draft.priceName &&
 				state.draft.price
 			),
 	},
@@ -59,6 +61,10 @@ export const useBookingStore = defineStore("booking", {
 			this.draft.email = email;
 		},
 
+		setPriceName(priceName) {
+			this.draft.priceName = priceName;
+		},
+
 		setPrice(price) {
 			this.draft.price = price;
 		},
@@ -76,6 +82,7 @@ export const useBookingStore = defineStore("booking", {
 				customer: null,
 				email: null,
 				mobileNo: null,
+				priceName: null,
 				price: null,
 				notes: null,
 				source: "Portal",

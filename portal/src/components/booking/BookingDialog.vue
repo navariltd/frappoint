@@ -79,7 +79,6 @@
 import { Button, createListResource, createResource, Dialog } from "frappe-ui";
 import { ref, watch, computed, onMounted } from "vue";
 import { useBookingStore } from "@/stores/bookingStore";
-import { formatCurrency } from "@/utils";
 import SlotPicker from "./steps/ChooseTime.vue";
 import UserDetails from "./steps/CustomerDetails.vue";
 import PaymentStep from "./steps/PaymentAndConfirmation.vue";
@@ -197,19 +196,23 @@ async function submitBooking() {
 	}
 
 	// create appointment
-	await serviceAppointmentResource.create({
+	await serviceAppointmentResource.insert.submit({
 		appointment_type: booking.draft.serviceType,
 		appointment_date: booking.draft.date,
+		appointment_provider: booking.draft.slot.provider,
+		appointment_price: booking.draft.priceName,
 		start_time: booking.draft.slot.start_time,
 		end_time: booking.draft.slot.end_time,
-		provider: booking.draft.slot.provider,
 		customer: booking.draft.customer,
+		full_name: booking.draft.customer,
 		email: booking.draft.email,
 		mobile_no: booking.draft.mobileNo,
+		total_amount: booking.draft.price,
 		notes: booking.draft.notes,
 		source: booking.draft.source,
 	});
 
+	booking.resetBooking();
 	closeDialog();
 }
 </script>
