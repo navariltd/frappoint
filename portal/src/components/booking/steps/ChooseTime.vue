@@ -5,8 +5,8 @@
 			class="w-full lg:w-5/12 p-6 md:p-8 border-b lg:border-b-0 lg:border-r border-slate-100 bg-white flex flex-col"
 		>
 			<DatePicker
-				:model-value="selectedDate"
-				@update:model-value="$emit('update:selectedDate', $event)"
+				:model-value="booking.draft.date"
+				@update:model-value="booking.setDate($event)"
 				:allowed-dates="availableDates"
 				variant="subtle"
 				:disabled="false"
@@ -15,7 +15,7 @@
 
 		<!-- RIGHT COLUMN: Time Slots  -->
 		<div
-			v-if="selectedDate"
+			v-if="booking.draft.date"
 			class="w-full lg:w-7/12 p-6 md:p-8 flex flex-col bg-surface-light relative"
 		>
 			<!-- provider  -->
@@ -23,8 +23,8 @@
 				<FormControl
 					type="select"
 					:options="providerOptions"
-					:model-value="selectedProvider"
-					@update:model-value="$emit('update:selectedProvider', $event)"
+					:model-value="booking.draft.provider"
+					@update:model-value="booking.setProvider($event)"
 					size="xl"
 					variant="subtle"
 					placeholder="Any Available Staff"
@@ -38,7 +38,7 @@
 			<div>
 				<div class="flex items-center justify-between mb-4">
 					<h1 class="text-lg font-bold text-slate-900">
-						{{ formatSelectedDate(selectedDate) }}
+						{{ formatSelectedDate(booking.draft.date) }}
 					</h1>
 				</div>
 
@@ -52,9 +52,9 @@
 					<Button
 						v-for="slot in morningSlots"
 						:key="slot.start_time + slot.provider"
-						@click="$emit('selectSlot', slot)"
+						@click="booking.setSlot(slot)"
 						:class="
-							selectedSlot === slot
+							booking.draft.slot === slot
 								? '!bg-primary !text-white'
 								: 'border hover-bg-primary/10'
 						"
@@ -70,9 +70,9 @@
 					<Button
 						v-for="slot in afternoonSlots"
 						:key="slot.start_time + slot.provider"
-						@click="$emit('selectSlot', slot)"
+						@click="booking.setSlot(slot)"
 						:class="
-							selectedSlot === slot
+							booking.draft.slot === slot
 								? '!bg-primary !text-white'
 								: 'broder hover-bg-primary/10'
 						"
@@ -97,10 +97,11 @@
 						</div>
 						<div>
 							<p class="text-sm font-bold text-slate-900">
-								{{ serviceType }}
+								{{ booking.draft.serviceType }}
 							</p>
-							<p v-if="selectedSlot" class="text-xs text-slate-500">
-								{{ servicePrice }} . {{ formatTime(selectedSlot.start_time) }}
+							<p v-if="booking.draft.slot" class="text-xs text-slate-500">
+								{{ formatCurrency(booking.draft.price, booking.draft.currency) }} .
+								{{ formatTime(booking.draft.slot.start_time) }}
 							</p>
 						</div>
 					</div>
@@ -113,18 +114,15 @@
 <script setup>
 import { Button, DatePicker, FeatherIcon, FormControl } from "frappe-ui";
 import { computed } from "vue";
+import { useBookingStore } from "@/stores/bookingStore";
+import { formatCurrency } from "@/utils";
 
 const props = defineProps({
-	selectedDate: [String, null],
-	selectedSlot: Object,
-	selectedProvider: [String, null],
 	availableDates: Array,
 	availableSlots: Array,
-	serviceType: String,
-	servicePrice: String,
 });
 
-const emit = defineEmits(["update:selectedDate", "update:selectedProvider", "selectSlot"]);
+const booking = useBookingStore();
 
 const providerOptions = computed(() => {
 	const map = new Map();
@@ -142,11 +140,11 @@ const providerOptions = computed(() => {
 });
 
 const visibleSlots = computed(() => {
-	if (!props.selectedProvider) {
+	if (!booking.draft.provider) {
 		return props.availableSlots;
 	}
 
-	return props.availableSlots.filter((slot) => slot.provider === props.selectedProvider);
+	return props.availableSlots.filter((slot) => slot.provider === booking.draft.provider);
 });
 
 const morningSlots = computed(() =>

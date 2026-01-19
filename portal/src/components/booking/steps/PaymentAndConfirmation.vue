@@ -3,33 +3,32 @@
 		<h2 class="text-xl font-semibold mb-4">Payment</h2>
 		<p>Show booking summary and payment options here</p>
 		<div class="mt-4 border-t border-slate-200 pt-4">
-			<p><strong>Service:</strong> {{ serviceType }}</p>
+			<p><strong>Service:</strong> {{ booking.draft.serviceType }}</p>
 			<p>
 				<strong>Date & Time:</strong>
-				{{ formatSelectedDate(selectedDate) }}
-				{{ formatTime(selectedSlot?.start_time) }}
+				{{ formatSelectedDate(booking.draft.date) }}
+				{{ formatTime(booking.draft.slot?.start_time) }}
 			</p>
 			<p>
 				<strong>Staff:</strong>
-				{{ selectedProvider || "Any Available" }}
+				{{ booking.draft.provider || "Any Available" }}
 			</p>
-			<p><strong>Name:</strong> {{ userDetails.name }}</p>
-			<p><strong>Email:</strong> {{ userDetails.email }}</p>
-			<p><strong>Phone:</strong> {{ userDetails.phone }}</p>
-			<p><strong>Price:</strong> {{ servicePrice }}</p>
+			<p><strong>Name:</strong> {{ booking.draft.customer }}</p>
+			<p><strong>Email:</strong> {{ booking.draft.email }}</p>
+			<p><strong>Phone:</strong> {{ booking.draft.mobileNo }}</p>
+			<p>
+				<strong>Price:</strong>
+				{{ formatCurrency(booking.draft.price, booking.draft.currency) }}
+			</p>
 		</div>
 	</div>
 </template>
 
 <script setup>
-const props = defineProps({
-	serviceType: String,
-	selectedDate: String,
-	selectedSlot: Object,
-	selectedProvider: [String, null],
-	userDetails: Object,
-	servicePrice: String,
-});
+import { useBookingStore } from "@/stores/bookingStore";
+import { formatCurrency } from "@/utils";
+
+const booking = useBookingStore();
 
 function formatTime(time) {
 	if (!time) return "";

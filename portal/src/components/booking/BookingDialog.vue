@@ -33,31 +33,13 @@
 						<!-- Step Components -->
 						<SlotPicker
 							v-if="currentStep === 1"
-							v-model:selected-date="selectedDate"
-							v-model:selected-provider="selectedProvider"
-							:selected-slot="selectedSlot"
 							:available-dates="availableDates"
 							:available-slots="availableSlots"
-							:service-type="serviceType"
-							:service-price="servicePrice"
-							@select-slot="selectSlot"
 						/>
 
-						<UserDetails
-							v-if="currentStep === 2"
-							v-model:user-details="userDetails"
-							:is-logged-in="isLoggedIn"
-						/>
+						<UserDetails v-if="currentStep === 2" :is-logged-in="isLoggedIn" />
 
-						<PaymentStep
-							v-if="currentStep === 3"
-							:service-type="serviceType"
-							:selected-date="selectedDate"
-							:selected-slot="selectedSlot"
-							:selected-provider="selectedProvider"
-							:user-details="userDetails"
-							:service-price="servicePrice"
-						/>
+						<PaymentStep v-if="currentStep === 3" />
 
 						<!-- Buttons  -->
 						<div class="flex items-center gap-3 w-full sm:w-auto p-6">
@@ -111,25 +93,15 @@ const emit = defineEmits(["update:openBooking", "close"]);
 const booking = useBookingStore();
 
 const serviceType = computed(() => booking.draft.serviceType);
-const servicePrice = computed(() => formatCurrency(booking.draft.price, booking.draft.currency));
 
 function closeDialog() {
 	emit("update:openBooking", false);
 	emit("close");
 }
 
-const selectedDate = ref(null);
-const selectedSlot = ref(null);
-const selectedProvider = ref(null);
 const availableDates = ref([]);
 const availableSlots = ref([]);
 const currentStep = ref(1);
-
-const userDetails = ref({
-	name: "",
-	email: "",
-	phone: "",
-});
 const isLoggedIn = ref(false);
 
 const stepTitle = computed(() => {
@@ -145,9 +117,10 @@ const stepSubtitle = computed(() => {
 });
 
 const canProceed = computed(() => {
-	if (currentStep.value === 1) return selectedDate.value && selectedSlot.value;
-	if (currentStep.value === 2) return userDetails.value.name && userDetails.value.email;
-	return true;
+	if (currentStep.value === 1) return booking.draft.date && booking.draft.slot;
+	if (currentStep.value === 2)
+		return booking.draft.customer && booking.draft.email && booking.draft.mobileNo;
+	return booking.isComplete;
 });
 
 const serviceAppointmentResource = createListResource({
@@ -170,7 +143,7 @@ const getAvailableTimeSlots = createResource({
 	makeParams() {
 		return {
 			service_type: serviceType.value,
-			date: selectedDate.value,
+			date: booking.draft.date,
 		};
 	},
 });
@@ -180,7 +153,7 @@ const checkSlotAvailability = createResource({
 	method: "GET",
 	makeParams() {
 		return {
-			slot_ids: selectedSlot.value.slot_ids,
+			slot_ids: booking.draft.slot.slot_ids,
 		};
 	},
 });
@@ -190,33 +163,32 @@ onMounted(async () => {
 	availableDates.value = await getAvailableDates.fetch();
 });
 
-watch(selectedDate, async (date) => {
-	if (!date) return;
+watch(
+	() => booking.draft.date,
+	async (date) => {
+		if (!date) return;
 
-	const response = await getAvailableTimeSlots.fetch();
+		const response = await getAvailableTimeSlots.fetch();
 
-	availableSlots.value = response.flatMap((provider) =>
-		(provider.available_dates || [])
-			.filter((d) => d.date === date)
-			.flatMap((d) =>
-				(d.slots || []).map((slot) => ({
-					...slot,
-					provider: provider.provider,
-					provider_name: provider.provider_name,
-					date: d.date,
-				}))
-			)
-	);
+		availableSlots.value = response.flatMap((provider) =>
+			(provider.available_dates || [])
+				.filter((d) => d.date === date)
+				.flatMap((d) =>
+					(d.slots || []).map((slot) => ({
+						...slot,
+						provider: provider.provider,
+						provider_name: provider.provider_name,
+						date: d.date,
+					}))
+				)
+		);
 
-	selectedSlot.value = null;
-});
-
-function selectSlot(slot) {
-	selectedSlot.value = slot;
-}
+		booking.setSlot(null);
+	}
+);
 
 async function submitBooking() {
-	if (!selectedDate.value || !selectedSlot.value) return;
+	if (!booking.isComplete) return;
 
 	const validation = await checkSlotAvailability.fetch();
 	if (!validation.available) {
@@ -226,11 +198,16 @@ async function submitBooking() {
 
 	// create appointment
 	await serviceAppointmentResource.create({
-		appointment_type: serviceType.value,
-		appointment_date: selectedDate.value,
-		start_time: selectedSlot.value.start_time,
-		end_time: selectedSlot.value.end_time,
-		provider: selectedSlot.value.provider,
+		appointment_type: booking.draft.serviceType,
+		appointment_date: booking.draft.date,
+		start_time: booking.draft.slot.start_time,
+		end_time: booking.draft.slot.end_time,
+		provider: booking.draft.slot.provider,
+		customer: booking.draft.customer,
+		email: booking.draft.email,
+		mobile_no: booking.draft.mobileNo,
+		notes: booking.draft.notes,
+		source: booking.draft.source,
 	});
 
 	closeDialog();

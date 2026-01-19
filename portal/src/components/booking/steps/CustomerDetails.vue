@@ -3,8 +3,8 @@
 		<h2 class="text-xl font-semibold mb-4">Your Details</h2>
 
 		<FormControl
-			:model-value="userDetails.name"
-			@update:model-value="updateField('name', $event)"
+			:model-value="booking.draft.customer"
+			@update:model-value="booking.setCustomer($event)"
 			type="text"
 			label="Full Name"
 			placeholder="Enter your full name"
@@ -13,8 +13,8 @@
 		/>
 
 		<FormControl
-			:model-value="userDetails.email"
-			@update:model-value="updateField('email', $event)"
+			:model-value="booking.draft.email"
+			@update:model-value="booking.setEmail($event)"
 			type="email"
 			label="Email"
 			placeholder="Enter your email"
@@ -23,8 +23,8 @@
 		/>
 
 		<FormControl
-			:model-value="userDetails.phone"
-			@update:model-value="updateField('phone', $event)"
+			:model-value="booking.draft.mobileNo"
+			@update:model-value="booking.setMobileNo($event)"
 			type="text"
 			label="Phone Number"
 			placeholder="Enter your phone number"
@@ -35,24 +35,14 @@
 
 <script setup>
 import { FormControl } from "frappe-ui";
+import { useBookingStore } from "@/stores/bookingStore";
 
 const props = defineProps({
-	userDetails: {
-		type: Object,
-		required: true,
-	},
 	isLoggedIn: {
 		type: Boolean,
 		default: false,
 	},
 });
 
-const emit = defineEmits(["update:userDetails"]);
-
-function updateField(field, value) {
-	emit("update:userDetails", {
-		...props.userDetails,
-		[field]: value,
-	});
-}
+const booking = useBookingStore();
 </script>
