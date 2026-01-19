@@ -16,6 +16,8 @@ export const useBookingStore = defineStore("booking", {
 			notes: null,
 			source: "Portal",
 		},
+		currentStep: 1,
+		attemptedCheckout: false,
 	}),
 
 	getters: {
@@ -97,6 +99,10 @@ export const useBookingStore = defineStore("booking", {
 		loadFromStorage() {
 			const draft = localStorage.getItem("bookingDraft");
 			if (draft) this.draft = JSON.parse(draft);
+		},
+
+		clearStorage() {
+			localStorage.removeItem("bookingDraft");
 		},
 	},
 });
