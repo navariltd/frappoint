@@ -103,11 +103,11 @@
 <script setup>
 import { useRoute } from "vue-router";
 import { createResource, FeatherIcon, Button, FormControl } from "frappe-ui";
-import ServiceTag from "@/components/ServiceTag.vue";
-import ProviderCard from "@/components/ProviderCard.vue";
+import ServiceTag from "@/components/common/ServiceTag.vue";
+import ProviderCard from "@/components/providers/ProviderCard.vue";
 import { formatCurrency } from "@/utils";
 import { computed, ref, watch } from "vue";
-import BookingDialog from "@/components/BookingDialog.vue";
+import BookingDialog from "@/components/booking/BookingDialog.vue";
 import { useBookingStore } from "@/stores/bookingStore";
 
 const route = useRoute();

@@ -8,13 +8,13 @@ export {}
 /* prettier-ignore */
 declare module 'vue' {
   export interface GlobalComponents {
-    AppointmentCard: typeof import('./src/components/AppointmentCard.vue')['default']
-    BookingDialog: typeof import('./src/components/BookingDialog.vue')['default']
-    Navbar: typeof import('./src/components/Navbar.vue')['default']
-    ProviderCard: typeof import('./src/components/ProviderCard.vue')['default']
+    AppointmentCard: typeof import('./src/components/booking/AppointmentCard.vue')['default']
+    BookingDialog: typeof import('./src/components/booking/BookingDialog.vue')['default']
+    Navbar: typeof import('./src/components/common/Navbar.vue')['default']
+    ProviderCard: typeof import('./src/components/providers/ProviderCard.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']
-    ServiceCard: typeof import('./src/components/ServiceCard.vue')['default']
-    ServiceTag: typeof import('./src/components/ServiceTag.vue')['default']
+    ServiceCard: typeof import('./src/components/services/ServiceCard.vue')['default']
+    ServiceTag: typeof import('./src/components/common/ServiceTag.vue')['default']
   }
 }

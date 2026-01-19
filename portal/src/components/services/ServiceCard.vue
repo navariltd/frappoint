@@ -60,7 +60,7 @@ import { ref } from "vue";
 import { Button, FeatherIcon } from "frappe-ui";
 import { formatCurrency } from "@/utils";
 import { useBookingStore } from "@/stores/bookingStore";
-import BookingDialog from "./BookingDialog.vue";
+import BookingDialog from "@/components/booking/BookingDialog.vue";
 
 const props = defineProps({
 	serviceType: Object,

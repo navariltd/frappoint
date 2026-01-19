@@ -5,25 +5,25 @@ const routes = [
 	{
 		path: "/",
 		name: "Services",
-		component: () => import("@/pages/Services.vue"),
+		component: () => import("@/pages/services/Services.vue"),
 		meta: { requiresLogin: false },
 	},
 	{
 		path: "/services/:name",
 		name: "ServiceDetails",
-		component: () => import("@/pages/ServiceDetails.vue"),
+		component: () => import("@/pages/services/ServiceDetails.vue"),
 		meta: { requiresLogin: false },
 	},
 	{
 		name: "Login",
 		path: "/login",
-		component: () => import("@/pages/Login.vue"),
+		component: () => import("@/pages/auth/Login.vue"),
 		meta: { requiresLogin: false },
 	},
 	{
 		name: "Bookings",
 		path: "/bookings",
-		component: () => import("@/pages/Bookings.vue"),
+		component: () => import("@/pages/booking/Bookings.vue"),
 		meta: { requiresLogin: true },
 	},
 	{

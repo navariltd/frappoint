@@ -54,7 +54,7 @@
 </template>
 
 <script setup>
-import AppointmentCard from "@/components/AppointmentCard.vue";
+import AppointmentCard from "@/components/booking/AppointmentCard.vue";
 import { Calendar } from "frappe-ui";
 import { createListResource } from "frappe-ui";
 import { computed, onMounted } from "vue";

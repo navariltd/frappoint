@@ -39,7 +39,7 @@
 </template>
 
 <script setup>
-import ServiceCard from "@/components/ServiceCard.vue";
+import ServiceCard from "@/components/services/ServiceCard.vue";
 import { createResource, FeatherIcon } from "frappe-ui";
 import { computed } from "vue";
 
