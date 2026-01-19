@@ -1,10 +1,12 @@
 <template>
-	<div class="bg-white/80 w-full">
+	<div
+		class="w-full sticky top-0 z-50 bg-surface-light/90 backdrop-blur-md border-b border-gray-200 transition-colors duration-300"
+	>
 		<div class="w-full max-w-7xl mx-auto flex justify-between items-center py-4 px-6">
 			<RouterLink :to="{ name: 'Services' }">
-				<div class="flex gap-3">
-					<img src="" alt="logo" />
-					<h1>Frappoint</h1>
+				<div class="flex items-center gap-3">
+					<img class="h-8 w-8" src="@/assets/images/logo_img.png" alt="logo" />
+					<h1 class="text-xl font-bold tracking-tight text-gray-900">Frappoint</h1>
 				</div>
 			</RouterLink>
 
