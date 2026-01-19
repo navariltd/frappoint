@@ -42,7 +42,7 @@ export const useAuthStore = defineStore("auth", {
 				await resource.fetch();
 				this.setUser();
 			} catch {
-				this.userId = null;
+				this.user = null;
 			} finally {
 				this.checked = true;
 			}
@@ -59,9 +59,8 @@ export const useAuthStore = defineStore("auth", {
 			});
 
 			try {
-				const data = await loginResource.submit();
+				await loginResource.submit();
 				this.setUser();
-				router.replace("/");
 			} finally {
 				this.loading = false;
 			}

@@ -25,11 +25,17 @@
 <script lang="ts" setup>
 import { Card, Input, Button } from "frappe-ui";
 import { useAuthStore } from "@/stores/auth";
+import { useRoute, useRouter } from "vue-router";
 
 const auth = useAuthStore();
+const route = useRoute();
+const router = useRouter();
 
-function submit(e) {
+async function submit(e) {
 	const formData = new FormData(e.target);
-	auth.login(formData.get("email"), formData.get("password"));
+	await auth.login(formData.get("email"), formData.get("password"));
+
+	const redirect = route.query.redirect || "/";
+	router.replace(redirect);
 }
 </script>
