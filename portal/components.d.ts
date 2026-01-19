@@ -10,7 +10,10 @@ declare module 'vue' {
   export interface GlobalComponents {
     AppointmentCard: typeof import('./src/components/booking/AppointmentCard.vue')['default']
     BookingDialog: typeof import('./src/components/booking/BookingDialog.vue')['default']
+    ChooseTime: typeof import('./src/components/booking/steps/ChooseTime.vue')['default']
+    CustomerDetails: typeof import('./src/components/booking/steps/CustomerDetails.vue')['default']
     Navbar: typeof import('./src/components/common/Navbar.vue')['default']
+    PaymentAndConfirmation: typeof import('./src/components/booking/steps/PaymentAndConfirmation.vue')['default']
     ProviderCard: typeof import('./src/components/providers/ProviderCard.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']
