@@ -40,7 +40,7 @@ const routes = [
 	},
 	{
 		name: "BookingConfirmation",
-		path: "/book/:bookingId",
+		path: "/booking/:bookingId",
 		component: () => import("@/pages/booking/BookingConfirmation.vue"),
 		meta: { requiresLogin: true },
 	},

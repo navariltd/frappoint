@@ -172,7 +172,6 @@
 			</div>
 		</div>
 	</div>
-	<pre>{{ serviceTypeDetailsResource }}</pre>
 </template>
 
 <script setup>
