@@ -32,6 +32,18 @@ const routes = [
 		component: () => import("@/pages/User.vue"),
 		meta: { requiresLogin: true },
 	},
+	{
+		name: "BookingDetails",
+		path: "/book/:serviceType",
+		component: () => import("@/pages/booking/BookingDetails.vue"),
+		meta: { requiresLogin: false },
+	},
+	{
+		name: "BookingConfirmation",
+		path: "/book/:bookingId",
+		component: () => import("@/pages/booking/BookingConfirmation.vue"),
+		meta: { requiresLogin: true },
+	},
 ];
 
 const router = createRouter({
