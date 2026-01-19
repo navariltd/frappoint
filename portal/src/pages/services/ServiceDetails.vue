@@ -90,8 +90,6 @@
 						>
 							Book Appointment
 						</Button>
-
-						<BookingDialog v-model="openBooking" @close="showBookingDialog = false" />
 					</div>
 				</div>
 				<div></div>
@@ -101,21 +99,23 @@
 </template>
 
 <script setup>
-import { useRoute } from "vue-router";
+import { useRoute, useRouter } from "vue-router";
 import { createResource, FeatherIcon, Button, FormControl } from "frappe-ui";
 import ServiceTag from "@/components/common/ServiceTag.vue";
 import ProviderCard from "@/components/providers/ProviderCard.vue";
 import { formatCurrency } from "@/utils";
-import { computed, ref, watch } from "vue";
-import BookingDialog from "@/components/booking/BookingDialog.vue";
+import { computed } from "vue";
 import { useBookingStore } from "@/stores/bookingStore";
 
-const route = useRoute();
-const openBooking = ref(false);
 const booking = useBookingStore();
+const route = useRoute();
+const router = useRouter();
 
 function showBookingDialog() {
-	openBooking.value = true;
+	router.push({
+		name: "BookingDetails",
+		params: { serviceType: serviceDetails.value.name },
+	});
 	booking.setServiceType(serviceDetails.value.name);
 	booking.setPriceName(servicePrice.value.price_name);
 	booking.setPrice(servicePrice.value.rate);

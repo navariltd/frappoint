@@ -49,29 +49,28 @@
 			>
 				Book Now
 			</Button>
-
-			<BookingDialog v-model="openBooking" @close="showBookingDialog = false" />
 		</div>
 	</div>
 </template>
 
 <script setup>
-import { ref } from "vue";
 import { Button, FeatherIcon } from "frappe-ui";
 import { formatCurrency } from "@/utils";
 import { useBookingStore } from "@/stores/bookingStore";
-import BookingDialog from "@/components/booking/BookingDialog.vue";
+import { useRouter } from "vue-router";
 
 const props = defineProps({
 	serviceType: Object,
 });
 
 const booking = useBookingStore();
-
-const openBooking = ref(false);
+const router = useRouter();
 
 function showBookingDialog() {
-	openBooking.value = true;
+	router.push({
+		name: "BookingDetails",
+		params: { serviceType: props.serviceType.name },
+	});
 	booking.setServiceType(props.serviceType.name);
 	booking.setPriceName(props.serviceType?.price.price_name);
 	booking.setPrice(props.serviceType.price?.rate);
