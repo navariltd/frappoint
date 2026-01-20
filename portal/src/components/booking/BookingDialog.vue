@@ -90,7 +90,7 @@
 
 				<!-- Buttons  -->
 				<div
-					class="flex items-center gap-3 w-full p-4 sm:p-6 border-t border-gray-100 bg-white"
+					class="flex items-center gap-3 w-3/7 p-4 sm:p-6 border-t border-gray-100 bg-white"
 				>
 					<Button
 						v-if="currentStep > 1"

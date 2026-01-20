@@ -2,7 +2,7 @@
 	<div class="w-full lg:w-full flex flex-col lg:flex-row">
 		<!-- LEFT COLUMN: Calendar  -->
 		<div
-			class="w-full lg:w-5/12 p-6 md:p-8 border-b lg:border-b-0 lg:border-r border-slate-100 bg-white flex flex-col"
+			class="w-full lg:w-5/12 p-2 md:p-8 border-b lg:border-b-0 lg:border-r border-slate-100 bg-white flex flex-col"
 		>
 			<VueDatePicker
 				:model-value="booking.draft.date"
