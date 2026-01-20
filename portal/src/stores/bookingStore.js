@@ -40,9 +40,16 @@ export const useBookingStore = defineStore("booking", {
 		},
 
 		setDate(date) {
-			this.draft.date = date;
+			// Convert Date object to YYYY-MM-DD string format if needed
+			if (date instanceof Date) {
+				const year = date.getFullYear();
+				const month = String(date.getMonth() + 1).padStart(2, "0");
+				const day = String(date.getDate()).padStart(2, "0");
+				this.draft.date = `${year}-${month}-${day}`;
+			} else {
+				this.draft.date = date;
+			}
 		},
-
 		setSlot(slot) {
 			this.draft.slot = slot;
 		},

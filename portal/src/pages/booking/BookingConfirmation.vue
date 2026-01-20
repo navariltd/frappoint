@@ -162,13 +162,13 @@
 				</button>
 			</div>
 			<div class="text-center pt-4">
-				<a
+				<router-link
+					to="/"
 					class="text-slate-500 dark:text-slate-400 hover:text-primary font-medium text-sm transition-colors inline-flex items-center gap-1 group"
-					href="#"
 				>
 					<FeatherIcon class="h-4" name="arrow-left" />
 					Back to Home
-				</a>
+				</router-link>
 			</div>
 		</div>
 	</div>
@@ -176,7 +176,7 @@
 
 <script setup>
 import { FeatherIcon, createResource, createDocumentResource } from "frappe-ui";
-import { computed, onMounted, watch } from "vue";
+import { computed } from "vue";
 import { useRoute } from "vue-router";
 
 const route = useRoute();

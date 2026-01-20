@@ -17,6 +17,7 @@ declare module 'vue' {
     BookingModal: typeof import('./src/components/BookingModal.vue')['default']
     Calendar: typeof import('./src/components/Calendar.vue')['default']
     Calender: typeof import('./src/components/Calender.vue')['default']
+    EventCard: typeof import('./src/components/EventCard.vue')['default']
     ProviderPortalView: typeof import('./src/components/ProviderPortalView.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']
