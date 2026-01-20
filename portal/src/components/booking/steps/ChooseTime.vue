@@ -213,11 +213,12 @@ function formatSelectedDate(date) {
 	--dp-font-family: inherit;
 	--dp-border-radius: 12px;
 	--dp-cell-border-radius: 8px;
-	--dp-primary-color: #3b82f6;
+	--dp-primary-color: #2c7677;
 	--dp-primary-text-color: #ffffff;
-	--dp-hover-color: #e2f0f9;
-	--dp-hover-text-color: #3b82f6;
+	--dp-hover-color: #d1e7e7;
+	--dp-hover-text-color: #2c7677;
 	--dp-cell-size: 48px;
+	--dp-button-height: 35px;
 }
 
 :deep(.dp__calendar) {
@@ -257,11 +258,31 @@ function formatSelectedDate(date) {
 }
 
 :deep(.dp__today) {
-	border: 2px solid var(--dp-primary-color);
+	border: 2px solid #2c7677;
 }
 
 :deep(.dp__active_date) {
-	background: var(--dp-primary-color);
-	color: white;
+	background: #2c7677 !important;
+	color: white !important;
+}
+
+:deep(.dp__cell_inner:hover) {
+	background: #d1e7e7;
+	color: #2c7677;
+}
+
+:deep(.dp__arrow_top),
+:deep(.dp__arrow_bottom),
+:deep(.dp__calendar_header_separator) {
+	display: none;
+}
+
+:deep(.dp__month_year_select) {
+	color: #2c7677;
+}
+
+:deep(.dp__month_year_select:hover) {
+	background: #d1e7e7;
+	color: #2c7677;
 }
 </style>
