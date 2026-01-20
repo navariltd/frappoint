@@ -12,6 +12,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@vuepic/vue-datepicker": "^12.1.0",
     "feather-icons": "^4.29.2",
     "frappe-ui": "^0.1.257",
     "pinia": "^3.0.4",
