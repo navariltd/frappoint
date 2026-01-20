@@ -2,9 +2,6 @@
 	<BookingDialog />
 </template>
 
-<script setup lang="ts">
+<script setup>
 import BookingDialog from "@/components/booking/BookingDialog.vue";
-import { ref } from "vue";
-
-const showBookingDialog = ref(true);
 </script>
