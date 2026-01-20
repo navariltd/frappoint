@@ -1,24 +1,81 @@
 <template>
-	<div class="max-w-6xl mx-auto px-6 py-6">
-		<div class="flex flex-col gap-6">
-			<div class="flex justify-between items-center">
+	<div class="max-w-6xl mx-auto px-4 sm:px-6 py-4 sm:py-6">
+		<div class="flex flex-col gap-4 sm:gap-6">
+			<div class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
 				<!-- header section  -->
-				<div>
-					<h1 class="font-semibold text-3xl">{{ stepTitle }}</h1>
-					<p class="text-lg text-gray-700">{{ stepSubtitle }}</p>
+				<div class="flex-1">
+					<h1
+						class="font-semibold text-xl sm:text-2xl md:text-3xl text-gray-900 leading-tight"
+					>
+						{{ stepTitle }}
+					</h1>
+					<p class="text-sm sm:text-base md:text-lg text-gray-600 mt-1">
+						{{ stepSubtitle }}
+					</p>
 				</div>
 
 				<!-- progress section  -->
-				<div class="flex gap-6">
-					<span :class="currentStep >= 1 ? 'font-bold' : ''">1 Select Time</span>
-					<span :class="currentStep >= 2 ? 'font-bold' : ''">2 Details</span>
-					<span :class="currentStep >= 3 ? 'font-bold' : ''">3 Payment</span>
+				<div class="flex gap-3 sm:gap-4 md:gap-6 text-xs sm:text-sm md:text-base">
+					<div class="flex items-center gap-1.5">
+						<span
+							:class="[
+								currentStep >= 1
+									? 'bg-primary text-white'
+									: 'bg-gray-200 text-gray-500',
+								'w-6 h-6 sm:w-7 sm:h-7 rounded-full flex items-center justify-center font-semibold text-xs sm:text-sm',
+							]"
+							>1</span
+						>
+						<span
+							:class="
+								currentStep >= 1 ? 'font-semibold text-gray-900' : 'text-gray-500'
+							"
+							class="hidden sm:inline"
+							>Select Time</span
+						>
+					</div>
+					<div class="flex items-center gap-1.5">
+						<span
+							:class="[
+								currentStep >= 2
+									? 'bg-primary text-white'
+									: 'bg-gray-200 text-gray-500',
+								'w-6 h-6 sm:w-7 sm:h-7 rounded-full flex items-center justify-center font-semibold text-xs sm:text-sm',
+							]"
+							>2</span
+						>
+						<span
+							:class="
+								currentStep >= 2 ? 'font-semibold text-gray-900' : 'text-gray-500'
+							"
+							class="hidden sm:inline"
+							>Details</span
+						>
+					</div>
+					<div class="flex items-center gap-1.5">
+						<span
+							:class="[
+								currentStep >= 3
+									? 'bg-primary text-white'
+									: 'bg-gray-200 text-gray-500',
+								'w-6 h-6 sm:w-7 sm:h-7 rounded-full flex items-center justify-center font-semibold text-xs sm:text-sm',
+							]"
+							>3</span
+						>
+						<span
+							:class="
+								currentStep >= 3 ? 'font-semibold text-gray-900' : 'text-gray-500'
+							"
+							class="hidden sm:inline"
+							>Payment</span
+						>
+					</div>
 				</div>
 			</div>
 
 			<!-- Main Booking Card Step Content  -->
 			<div
-				class="flex flex-col lg:flex-row min-h-[600px] justify-between items-start bg-surface-light rounded-2xl shadow-soft overflow-hidden"
+				class="flex flex-col lg:flex-row min-h-[500px] sm:min-h-[600px] justify-between items-start bg-white rounded-xl sm:rounded-2xl shadow-lg overflow-hidden"
 			>
 				<!-- Step Components -->
 				<SlotPicker
@@ -32,11 +89,13 @@
 				<PaymentStep v-if="currentStep === 3" />
 
 				<!-- Buttons  -->
-				<div class="flex items-center gap-3 w-full sm:w-auto p-6">
+				<div
+					class="flex items-center gap-3 w-full p-4 sm:p-6 border-t border-gray-100 bg-white"
+				>
 					<Button
 						v-if="currentStep > 1"
 						@click="currentStep--"
-						class="flex-1 sm:flex-none py-2.5 px-6 rounded-lg border border-slate-300 text-slate-700 font-semibold text-sm hover:bg-slate-50 transition-colors"
+						class="flex-1 sm:flex-none py-3 px-6 rounded-lg border-2 border-slate-300 text-slate-700 font-semibold text-sm hover:bg-slate-50 transition-colors"
 					>
 						Back
 					</Button>
@@ -44,7 +103,7 @@
 						v-if="currentStep < 3"
 						:disabled="!canProceed"
 						@click="currentStep++"
-						class="flex-1 sm:flex-none py-2.5 px-6 rounded-lg !bg-primary hover:!bg-primary-dark text-white font-semibold text-sm shadow-lg shadow-primary/30 transition-all flex items-center justify-center gap-2"
+						class="flex-1 sm:flex-none py-3 px-8 rounded-lg !bg-primary hover:!bg-primary-dark text-white font-semibold text-sm shadow-lg shadow-primary/30 transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
 					>
 						Continue
 					</Button>
@@ -53,7 +112,7 @@
 						v-else
 						:disabled="!canProceed"
 						@click="submitBooking"
-						class="flex-1 sm:flex-none py-2.5 px-6 rounded-lg !bg-primary hover:!bg-primary-dark text-white font-semibold text-sm shadow-lg shadow-primary/30 transition-all flex items-center justify-center gap-2"
+						class="flex-1 sm:flex-none py-3 px-8 rounded-lg !bg-primary hover:!bg-primary-dark text-white font-semibold text-sm shadow-lg shadow-primary/30 transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
 					>
 						Pay
 					</Button>
