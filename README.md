@@ -96,7 +96,7 @@ To setup the repository locally follow the steps mentioned below:
 
 ## Learning
 
-1. [Official documentation](https://navari.navari.co.ke/frappoint/introduction)
+1. [Official documentation](https://docs.navari.co.ke/frappoint/introduction)
 
 
 ### Contributing
