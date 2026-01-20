@@ -30,14 +30,17 @@ class ServiceType(Document):
 		company: DF.Link
 		consumables: DF.Table[ServiceTypeMaterial]
 		default_duration_in_minutes: DF.Int
-		description: DF.SmallText | None
+		description: DF.TextEditor | None
 		disabled: DF.Check
+		image: DF.AttachImage | None
 		item: DF.Link
 		item_group: DF.Data | None
 		item_name: DF.Data | None
 		max_clients_per_slot: DF.Int
 		prices: DF.Table[ServiceTypePrice]
 		service_unit_types: DF.Table[ServiceTypeUnitType]
+		short_description: DF.Data | None
+		tags: DF.SmallText | None
 	# end: auto-generated types
 	pass
 

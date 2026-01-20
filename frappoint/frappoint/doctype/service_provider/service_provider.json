@@ -11,6 +11,7 @@
   "middle_name_optional",
   "last_name",
   "provider_name",
+  "image",
   "column_break_ffid",
   "active",
   "color_code",
@@ -153,9 +154,15 @@
    "fieldtype": "Table",
    "label": "Services",
    "options": "Service Provider Service"
+  },
+  {
+   "fieldname": "image",
+   "fieldtype": "Attach Image",
+   "label": "Image"
   }
  ],
  "grid_page_length": 50,
+ "image_field": "image",
  "index_web_pages_for_search": 1,
  "links": [
   {
@@ -163,7 +170,7 @@
    "link_fieldname": "appointment_provider"
   }
  ],
- "modified": "2026-01-06 16:39:35.996730",
+ "modified": "2026-01-16 05:27:03.191913",
  "modified_by": "Administrator",
  "module": "Frappoint",
  "name": "Service Provider",

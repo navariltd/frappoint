@@ -31,6 +31,7 @@ class ServiceProvider(Document):
 		first_name: DF.Data
 		google_calendar: DF.Link | None
 		grade: DF.Link | None
+		image: DF.AttachImage | None
 		last_name: DF.Data | None
 		middle_name_optional: DF.Data | None
 		mobile_no: DF.Data | None

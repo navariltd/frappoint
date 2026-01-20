@@ -43,7 +43,7 @@ def check_slot_availability(slot_ids):
 	Use case: Pre-booking validation
 	"""
 	if isinstance(slot_ids, str):
-		slot_ids = json.loads(slot_ids)
+		slot_ids = [s.strip() for s in slot_ids.split(",") if s.strip()]
 
 	unavailable = []
 	for slot_id in slot_ids:
