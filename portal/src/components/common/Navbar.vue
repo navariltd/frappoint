@@ -52,7 +52,7 @@
 							:src="auth.userImage"
 							alt="profile"
 						/>
-						<FeatherIcon v-else class="h-10 w-10" name="user" size="24px" />
+						<FeatherIcon v-else class="h-10 w-10" name="user" />
 					</div>
 				</RouterLink>
 			</div>
@@ -60,10 +60,11 @@
 			<!-- Mobile Menu Button -->
 			<button
 				@click="mobileMenuOpen = !mobileMenuOpen"
-				class="md:hidden p-2 text-gray-700 hover:text-primary transition-colors"
+				class="md:hidden p-2 text-gray-700 hover:text-primary transition-colors flex items-center justify-center"
 				aria-label="Toggle menu"
 			>
-				<FeatherIcon :name="mobileMenuOpen ? 'x' : 'menu'" size="24px" />
+				<MenuIcon v-if="!mobileMenuOpen" />
+				<CloseIcon v-else />
 			</button>
 		</div>
 
@@ -116,7 +117,7 @@
 									:src="auth.userImage"
 									alt="profile"
 								/>
-								<FeatherIcon v-else class="h-10 w-10" name="user" size="24px" />
+								<FeatherIcon v-else class="h-10 w-10" name="user" />
 								<p class="text-gray-700 font-medium">{{ auth.userName }}</p>
 							</div>
 						</RouterLink>
@@ -131,6 +132,8 @@
 import { FeatherIcon } from "frappe-ui";
 import { useAuthStore } from "@/stores/auth";
 import { ref } from "vue";
+import MenuIcon from "@/components/icons/MenuIcon.vue";
+import CloseIcon from "@/components/icons/CloseIcon.vue";
 
 const auth = useAuthStore();
 const mobileMenuOpen = ref(false);
