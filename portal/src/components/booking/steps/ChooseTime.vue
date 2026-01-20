@@ -8,10 +8,10 @@
 				:model-value="booking.draft.date"
 				@update:model-value="booking.setDate($event)"
 				:allowed-dates="formattedAllowedDates"
-				:enable-time-picker="false"
 				inline
 				auto-apply
 				:transitions="true"
+				:time-config="{ enableTimePicker: false }"
 				class="vue-datepicker-custom"
 			/>
 		</div>
