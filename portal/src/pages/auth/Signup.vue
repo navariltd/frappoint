@@ -257,10 +257,3 @@ async function submit() {
 	}
 }
 </script>
-
-<style scoped>
-/*
-  Ensure your project has the '@tailwindcss/forms' plugin enabled
-  in tailwind.config.js for the default checkbox styling to work correctly.
-*/
-</style>

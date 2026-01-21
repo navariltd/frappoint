@@ -1,4 +1,5 @@
 import frappe
+from frappe.utils.password import update_password
 
 
 @frappe.whitelist(allow_guest=False)
@@ -35,6 +36,8 @@ def create_user(**kwargs):
 			}
 		)
 		user.insert(ignore_permissions=True)
+		update_password(user.name, kwargs.get("password"))
+
 		frappe.db.commit()
 		create_customer_from_user(user)
 	except Exception as e:
@@ -58,5 +61,5 @@ def create_customer_from_user(user):
 		}
 	)
 	customer.insert(ignore_permissions=True)
-	user.append("roles", {"role": "Customer"})
+	user.add_roles("Customer")
 	user.save(ignore_permissions=True)
