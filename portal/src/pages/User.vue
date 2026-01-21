@@ -1,14 +1,337 @@
 <template>
-	<div>
-		<p>Hello {{ userName }}</p>
+	<div class="min-h-screen bg-[#fafafa] dark:bg-[#16191d] pb-32">
+		<div class="max-w-[1000px] mx-auto px-4 md:px-8 py-6 md:py-10">
+			<!-- Header Section -->
+			<header
+				class="flex flex-col md:flex-row md:justify-between md:items-center gap-6 mb-10"
+			>
+				<div class="flex items-center gap-4 md:gap-6">
+					<div class="relative group">
+						<div
+							class="w-20 h-20 md:w-28 md:h-28 rounded-full border-4 border-white dark:border-gray-700 shadow-md overflow-hidden bg-gray-200"
+						>
+							<img
+								v-if="auth.userImage"
+								:src="auth.userImage"
+								:alt="`Profile picture of ${auth.userName}`"
+								class="w-full h-full object-cover"
+							/>
+							<div
+								v-else
+								class="w-full h-full flex items-center justify-center bg-primary/10"
+							>
+								<span
+									class="material-symbols-outlined text-primary text-5xl md:text-7xl"
+								>
+									person
+								</span>
+							</div>
+						</div>
+					</div>
+					<div class="flex flex-col">
+						<h2
+							class="text-2xl md:text-3xl font-extrabold text-[#0f1a19] dark:text-white tracking-tight"
+						>
+							{{ userDetails?.full_name || auth.userName }}
+						</h2>
+						<p class="text-[#55918c] font-medium flex items-center gap-1.5 mt-1">
+							<span class="material-symbols-outlined text-sm">verified</span>
+							Member
+						</p>
+					</div>
+				</div>
+			</header>
+
+			<!-- Personal Information Section -->
+			<div class="grid grid-cols-1 gap-8">
+				<section
+					class="bg-white dark:bg-[#1e2329] border border-[#d2e5e3] dark:border-[#2d3736] rounded-xl shadow-sm overflow-hidden"
+				>
+					<div
+						class="px-4 md:px-6 py-5 border-b border-[#d2e5e3] dark:border-[#2d3736] flex items-center gap-2"
+					>
+						<span class="material-symbols-outlined text-primary">badge</span>
+						<h3 class="text-lg font-bold">Personal Information</h3>
+					</div>
+					<div class="p-4 md:p-6">
+						<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+							<div class="flex flex-col gap-2">
+								<label
+									class="text-sm font-bold text-gray-700 dark:text-gray-300"
+									for="firstName"
+								>
+									First Name
+								</label>
+								<input
+									id="firstName"
+									v-model="formData.firstName"
+									class="form-input w-full rounded-xl border-[#d2e5e3] dark:border-[#2d3736] bg-[#fafafa] dark:bg-[#16191d] focus:border-primary focus:ring-1 focus:ring-primary transition-all p-3.5 text-base"
+									type="text"
+									placeholder="First name"
+								/>
+							</div>
+							<div class="flex flex-col gap-2">
+								<label
+									class="text-sm font-bold text-gray-700 dark:text-gray-300"
+									for="lastName"
+								>
+									Last Name
+								</label>
+								<input
+									id="lastName"
+									v-model="formData.lastName"
+									class="form-input w-full rounded-xl border-[#d2e5e3] dark:border-[#2d3736] bg-[#fafafa] dark:bg-[#16191d] focus:border-primary focus:ring-1 focus:ring-primary transition-all p-3.5 text-base"
+									type="text"
+									placeholder="Last name"
+								/>
+							</div>
+							<div class="flex flex-col gap-2 md:col-span-2">
+								<label
+									class="text-sm font-bold text-gray-700 dark:text-gray-300"
+									for="email"
+								>
+									Email Address
+								</label>
+								<div class="relative">
+									<input
+										id="email"
+										v-model="formData.email"
+										class="form-input w-full rounded-xl border-[#d2e5e3] dark:border-[#2d3736] bg-[#fafafa] dark:bg-[#16191d] focus:border-primary focus:ring-1 focus:ring-primary transition-all p-3.5 pl-11 text-base"
+										type="email"
+										placeholder="email@example.com"
+										disabled
+									/>
+									<span
+										class="material-symbols-outlined absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400"
+									>
+										mail
+									</span>
+								</div>
+							</div>
+							<div class="flex flex-col gap-2 md:col-span-2">
+								<label
+									class="text-sm font-bold text-gray-700 dark:text-gray-300"
+									for="phone"
+								>
+									Phone Number
+								</label>
+								<div class="relative">
+									<input
+										id="phone"
+										v-model="formData.phone"
+										class="form-input w-full rounded-xl border-[#d2e5e3] dark:border-[#2d3736] bg-[#fafafa] dark:bg-[#16191d] focus:border-primary focus:ring-1 focus:ring-primary transition-all p-3.5 pl-11 text-base"
+										type="tel"
+										placeholder="+1 (555) 000-0000"
+									/>
+									<span
+										class="material-symbols-outlined absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400"
+									>
+										call
+									</span>
+								</div>
+							</div>
+						</div>
+					</div>
+				</section>
+
+				<!-- Security Section -->
+				<section
+					class="bg-white dark:bg-[#1e2329] border border-[#d2e5e3] dark:border-[#2d3736] rounded-xl shadow-sm overflow-hidden"
+				>
+					<div
+						class="px-4 md:px-6 py-5 border-b border-[#d2e5e3] dark:border-[#2d3736] flex items-center gap-2"
+					>
+						<span class="material-symbols-outlined text-primary">security</span>
+						<h3 class="text-lg font-bold">Security</h3>
+					</div>
+					<div class="p-4 md:p-6">
+						<div class="flex flex-col gap-6">
+							<div class="flex flex-col gap-2">
+								<label
+									class="text-sm font-bold text-gray-700 dark:text-gray-300"
+									for="currentPassword"
+								>
+									Current Password
+								</label>
+								<input
+									id="currentPassword"
+									v-model="passwordData.currentPassword"
+									class="form-input w-full rounded-xl border-[#d2e5e3] dark:border-[#2d3736] bg-[#fafafa] dark:bg-[#16191d] focus:border-primary focus:ring-1 focus:ring-primary transition-all p-3.5 text-base"
+									placeholder="••••••••••••"
+									type="password"
+								/>
+							</div>
+							<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+								<div class="flex flex-col gap-2">
+									<label
+										class="text-sm font-bold text-gray-700 dark:text-gray-300"
+										for="newPassword"
+									>
+										New Password
+									</label>
+									<input
+										id="newPassword"
+										v-model="passwordData.newPassword"
+										class="form-input w-full rounded-xl border-[#d2e5e3] dark:border-[#2d3736] bg-[#fafafa] dark:bg-[#16191d] focus:border-primary focus:ring-1 focus:ring-primary transition-all p-3.5 text-base"
+										placeholder="Create a new password"
+										type="password"
+									/>
+								</div>
+								<div class="flex flex-col gap-2">
+									<label
+										class="text-sm font-bold text-gray-700 dark:text-gray-300"
+										for="confirmPassword"
+									>
+										Confirm New Password
+									</label>
+									<input
+										id="confirmPassword"
+										v-model="passwordData.confirmPassword"
+										class="form-input w-full rounded-xl border-[#d2e5e3] dark:border-[#2d3736] bg-[#fafafa] dark:bg-[#16191d] focus:border-primary focus:ring-1 focus:ring-primary transition-all p-3.5 text-base"
+										placeholder="Repeat new password"
+										type="password"
+									/>
+								</div>
+							</div>
+							<div
+								class="flex items-center gap-2 bg-primary/10 p-3 rounded-lg border border-primary/20"
+							>
+								<span class="material-symbols-outlined text-primary text-[20px]">
+									info
+								</span>
+								<p class="text-xs text-primary font-semibold">
+									Password must be at least 8 characters long and include a mix
+									of numbers and symbols.
+								</p>
+							</div>
+						</div>
+					</div>
+				</section>
+			</div>
+		</div>
+
+		<!-- Fixed Footer with Action Buttons -->
+		<footer
+			class="fixed bottom-0 left-0 right-0 bg-white/90 dark:bg-[#16191d]/90 backdrop-blur-md border-t border-[#d2e5e3] dark:border-[#2d3736] px-4 md:px-10 py-4 md:py-5 z-20 flex flex-col md:flex-row justify-end gap-3 md:gap-4 items-stretch md:items-center"
+		>
+			<button
+				@click="discardChanges"
+				class="text-sm font-bold text-gray-500 hover:text-[#0f1a19] dark:hover:text-white transition-colors py-2 md:py-0 md:mr-4"
+			>
+				Discard Changes
+			</button>
+			<button
+				@click="saveChanges"
+				:disabled="saving"
+				class="bg-primary hover:bg-primary/90 text-white font-bold py-3 px-6 md:px-8 rounded-xl shadow-md flex items-center justify-center gap-2 transform active:scale-95 transition-all disabled:opacity-70 disabled:cursor-not-allowed"
+			>
+				<svg
+					v-if="saving"
+					class="animate-spin h-5 w-5 text-white"
+					xmlns="http://www.w3.org/2000/svg"
+					fill="none"
+					viewBox="0 0 24 24"
+				>
+					<circle
+						class="opacity-25"
+						cx="12"
+						cy="12"
+						r="10"
+						stroke="currentColor"
+						stroke-width="4"
+					></circle>
+					<path
+						class="opacity-75"
+						fill="currentColor"
+						d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+					></path>
+				</svg>
+				<span class="material-symbols-outlined text-[18px]" v-else>save</span>
+				<span v-if="!saving">Save Changes</span>
+				<span v-else>Saving...</span>
+			</button>
+		</footer>
 	</div>
 </template>
 
 <script setup>
 import { useAuthStore } from "@/stores/auth";
-import { computed } from "vue";
+import { ref, onMounted } from "vue";
+import { createResource } from "frappe-ui";
 
 const auth = useAuthStore();
+const userDetails = ref(null);
+const saving = ref(false);
 
-const userName = computed(() => auth.userName);
+const formData = ref({
+	firstName: "",
+	lastName: "",
+	email: "",
+	phone: "",
+});
+
+const passwordData = ref({
+	currentPassword: "",
+	newPassword: "",
+	confirmPassword: "",
+});
+
+// Fetch user details
+const getUserDetails = createResource({
+	url: "frappoint.frappoint.api.user.get_user_details",
+	auto: true,
+	onSuccess(data) {
+		userDetails.value = data;
+		const nameParts = data.full_name?.split(" ") || [];
+		formData.value = {
+			firstName: nameParts[0] || "",
+			lastName: nameParts.slice(1).join(" ") || "",
+			email: data.email || "",
+			phone: data.phone || "",
+		};
+	},
+});
+
+function discardChanges() {
+	// Reset form to original values
+	if (userDetails.value) {
+		const nameParts = userDetails.value.full_name?.split(" ") || [];
+		formData.value = {
+			firstName: nameParts[0] || "",
+			lastName: nameParts.slice(1).join(" ") || "",
+			email: userDetails.value.email || "",
+			phone: userDetails.value.phone || "",
+		};
+	}
+	passwordData.value = {
+		currentPassword: "",
+		newPassword: "",
+		confirmPassword: "",
+	};
+}
+
+async function saveChanges() {
+	saving.value = true;
+	try {
+		// TODO: Implement save functionality
+		// You'll need to create an API endpoint to update user details
+		alert("Save functionality to be implemented with backend API");
+	} catch (error) {
+		console.error("Error saving changes:", error);
+		alert("Failed to save changes. Please try again.");
+	} finally {
+		saving.value = false;
+	}
+}
+
+onMounted(() => {
+	getUserDetails.fetch();
+});
 </script>
+
+<style scoped>
+/*
+  Ensure your project has the '@tailwindcss/forms' plugin enabled
+  in tailwind.config.js for the default form styling to work correctly.
+*/
+</style>
