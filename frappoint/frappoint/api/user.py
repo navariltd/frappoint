@@ -55,8 +55,6 @@ def create_customer_from_user(user):
 			"doctype": "Customer",
 			"customer_name": user.full_name,
 			"customer_type": "Individual",
-			"customer_group": "All Customer Groups",
-			"territory": "All Territories",
 			"email_id": user.email,
 		}
 	)
