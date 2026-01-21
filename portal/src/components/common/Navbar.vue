@@ -1,9 +1,9 @@
 <template>
 	<div
-		class="w-full sticky top-0 z-50 bg-surface-light/90 backdrop-blur-md border-b border-gray-200 transition-colors duration-300"
+		class="w-full sticky top-0 z-50 bg-surface-light/90 backdrop-blur-md border-b border-gray-200 transition-colors duration-300 overflow-visible"
 	>
 		<div
-			class="w-full max-w-7xl mx-auto flex justify-between items-center py-3 md:py-4 px-4 md:px-6"
+			class="w-full max-w-7xl mx-auto flex justify-between items-center py-3 md:py-4 px-4 md:px-6 relative"
 		>
 			<!-- Logo -->
 			<RouterLink :to="{ name: 'Services' }">
@@ -36,14 +36,14 @@
 			</div>
 
 			<!-- Desktop User Section -->
-			<div class="hidden md:flex gap-4">
+			<div class="hidden md:flex gap-4 relative z-[60]">
 				<RouterLink
 					class="bg-primary/20 px-4 lg:px-6 py-2 rounded-lg text-primary font-medium hover:bg-primary/30 transition-colors"
 					v-if="!auth.isLoggedIn"
 					:to="{ name: 'Login' }"
 					>Log In</RouterLink
 				>
-				<Dropdown v-else :options="userMenuOptions" placement="right">
+				<Dropdown v-else :options="userMenuOptions" placement="bottom-end">
 					<template v-slot="{ open }">
 						<button
 							class="flex items-center gap-2 cursor-pointer hover:opacity-80 transition-opacity"
