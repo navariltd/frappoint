@@ -21,6 +21,12 @@ const routes = [
 		meta: { requiresLogin: false },
 	},
 	{
+		name: "Signup",
+		path: "/signup",
+		component: () => import("@/pages/auth/Signup.vue"),
+		meta: { requiresLogin: false },
+	},
+	{
 		name: "Bookings",
 		path: "/bookings",
 		component: () => import("@/pages/booking/Bookings.vue"),
@@ -61,6 +67,10 @@ router.beforeEach(async (to) => {
 	}
 
 	if (to.name === "Login" && auth.isLoggedIn) {
+		return { name: "Services" };
+	}
+
+	if (to.name === "Signup" && auth.isLoggedIn) {
 		return { name: "Services" };
 	}
 });
