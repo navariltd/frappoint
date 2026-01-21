@@ -153,13 +153,31 @@
 								>
 									Current Password
 								</label>
-								<input
-									id="currentPassword"
-									v-model="passwordData.currentPassword"
-									class="form-input w-full rounded-xl border-[#d2e5e3] dark:border-[#2d3736] bg-[#fafafa] dark:bg-[#16191d] focus:border-primary focus:ring-1 focus:ring-primary transition-all p-3.5 text-base"
-									placeholder="••••••••••••"
-									type="password"
-								/>
+								<div class="relative">
+									<input
+										id="currentPassword"
+										v-model="passwordData.currentPassword"
+										:type="showCurrentPassword ? 'text' : 'password'"
+										class="form-input w-full rounded-xl border-[#d2e5e3] dark:border-[#2d3736] bg-[#fafafa] dark:bg-[#16191d] focus:border-primary focus:ring-1 focus:ring-primary transition-all p-3.5 pr-12 text-base"
+										placeholder="••••••••••••"
+									/>
+									<button
+										type="button"
+										class="absolute right-3 top-1/2 -translate-y-1/2 text-[#5e8787] flex items-center hover:text-primary transition-colors select-none outline-none focus:outline-none"
+										@click="showCurrentPassword = !showCurrentPassword"
+									>
+										<span
+											class="material-symbols-outlined"
+											style="font-size: 20px"
+										>
+											{{
+												showCurrentPassword
+													? "visibility_off"
+													: "visibility"
+											}}
+										</span>
+									</button>
+								</div>
 							</div>
 							<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
 								<div class="flex flex-col gap-2">
@@ -169,13 +187,31 @@
 									>
 										New Password
 									</label>
-									<input
-										id="newPassword"
-										v-model="passwordData.newPassword"
-										class="form-input w-full rounded-xl border-[#d2e5e3] dark:border-[#2d3736] bg-[#fafafa] dark:bg-[#16191d] focus:border-primary focus:ring-1 focus:ring-primary transition-all p-3.5 text-base"
-										placeholder="Create a new password"
-										type="password"
-									/>
+									<div class="relative">
+										<input
+											id="newPassword"
+											v-model="passwordData.newPassword"
+											:type="showNewPassword ? 'text' : 'password'"
+											class="form-input w-full rounded-xl border-[#d2e5e3] dark:border-[#2d3736] bg-[#fafafa] dark:bg-[#16191d] focus:border-primary focus:ring-1 focus:ring-primary transition-all p-3.5 pr-12 text-base"
+											placeholder="Create a new password"
+										/>
+										<button
+											type="button"
+											class="absolute right-3 top-1/2 -translate-y-1/2 text-[#5e8787] flex items-center hover:text-primary transition-colors select-none outline-none focus:outline-none"
+											@click="showNewPassword = !showNewPassword"
+										>
+											<span
+												class="material-symbols-outlined"
+												style="font-size: 20px"
+											>
+												{{
+													showNewPassword
+														? "visibility_off"
+														: "visibility"
+												}}
+											</span>
+										</button>
+									</div>
 								</div>
 								<div class="flex flex-col gap-2">
 									<label
@@ -184,13 +220,31 @@
 									>
 										Confirm New Password
 									</label>
-									<input
-										id="confirmPassword"
-										v-model="passwordData.confirmPassword"
-										class="form-input w-full rounded-xl border-[#d2e5e3] dark:border-[#2d3736] bg-[#fafafa] dark:bg-[#16191d] focus:border-primary focus:ring-1 focus:ring-primary transition-all p-3.5 text-base"
-										placeholder="Repeat new password"
-										type="password"
-									/>
+									<div class="relative">
+										<input
+											id="confirmPassword"
+											v-model="passwordData.confirmPassword"
+											:type="showConfirmPassword ? 'text' : 'password'"
+											class="form-input w-full rounded-xl border-[#d2e5e3] dark:border-[#2d3736] bg-[#fafafa] dark:bg-[#16191d] focus:border-primary focus:ring-1 focus:ring-primary transition-all p-3.5 pr-12 text-base"
+											placeholder="Repeat new password"
+										/>
+										<button
+											type="button"
+											class="absolute right-3 top-1/2 -translate-y-1/2 text-[#5e8787] flex items-center hover:text-primary transition-colors select-none outline-none focus:outline-none"
+											@click="showConfirmPassword = !showConfirmPassword"
+										>
+											<span
+												class="material-symbols-outlined"
+												style="font-size: 20px"
+											>
+												{{
+													showConfirmPassword
+														? "visibility_off"
+														: "visibility"
+												}}
+											</span>
+										</button>
+									</div>
 								</div>
 							</div>
 							<div
@@ -262,6 +316,9 @@ import { createResource } from "frappe-ui";
 const auth = useAuthStore();
 const userDetails = ref(null);
 const saving = ref(false);
+const showCurrentPassword = ref(false);
+const showNewPassword = ref(false);
+const showConfirmPassword = ref(false);
 
 const formData = ref({
 	firstName: "",
