@@ -96,7 +96,7 @@
 									<input
 										id="email"
 										v-model="formData.email"
-										class="form-input w-full rounded-xl border-[#d2e5e3] dark:border-[#2d3736] bg-[#fafafa] dark:bg-[#16191d] focus:border-primary focus:ring-1 focus:ring-primary transition-all p-3.5 pl-11 text-base"
+										class="form-input w-full rounded-xl border-[#d2e5e3] dark:border-[#2d3736] bg-[#fafafa] dark:bg-[#16191d] focus:border-primary focus:ring-1 focus:ring-primary transition-all p-3.5 pl-11 text-base hover:cursor-not-allowed"
 										type="email"
 										placeholder="email@example.com"
 										disabled
@@ -312,13 +312,101 @@ function discardChanges() {
 
 async function saveChanges() {
 	saving.value = true;
+	let profileUpdated = false;
+	let passwordUpdated = false;
+
 	try {
-		// TODO: Implement save functionality
-		// You'll need to create an API endpoint to update user details
-		alert("Save functionality to be implemented with backend API");
+		// Check if profile information has changed
+		const nameParts = userDetails.value?.full_name?.split(" ") || [];
+		const originalFirstName = nameParts[0] || "";
+		const originalLastName = nameParts.slice(1).join(" ") || "";
+		const originalPhone = userDetails.value?.phone || "";
+
+		const profileChanged =
+			formData.value.firstName !== originalFirstName ||
+			formData.value.lastName !== originalLastName ||
+			formData.value.phone !== originalPhone;
+
+		// Update profile if changed
+		if (profileChanged) {
+			const updateProfileResource = createResource({
+				url: "frappoint.frappoint.api.user.update_user_profile",
+				makeParams() {
+					return {
+						first_name: formData.value.firstName,
+						last_name: formData.value.lastName,
+						phone: formData.value.phone,
+					};
+				},
+			});
+
+			await updateProfileResource.submit();
+			profileUpdated = true;
+			// Refresh user details
+			await getUserDetails.fetch();
+		}
+
+		// Check if password fields are filled
+		const passwordFilled =
+			passwordData.value.currentPassword ||
+			passwordData.value.newPassword ||
+			passwordData.value.confirmPassword;
+
+		// Update password if any password field is filled
+		if (passwordFilled) {
+			// Validate all password fields are filled
+			if (
+				!passwordData.value.currentPassword ||
+				!passwordData.value.newPassword ||
+				!passwordData.value.confirmPassword
+			) {
+				throw new Error("All password fields are required to change password");
+			}
+
+			// Validate passwords match
+			if (passwordData.value.newPassword !== passwordData.value.confirmPassword) {
+				throw new Error("New password and confirm password do not match");
+			}
+
+			const updatePasswordResource = createResource({
+				url: "frappoint.frappoint.api.user.update_user_password",
+				makeParams() {
+					return {
+						current_password: passwordData.value.currentPassword,
+						new_password: passwordData.value.newPassword,
+						confirm_password: passwordData.value.confirmPassword,
+					};
+				},
+			});
+
+			await updatePasswordResource.submit();
+			passwordUpdated = true;
+			// Clear password fields after successful update
+			passwordData.value = {
+				currentPassword: "",
+				newPassword: "",
+				confirmPassword: "",
+			};
+		}
+
+		// Show success message and reload page
+		if (profileUpdated && passwordUpdated) {
+			alert("Profile and password updated successfully!");
+			window.location.reload();
+		} else if (profileUpdated) {
+			alert("Profile updated successfully!");
+			window.location.reload();
+		} else if (passwordUpdated) {
+			alert("Password updated successfully!");
+			window.location.reload();
+		} else {
+			alert("No changes detected");
+		}
 	} catch (error) {
 		console.error("Error saving changes:", error);
-		alert("Failed to save changes. Please try again.");
+		const errorMessage =
+			error.messages?.[0] || error.message || "Failed to save changes. Please try again.";
+		alert(errorMessage);
 	} finally {
 		saving.value = false;
 	}
@@ -328,10 +416,3 @@ onMounted(() => {
 	getUserDetails.fetch();
 });
 </script>
-
-<style scoped>
-/*
-  Ensure your project has the '@tailwindcss/forms' plugin enabled
-  in tailwind.config.js for the default form styling to work correctly.
-*/
-</style>
