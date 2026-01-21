@@ -82,6 +82,21 @@
 					</label>
 				</div>
 
+				<!-- Error Message -->
+				<div
+					v-if="errorMessage"
+					class="flex items-center gap-2 p-3 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800"
+				>
+					<span
+						class="material-symbols-outlined text-red-600 dark:text-red-400 text-[20px]"
+					>
+						error
+					</span>
+					<p class="text-sm text-red-600 dark:text-red-400 font-medium">
+						{{ errorMessage }}
+					</p>
+				</div>
+
 				<button
 					type="submit"
 					:disabled="auth.loading"
@@ -139,16 +154,29 @@ const email = ref("");
 const password = ref("");
 const rememberMe = ref(false);
 const showPassword = ref(false);
+const errorMessage = ref("");
 
 async function submit() {
-	// We now use the reactive variables instead of FormData
-	await auth.login(email.value, password.value);
+	// Clear any previous error
+	errorMessage.value = "";
 
-	// Optional: handle "rememberMe" logic here if your backend supports it
-	// console.log('Remember me:', rememberMe.value);
+	try {
+		// We now use the reactive variables instead of FormData
+		await auth.login(email.value, password.value);
 
-	const redirect = (route.query.redirect as string) || "/";
-	router.replace(redirect);
+		// Optional: handle "rememberMe" logic here if your backend supports it
+		// console.log('Remember me:', rememberMe.value);
+
+		const redirect = (route.query.redirect as string) || "/";
+		router.replace(redirect);
+	} catch (error) {
+		// Display error message
+		errorMessage.value = "Invalid Credentials";
+
+		// Reset form
+		password.value = "";
+		showPassword.value = false;
+	}
 }
 </script>
 
