@@ -36,7 +36,27 @@ def create_user(**kwargs):
 		)
 		user.insert(ignore_permissions=True)
 		frappe.db.commit()
+		create_customer_from_user(user)
 	except Exception as e:
 		frappe.db.rollback()
 		frappe.log_error(frappe.get_traceback(), "User Creation Failed")
 		frappe.throw(str(e))
+
+
+def create_customer_from_user(user):
+	if frappe.db.exists("Customer", user.email):
+		return
+
+	customer = frappe.get_doc(
+		{
+			"doctype": "Customer",
+			"customer_name": user.full_name,
+			"customer_type": "Individual",
+			"customer_group": "All Customer Groups",
+			"territory": "All Territories",
+			"email_id": user.email,
+		}
+	)
+	customer.insert(ignore_permissions=True)
+	user.append("roles", {"role": "Customer"})
+	user.save(ignore_permissions=True)
