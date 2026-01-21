@@ -114,7 +114,7 @@ def update_user_password(**kwargs):
 	if new_password != confirm_password:
 		frappe.throw("New password and confirm password do not match")
 
-	if len(new_password) < 8:
+	if not new_password or len(new_password) < 8:
 		frappe.throw("Password must be at least 8 characters long")
 
 	try:
@@ -132,3 +132,29 @@ def update_user_password(**kwargs):
 	except Exception as e:
 		frappe.log_error(frappe.get_traceback(), "Password Update Failed")
 		frappe.throw(f"Failed to update password: {e!s}")
+
+
+@frappe.whitelist(allow_guest=False)
+def update_user_image(**kwargs):
+	"""Update user profile image"""
+	if frappe.session.user == "Guest":
+		frappe.throw("You must be logged in to update your profile image")
+
+	file_url = kwargs.get("file_url")
+
+	if not file_url:
+		frappe.throw("File URL is required")
+
+	try:
+		user = frappe.get_doc("User", frappe.session.user)
+		user.user_image = file_url
+		user.save(ignore_permissions=True)
+
+		return {
+			"status": "success",
+			"message": "Profile image updated successfully",
+			"data": {"user_image": user.user_image},
+		}
+	except Exception as e:
+		frappe.log_error(frappe.get_traceback(), "User Image Update Failed")
+		frappe.throw(f"Failed to update profile image: {e!s}")

@@ -27,6 +27,45 @@
 								</span>
 							</div>
 						</div>
+						<!-- Upload button overlay -->
+						<FileUploader
+							:fileTypes="['image/*']"
+							:uploadArgs="{
+								doctype: 'User',
+								docname: auth.userId,
+								fieldname: 'user_image',
+								private: false,
+								optimize: true,
+								max_width: 400,
+								max_height: 400,
+							}"
+							@success="handleImageUpload"
+						>
+							<template #default="{ openFileSelector, uploading, progress }">
+								<button
+									@click="openFileSelector"
+									:disabled="uploading"
+									class="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity rounded-full cursor-pointer disabled:cursor-wait"
+								>
+									<div class="flex flex-col items-center gap-1">
+										<span
+											v-if="!uploading"
+											class="material-symbols-outlined text-white text-2xl md:text-3xl"
+										>
+											camera_alt
+										</span>
+										<span v-else class="text-white text-xs font-medium">
+											{{ progress }}%
+										</span>
+										<span
+											class="text-white text-[10px] md:text-xs font-medium"
+										>
+											{{ uploading ? "Uploading..." : "Change" }}
+										</span>
+									</div>
+								</button>
+							</template>
+						</FileUploader>
 					</div>
 					<div class="flex flex-col">
 						<h2
@@ -311,7 +350,7 @@
 <script setup>
 import { useAuthStore } from "@/stores/auth";
 import { ref, onMounted } from "vue";
-import { createResource } from "frappe-ui";
+import { createResource, FileUploader } from "frappe-ui";
 
 const auth = useAuthStore();
 const userDetails = ref(null);
@@ -467,6 +506,27 @@ async function saveChanges() {
 	} finally {
 		saving.value = false;
 	}
+}
+
+function handleImageUpload(file) {
+	const updateImageResource = createResource({
+		url: "frappoint.frappoint.api.user.update_user_image",
+		makeParams() {
+			return {
+				file_url: file.file_url,
+			};
+		},
+	});
+
+	updateImageResource
+		.submit()
+		.then(() => {
+			window.location.reload();
+		})
+		.catch((error) => {
+			console.error("Error updating profile image:", error);
+			alert("Failed to update profile image. Please try again.");
+		});
 }
 
 onMounted(() => {
