@@ -43,18 +43,22 @@
 					:to="{ name: 'Login' }"
 					>Log In</RouterLink
 				>
-				<RouterLink :to="{ name: 'User', params: { name: auth.userId } }" v-else>
-					<div class="flex items-center gap-2">
-						<p class="hidden lg:block text-gray-700">{{ auth.userName }}</p>
-						<img
-							class="h-10 w-10 lg:h-12 lg:w-12 rounded-full object-cover"
-							v-if="auth.userImage"
-							:src="auth.userImage"
-							alt="profile"
-						/>
-						<FeatherIcon v-else class="h-10 w-10" name="user" />
-					</div>
-				</RouterLink>
+				<Dropdown v-else :options="userMenuOptions" placement="right">
+					<template v-slot="{ open }">
+						<button
+							class="flex items-center gap-2 cursor-pointer hover:opacity-80 transition-opacity"
+						>
+							<p class="hidden lg:block text-gray-700">{{ auth.userName }}</p>
+							<img
+								class="h-10 w-10 lg:h-12 lg:w-12 rounded-full object-cover"
+								v-if="auth.userImage"
+								:src="auth.userImage"
+								alt="profile"
+							/>
+							<FeatherIcon v-else class="h-10 w-10" name="user" />
+						</button>
+					</template>
+				</Dropdown>
 			</div>
 
 			<!-- Mobile Menu Button -->
@@ -105,12 +109,8 @@
 						>
 							Log In
 						</RouterLink>
-						<RouterLink
-							@click="mobileMenuOpen = false"
-							:to="{ name: 'User', params: { name: auth.userId } }"
-							v-else
-						>
-							<div class="flex items-center gap-3 py-2">
+						<div v-else class="space-y-2">
+							<div class="flex items-center gap-3 py-2 px-2">
 								<img
 									class="h-10 w-10 rounded-full object-cover"
 									v-if="auth.userImage"
@@ -120,7 +120,20 @@
 								<FeatherIcon v-else class="h-10 w-10" name="user" />
 								<p class="text-gray-700 font-medium">{{ auth.userName }}</p>
 							</div>
-						</RouterLink>
+							<RouterLink
+								@click="mobileMenuOpen = false"
+								:to="{ name: 'User', params: { name: auth.userId } }"
+								class="block py-2 px-2 text-gray-700 hover:text-primary transition-colors font-medium"
+							>
+								User Profile
+							</RouterLink>
+							<button
+								@click="handleLogout"
+								class="block w-full text-left py-2 px-2 text-red-600 hover:text-red-700 transition-colors font-medium"
+							>
+								Logout
+							</button>
+						</div>
 					</div>
 				</div>
 			</div>
@@ -129,12 +142,35 @@
 </template>
 
 <script setup>
-import { FeatherIcon } from "frappe-ui";
+import { FeatherIcon, Dropdown } from "frappe-ui";
 import { useAuthStore } from "@/stores/auth";
-import { ref } from "vue";
+import { ref, computed } from "vue";
+import { useRouter } from "vue-router";
 import MenuIcon from "@/components/icons/MenuIcon.vue";
 import CloseIcon from "@/components/icons/CloseIcon.vue";
 
 const auth = useAuthStore();
+const router = useRouter();
 const mobileMenuOpen = ref(false);
+
+const userMenuOptions = computed(() => [
+	{
+		label: "User Profile",
+		icon: "user",
+		onClick: () => {
+			router.push({ name: "User", params: { name: auth.userId } });
+		},
+	},
+	{
+		label: "Logout",
+		icon: "log-out",
+		onClick: handleLogout,
+	},
+]);
+
+async function handleLogout() {
+	mobileMenuOpen.value = false;
+	await auth.logout();
+	window.location.reload();
+}
 </script>
