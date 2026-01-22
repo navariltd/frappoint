@@ -75,7 +75,12 @@
 
 			<!-- Main Booking Card Step Content  -->
 			<div
-				class="flex flex-col lg:flex-row min-h-[500px] sm:min-h-[600px] justify-between items-start bg-white rounded-xl sm:rounded-2xl shadow-lg overflow-hidden"
+				class="bg-white rounded-xl sm:rounded-2xl shadow-lg overflow-hidden"
+				:class="
+					currentStep === 2
+						? ''
+						: 'flex flex-col lg:flex-row min-h-[500px] sm:min-h-[600px] justify-between items-start'
+				"
 			>
 				<!-- Step Components -->
 				<SlotPicker
@@ -88,14 +93,15 @@
 
 				<PaymentStep v-if="currentStep === 3" />
 
-				<!-- Buttons  -->
+				<!-- Buttons (for steps 1 and 3) -->
 				<div
-					class="flex items-center gap-3 w-3/7 p-4 sm:p-6 border-t border-gray-100 bg-white"
+					v-if="currentStep !== 2"
+					class="flex items-center gap-3 w-full lg:w-auto p-4 sm:p-6 border-t border-gray-100 bg-white"
 				>
 					<Button
 						v-if="currentStep > 1"
 						@click="currentStep--"
-						class="flex-1 sm:flex-none py-3 px-6 rounded-lg border-2 border-slate-300 text-slate-700 font-semibold text-sm hover:bg-slate-50 transition-colors"
+						class="flex-1 sm:flex-none py-3 px-6 rounded-lg border-2 border-gray-300 text-gray-700 font-semibold text-sm hover:bg-gray-50 transition-colors"
 					>
 						Back
 					</Button>
@@ -116,6 +122,36 @@
 					>
 						Pay
 					</Button>
+				</div>
+
+				<!-- Buttons for step 2 (integrated in form) -->
+				<div
+					v-if="currentStep === 2"
+					class="px-6 md:px-8 pb-6 md:pb-8 flex items-center justify-between border-t border-gray-100 pt-6"
+				>
+					<button
+						@click="currentStep--"
+						class="px-6 py-3 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 font-semibold hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+						type="button"
+					>
+						Back
+					</button>
+					<button
+						:disabled="!canProceed"
+						@click="currentStep++"
+						class="px-8 py-3 rounded-lg bg-primary hover:bg-primary-dark text-white font-semibold shadow-lg shadow-primary/30 transition-all flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+						type="button"
+					>
+						Continue to Payment
+						<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+							<path
+								stroke-linecap="round"
+								stroke-linejoin="round"
+								stroke-width="2"
+								d="M9 5l7 7-7 7"
+							/>
+						</svg>
+					</button>
 				</div>
 			</div>
 		</div>
