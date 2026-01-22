@@ -163,19 +163,19 @@
 						<div class="flex items-center justify-between">
 							<span class="text-sm text-gray-500 dark:text-gray-400">Subtotal</span>
 							<span class="text-sm font-medium text-gray-900 dark:text-white">{{
-								formatCurrency(booking.draft.price)
+								formatCurrency(booking.draft.price, booking.draft.currency)
 							}}</span>
 						</div>
 						<div class="flex items-center justify-between mt-1">
 							<span class="text-sm text-gray-500 dark:text-gray-400">Tax</span>
-							<span class="text-sm font-medium text-gray-900 dark:text-white"
-								>$0.00</span
-							>
+							<span class="text-sm font-medium text-gray-900 dark:text-white">{{
+								formatCurrency(0, booking.draft.currency)
+							}}</span>
 						</div>
 						<div class="flex items-center justify-between mt-4 text-lg font-bold">
 							<span class="text-gray-900 dark:text-white">Total</span>
 							<span class="text-primary dark:text-teal-400">{{
-								formatCurrency(booking.draft.price)
+								formatCurrency(booking.draft.price, booking.draft.currency)
 							}}</span>
 						</div>
 					</div>
@@ -214,6 +214,7 @@
 
 <script setup>
 import { useBookingStore } from "@/stores/bookingStore";
+import { formatCurrency } from "@/utils";
 import { computed, ref, watch } from "vue";
 
 const props = defineProps({
@@ -278,10 +279,5 @@ function formatTime(time) {
 	const ampm = hour >= 12 ? "PM" : "AM";
 	const displayHour = hour % 12 || 12;
 	return `${displayHour}:${minutes} ${ampm}`;
-}
-
-function formatCurrency(amount) {
-	if (!amount) return "$0.00";
-	return `$${parseFloat(amount).toFixed(2)}`;
 }
 </script>
