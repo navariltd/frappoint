@@ -1,13 +1,19 @@
 <template>
-	<div class="min-h-screen bg-gray-50 p-6">
+	<div class="min-h-screen bg-gray-50 p-3 sm:p-6">
 		<!-- Header Section -->
-		<div class="flex justify-between items-start mb-8 max-w-7xl mx-auto">
+		<div
+			class="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4 sm:gap-0 mb-6 sm:mb-8 max-w-7xl mx-auto"
+		>
 			<div>
-				<h1 class="text-3xl font-bold text-gray-900 mb-1">Upcoming Schedule</h1>
-				<p class="text-gray-500">Manage your appointments and history</p>
+				<h1 class="text-2xl sm:text-3xl font-bold text-gray-900 mb-1">
+					Upcoming Schedule
+				</h1>
+				<p class="text-sm sm:text-base text-gray-500">
+					Manage your appointments and history
+				</p>
 			</div>
 
-			<div class="flex items-center gap-4">
+			<div class="flex items-center gap-2 sm:gap-4">
 				<!-- View Toggle -->
 				<div class="flex bg-white rounded-lg shadow-sm border border-gray-200 p-1">
 					<button
@@ -68,15 +74,17 @@
 		</div>
 
 		<!-- Main Content -->
-		<div class="grid grid-cols-1 xl:grid-cols-3 gap-6 max-w-7xl mx-auto">
+		<div class="grid grid-cols-1 xl:grid-cols-3 gap-4 sm:gap-6 max-w-7xl mx-auto">
 			<!-- Left Column - Appointments List -->
-			<div class="xl:col-span-2 space-y-6">
+			<div class="xl:col-span-2 space-y-4 sm:space-y-6">
 				<!-- Next Up Section -->
 				<div v-if="nextUp">
-					<div class="flex justify-between items-center mb-4">
-						<h3 class="text-xs font-semibold text-gray-400 tracking-wider">NEXT UP</h3>
+					<div class="flex justify-between items-center mb-3 sm:mb-4">
+						<h3 class="text-xs sm:text-sm font-semibold text-gray-400 tracking-wider">
+							NEXT UP
+						</h3>
 						<span
-							class="px-3 py-1 bg-green-50 text-green-600 text-xs font-medium rounded-full"
+							class="px-2 sm:px-3 py-0.5 sm:py-1 bg-green-50 text-green-600 text-[10px] sm:text-xs font-medium rounded-full"
 							>Confirmed</span
 						>
 					</div>
@@ -85,10 +93,12 @@
 
 				<!-- Upcoming Section -->
 				<div v-if="upcomingAppointments.length > 0">
-					<h3 class="text-xs font-semibold text-gray-400 tracking-wider mb-4">
+					<h3
+						class="text-xs sm:text-sm font-semibold text-gray-400 tracking-wider mb-3 sm:mb-4"
+					>
 						UPCOMING
 					</h3>
-					<div class="space-y-4">
+					<div class="space-y-3 sm:space-y-4">
 						<AppointmentCard
 							v-for="appointment in upcomingAppointments"
 							:appointment="appointment"
@@ -99,8 +109,12 @@
 
 				<!-- Past Section -->
 				<div v-if="pastAppointments.length > 0">
-					<h3 class="text-xs font-semibold text-gray-400 tracking-wider mb-4">PAST</h3>
-					<div class="space-y-4">
+					<h3
+						class="text-xs sm:text-sm font-semibold text-gray-400 tracking-wider mb-3 sm:mb-4"
+					>
+						PAST
+					</h3>
+					<div class="space-y-3 sm:space-y-4">
 						<AppointmentCard
 							v-for="appointment in pastAppointments"
 							:appointment="appointment"
