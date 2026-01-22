@@ -13,19 +13,26 @@
 				</p>
 			</div>
 
-			<div class="flex items-center gap-2 sm:gap-4">
+			<div class="flex items-center gap-2 sm:gap-4 w-full sm:w-auto">
 				<!-- View Toggle -->
-				<div class="flex bg-white rounded-lg shadow-sm border border-gray-200 p-1">
+				<div
+					class="flex bg-white rounded-lg shadow-sm border border-gray-200 p-0.5 sm:p-1"
+				>
 					<button
 						@click="viewMode = 'list'"
 						:class="[
-							'flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-colors',
+							'flex items-center gap-1 sm:gap-2 px-2 sm:px-4 py-1.5 sm:py-2 rounded-md text-xs sm:text-sm font-medium transition-colors',
 							viewMode === 'list'
 								? 'bg-teal-600 text-white'
 								: 'text-gray-600 hover:text-gray-900',
 						]"
 					>
-						<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+						<svg
+							class="w-3.5 h-3.5 sm:w-4 sm:h-4"
+							fill="none"
+							stroke="currentColor"
+							viewBox="0 0 24 24"
+						>
 							<path
 								stroke-linecap="round"
 								stroke-linejoin="round"
@@ -33,18 +40,23 @@
 								d="M4 6h16M4 12h16M4 18h16"
 							/>
 						</svg>
-						List
+						<span class="hidden xs:inline">List</span>
 					</button>
 					<button
 						@click="viewMode = 'calendar'"
 						:class="[
-							'flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-colors',
+							'flex items-center gap-1 sm:gap-2 px-2 sm:px-4 py-1.5 sm:py-2 rounded-md text-xs sm:text-sm font-medium transition-colors',
 							viewMode === 'calendar'
 								? 'bg-teal-600 text-white'
 								: 'text-gray-600 hover:text-gray-900',
 						]"
 					>
-						<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+						<svg
+							class="w-3.5 h-3.5 sm:w-4 sm:h-4"
+							fill="none"
+							stroke="currentColor"
+							viewBox="0 0 24 24"
+						>
 							<path
 								stroke-linecap="round"
 								stroke-linejoin="round"
@@ -52,15 +64,20 @@
 								d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
 							/>
 						</svg>
-						Calendar
+						<span class="hidden xs:inline">Calendar</span>
 					</button>
 				</div>
 
 				<!-- New Booking Button -->
 				<button
-					class="flex items-center gap-2 bg-gray-900 text-white px-6 py-2.5 rounded-lg hover:bg-gray-800 transition-colors shadow-sm font-medium"
+					class="flex items-center justify-center gap-1.5 sm:gap-2 bg-gray-900 text-white px-3 sm:px-6 py-2 sm:py-2.5 rounded-lg hover:bg-gray-800 transition-colors shadow-sm font-medium text-xs sm:text-sm whitespace-nowrap flex-1 sm:flex-none"
 				>
-					<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+					<svg
+						class="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0"
+						fill="none"
+						stroke="currentColor"
+						viewBox="0 0 24 24"
+					>
 						<path
 							stroke-linecap="round"
 							stroke-linejoin="round"
@@ -68,7 +85,8 @@
 							d="M12 4v16m8-8H4"
 						/>
 					</svg>
-					New Booking
+					<span class="hidden xs:inline">New Booking</span>
+					<span class="xs:hidden">New</span>
 				</button>
 			</div>
 		</div>
