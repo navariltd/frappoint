@@ -96,6 +96,61 @@
 		<div class="grid grid-cols-1 xl:grid-cols-3 gap-4 sm:gap-6 max-w-7xl mx-auto">
 			<!-- Left Column - Appointments List -->
 			<div class="xl:col-span-2 space-y-4 sm:space-y-6">
+				<!-- Empty State -->
+				<div
+					v-if="
+						!nextUp &&
+						upcomingAppointments.length === 0 &&
+						pastAppointments.length === 0
+					"
+					class="bg-white rounded-2xl shadow-sm p-8 sm:p-12 text-center"
+				>
+					<div class="max-w-md mx-auto">
+						<div
+							class="w-16 h-16 sm:w-20 sm:h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4"
+						>
+							<svg
+								class="w-8 h-8 sm:w-10 sm:h-10 text-gray-400"
+								fill="none"
+								stroke="currentColor"
+								viewBox="0 0 24 24"
+							>
+								<path
+									stroke-linecap="round"
+									stroke-linejoin="round"
+									stroke-width="2"
+									d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+								/>
+							</svg>
+						</div>
+						<h3 class="text-lg sm:text-xl font-bold text-gray-900 mb-2">
+							You have no bookings yet
+						</h3>
+						<p class="text-sm sm:text-base text-gray-500 mb-6">
+							Start by browsing our services and booking your first appointment.
+						</p>
+						<button
+							@click="router.push({ name: 'Services' })"
+							class="inline-flex items-center justify-center gap-2 bg-gray-900 text-white px-6 py-3 rounded-lg hover:bg-gray-800 transition-colors shadow-sm font-medium text-sm"
+						>
+							<svg
+								class="w-5 h-5"
+								fill="none"
+								stroke="currentColor"
+								viewBox="0 0 24 24"
+							>
+								<path
+									stroke-linecap="round"
+									stroke-linejoin="round"
+									stroke-width="2"
+									d="M12 4v16m8-8H4"
+								/>
+							</svg>
+							Browse Services
+						</button>
+					</div>
+				</div>
+
 				<!-- Next Up Section -->
 				<div v-if="nextUp">
 					<div class="flex justify-between items-center mb-3 sm:mb-4">
