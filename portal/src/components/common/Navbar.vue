@@ -122,7 +122,7 @@
 							</div>
 							<RouterLink
 								@click="mobileMenuOpen = false"
-								:to="{ name: 'User', params: { name: auth.userId } }"
+								:to="{ name: 'User' }"
 								class="block py-2 px-2 text-gray-700 hover:text-primary transition-colors font-medium"
 							>
 								User Profile
@@ -158,7 +158,7 @@ const userMenuOptions = computed(() => [
 		label: "User Profile",
 		icon: "user",
 		onClick: () => {
-			router.push({ name: "User", params: { name: auth.userId } });
+			router.push({ name: "User" });
 		},
 	},
 	{

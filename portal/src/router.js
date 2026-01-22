@@ -34,7 +34,7 @@ const routes = [
 	},
 	{
 		name: "User",
-		path: "/user/:name",
+		path: "/user/me",
 		component: () => import("@/pages/User.vue"),
 		meta: { requiresLogin: true },
 	},
