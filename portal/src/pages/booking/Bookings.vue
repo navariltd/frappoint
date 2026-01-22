@@ -70,6 +70,7 @@
 
 				<!-- New Booking Button -->
 				<button
+					@click="goToServices"
 					class="flex items-center justify-center gap-1.5 sm:gap-2 bg-gray-900 text-white px-3 sm:px-6 py-2 sm:py-2.5 rounded-lg hover:bg-gray-800 transition-colors shadow-sm font-medium text-xs sm:text-sm whitespace-nowrap flex-1 sm:flex-none"
 				>
 					<svg
@@ -190,8 +191,14 @@ import AppointmentCard from "@/components/booking/AppointmentCard.vue";
 import { Calendar } from "frappe-ui";
 import { createListResource } from "frappe-ui";
 import { computed, onMounted, ref } from "vue";
+import { useRouter } from "vue-router";
 
+const router = useRouter();
 const viewMode = ref("list");
+
+function goToServices() {
+	router.push({ name: "Services" });
+}
 
 const appointmentsResourceList = createListResource({
 	doctype: "Service Appointment",
