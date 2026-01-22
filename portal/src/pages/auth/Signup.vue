@@ -243,12 +243,7 @@ async function submit() {
 		});
 
 		await createUserResource.submit();
-
-		// Redirect to login page with success message
-		router.push({
-			name: "Login",
-			query: { registered: "true" },
-		});
+		window.location.href = "/";
 	} catch (error) {
 		errorMessage.value =
 			error.messages?.[0] || error.message || "Failed to create account. Please try again.";
