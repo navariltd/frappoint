@@ -96,6 +96,19 @@
 						/>
 					</div>
 				</div>
+
+				<!-- Past Section -->
+				<div v-if="pastAppointments.length > 0">
+					<h3 class="text-xs font-semibold text-gray-400 tracking-wider mb-4">PAST</h3>
+					<div class="space-y-4">
+						<AppointmentCard
+							v-for="appointment in pastAppointments"
+							:appointment="appointment"
+							:key="appointment.name"
+							variant="past"
+						/>
+					</div>
+				</div>
 			</div>
 
 			<!-- Right Column - Calendar & Rewards -->
@@ -163,11 +176,46 @@ const appointments = computed(() => {
 	return appointmentsResourceList.data || [];
 });
 
+// Helper function to check if an appointment is in the past
+const isAppointmentPast = (appointment) => {
+	const appointmentDate = new Date(appointment.appointment_date);
+	const today = new Date();
+	today.setHours(0, 0, 0, 0);
+	appointmentDate.setHours(0, 0, 0, 0);
+	return appointmentDate < today;
+};
+
+// Helper function to check if an appointment is today or in the future
+const isAppointmentUpcoming = (appointment) => {
+	const appointmentDate = new Date(appointment.appointment_date);
+	const today = new Date();
+	today.setHours(0, 0, 0, 0);
+	appointmentDate.setHours(0, 0, 0, 0);
+	return appointmentDate >= today;
+};
+
+// Filter upcoming appointments (today and future)
+const upcomingAppointmentsAll = computed(() => {
+	return appointments.value.filter((apt) => isAppointmentUpcoming(apt));
+});
+
 const nextUp = computed(() => {
-	return appointments.value[0] || null;
+	return upcomingAppointmentsAll.value[0] || null;
 });
 
 const upcomingAppointments = computed(() => {
-	return appointments.value.slice(1);
+	return upcomingAppointmentsAll.value.slice(1);
+});
+
+// Filter past appointments
+const pastAppointments = computed(() => {
+	return appointments.value
+		.filter((apt) => isAppointmentPast(apt))
+		.sort((a, b) => {
+			// Sort by date descending (most recent first)
+			const dateA = new Date(a.appointment_date);
+			const dateB = new Date(b.appointment_date);
+			return dateB - dateA;
+		});
 });
 </script>

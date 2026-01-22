@@ -1,15 +1,38 @@
 <template>
 	<div
 		:class="[
-			'flex items-start gap-4 bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow p-5',
+			'flex items-start gap-4 rounded-xl shadow-sm transition-shadow p-5',
+			variant === 'past'
+				? 'bg-gray-50 opacity-75 hover:opacity-90'
+				: 'bg-white hover:shadow-md',
 			variant === 'next' ? 'border-l-4 border-teal-600' : '',
 		]"
 	>
 		<!-- Date Badge -->
 		<div class="flex flex-col items-center justify-center min-w-[60px] flex-shrink-0">
-			<div class="text-xs font-medium text-gray-500 mb-1">{{ appointmentMonth }}</div>
-			<div class="text-2xl font-bold text-gray-900">{{ appointmentDay }}</div>
-			<div v-if="dateLabel" class="text-xs font-medium text-teal-600 mt-1">
+			<div
+				:class="[
+					'text-xs font-medium mb-1',
+					variant === 'past' ? 'text-gray-400' : 'text-gray-500',
+				]"
+			>
+				{{ appointmentMonth }}
+			</div>
+			<div
+				:class="[
+					'text-2xl font-bold',
+					variant === 'past' ? 'text-gray-500' : 'text-gray-900',
+				]"
+			>
+				{{ appointmentDay }}
+			</div>
+			<div
+				v-if="dateLabel"
+				:class="[
+					'text-xs font-medium mt-1',
+					variant === 'past' ? 'text-gray-400' : 'text-teal-600',
+				]"
+			>
 				{{ dateLabel }}
 			</div>
 		</div>
@@ -51,20 +74,37 @@
 			</div>
 
 			<!-- Service Name -->
-			<h4 class="text-base font-semibold text-gray-900 mb-2">
+			<h4
+				:class="[
+					'text-base font-semibold mb-2',
+					variant === 'past' ? 'text-gray-600' : 'text-gray-900',
+				]"
+			>
 				{{ appointment.appointment_type }}
 			</h4>
 
 			<!-- Provider Info -->
-			<div class="flex items-center gap-2 text-sm text-gray-600">
+			<div
+				:class="[
+					'flex items-center gap-2 text-sm',
+					variant === 'past' ? 'text-gray-500' : 'text-gray-600',
+				]"
+			>
 				<div
-					class="w-6 h-6 rounded-full bg-gradient-to-br from-teal-400 to-teal-600 flex items-center justify-center text-white text-xs font-medium"
+					:class="[
+						'w-6 h-6 rounded-full flex items-center justify-center text-white text-xs font-medium',
+						variant === 'past'
+							? 'bg-gray-400'
+							: 'bg-gradient-to-br from-teal-400 to-teal-600',
+					]"
 				>
 					{{ getInitials(appointment.appointment_provider) }}
 				</div>
 				<span>with {{ appointment.appointment_provider }}</span>
 				<span
-					v-if="variant === 'upcoming' && appointment.service_type"
+					v-if="
+						(variant === 'upcoming' || variant === 'past') && appointment.service_type
+					"
 					class="text-gray-400"
 					>• {{ appointment.service_type }}</span
 				>
@@ -87,9 +127,14 @@
 				</button>
 			</div>
 
-			<!-- Upcoming Actions -->
+			<!-- Upcoming/Past Actions -->
 			<div v-else class="flex items-center gap-4">
-				<div class="flex items-center gap-1.5 text-sm text-gray-500">
+				<div
+					:class="[
+						'flex items-center gap-1.5 text-sm',
+						variant === 'past' ? 'text-gray-400' : 'text-gray-500',
+					]"
+				>
 					<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 						<path
 							stroke-linecap="round"
@@ -101,7 +146,14 @@
 					<span class="font-medium">{{ formatTime(appointment.start_time) }}</span>
 				</div>
 
-				<button class="p-1 text-gray-400 hover:text-gray-600 transition-colors">
+				<button
+					:class="[
+						'p-1 transition-colors',
+						variant === 'past'
+							? 'text-gray-300 hover:text-gray-500'
+							: 'text-gray-400 hover:text-gray-600',
+					]"
+				>
 					<svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
 						<path
 							d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z"
