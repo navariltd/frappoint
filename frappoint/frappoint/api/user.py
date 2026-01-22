@@ -56,6 +56,7 @@ def create_customer_from_user(user):
 			"customer_name": user.full_name,
 			"customer_type": "Individual",
 			"email_id": user.email,
+			"portal_users": [{"user": user.email}],
 		}
 	)
 	customer.insert(ignore_permissions=True)
