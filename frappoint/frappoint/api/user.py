@@ -40,6 +40,14 @@ def create_user(**kwargs):
 
 		frappe.db.commit()
 		create_customer_from_user(user)
+
+		# Automatically log in the user
+		frappe.local.login_manager.login_as(user.name)
+
+		return {
+			"status": "success",
+			"message": "User created and logged in successfully",
+		}
 	except Exception as e:
 		frappe.db.rollback()
 		frappe.log_error(frappe.get_traceback(), "User Creation Failed")
@@ -56,6 +64,7 @@ def create_customer_from_user(user):
 			"customer_name": user.full_name,
 			"customer_type": "Individual",
 			"email_id": user.email,
+			"portal_users": [{"user": user.email}],
 		}
 	)
 	customer.insert(ignore_permissions=True)
