@@ -261,6 +261,8 @@ async function loadSlotsForDate(date) {
 	);
 }
 
+// TODO: Check validate customer appointment for same date and time
+
 async function submitBooking() {
 	if (!booking.isComplete) return;
 
@@ -306,23 +308,14 @@ async function submitBooking() {
 			service_appointment_id: service_appointment.name,
 		});
 
-		if (response.payment_link) {
+		if (response) {
+			booking.isResetting = true;
 			booking.clearStorage();
+			booking.isResetting = false;
 
-			window.location.href = response.payment_link;
+			window.location.href = response;
 			return;
 		}
 	}
-
-	booking.isResetting = true;
-	booking.resetBooking();
-	booking.currentStep = 1;
-	booking.clearStorage();
-	booking.isResetting = false;
-
-	router.replace({
-		name: "BookingConfirmation",
-		params: { bookingId: service_appointment.name },
-	});
 }
 </script>
