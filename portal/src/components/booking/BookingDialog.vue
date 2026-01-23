@@ -159,7 +159,7 @@
 </template>
 
 <script setup>
-import { Button, createListResource, createResource, Dialog } from "frappe-ui";
+import { Button, createListResource, createResource } from "frappe-ui";
 import { ref, watch, computed, onMounted } from "vue";
 import { useBookingStore } from "@/stores/bookingStore";
 import { useAuthStore } from "@/stores/auth";
@@ -242,6 +242,11 @@ const checkSlotAvailability = createResource({
 	},
 });
 
+const paymentLinkResource = createResource({
+	url: "frappoint.payments.get_payment_link",
+	auto: false,
+});
+
 onMounted(async () => {
 	booking.loadFromStorage();
 
@@ -303,7 +308,7 @@ async function submitBooking() {
 	}
 
 	// create appointment
-	let response = await serviceAppointmentResource.insert.submit({
+	let service_appointment = await serviceAppointmentResource.insert.submit({
 		appointment_type: booking.draft.serviceType,
 		appointment_date: booking.draft.date,
 		appointment_provider: booking.draft.slot.provider,
@@ -318,6 +323,19 @@ async function submitBooking() {
 		notes: booking.draft.notes,
 		source: booking.draft.source,
 	});
+
+	if (service_appointment.name && booking.draft.price > 0) {
+		const response = await paymentLinkResource.submit({
+			service_appointment_id: service_appointment.name,
+		});
+
+		if (response.payment_link) {
+			booking.clearStorage();
+
+			window.location.href = response.payment_link;
+			return;
+		}
+	}
 
 	booking.isResetting = true;
 	booking.resetBooking();
