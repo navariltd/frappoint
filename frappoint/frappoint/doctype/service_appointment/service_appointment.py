@@ -45,6 +45,7 @@ class ServiceAppointment(Document):
 		appointment_type: DF.Link
 		company: DF.Link
 		confirmation_token: DF.Data | None
+		currency: DF.Link | None
 		customer: DF.Link
 		details: DF.SmallText | None
 		duration: DF.Int
@@ -134,6 +135,51 @@ class ServiceAppointment(Document):
 		self.check_linked_documents_before_delete()
 		self.delete_linked_event()
 		self.release_slots()
+
+	def on_payment_authorized(self, payment_status):
+		if payment_status in ["Authorized", "Completed"]:
+			# confirm the appointment
+			self.update_payment_record()
+
+	def update_payment_record(self):
+		request = frappe.get_all(
+			"Integration Request",
+			{
+				"reference_doctype": self.doctype,
+				"reference_docname": self.name,
+				# "owner": frappe.session.user,
+			},
+			order_by="creation desc",
+			limit=1,
+		)
+
+		if len(request):
+			data = frappe.db.get_value("Integration Request", request[0].name, "data")
+			data = frappe._dict(json.loads(data))
+
+			payment_gateway = data.get("payment_gateway")
+			if payment_gateway == "Razorpay":
+				payment_id = "razorpay_payment_id"
+			elif "Stripe" in payment_gateway:
+				payment_id = "stripe_token_id"
+			else:
+				payment_id = "order_id"
+
+			frappe.db.set_value(
+				"Service Appointment Payment",
+				data.payment,
+				{
+					"payment_received": 1,
+					"payment_id": data.get(payment_id),
+					"order_id": data.get("order_id"),
+				},
+			)
+
+			try:
+				# Confirm the payment has gone through
+				self.submit()
+			except Exception:
+				frappe.log_error(frappe.get_traceback(), _("Appointment COnfirmation Failed"))
 
 	def validate_appointment_date_and_times(self):
 		start_dt = get_datetime(f"{self.appointment_date} {self.start_time}")

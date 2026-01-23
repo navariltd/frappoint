@@ -1,5 +1,9 @@
 <template>
-	<div class="flex-grow flex items-center justify-center p-4 sm:p-6 lg:p-8">
+	<!-- Loading / Guard state  -->
+	<div v-if="!isReady" class="flex-grow flex items-center justify-center p-4 sm:p-6 lg:p-8">
+		<div class="text-slate-500 text-sm animate-pulse">Preparing your booking…</div>
+	</div>
+	<div v-else class="flex-grow flex items-center justify-center p-4 sm:p-6 lg:p-8">
 		<div class="max-w-3xl w-full flex flex-col gap-6">
 			<!-- Success status  -->
 			<div class="text-center space-y-4 py-6">
@@ -175,6 +179,7 @@
 </template>
 
 <script setup>
+import { buildDate } from "@/utils";
 import { FeatherIcon, createResource, createDocumentResource } from "frappe-ui";
 import { computed } from "vue";
 import { useRoute } from "vue-router";
@@ -184,6 +189,7 @@ const bookingId = route.params.bookingId;
 
 const serviceTypeDetailsResource = createResource({
 	url: "frappoint.frappoint.api.service_type.get_service_type_details",
+	cache: bookingId,
 });
 
 const bookingDocument = createDocumentResource({
@@ -202,6 +208,15 @@ const serviceTypeDetails = computed(() => {
 
 const bookingResource = computed(() => bookingDocument.doc || null);
 
+const isReady = computed(() => {
+	return !!(
+		bookingResource.value &&
+		serviceTypeDetails.value &&
+		startDateTime.value &&
+		endDateTime.value
+	);
+});
+
 /**
  * Build Date objects from separate date + time fields
  */
@@ -209,14 +224,18 @@ const startDateTime = computed(() => {
 	if (!bookingResource.value) return null;
 
 	const { appointment_date, start_time } = bookingResource.value;
-	return new Date(`${appointment_date}T${start_time}`);
+	if (!appointment_date || !start_time) return null;
+
+	return buildDate(appointment_date, start_time);
 });
 
 const endDateTime = computed(() => {
 	if (!bookingResource.value) return null;
 
 	const { appointment_date, end_time } = bookingResource.value;
-	return new Date(`${appointment_date}T${end_time}`);
+	if (!appointment_date || !end_time) return null;
+
+	return buildDate(appointment_date, end_time);
 });
 
 /**

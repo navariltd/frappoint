@@ -18,6 +18,7 @@ export const useBookingStore = defineStore("booking", {
 		},
 		currentStep: 1,
 		attemptedCheckout: false,
+		isResetting: false,
 	}),
 
 	getters: {
