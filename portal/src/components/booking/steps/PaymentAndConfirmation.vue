@@ -2,7 +2,7 @@
 	<div class="flex flex-col h-full">
 		<div class="flex flex-col lg:flex-row gap-6 lg:gap-8 w-full p-6 md:p-8 flex-1">
 			<!-- Left Column - Payment Form -->
-			<div class="w-full lg:w-2/3">
+			<div class="w-full lg:flex-1">
 				<h2 class="text-xl font-bold text-gray-900 dark:text-white mb-6">
 					Payment Method
 				</h2>
@@ -114,7 +114,7 @@
 			</div>
 
 			<!-- Right Column - Booking Summary -->
-			<aside class="w-full lg:w-1/3">
+			<aside class="w-full lg:w-80 xl:w-96 flex-shrink-0">
 				<div
 					class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-6 sticky top-24"
 				>
