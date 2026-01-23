@@ -12,7 +12,7 @@ def get_controller(payment_gateway):
 
 def validate_currency(payment_gateway, currency):
 	controller = get_controller(payment_gateway)
-	controller().validate_transaction_currency(currency)
+	controller.validate_transaction_currency(currency)
 
 
 @frappe.whitelist()
