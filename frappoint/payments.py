@@ -24,6 +24,8 @@ def get_payment_link(service_appointment_id):
 	amount = service_appointment_doc.total_amount
 	currency = service_appointment_doc.currency
 
+	validate_currency(payment_gateway, currency)
+
 	payment = record_payment(
 		service_appointment_id, service_appointment_doc.total_amount, service_appointment_doc.currency
 	)
