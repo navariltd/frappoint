@@ -73,6 +73,7 @@ class ServiceAppointment(Document):
 		self.validate_overlaps()
 		self.validate_customer_overlap()
 		self.validate_appointment_capacity()
+		self.validate_price_and_currency()
 
 		if self.appointment_type and not self.duration:
 			self.set_duration_from_type()
@@ -487,6 +488,41 @@ class ServiceAppointment(Document):
 					),
 					title=_("Invalid Service Unit Type"),
 				)
+
+	def validate_price_and_currency(self):
+		if not self.appointment_type or not self.appointment_price:
+			frappe.throw("Service Type and Service Price are required to validate the price.")
+
+		rate, currency = self._get_price_currency()
+
+		if not self.total_amount:
+			self.total_amount = rate
+			self.currency = currency
+
+		if self.currency != currency:
+			frappe.throw(
+				f"Currency mismatch: Service price is in {currency} but appointment currency is {self.currency}"
+			)
+
+	def _get_price_currency(self):
+		"""Return the rate and currency, given service_type and appointment_price_name"""
+
+		if not self.appointment_type:
+			frappe.throw("Service Type is required before setting price")
+
+		prices = frappe.get_all(
+			"Service Type Price",
+			filters={"parent": self.appointment_type, "price_name": self.appointment_price},
+			fields=["rate", "currency"],
+		)
+
+		if not prices:
+			frappe.throw(
+				f"No matching price found for '{self.appointment_price}' in service '{self.appointment_type}'"
+			)
+
+		price_info = prices[0]
+		return price_info["rate"], price_info["currency"]
 
 	def set_duration_from_type(self):
 		"""Set duration from appointment type"""
