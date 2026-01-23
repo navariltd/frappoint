@@ -87,35 +87,26 @@
 					v-if="currentStep === 1"
 					:available-dates="availableDates"
 					:available-slots="availableSlots"
+					:can-proceed="canProceed"
+					@continue="currentStep++"
 				/>
 
 				<UserDetails v-if="currentStep === 2" :is-logged-in="isLoggedIn" />
 
 				<PaymentStep v-if="currentStep === 3" />
 
-				<!-- Buttons (for steps 1 and 3) -->
+				<!-- Buttons for step 3 only -->
 				<div
-					v-if="currentStep !== 2"
+					v-if="currentStep === 3"
 					class="flex items-center gap-3 w-full lg:w-auto p-4 sm:p-6 border-t border-gray-100 bg-white"
 				>
 					<Button
-						v-if="currentStep > 1"
 						@click="currentStep--"
 						class="flex-1 sm:flex-none py-3 px-6 rounded-lg border-2 border-gray-300 text-gray-700 font-semibold text-sm hover:bg-gray-50 transition-colors"
 					>
 						Back
 					</Button>
 					<Button
-						v-if="currentStep < 3"
-						:disabled="!canProceed"
-						@click="currentStep++"
-						class="flex-1 sm:flex-none py-3 px-8 rounded-lg !bg-primary hover:!bg-primary-dark text-white font-semibold text-sm shadow-lg shadow-primary/30 transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-					>
-						Continue
-					</Button>
-
-					<Button
-						v-else
 						:disabled="!canProceed"
 						@click="submitBooking"
 						class="flex-1 sm:flex-none py-3 px-8 rounded-lg !bg-primary hover:!bg-primary-dark text-white font-semibold text-sm shadow-lg shadow-primary/30 transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
@@ -123,7 +114,6 @@
 						Pay
 					</Button>
 				</div>
-
 				<!-- Buttons for step 2 (integrated in form) -->
 				<div
 					v-if="currentStep === 2"
