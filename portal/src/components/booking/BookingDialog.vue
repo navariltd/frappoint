@@ -312,6 +312,7 @@ async function submitBooking() {
 		appointment_type: booking.draft.serviceType,
 		appointment_date: booking.draft.date,
 		appointment_provider: booking.draft.slot.provider,
+		currency: booking.draft.currency,
 		appointment_price: booking.draft.priceName,
 		start_time: booking.draft.slot.start_time,
 		end_time: booking.draft.slot.end_time,
