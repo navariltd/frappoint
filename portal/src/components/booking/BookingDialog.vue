@@ -346,7 +346,7 @@ async function submitBooking() {
 
 	router.replace({
 		name: "BookingConfirmation",
-		params: { bookingId: response.name },
+		params: { bookingId: service_appointment.name },
 	});
 }
 </script>
