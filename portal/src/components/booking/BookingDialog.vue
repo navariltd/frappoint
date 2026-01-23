@@ -245,15 +245,25 @@ const checkSlotAvailability = createResource({
 onMounted(async () => {
 	booking.loadFromStorage();
 
-	if (booking.draft.date) {
+	if (booking.draft.date && booking.draft.serviceType) {
 		await loadSlotsForDate(booking.draft.date);
 	}
 	availableDates.value = await getAvailableDates.fetch();
 });
 
-watch(() => booking.draft.date, loadSlotsForDate);
+watch(
+	() => booking.draft.date,
+	(date) => {
+		if (booking.isResettings) return;
+		if (!date || !booking.draft.serviceType) return;
+
+		loadSlotsForDate(date);
+	}
+);
 
 async function loadSlotsForDate(date) {
+	if (!date || !booking.draft.serviceType) return;
+
 	const response = await getAvailableTimeSlots.fetch();
 
 	availableSlots.value = response.flatMap((provider) =>
@@ -309,9 +319,11 @@ async function submitBooking() {
 		source: booking.draft.source,
 	});
 
+	booking.isResetting = true;
 	booking.resetBooking();
 	booking.currentStep = 1;
 	booking.clearStorage();
+	booking.isResetting = false;
 
 	router.replace({
 		name: "BookingConfirmation",
