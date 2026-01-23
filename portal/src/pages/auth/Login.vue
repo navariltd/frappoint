@@ -1,6 +1,6 @@
 <template>
 	<div
-		class="flex min-h-screen items-center justify-center p-6 bg-[#f6f8f8] dark:bg-[#141e1e] font-sans"
+		class="flex min-h-screen items-start justify-center pt-12 pb-6 px-6 bg-[#f6f8f8] dark:bg-[#141e1e] font-sans overflow-y-auto scrollbar-hide"
 	>
 		<div
 			class="w-full max-w-[440px] bg-white dark:bg-[#1c2a2a] rounded-xl shadow-[0_10px_25px_-5px_rgba(0,0,0,0.05),0_8px_10px_-6px_rgba(0,0,0,0.05)] p-8 md:p-10 border border-[#eaf0f0] dark:border-gray-800"
