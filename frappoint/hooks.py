@@ -8,7 +8,7 @@ app_license = "agpl-3.0"
 # Apps
 # ------------------
 
-required_apps = ["erpnext", "hrms"]
+required_apps = ["frappe/erpnext", "frappe/hrms", "frappe/payments"]
 
 export_python_type_annotations = True
 

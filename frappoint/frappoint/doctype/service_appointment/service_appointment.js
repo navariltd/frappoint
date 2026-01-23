@@ -537,6 +537,7 @@ function show_price_selector(frm, prices) {
 
 			frm.set_value("appointment_price", selected_price.price_name);
 			frm.set_value("total_amount", selected_price.rate);
+			frm.set_value("currency", selected_price.currency);
 			d.hide();
 		},
 	});

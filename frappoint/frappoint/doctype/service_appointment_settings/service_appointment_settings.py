@@ -29,6 +29,7 @@ class ServiceAppointmentSettings(Document):
 		lead_time_hours: DF.Int
 		max_advance_days: DF.Int
 		max_past_days: DF.Int
+		payment_gateway: DF.Link | None
 		use_erpnext_pricing: DF.Check
 	# end: auto-generated types
 	pass

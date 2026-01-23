@@ -38,6 +38,7 @@
   "mode_of_payment",
   "column_break_ahpd",
   "total_amount",
+  "currency",
   "more_info_section",
   "confirmation_token",
   "source",
@@ -156,6 +157,7 @@
    "fieldtype": "Currency",
    "label": "Total Amount",
    "non_negative": 1,
+   "options": "currency",
    "read_only": 1,
    "reqd": 1
   },
@@ -292,6 +294,12 @@
    "fieldtype": "Link",
    "label": "Service Unit",
    "options": "Service Unit"
+  },
+  {
+   "fieldname": "currency",
+   "fieldtype": "Link",
+   "label": "Currency",
+   "options": "Currency"
   }
  ],
  "grid_page_length": 50,
@@ -322,9 +330,14 @@
    "group": "Stock",
    "link_doctype": "Stock Entry",
    "link_fieldname": "service_appointment"
+  },
+  {
+   "group": "Payments",
+   "link_doctype": "Service Appointment Payment",
+   "link_fieldname": "reference_docname"
   }
  ],
- "modified": "2026-01-06 12:19:25.193255",
+ "modified": "2026-01-23 08:39:53.451836",
  "modified_by": "Administrator",
  "module": "Frappoint",
  "name": "Service Appointment",
@@ -340,6 +353,20 @@
    "read": 1,
    "report": 1,
    "role": "System Manager",
+   "share": 1,
+   "submit": 1,
+   "write": 1
+  },
+  {
+   "cancel": 1,
+   "create": 1,
+   "email": 1,
+   "export": 1,
+   "if_owner": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Customer",
    "share": 1,
    "submit": 1,
    "write": 1
