@@ -3,6 +3,7 @@ import re
 import frappe
 from frappe import _
 
+from ...payments import get_payment_gateways_for_service_type
 from .service_provider import get_providers_for_service
 
 
@@ -82,4 +83,5 @@ def get_service_type_details(service_type):
 			fields=["price_name", "rate", "currency"],
 		),
 		"providers": get_providers_for_service(service_type),
+		"payment_gateways": get_payment_gateways_for_service_type(service_type),
 	}

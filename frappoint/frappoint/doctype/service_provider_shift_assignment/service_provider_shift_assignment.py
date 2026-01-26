@@ -18,6 +18,10 @@ class MultipleShiftError(frappe.ValidationError):
 	pass
 
 
+class OverlappingShiftError(frappe.ValidationError):
+	pass
+
+
 class ServiceProviderShiftAssignment(Document):
 	# begin: auto-generated types
 	# This code is auto-generated. Do not modify anything in this block.
@@ -52,6 +56,7 @@ class ServiceProviderShiftAssignment(Document):
 			self.validate_from_to_dates("start_date", "end_date")
 		self.validate_overlapping_shifts()
 		self.validate_shift_service_unit()
+		self.validate_provider_can_handle_service_units()
 
 	def before_update_after_submit(self):
 		"""Store old values and validate before update"""
@@ -127,29 +132,105 @@ class ServiceProviderShiftAssignment(Document):
 			)
 
 	def validate_overlapping_shifts(self):
+		"""
+		Allow multiple shifts for same provider on same day
+		if they're in different service units and overlapping times
+		"""
 		if self.status == "Inactive":
 			return
 
 		overlapping_dates = self.get_overlapping_dates()
-		if len(overlapping_dates):
-			self.validate_same_date_multiple_shifts(overlapping_dates)
-			# if dates are overlapping, check if timings are overlapping, else allow
-			for d in overlapping_dates:
-				if self.has_overlapping_timings(self.shift_type, d.shift_type):
-					self.throw_overlap_error(d)
 
-	def validate_same_date_multiple_shifts(self, overlapping_dates):
-		# TODO: Consider adding multiple shift assignments
-		msg = _("{0} already has an active Shift Assignment {1} for some/all of these dates.").format(
-			frappe.bold(self.provider),
-			get_link_to_form("Service Provider Shift Assignment", overlapping_dates[0].name),
+		for d in overlapping_dates:
+			if not self.has_overlapping_timings(self.shift_type, d.shift_type):
+				continue
+
+			other_shift = frappe.get_doc("Service Provider Shift Assignment", d.name)
+
+			# Both service units exist
+			if self.service_unit and other_shift.service_unit:
+				# Different units -> allowed with warning
+				if self.service_unit != other_shift.service_unit:
+					frappe.msgprint(
+						_(
+							"Warning: Provider {0} has overlapping shifts in different locations. "
+							"Ensure they can physically be in both places."
+						).format(frappe.bold(self.provider)),
+						indicator="orange",
+						alert=True,
+					)
+					continue
+
+			# Same unit OR missing unit -> conflict
+			self.throw_overlap_error(d)
+
+	def throw_overlap_error(self, shift_details):
+		shift_details = frappe._dict(shift_details)
+		if shift_details.docstatus == 1 and shift_details.status == "Active":
+			msg = _(
+				"Provider {0} already has an active Shift {1}: {2} that overlaps within this period."
+			).format(
+				frappe.bold(self.provider),
+				frappe.bold(shift_details.shift_type),
+				get_link_to_form("Service Provider Shift Assignment", shift_details.name),
+			)
+			frappe.throw(msg, title=_("Overlapping Shifts"), exc=OverlappingShiftError)
+
+	def validate_provider_can_handle_service_units(self):
+		"""
+		Validate that provider's services match the assigned service unit
+		"""
+		if not self.service_unit:
+			return
+
+		# Get service unit type
+		service_unit_doc = frappe.get_doc("Service Unit", self.service_unit)
+		service_unit_type = service_unit_doc.unit_type
+
+		# Get all services this provider offers
+		provider_services = frappe.get_all(
+			"Service Provider Service", filters={"parent": self.provider, "disabled": 0}, pluck="service_type"
 		)
 
-		frappe.throw(
-			title=_("Multiple Shift Assignments"),
-			msg=msg,
-			exc=MultipleShiftError,
-		)
+		# Check if ANY of their services can use this unit type
+		can_use_unit = False
+		for service_type in provider_services:
+			service_doc = frappe.get_doc("Service Type", service_type)
+
+			# Check if this service requires this unit type
+			for unit_type_row in service_doc.service_unit_types:
+				if unit_type_row.service_unit_type == service_unit_type:
+					can_use_unit = True
+					break
+
+			if can_use_unit:
+				break
+
+		if not can_use_unit:
+			# Get list of services that DO require this unit type
+			compatible_services = []
+			all_services = frappe.get_all("Service Type", filters={"disabled": 0}, pluck="name")
+
+			for service in all_services:
+				service_doc = frappe.get_doc("Service Type", service)
+				for unit_type_row in service_doc.service_unit_types:
+					if unit_type_row.service_unit_type == service_unit_type:
+						compatible_services.append(service)
+						break
+
+			frappe.msgprint(
+				_(
+					"Notice: Provider {0} doesn't offer services that use {1} ({2}). "
+					"Compatible services include: {3}"
+				).format(
+					frappe.bold(self.provider),
+					frappe.bold(self.service_unit),
+					service_unit_type,
+					", ".join(compatible_services[:5]) if compatible_services else "None",
+				),
+				indicator="orange",
+				alert=True,
+			)
 
 	def get_overlapping_dates(self):
 		if not self.name:

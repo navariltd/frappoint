@@ -1,3 +1,4 @@
+import { createResource } from "frappe-ui";
 import { defineStore } from "pinia";
 
 export const useBookingStore = defineStore("booking", {
@@ -14,6 +15,8 @@ export const useBookingStore = defineStore("booking", {
 			price: null,
 			currency: null,
 			notes: null,
+			paymentGateways: [],
+			selectedPaymentGateway: null,
 			source: "Portal",
 		},
 		currentStep: 1,
@@ -83,6 +86,33 @@ export const useBookingStore = defineStore("booking", {
 			this.draft.currency = currency;
 		},
 
+		setPaymentGateways(gateways) {
+			this.draft.paymentGateways = gateways || [];
+		},
+
+		selectPaymentGateway(gateway) {
+			this.draft.selectedPaymentGateway = gateway;
+		},
+
+		async hydrateServiceDetails() {
+			if (!this.draft.serviceType) return;
+
+			const resource = createResource({
+				url: "frappoint.frappoint.api.service_type.get_service_type_details",
+				makeParams: () => ({
+					service_type: this.draft.serviceType,
+				}),
+			});
+
+			const service = await resource.fetch();
+
+			this.draft.paymentGateways = service.payment_gateways || [];
+
+			if (!this.draft.selectedPaymentGateway && this.draft.paymentGateways.length === 1) {
+				this.draft.selectedPaymentGateway = this.draft.paymentGateways[0];
+			}
+		},
+
 		resetBooking() {
 			this.draft = {
 				serviceType: null,
@@ -95,6 +125,8 @@ export const useBookingStore = defineStore("booking", {
 				priceName: null,
 				price: null,
 				notes: null,
+				selectedPaymentGateway: null,
+				paymentGateways: [],
 				source: "Portal",
 			};
 		},

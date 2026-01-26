@@ -226,7 +226,14 @@ const paymentLinkResource = createResource({
 onMounted(async () => {
 	booking.loadFromStorage();
 
-	if (booking.draft.date && booking.draft.serviceType) {
+	if (!booking.draft.serviceType) {
+		router.replace({ name: "Services" });
+		return;
+	}
+
+	await booking.hydrateServiceDetails();
+
+	if (booking.draft.date) {
 		await loadSlotsForDate(booking.draft.date);
 	}
 	availableDates.value = await getAvailableDates.fetch();
@@ -306,6 +313,7 @@ async function submitBooking() {
 	if (service_appointment.name && booking.draft.price > 0) {
 		const response = await paymentLinkResource.submit({
 			service_appointment_id: service_appointment.name,
+			payment_gateway: booking.draft.selectedPaymentGateway,
 		});
 
 		if (response) {

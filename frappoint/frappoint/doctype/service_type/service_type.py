@@ -19,6 +19,9 @@ class ServiceType(Document):
 		from frappoint.frappoint.doctype.service_type_material.service_type_material import (
 			ServiceTypeMaterial,
 		)
+		from frappoint.frappoint.doctype.service_type_payment_gateway.service_type_payment_gateway import (
+			ServiceTypePaymentGateway,
+		)
 		from frappoint.frappoint.doctype.service_type_price.service_type_price import ServiceTypePrice
 		from frappoint.frappoint.doctype.service_type_unit_type.service_type_unit_type import (
 			ServiceTypeUnitType,
@@ -37,6 +40,7 @@ class ServiceType(Document):
 		item_group: DF.Data | None
 		item_name: DF.Data | None
 		max_clients_per_slot: DF.Int
+		payment_gateways: DF.Table[ServiceTypePaymentGateway]
 		prices: DF.Table[ServiceTypePrice]
 		service_unit_types: DF.Table[ServiceTypeUnitType]
 		short_description: DF.Data | None

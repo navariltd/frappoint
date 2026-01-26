@@ -14,7 +14,7 @@
 						</label>
 						<input
 							id="full-name"
-							v-model="localCustomer"
+							v-model="booking.draft.customer"
 							:disabled="isLoggedIn"
 							class="w-full px-4 py-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary/50 focus:border-primary text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 outline-none transition-all disabled:bg-gray-50 disabled:cursor-not-allowed"
 							type="text"
@@ -30,7 +30,7 @@
 						</label>
 						<input
 							id="email"
-							v-model="localEmail"
+							v-model="booking.draft.email"
 							:disabled="isLoggedIn"
 							class="w-full px-4 py-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary/50 focus:border-primary text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 outline-none transition-all disabled:bg-gray-50 disabled:cursor-not-allowed"
 							type="email"
@@ -47,7 +47,7 @@
 					</label>
 					<input
 						id="phone"
-						v-model="localMobileNo"
+						v-model="booking.draft.mobileNo"
 						:disabled="isLoggedIn"
 						class="w-full px-4 py-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary/50 focus:border-primary text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 outline-none transition-all disabled:bg-gray-50 disabled:cursor-not-allowed"
 						type="tel"
@@ -225,18 +225,6 @@ const props = defineProps({
 });
 
 const booking = useBookingStore();
-
-// Local state for form inputs
-const localCustomer = ref(booking.draft.customer || "");
-const localEmail = ref(booking.draft.email || "");
-const localMobileNo = ref(booking.draft.mobileNo || "");
-const localNotes = ref(booking.draft.notes || "");
-
-// Watch local state and update store
-watch(localCustomer, (value) => booking.setCustomer(value));
-watch(localEmail, (value) => booking.setEmail(value));
-watch(localMobileNo, (value) => booking.setMobileNo(value));
-watch(localNotes, (value) => (booking.draft.notes = value));
 
 // Computed properties for display
 const formattedDate = computed(() => {
