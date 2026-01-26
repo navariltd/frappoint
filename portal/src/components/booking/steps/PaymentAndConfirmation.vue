@@ -163,7 +163,7 @@
 							<span class="text-lg font-bold text-gray-900 dark:text-white"
 								>Grand Total</span
 							>
-							<span class="text-2xl font-bold text-[#16a34a]">
+							<span class="text-2xl font-bold text-[#2c7677]">
 								{{ formatCurrency(totalAmount, booking.draft.currency) }}
 							</span>
 						</div>
@@ -171,7 +171,7 @@
 
 					<!-- Security Message -->
 					<div class="pt-4">
-						<p class="text-xs text-center text-[#16a34a] font-medium">
+						<p class="text-xs text-center text-[#2c7677] font-medium">
 							Your data is safe. We use high-level encryption for all payment
 							processes.
 						</p>
@@ -194,7 +194,7 @@
 			<button
 				:disabled="!canProceed || !booking.draft.selectedPaymentGateway"
 				@click="emit('submit')"
-				class="px-8 py-3 rounded-xl bg-[#16a34a] hover:bg-[#15803d] text-white font-bold shadow-lg transition-all flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+				class="px-8 py-3 rounded-xl bg-[#2c7677] hover:scale-105 text-white font-bold shadow-lg transition-all flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
 				type="button"
 			>
 				Proceed to Pay
