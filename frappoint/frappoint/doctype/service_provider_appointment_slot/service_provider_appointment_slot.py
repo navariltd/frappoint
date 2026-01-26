@@ -583,6 +583,13 @@ def group_slots_by_duration_and_capacity(
 						if not capacity_available:
 							break
 
+						provider_available = check_provider_slot_capacity(
+							provider, date, actual_start_time, actual_end_time, max_clients
+						)
+
+						if not provider_available:
+							break
+
 					else:
 						capacity_available = check_provider_slot_capacity(
 							provider, date, actual_start_time, actual_end_time, max_clients
