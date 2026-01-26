@@ -14,11 +14,11 @@ class ServiceUnit(Document):
 	if TYPE_CHECKING:
 		from frappe.types import DF
 
-		active: DF.Check
 		allow_appointments: DF.Check
 		allow_overlap: DF.Check
 		capacity: DF.Int
 		company: DF.Link
+		disabled: DF.Check
 		is_group: DF.Check
 		lft: DF.Int
 		location: DF.Link | None
