@@ -233,8 +233,8 @@ const selectedPaymentGateway = computed({
 });
 
 // Fee calculations
-const platformFee = ref(5.5);
-const taxRate = ref(8);
+const platformFee = ref(0.0);
+const taxRate = ref(0);
 
 const taxAmount = computed(() => {
 	const price = parseFloat(booking.draft.price) || 0;
