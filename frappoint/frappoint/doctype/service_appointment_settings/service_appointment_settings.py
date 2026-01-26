@@ -14,6 +14,10 @@ class ServiceAppointmentSettings(Document):
 	if TYPE_CHECKING:
 		from frappe.types import DF
 
+		from frappoint.frappoint.doctype.service_type_payment_gateway.service_type_payment_gateway import (
+			ServiceTypePaymentGateway,
+		)
+
 		allow_past_booking: DF.Check
 		appointment_confirmation: DF.Check
 		appointment_confirmation_msg: DF.SmallText | None
@@ -29,7 +33,7 @@ class ServiceAppointmentSettings(Document):
 		lead_time_hours: DF.Int
 		max_advance_days: DF.Int
 		max_past_days: DF.Int
-		payment_gateway: DF.Link | None
+		payment_gateways: DF.Table[ServiceTypePaymentGateway]
 		use_erpnext_pricing: DF.Check
 	# end: auto-generated types
 	pass

@@ -11,106 +11,29 @@
 					<div class="flex-grow border-t border-gray-200 dark:border-gray-700"></div>
 					<span
 						class="flex-shrink mx-4 text-gray-400 text-xs font-bold uppercase tracking-wider"
-						>Pay with card</span
-					>
+					></span>
 					<div class="flex-grow border-t border-gray-200 dark:border-gray-700"></div>
 				</div>
 
-				<form class="space-y-6">
-					<div>
-						<label
-							class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2"
-							for="cardholder-name"
-						>
-							Cardholder Name
-						</label>
+				<div class="grid gap-3">
+					<label
+						v-for="gateway in booking.draft.paymentGateways"
+						:key="gateway"
+						class="flex items-center gap-3 p-4 border rounded-lg cursor-pointer"
+						:class="{
+							'border-primary bg-primary/5':
+								booking.draft.selectedPaymentGateway === gateway,
+						}"
+					>
 						<input
-							id="cardholder-name"
-							v-model="cardholderName"
-							class="w-full px-4 py-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary/50 focus:border-primary text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 outline-none transition-all"
-							placeholder="Jane Doe"
-							type="text"
+							type="radio"
+							:name="'payment_gateway'"
+							:value="gateway"
+							v-model="booking.draft.selectedPaymentGateway"
 						/>
-					</div>
-
-					<div>
-						<label
-							class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2"
-							for="card-number"
-						>
-							Card Number
-						</label>
-						<div class="relative">
-							<input
-								id="card-number"
-								v-model="cardNumber"
-								class="w-full px-4 py-3 pr-12 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary/50 focus:border-primary text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 outline-none transition-all"
-								placeholder="0000 0000 0000 0000"
-								type="tel"
-							/>
-							<div class="absolute inset-y-0 right-0 flex items-center pr-4">
-								<svg
-									class="w-5 h-5 text-gray-400"
-									fill="none"
-									stroke="currentColor"
-									viewBox="0 0 24 24"
-								>
-									<path
-										stroke-linecap="round"
-										stroke-linejoin="round"
-										stroke-width="2"
-										d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"
-									/>
-								</svg>
-							</div>
-						</div>
-					</div>
-
-					<div class="grid grid-cols-2 gap-4">
-						<div>
-							<label
-								class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2"
-								for="expiry"
-							>
-								Expiry Date
-							</label>
-							<input
-								id="expiry"
-								v-model="expiryDate"
-								class="w-full px-4 py-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary/50 focus:border-primary text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 outline-none transition-all"
-								placeholder="MM / YY"
-								type="text"
-							/>
-						</div>
-						<div>
-							<label
-								class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2"
-								for="cvc"
-							>
-								CVC
-							</label>
-							<input
-								id="cvc"
-								v-model="cvc"
-								class="w-full px-4 py-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary/50 focus:border-primary text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 outline-none transition-all"
-								placeholder="123"
-								type="tel"
-							/>
-						</div>
-					</div>
-
-					<div class="flex items-center gap-3 pt-2">
-						<input
-							id="save-card"
-							v-model="saveCard"
-							class="rounded text-primary focus:ring-primary w-4 h-4 border-gray-300"
-							type="checkbox"
-						/>
-						<label class="text-sm text-gray-600 dark:text-gray-400" for="save-card"
-							>Save card for future bookings</label
-						>
-					</div>
-				</form>
+						<span class="font-medium">{{ gateway }}</span>
+					</label>
+				</div>
 			</div>
 
 			<!-- Right Column - Booking Summary -->
@@ -285,12 +208,11 @@ const emit = defineEmits(["back", "submit"]);
 
 const booking = useBookingStore();
 
-// Form fields
-const cardholderName = ref("");
-const cardNumber = ref("");
-const expiryDate = ref("");
-const cvc = ref("");
-const saveCard = ref(false);
+const paymentGateways = computed(() => booking.draft.paymentGateways);
+const selectedPaymentGateway = computed({
+	get: () => booking.draft.selectedPaymentGateway,
+	set: (v) => booking.selectPaymentGateway(v),
+});
 
 // Tax calculation
 const taxRate = ref(8);

@@ -2,8 +2,21 @@ import frappe
 from payments.utils import get_payment_gateway_controller
 
 
-def get_payment_gateway():
-	return frappe.db.get_single_value("Service Appointment Settings", "payment_gateway")
+def get_payment_gateways_for_service_type(service_type):
+	"""Get all payment gateways configured for a service type"""
+	gateways = frappe.get_all(
+		"Service Type Payment Gateway",
+		filters={"parent": service_type, "parenttype": "Service Type"},
+		pluck="payment_gateway",
+	)
+
+	if not gateways:
+		gateways = frappe.get_all(
+			"Service Type Payment Gateway",
+			filters={"parenttype": "Service Appointment Settings"},
+			pluck="payment_gateway",
+		)
+	return gateways
 
 
 def get_controller(payment_gateway):
@@ -16,14 +29,17 @@ def validate_currency(payment_gateway, currency):
 
 
 @frappe.whitelist()
-def get_payment_link(service_appointment_id):
-	payment_gateway = get_payment_gateway()
+def get_payment_link(service_appointment_id, payment_gateway):
 	service_appointment_doc = frappe.get_cached_doc("Service Appointment", service_appointment_id)
 	service_type = service_appointment_doc.appointment_type
 	user_full_name = service_appointment_doc.full_name
 	amount = service_appointment_doc.total_amount
 	currency = service_appointment_doc.currency
 
+	if not payment_gateway:
+		gateways = get_payment_gateways_for_service_type(service_type)
+		if not gateways:
+			frappe.throw("No payment gateway configured for this event")
 	validate_currency(payment_gateway, currency)
 
 	payment = record_payment(

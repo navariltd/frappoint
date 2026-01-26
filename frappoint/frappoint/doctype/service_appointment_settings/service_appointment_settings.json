@@ -26,8 +26,8 @@
   "column_break_wnne",
   "appointment_reminder",
   "appointment_reminder_msg",
-  "payment_tab",
-  "payment_gateway"
+  "payment_gateway_tab",
+  "payment_gateways"
  ],
  "fields": [
   {
@@ -161,22 +161,22 @@
    "label": "Auto Issue Consumables"
   },
   {
-   "fieldname": "payment_tab",
-   "fieldtype": "Tab Break",
-   "label": "Payment"
+   "fieldname": "payment_gateways",
+   "fieldtype": "Table",
+   "label": "Payment Gateways",
+   "options": "Service Type Payment Gateway"
   },
   {
-   "fieldname": "payment_gateway",
-   "fieldtype": "Link",
-   "label": "Payment Gateway",
-   "options": "Payment Gateway"
+   "fieldname": "payment_gateway_tab",
+   "fieldtype": "Tab Break",
+   "label": "Payment Gateway"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2026-01-23 07:57:15.267440",
+ "modified": "2026-01-26 07:25:11.965794",
  "modified_by": "Administrator",
  "module": "Frappoint",
  "name": "Service Appointment Settings",
