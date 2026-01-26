@@ -1,5 +1,22 @@
 <template>
 	<div class="max-w-6xl mx-auto px-4 sm:px-6 py-4 sm:py-6">
+		<!-- Show errors at the top -->
+		<ErrorMessage
+			v-if="getAvailableDates.error"
+			:message="getAvailableDates.error"
+			class="mb-4"
+		/>
+		<ErrorMessage
+			v-if="getAvailableTimeSlots.error"
+			:message="getAvailableTimeSlots.error"
+			class="mb-4"
+		/>
+		<ErrorMessage
+			v-if="checkSlotAvailability.error"
+			:message="checkSlotAvailability.error"
+			class="mb-4"
+		/>
+
 		<div class="flex flex-col gap-4 sm:gap-6">
 			<div class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
 				<!-- header section  -->
@@ -163,7 +180,7 @@
 </template>
 
 <script setup>
-import { Button, createListResource, createResource } from "frappe-ui";
+import { createListResource, createResource, ErrorMessage } from "frappe-ui";
 import { ref, watch, computed, onMounted } from "vue";
 import { useBookingStore } from "@/stores/bookingStore";
 import { useAuthStore } from "@/stores/auth";

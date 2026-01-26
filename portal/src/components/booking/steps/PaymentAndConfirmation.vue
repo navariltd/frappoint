@@ -108,6 +108,8 @@
 						/>
 					</label>
 				</div>
+
+				<ErrorMessage v-if="paymentError" :message="paymentError" class="mb-6" />
 			</div>
 
 			<!-- Right Column - Order Summary -->
@@ -212,6 +214,7 @@
 </template>
 
 <script setup>
+import { ErrorMessage } from "frappe-ui";
 import { useBookingStore } from "@/stores/bookingStore";
 import { formatCurrency } from "@/utils";
 import { computed, ref } from "vue";
