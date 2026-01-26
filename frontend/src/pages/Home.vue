@@ -48,7 +48,14 @@
 						</div>
 
 						<!-- Stats Cards with Enhanced Design -->
-						<div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+						<div
+							v-if="appointmentsLoading"
+							class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8"
+						>
+							<StatCardSkeleton v-for="i in 4" :key="i" />
+						</div>
+
+						<div v-else class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
 							<div
 								class="bg-white rounded-lg p-6 border border-gray-200 shadow-md hover:shadow-lg transition-shadow"
 							>
@@ -144,11 +151,21 @@
 
 									<div
 										v-if="appointmentsLoading"
-										class="flex justify-center items-center py-12"
+										class="divide-y divide-gray-100"
 									>
 										<div
-											class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"
-										></div>
+											v-for="i in 5"
+											:key="i"
+											class="px-6 py-4 animate-pulse"
+										>
+											<div class="h-5 bg-gray-200 rounded w-32 mb-2"></div>
+											<div class="h-4 bg-gray-200 rounded w-48 mb-3"></div>
+											<div class="flex gap-4 mb-2">
+												<div class="h-4 bg-gray-200 rounded w-24"></div>
+												<div class="h-4 bg-gray-200 rounded w-28"></div>
+											</div>
+											<div class="h-6 bg-gray-200 rounded w-20"></div>
+										</div>
 									</div>
 
 									<div
@@ -187,7 +204,7 @@
 																/>
 																<span>{{
 																	formatDate(
-																		appointment.appointment_date,
+																		appointment.appointment_date
 																	)
 																}}</span>
 															</div>
@@ -285,6 +302,7 @@ import { CalendarDays, Clock3, CalendarX, CalendarCheck, CheckCircle } from "luc
 import CalendarComponent from "@/components/Calendar.vue";
 import AppLayout from "@/components/AppLayout.vue";
 import TabButtons from "@/components/TabButtons.vue";
+import StatCardSkeleton from "@/components/StatCardSkeleton.vue";
 import { useUserStore } from "@/data/user";
 
 const currentView = ref("calendar");
@@ -352,7 +370,7 @@ watch(
 	() => appointmentDocs.loading,
 	(newVal) => {
 		appointmentsLoading.value = newVal;
-	},
+	}
 );
 
 // Calculate dates for filtering

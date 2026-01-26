@@ -45,7 +45,14 @@
 					</h1>
 				</div>
 
+				<!-- Loading slots skeleton -->
+				<div v-if="slotsLoading">
+					<TimeSlotSkeleton :count="12" />
+				</div>
+
+				<!-- Time slots grid -->
 				<div
+					v-else
 					class="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-8 overflow-y-auto max-h-[320px] time-slot-scroll pr-2"
 				>
 					<div class="col-span-full mt-2 mb-1">
@@ -130,11 +137,13 @@ import "@vuepic/vue-datepicker/dist/main.css";
 import { computed } from "vue";
 import { useBookingStore } from "@/stores/bookingStore";
 import { formatCurrency } from "@/utils";
+import TimeSlotSkeleton from "../TimeSlotSkeleton.vue";
 
 const props = defineProps({
 	availableDates: Array,
 	availableSlots: Array,
 	canProceed: Boolean,
+	slotsLoading: Boolean,
 });
 
 defineEmits(["continue"]);

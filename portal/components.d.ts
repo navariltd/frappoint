@@ -9,6 +9,7 @@ export {}
 declare module 'vue' {
   export interface GlobalComponents {
     AppointmentCard: typeof import('./src/components/booking/AppointmentCard.vue')['default']
+    AppointmentCardSkeleton: typeof import('./src/components/booking/AppointmentCardSkeleton.vue')['default']
     BookingDialog: typeof import('./src/components/booking/BookingDialog.vue')['default']
     ChooseTime: typeof import('./src/components/booking/steps/ChooseTime.vue')['default']
     CloseIcon: typeof import('./src/components/icons/CloseIcon.vue')['default']
@@ -22,5 +23,6 @@ declare module 'vue' {
     ServiceCard: typeof import('./src/components/services/ServiceCard.vue')['default']
     ServiceCardSkeleton: typeof import('./src/components/services/ServiceCardSkeleton.vue')['default']
     ServiceTag: typeof import('./src/components/common/ServiceTag.vue')['default']
+    TimeSlotSkeleton: typeof import('./src/components/booking/TimeSlotSkeleton.vue')['default']
   }
 }

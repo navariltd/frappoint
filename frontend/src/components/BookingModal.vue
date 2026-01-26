@@ -76,10 +76,12 @@
 				<div v-if="step === 0">
 					<h4 class="font-semibold mb-4 text-lg">Select Date & Time</h4>
 
-					<div v-if="slotsResource.loading" class="flex justify-center py-8">
-						<div
-							class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"
-						></div>
+					<!-- Initial loading state for dates -->
+					<div v-if="slotsResource.loading && !slotsResource.data" class="space-y-4">
+						<div class="h-64 bg-gray-100 rounded-lg animate-pulse"></div>
+						<div class="grid grid-cols-2 gap-2">
+							<div v-for="i in 6" :key="i" class="h-12 bg-gray-200 rounded-lg"></div>
+						</div>
 					</div>
 
 					<div v-else class="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -131,9 +133,11 @@
 								</div>
 							</div>
 
-							<div v-else-if="loadingTimeSlots" class="flex justify-center py-8">
+							<div v-else-if="loadingTimeSlots" class="space-y-2">
 								<div
-									class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"
+									v-for="i in 8"
+									:key="i"
+									class="h-12 bg-gray-200 rounded-lg animate-pulse"
 								></div>
 							</div>
 

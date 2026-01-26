@@ -26,11 +26,28 @@
 			</div>
 
 			<!-- Loading State -->
-			<div v-if="loading" class="p-8 text-center">
-				<div
-					class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"
-				></div>
-				<p class="mt-4 text-gray-600">Loading appointment details...</p>
+			<div v-if="loading" class="p-8">
+				<div class="space-y-4 animate-pulse">
+					<!-- Header skeleton -->
+					<div class="flex items-center gap-3 mb-6">
+						<div class="size-12 bg-gray-200 rounded-full"></div>
+						<div class="flex-1">
+							<div class="h-5 bg-gray-200 rounded w-32 mb-2"></div>
+							<div class="h-4 bg-gray-200 rounded w-48"></div>
+						</div>
+					</div>
+
+					<!-- Content skeletons -->
+					<div class="space-y-4">
+						<div v-for="i in 5" :key="i" class="flex items-start gap-3">
+							<div class="size-10 bg-gray-200 rounded-lg flex-shrink-0"></div>
+							<div class="flex-1">
+								<div class="h-4 bg-gray-200 rounded w-20 mb-2"></div>
+								<div class="h-5 bg-gray-200 rounded w-40"></div>
+							</div>
+						</div>
+					</div>
+				</div>
 			</div>
 
 			<!-- Content -->

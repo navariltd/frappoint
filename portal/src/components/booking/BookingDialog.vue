@@ -88,6 +88,7 @@
 					:available-dates="availableDates"
 					:available-slots="availableSlots"
 					:can-proceed="canProceed"
+					:slots-loading="getAvailableTimeSlots.loading"
 					@continue="currentStep++"
 				/>
 

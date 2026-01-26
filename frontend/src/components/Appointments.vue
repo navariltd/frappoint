@@ -53,9 +53,16 @@
 		</div>
 
 		<div class="border-t border-gray-200 pt-6">
-			<div v-if="appointmentDocs.loading" class="flex justify-center items-center py-12">
-				<div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+			<!-- Loading state -->
+			<div v-if="appointmentDocs.loading">
+				<ul class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+					<li v-for="i in 8" :key="i">
+						<AppointmentCardSkeleton />
+					</li>
+				</ul>
 			</div>
+
+			<!-- Empty state -->
 			<div
 				v-else-if="!appointmentDocs.data || appointmentDocs.data.length === 0"
 				class="flex flex-col items-center justify-center py-12 text-center"
@@ -101,6 +108,7 @@ import { CalendarX } from "lucide-vue-next";
 import { string } from "postcss-selector-parser";
 import { computed, ref, watch } from "vue";
 import AppointmentCard from "./AppointmentCard.vue";
+import AppointmentCardSkeleton from "./AppointmentCardSkeleton.vue";
 import { useRouter } from "vue-router";
 
 const router = useRouter();
