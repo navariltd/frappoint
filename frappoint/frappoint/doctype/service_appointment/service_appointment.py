@@ -45,7 +45,7 @@ class ServiceAppointment(Document):
 		appointment_type: DF.Link
 		company: DF.Link
 		confirmation_token: DF.Data | None
-		currency: DF.Link | None
+		currency: DF.Link
 		customer: DF.Link
 		details: DF.SmallText | None
 		duration: DF.Int
@@ -500,9 +500,7 @@ class ServiceAppointment(Document):
 			self.currency = currency
 
 		if self.currency != currency:
-			frappe.throw(
-				f"Currency mismatch: Service price is in {currency} but appointment currency is {self.currency}"
-			)
+			self.currency = currency
 
 	def _get_price_currency(self):
 		"""Return the rate and currency, given service_type and appointment_price_name"""

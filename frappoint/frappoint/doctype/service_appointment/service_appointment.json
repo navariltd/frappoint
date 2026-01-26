@@ -299,7 +299,9 @@
    "fieldname": "currency",
    "fieldtype": "Link",
    "label": "Currency",
-   "options": "Currency"
+   "options": "Currency",
+   "read_only": 1,
+   "reqd": 1
   }
  ],
  "grid_page_length": 50,
@@ -337,7 +339,7 @@
    "link_fieldname": "reference_docname"
   }
  ],
- "modified": "2026-01-23 08:39:53.451836",
+ "modified": "2026-01-26 12:08:10.319941",
  "modified_by": "Administrator",
  "module": "Frappoint",
  "name": "Service Appointment",

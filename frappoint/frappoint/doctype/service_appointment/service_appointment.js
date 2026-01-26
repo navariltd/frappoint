@@ -141,6 +141,7 @@ frappe.ui.form.on("Service Appointment", {
 								// Only one price, auto-select
 								frm.set_value("appointment_price", apt_type.prices[0].price_name);
 								frm.set_value("total_amount", apt_type.prices[0].rate);
+								frm.set_value("currency", apt_type.prices[0].currency);
 							} else {
 								// Multiple prices, let user select
 								show_price_selector(frm, apt_type.prices);
