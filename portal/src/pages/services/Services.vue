@@ -69,13 +69,19 @@
 				/>
 			</template>
 		</div>
+
+		<ErrorMessage
+			v-if="serviceTypesResource.error"
+			:message="serviceTypesResource.error"
+			class="mb-6"
+		/>
 	</div>
 </template>
 
 <script setup>
 import ServiceCard from "@/components/services/ServiceCard.vue";
 import ServiceCardSkeleton from "@/components/services/ServiceCardSkeleton.vue";
-import { createResource, FeatherIcon } from "frappe-ui";
+import { createResource, FeatherIcon, ErrorMessage } from "frappe-ui";
 import { computed } from "vue";
 
 const serviceTypesResource = createResource({

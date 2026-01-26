@@ -96,9 +96,14 @@
 		<div class="grid grid-cols-1 xl:grid-cols-3 gap-4 sm:gap-6 max-w-7xl mx-auto">
 			<!-- Left Column - Appointments List -->
 			<div class="xl:col-span-2 space-y-4 sm:space-y-6">
+				<!-- Loading State -->
+				<div v-if="appointmentsResourceList.loading" class="space-y-4">
+					<AppointmentCardSkeleton v-for="i in 3" :key="i" />
+				</div>
+
 				<!-- Empty State -->
 				<div
-					v-if="
+					v-else-if="
 						!nextUp &&
 						upcomingAppointments.length === 0 &&
 						pastAppointments.length === 0
@@ -243,6 +248,7 @@
 
 <script setup>
 import AppointmentCard from "@/components/booking/AppointmentCard.vue";
+import AppointmentCardSkeleton from "@/components/booking/AppointmentCardSkeleton.vue";
 import { Calendar } from "frappe-ui";
 import { createListResource } from "frappe-ui";
 import { computed, onMounted, ref } from "vue";

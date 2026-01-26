@@ -4,8 +4,11 @@
 			<h1 class="text-2xl font-bold mb-6">Appointment Type</h1>
 
 			<!-- Loading State -->
-			<div v-if="serviceTypes.loading" class="flex justify-center items-center py-12">
-				<div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+			<div
+				v-if="serviceTypes.loading"
+				class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"
+			>
+				<ServiceCardSkeleton v-for="i in 6" :key="i" />
 			</div>
 
 			<!-- Service Types Grid -->
@@ -42,6 +45,7 @@ import { ref } from "vue";
 import { createResource } from "frappe-ui";
 import AppLayout from "@/components/AppLayout.vue";
 import ServiceCard from "@/components/ServiceCard.vue";
+import ServiceCardSkeleton from "@/components/ServiceCardSkeleton.vue";
 import BookingModal from "@/components/BookingModal.vue";
 
 const serviceTypes = createResource({
