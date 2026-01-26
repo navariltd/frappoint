@@ -7,189 +7,205 @@
 					Payment Method
 				</h2>
 
-				<div class="relative flex py-5 items-center mb-8">
-					<div class="flex-grow border-t border-gray-200 dark:border-gray-700"></div>
-					<span
-						class="flex-shrink mx-4 text-gray-400 text-xs font-bold uppercase tracking-wider"
-					></span>
-					<div class="flex-grow border-t border-gray-200 dark:border-gray-700"></div>
-				</div>
-
-				<div class="grid gap-3">
+				<div class="space-y-3 mb-8">
+					<!-- M-Pesa Payment Option -->
 					<label
-						v-for="gateway in booking.draft.paymentGateways"
-						:key="gateway"
-						class="flex items-center gap-3 p-4 border rounded-lg cursor-pointer"
+						class="flex items-center gap-4 p-4 sm:p-5 border-2 rounded-xl sm:rounded-2xl cursor-pointer transition-all"
 						:class="{
-							'border-primary bg-primary/5':
-								booking.draft.selectedPaymentGateway === gateway,
+							'border-[#16a34a] bg-[#16a34a]/5':
+								booking.draft.selectedPaymentGateway === 'Mpesa',
+							'border-gray-200 hover:border-gray-300':
+								booking.draft.selectedPaymentGateway !== 'Mpesa',
 						}"
 					>
+						<div
+							class="flex items-center justify-center w-12 h-12 sm:w-14 sm:h-14 bg-white rounded-xl border border-gray-200 flex-shrink-0"
+						>
+							<MpesaIcon />
+						</div>
+						<div class="flex-1 min-w-0">
+							<h3
+								class="text-base sm:text-lg font-semibold text-gray-900 dark:text-white mb-0.5"
+							>
+								M-Pesa
+							</h3>
+							<p class="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
+								Pay with your M-Pesa mobile money
+							</p>
+						</div>
+						<div class="flex-shrink-0">
+							<div
+								class="w-5 h-5 sm:w-6 sm:h-6 rounded-full border-2 flex items-center justify-center transition-all"
+								:class="{
+									'border-[#16a34a] bg-[#16a34a]':
+										booking.draft.selectedPaymentGateway === 'Mpesa',
+									'border-gray-300':
+										booking.draft.selectedPaymentGateway !== 'Mpesa',
+								}"
+							>
+								<div
+									v-if="booking.draft.selectedPaymentGateway === 'Mpesa'"
+									class="w-2 h-2 sm:w-2.5 sm:h-2.5 bg-white rounded-full"
+								></div>
+							</div>
+						</div>
 						<input
 							type="radio"
-							:name="'payment_gateway'"
-							:value="gateway"
+							name="payment_gateway"
+							value="Mpesa"
 							v-model="booking.draft.selectedPaymentGateway"
+							class="sr-only"
 						/>
-						<span class="font-medium">{{ gateway }}</span>
+					</label>
+
+					<!-- PayPal Payment Option -->
+					<label
+						class="flex items-center gap-4 p-4 sm:p-5 border-2 rounded-xl sm:rounded-2xl cursor-pointer transition-all"
+						:class="{
+							'border-[#0070ba] bg-[#0070ba]/5':
+								booking.draft.selectedPaymentGateway === 'Paypal',
+							'border-gray-200 hover:border-gray-300':
+								booking.draft.selectedPaymentGateway !== 'Paypal',
+						}"
+					>
+						<div
+							class="flex items-center justify-center w-12 h-12 sm:w-14 sm:h-14 bg-white rounded-xl border border-gray-200 flex-shrink-0"
+						>
+							<PaypalIcon />
+						</div>
+						<div class="flex-1 min-w-0">
+							<h3
+								class="text-base sm:text-lg font-semibold text-gray-900 dark:text-white mb-0.5"
+							>
+								PayPal
+							</h3>
+							<p class="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
+								Pay safely with your PayPal account
+							</p>
+						</div>
+						<div class="flex-shrink-0">
+							<div
+								class="w-5 h-5 sm:w-6 sm:h-6 rounded-full border-2 flex items-center justify-center transition-all"
+								:class="{
+									'border-[#0070ba] bg-[#0070ba]':
+										booking.draft.selectedPaymentGateway === 'Paypal',
+									'border-gray-300':
+										booking.draft.selectedPaymentGateway !== 'Paypal',
+								}"
+							>
+								<div
+									v-if="booking.draft.selectedPaymentGateway === 'Paypal'"
+									class="w-2 h-2 sm:w-2.5 sm:h-2.5 bg-white rounded-full"
+								></div>
+							</div>
+						</div>
+						<input
+							type="radio"
+							name="payment_gateway"
+							value="Paypal"
+							v-model="booking.draft.selectedPaymentGateway"
+							class="sr-only"
+						/>
 					</label>
 				</div>
 			</div>
 
-			<!-- Right Column - Booking Summary -->
+			<!-- Right Column - Order Summary -->
 			<aside class="w-full lg:w-80 xl:w-96 flex-shrink-0">
 				<div
 					class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-6 sticky top-24"
 				>
 					<h2 class="text-lg font-bold text-gray-900 dark:text-white mb-6">
-						Booking Summary
+						Order Summary
 					</h2>
 
-					<div class="space-y-6 pb-6 border-b border-gray-100 dark:border-gray-800">
+					<div class="space-y-4 pb-6 border-b border-gray-100 dark:border-gray-800">
 						<!-- Service Info -->
-						<div class="flex gap-4">
-							<div
-								class="w-16 h-16 rounded-xl bg-gray-100 dark:bg-gray-800 flex-shrink-0 flex items-center justify-center"
-							>
-								<svg
-									class="w-8 h-8 text-primary"
-									fill="none"
-									stroke="currentColor"
-									viewBox="0 0 24 24"
-								>
-									<path
-										stroke-linecap="round"
-										stroke-linejoin="round"
-										stroke-width="2"
-										d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-									/>
-								</svg>
-							</div>
-							<div>
-								<h3 class="font-bold text-gray-900 dark:text-white leading-tight">
-									{{ booking.draft.serviceType || "Service" }}
-								</h3>
-								<p class="text-sm text-gray-500 dark:text-gray-400">
-									{{ serviceDuration }}
-								</p>
-								<p class="text-sm font-medium text-primary mt-1">
+						<div>
+							<h3 class="font-bold text-gray-900 dark:text-white text-lg mb-1">
+								{{ booking.draft.serviceType || "Service" }}
+							</h3>
+							<p class="text-sm text-gray-500 dark:text-gray-400">
+								{{ formattedDate }} • {{ formattedTime }}
+							</p>
+						</div>
+
+						<!-- Price Breakdown -->
+						<div class="space-y-2.5 pt-2">
+							<div class="flex justify-between text-sm">
+								<span class="text-gray-600 dark:text-gray-400">Service Fee</span>
+								<span class="font-medium text-gray-900 dark:text-white">
 									{{
 										formatCurrency(booking.draft.price, booking.draft.currency)
 									}}
-								</p>
+								</span>
 							</div>
-						</div>
-
-						<!-- Appointment Details -->
-						<div class="space-y-3">
-							<div class="flex items-center gap-3 text-gray-600 dark:text-gray-400">
-								<svg
-									class="w-5 h-5"
-									fill="none"
-									stroke="currentColor"
-									viewBox="0 0 24 24"
-								>
-									<path
-										stroke-linecap="round"
-										stroke-linejoin="round"
-										stroke-width="2"
-										d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
-									/>
-								</svg>
-								<span class="text-sm">{{ formattedDate }}</span>
+							<div class="flex justify-between text-sm">
+								<span class="text-gray-600 dark:text-gray-400">Platform Fee</span>
+								<span class="font-medium text-gray-900 dark:text-white">
+									{{ formatCurrency(platformFee, booking.draft.currency) }}
+								</span>
 							</div>
-							<div class="flex items-center gap-3 text-gray-600 dark:text-gray-400">
-								<svg
-									class="w-5 h-5"
-									fill="none"
-									stroke="currentColor"
-									viewBox="0 0 24 24"
+							<div class="flex justify-between text-sm">
+								<span class="text-gray-600 dark:text-gray-400"
+									>Service Tax ({{ taxRate }}%)</span
 								>
-									<path
-										stroke-linecap="round"
-										stroke-linejoin="round"
-										stroke-width="2"
-										d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-									/>
-								</svg>
-								<span class="text-sm">{{ formattedTime }}</span>
-							</div>
-							<div class="flex items-center gap-3 text-gray-600 dark:text-gray-400">
-								<svg
-									class="w-5 h-5"
-									fill="none"
-									stroke="currentColor"
-									viewBox="0 0 24 24"
-								>
-									<path
-										stroke-linecap="round"
-										stroke-linejoin="round"
-										stroke-width="2"
-										d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
-									/>
-								</svg>
-								<span class="text-sm">{{ providerName }}</span>
+								<span class="font-medium text-gray-900 dark:text-white">
+									{{ formatCurrency(taxAmount, booking.draft.currency) }}
+								</span>
 							</div>
 						</div>
 					</div>
 
-					<!-- Price Breakdown -->
-					<div class="py-6 space-y-3">
-						<div class="flex justify-between text-sm">
-							<span class="text-gray-500 dark:text-gray-400">Subtotal</span>
-							<span class="font-semibold text-gray-900 dark:text-white">{{
-								formatCurrency(booking.draft.price, booking.draft.currency)
-							}}</span>
-						</div>
-						<div class="flex justify-between text-sm">
-							<span class="text-gray-500 dark:text-gray-400"
-								>Tax ({{ taxRate }}%)</span
-							>
-							<span class="font-semibold text-gray-900 dark:text-white">{{
-								formatCurrency(taxAmount, booking.draft.currency)
-							}}</span>
-						</div>
-						<div
-							class="pt-3 border-t border-gray-100 dark:border-gray-800 flex justify-between items-baseline"
-						>
+					<!-- Grand Total -->
+					<div class="py-6 border-b border-gray-100 dark:border-gray-800">
+						<div class="flex justify-between items-baseline">
 							<span class="text-lg font-bold text-gray-900 dark:text-white"
-								>Total</span
+								>Grand Total</span
 							>
-							<span class="text-2xl font-extrabold text-primary">{{
-								formatCurrency(totalAmount, booking.draft.currency)
-							}}</span>
+							<span class="text-2xl font-bold text-[#16a34a]">
+								{{ formatCurrency(totalAmount, booking.draft.currency) }}
+							</span>
 						</div>
+					</div>
+
+					<!-- Security Message -->
+					<div class="pt-4">
+						<p class="text-xs text-center text-[#16a34a] font-medium">
+							Your data is safe. We use high-level encryption for all payment
+							processes.
+						</p>
 					</div>
 				</div>
 			</aside>
 		</div>
 
-		<!-- Buttons Section -->
+		<!-- Proceed Button -->
 		<div
 			class="px-6 md:px-8 pb-6 md:pb-8 flex items-center justify-between border-t border-gray-100 pt-6"
 		>
 			<button
 				@click="emit('back')"
-				class="px-6 py-3 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 font-semibold hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+				class="px-6 py-3 rounded-xl border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 font-semibold hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
 				type="button"
 			>
 				Back
 			</button>
 			<button
-				:disabled="!canProceed"
+				:disabled="!canProceed || !booking.draft.selectedPaymentGateway"
 				@click="emit('submit')"
-				class="px-8 py-3 rounded-lg bg-primary hover:bg-primary-dark text-white font-semibold shadow-lg shadow-primary/30 transition-all flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+				class="px-8 py-3 rounded-xl bg-[#16a34a] hover:bg-[#15803d] text-white font-bold shadow-lg transition-all flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
 				type="button"
 			>
+				Proceed to Pay
 				<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 					<path
 						stroke-linecap="round"
 						stroke-linejoin="round"
 						stroke-width="2"
-						d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
+						d="M13 7l5 5m0 0l-5 5m5-5H6"
 					/>
 				</svg>
-				Confirm and Pay
 			</button>
 		</div>
 	</div>
@@ -199,6 +215,8 @@
 import { useBookingStore } from "@/stores/bookingStore";
 import { formatCurrency } from "@/utils";
 import { computed, ref } from "vue";
+import MpesaIcon from "../../icons/MpesaIcon.vue";
+import PaypalIcon from "../../icons/PaypalIcon.vue";
 
 const props = defineProps({
 	canProceed: Boolean,
@@ -214,8 +232,10 @@ const selectedPaymentGateway = computed({
 	set: (v) => booking.selectPaymentGateway(v),
 });
 
-// Tax calculation
+// Fee calculations
+const platformFee = ref(5.5);
 const taxRate = ref(8);
+
 const taxAmount = computed(() => {
 	const price = parseFloat(booking.draft.price) || 0;
 	return (price * taxRate.value) / 100;
@@ -223,7 +243,7 @@ const taxAmount = computed(() => {
 
 const totalAmount = computed(() => {
 	const price = parseFloat(booking.draft.price) || 0;
-	return price + taxAmount.value;
+	return price + platformFee.value + taxAmount.value;
 });
 
 // Computed properties for display
