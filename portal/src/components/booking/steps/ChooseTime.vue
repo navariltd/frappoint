@@ -2,7 +2,7 @@
 	<div class="w-full lg:w-full flex flex-col lg:flex-row">
 		<!-- LEFT COLUMN: Calendar  -->
 		<div
-			class="w-full lg:w-5/12 p-2 md:p-8 border-b lg:border-b-0 lg:border-r border-slate-100 bg-white flex flex-col"
+			class="w-full lg:w-6/12 p-2 md:p-8 border-b lg:border-b-0 lg:border-r border-slate-100 bg-white flex flex-col"
 		>
 			<VueDatePicker
 				:model-value="booking.draft.date"
@@ -108,6 +108,15 @@
 							</p>
 						</div>
 					</div>
+
+					<!-- Continue Button -->
+					<Button
+						:disabled="!canProceed"
+						@click="$emit('continue')"
+						class="py-3 px-8 rounded-lg !bg-primary hover:!bg-primary-dark text-white font-semibold text-sm shadow-lg shadow-primary/30 transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+					>
+						Continue
+					</Button>
 				</div>
 			</div>
 		</div>
@@ -125,7 +134,10 @@ import { formatCurrency } from "@/utils";
 const props = defineProps({
 	availableDates: Array,
 	availableSlots: Array,
+	canProceed: Boolean,
 });
+
+defineEmits(["continue"]);
 
 const booking = useBookingStore();
 

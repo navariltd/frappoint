@@ -20,6 +20,7 @@ declare module 'vue' {
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']
     ServiceCard: typeof import('./src/components/services/ServiceCard.vue')['default']
+    ServiceCardSkeleton: typeof import('./src/components/services/ServiceCardSkeleton.vue')['default']
     ServiceTag: typeof import('./src/components/common/ServiceTag.vue')['default']
   }
 }

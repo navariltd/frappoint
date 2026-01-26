@@ -3,9 +3,6 @@
   "version": "1.0.0",
   "description": "Frappe Appointments",
   "main": "index.js",
-  "engines": {
-    "node": "^20.19.0 || >=22.12.0"
-  },
   "scripts": {
     "frontend-install": "cd frontend && yarn install",
     "frontend-build": "cd frontend && yarn build",

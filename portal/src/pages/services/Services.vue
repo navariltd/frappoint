@@ -55,17 +55,26 @@
 		<div
 			class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6 md:gap-8"
 		>
-			<ServiceCard
-				v-for="serviceType in serviceTypes"
-				:key="serviceType.name"
-				:serviceType="serviceType"
-			/>
+			<!-- Show skeletons while loading -->
+			<template v-if="serviceTypesResource.loading">
+				<ServiceCardSkeleton v-for="n in 8" :key="n" />
+			</template>
+
+			<!-- Show actual service cards when loaded -->
+			<template v-else>
+				<ServiceCard
+					v-for="serviceType in serviceTypes"
+					:key="serviceType.name"
+					:serviceType="serviceType"
+				/>
+			</template>
 		</div>
 	</div>
 </template>
 
 <script setup>
 import ServiceCard from "@/components/services/ServiceCard.vue";
+import ServiceCardSkeleton from "@/components/services/ServiceCardSkeleton.vue";
 import { createResource, FeatherIcon } from "frappe-ui";
 import { computed } from "vue";
 
