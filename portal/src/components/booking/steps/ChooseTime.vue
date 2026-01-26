@@ -92,40 +92,6 @@
 					</Button>
 				</div>
 			</div>
-
-			<!-- Footer Action Area  -->
-			<div class="mt-auto pt-6 border-t border-slate-100">
-				<div
-					class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4"
-				>
-					<!-- Summary  -->
-					<div class="flex items-start gap-3">
-						<div
-							class="w-10 h-10 rounded-lg bg-slate-100 flex items-center justify-center text-slate-500"
-						>
-							<FeatherIcon class="h-4" name="clock" />
-						</div>
-						<div>
-							<p class="text-sm font-bold text-slate-900">
-								{{ booking.draft.serviceType }}
-							</p>
-							<p v-if="booking.draft.slot" class="text-xs text-slate-500">
-								{{ formatCurrency(booking.draft.price, booking.draft.currency) }} .
-								{{ formatTime(booking.draft.slot.start_time) }}
-							</p>
-						</div>
-					</div>
-
-					<!-- Continue Button -->
-					<Button
-						:disabled="!canProceed"
-						@click="$emit('continue')"
-						class="py-3 px-8 rounded-lg !bg-primary hover:!bg-primary-dark text-white font-semibold text-sm shadow-lg shadow-primary/30 transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-					>
-						Continue
-					</Button>
-				</div>
-			</div>
 		</div>
 	</div>
 </template>
