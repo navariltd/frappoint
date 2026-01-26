@@ -424,7 +424,7 @@ def get_available_slots(appointment_type, provider=None, date=None, days_ahead=3
 			AND (s.service_appointment IS NULL OR s.service_appointment = '')
 			AND p.active = 1
 			AND su.unit_type IN %(required_unit_types)s
-			AND su.active = 1
+			AND su.disabled = 0
 			AND su.allow_appointments = 1
 			{past_booking_filter}
 			ORDER BY s.posting_date, s.start_time, p.provider_name, su.unit_name
