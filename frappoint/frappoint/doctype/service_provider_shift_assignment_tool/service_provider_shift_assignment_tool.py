@@ -1,0 +1,291 @@
+# Copyright (c) 2026, Navari LTD and contributors
+# For license information, please see license.txt
+
+from typing import ClassVar
+
+import frappe
+from frappe import _
+from frappe.model.document import Document
+from frappe.utils import get_link_to_form
+
+
+class ServiceProviderShiftAssignmentTool(Document):
+	# begin: auto-generated types
+	# This code is auto-generated. Do not modify anything in this block.
+
+	from typing import TYPE_CHECKING
+
+	if TYPE_CHECKING:
+		from frappe.types import DF
+
+		from frappoint.frappoint.doctype.service_provider_shift_assignment_tool_detail.service_provider_shift_assignment_tool_detail import (
+			ServiceProviderShiftAssignmentToolDetail,
+		)
+
+		action: DF.Literal["Assign Shift"]
+		branch: DF.Link | None
+		company: DF.Link
+		department: DF.Link | None
+		designation: DF.Link | None
+		end_date: DF.Date | None
+		grade: DF.Link | None
+		provider_shift_type: DF.Link | None
+		providers: DF.Table[ServiceProviderShiftAssignmentToolDetail]
+		service_unit: DF.Link | None
+		service_unit_type: DF.Link | None
+		start_date: DF.Date | None
+		status: DF.Literal["Active", "Inactive"]
+	# end: auto-generated types
+
+	_table_fieldnames: ClassVar[list] = []
+
+	def db_insert(self, *args, **kwargs):
+		pass
+
+	def load_from_db(self):
+		"""Override to prevent database loading for this tool."""
+		# Set required attributes for a single doctype
+		self.name = "Service Provider Shift Assignment Tool"
+		self._original_modified = frappe.utils.now()
+		self.modified = self._original_modified
+
+	def db_update(self):
+		pass
+
+	def delete(self):
+		pass
+
+	@staticmethod
+	def get_list(filters=None, **kwargs):
+		pass
+
+	@staticmethod
+	def get_count(filters=None, **kwargs):
+		pass
+
+	@staticmethod
+	def get_stats(filters=None, **kwargs):
+		pass
+
+	def check_if_latest(self):
+		"""Override to skip version checking for this tool."""
+		pass
+
+	@frappe.whitelist()
+	def get_providers(self):
+		"""
+		Fetch service providers based on quick filters and advanced filters.
+		Returns list of providers eligible for shift assignment.
+		"""
+		# Build filters from quick filter fields
+		quick_filter_fields = [
+			"company",
+			"branch",
+			"department",
+			"designation",
+			"grade",
+			"service_unit",
+			"service_unit_type",
+		]
+		filters = [[d, "=", self.get(d)] for d in quick_filter_fields if self.get(d)]
+
+		# Get Service Provider doctype
+		ServiceProvider = frappe.qb.DocType("Service Provider")
+
+		query = frappe.qb.get_query(
+			ServiceProvider,
+			fields=[
+				ServiceProvider.name.as_("service_provider"),
+				ServiceProvider.provider_name,
+				ServiceProvider.branch,
+				ServiceProvider.department,
+				ServiceProvider.service_unit,
+			],
+			filters=filters,
+		).where(ServiceProvider.enabled == 1)
+
+		# Exclude providers with existing active shift assignments for the date range
+		if self.status == "Active" and self.provider_shift_type and self.start_date:
+			query = query.where(
+				ServiceProvider.name.notin(
+					frappe.qb.from_("Service Provider Shift Assignment")
+					.select("service_provider")
+					.where(
+						(
+							frappe.qb.from_("Service Provider Shift Assignment").provider_shift_type
+							== self.provider_shift_type
+						)
+						& (frappe.qb.from_("Service Provider Shift Assignment").status == "Active")
+						& (frappe.qb.from_("Service Provider Shift Assignment").docstatus == 1)
+						& (
+							(frappe.qb.from_("Service Provider Shift Assignment").end_date >= self.start_date)
+							| (frappe.qb.from_("Service Provider Shift Assignment").end_date.isnull())
+						)
+					)
+				)
+			)
+
+			if self.end_date:
+				query = query.where(
+					ServiceProvider.name.notin(
+						frappe.qb.from_("Service Provider Shift Assignment")
+						.select("service_provider")
+						.where(
+							frappe.qb.from_("Service Provider Shift Assignment").start_date <= self.end_date
+						)
+					)
+				)
+
+		return query.run(as_dict=True)
+
+	@frappe.whitelist()
+	def bulk_assign_shifts(self):
+		"""
+		Assign or deactivate shifts for service providers based on status.
+		If status is 'Active': Create new Service Provider Shift Assignments
+		If status is 'Inactive': Deactivate existing Service Provider Shift Assignments
+		"""
+		if not self.providers:
+			frappe.throw(_("Please select at least one Service Provider to assign shifts."))
+
+		if not self.provider_shift_type:
+			frappe.throw(_("Please select a Service Provider Shift Type."))
+
+		if not self.start_date:
+			frappe.throw(_("Please select a Start Date."))
+
+		if not self.company:
+			frappe.throw(_("Please select a Company."))
+
+		success, failure = [], []
+
+		for row in self.providers:
+			try:
+				frappe.db.savepoint("before_shift_assignment")
+
+				if self.status == "Active":
+					# Create a new shift assignment
+					assignment = self._create_shift_assignment(
+						row.service_provider,
+						self.company,
+						self.provider_shift_type,
+						self.start_date,
+						self.end_date,
+						self.status,
+						row.service_unit,
+					)
+					success.append(
+						{
+							"doc": get_link_to_form("Service Provider Shift Assignment", assignment.name),
+							"provider": row.service_provider,
+						}
+					)
+				elif self.status == "Inactive":
+					# Deactivate existing shift assignments
+					self._deactivate_shift_assignment(
+						row.service_provider,
+						self.provider_shift_type,
+						self.start_date,
+						self.end_date,
+					)
+					success.append(
+						{
+							"doc": row.service_provider,
+							"provider": row.service_provider_name,
+							"action": "deactivated",
+						}
+					)
+
+			except Exception as e:
+				frappe.db.rollback(save_point="before_shift_assignment")
+				frappe.log_error(
+					f"Shift Assignment failed for provider {row.service_provider}",
+					f"Shift Assignment failed for provider {row.service_provider}: {e}",
+					reference_doctype="Service Provider Shift Assignment",
+				)
+				failure.append(
+					{
+						"provider": row.service_provider_name,
+						"error": str(e),
+					}
+				)
+
+		frappe.clear_messages()
+
+		# Show summary message
+		if success:
+			frappe.msgprint(
+				_("{0} shift assignment(s) processed successfully. {1} failed.").format(
+					len(success), len(failure)
+				),
+				alert=True,
+				indicator="green" if not failure else "yellow",
+			)
+
+		return {
+			"success": success,
+			"failure": failure,
+		}
+
+	def _create_shift_assignment(
+		self,
+		service_provider: str,
+		company: str,
+		provider_shift_type: str,
+		start_date: str,
+		end_date: str | None,
+		status: str,
+		service_unit: str | None = None,
+	):
+		"""Create a new Service Provider Shift Assignment document."""
+		assignment = frappe.new_doc("Service Provider Shift Assignment")
+		assignment.provider = service_provider
+		assignment.company = company
+		assignment.shift_type = provider_shift_type
+		assignment.start_date = start_date
+		assignment.end_date = end_date
+		assignment.status = status
+		if service_unit:
+			assignment.service_unit = service_unit
+		assignment.save()
+		assignment.submit()
+		return assignment
+
+	def _deactivate_shift_assignment(
+		self,
+		service_provider: str,
+		provider_shift_type: str,
+		start_date: str,
+		end_date: str | None,
+	):
+		"""Deactivate existing shift assignments for the provider."""
+		filters = {
+			"service_provider": service_provider,
+			"provider_shift_type": provider_shift_type,
+			"status": "Active",
+			"docstatus": 1,
+		}
+
+		assignments = frappe.get_list(
+			"Service Provider Shift Assignment",
+			filters=filters,
+			fields=["name"],
+		)
+
+		for assignment_doc in assignments:
+			doc = frappe.get_doc("Service Provider Shift Assignment", assignment_doc.name)
+			# Check if assignment overlaps with the specified date range
+			if self._has_date_overlap(doc.start_date, doc.end_date, start_date, end_date):
+				doc.status = "Inactive"
+				doc.save()
+				if doc.docstatus == 1:
+					doc.amend()
+
+	def _has_date_overlap(self, existing_start, existing_end, new_start, new_end) -> bool:
+		"""Check if two date ranges overlap."""
+		if existing_end is None:
+			existing_end = frappe.utils.today()
+		if new_end is None:
+			new_end = frappe.utils.today()
+
+		return not (existing_end < new_start or new_end < existing_start)
