@@ -158,23 +158,24 @@ after_install = "frappoint.setup.setup.execute"
 # Scheduled Tasks
 # ---------------
 
-# scheduler_events = {
-# 	"all": [
-# 		"frappoint.tasks.all"
-# 	],
-# 	"daily": [
-# 		"frappoint.tasks.daily"
-# 	],
-# 	"hourly": [
-# 		"frappoint.tasks.hourly"
-# 	],
-# 	"weekly": [
-# 		"frappoint.tasks.weekly"
-# 	],
-# 	"monthly": [
-# 		"frappoint.tasks.monthly"
-# 	],
-# }
+scheduler_events = {
+	# "all": [
+	# 	"frappoint.tasks.all"
+	# ],
+	"daily": [
+		"frappoint.utils.purge_old_slots",
+		"frappoint.utils.replenish_slot_window",
+	],
+	# "hourly": [
+	# 	"frappoint.tasks.hourly"
+	# ],
+	# "weekly": [
+	# 	"frappoint.tasks.weekly"
+	# ],
+	# "monthly": [
+	# 	"frappoint.tasks.monthly"
+	# ],
+}
 
 # Testing
 # -------

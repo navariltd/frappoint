@@ -96,7 +96,7 @@ class ServiceProviderShiftAssignment(Document):
 			and hasattr(self.flags, "old_status")
 			and self.flags.old_status == "Inactive"
 		):
-			frappe.msgprint(_("Shift reactivated. Regenerating slots..."), indicator="green", alert=True)
+			frappe.msgprint(_("Shift reactivated."), indicator="green", alert=True)
 			self.reactivate_slots()
 			return
 
@@ -104,11 +104,6 @@ class ServiceProviderShiftAssignment(Document):
 
 		if regeneration_type == "full":
 			# Full regeneration needed (shift type, dates changed)
-			frappe.msgprint(
-				_("Critical shift parameters changed. All slots will be regenerated."),
-				indicator="orange",
-				alert=True,
-			)
 			frappe.enqueue(
 				"frappoint.frappoint.doctype.service_provider_appointment_slot.service_provider_appointment_slot.generate_for_shift",
 				shift_assignment=self.name,
@@ -133,8 +128,12 @@ class ServiceProviderShiftAssignment(Document):
 
 	def validate_overlapping_shifts(self):
 		"""
-		Allow multiple shifts for same provider on same day
-		if they're in different service units and overlapping times
+		Validate overlapping shifts for a provider.
+		Rules:
+		- Both shifts have the same service unit -> error
+		- Both shifts have different service units -> warning
+		- One shift has unit, other has no unit -> allowed
+		- Both shifts have no unit -> error
 		"""
 		if self.status == "Inactive":
 			return
@@ -147,7 +146,7 @@ class ServiceProviderShiftAssignment(Document):
 
 			other_shift = frappe.get_doc("Service Provider Shift Assignment", d.name)
 
-			# Both service units exist
+			# Both shifts have service units
 			if self.service_unit and other_shift.service_unit:
 				# Different units -> allowed with warning
 				if self.service_unit != other_shift.service_unit:
@@ -161,8 +160,13 @@ class ServiceProviderShiftAssignment(Document):
 					)
 					continue
 
-			# Same unit OR missing unit -> conflict
-			self.throw_overlap_error(d)
+				else:
+					# Same unit -> conflict
+					self.throw_overlap_error(d)
+
+			# Both shifts have no unit -> conflict
+			elif not self.service_unit and not other_shift.service_unit:
+				self.throw_overlap_error(d)
 
 	def throw_overlap_error(self, shift_details):
 		shift_details = frappe._dict(shift_details)
@@ -218,7 +222,7 @@ class ServiceProviderShiftAssignment(Document):
 						compatible_services.append(service)
 						break
 
-			frappe.msgprint(
+			frappe.throw(
 				_(
 					"Notice: Provider {0} doesn't offer services that use {1} ({2}). "
 					"Compatible services include: {3}"
@@ -336,30 +340,59 @@ class ServiceProviderShiftAssignment(Document):
 		Validate shift assignment based on provider's services
 		Called from Service Provider Shift Assignment's validate
 		"""
-		if not self.service_unit:
-			# Check if any of the provider's services require a service unit
-			provider_services = frappe.get_all(
-				"Service Provider Service",
-				filters={"parent": self.provider, "disabled": 0},
-				pluck="service_type",
-			)
+		# Check if any of the provider's services require a service unit
+		provider_services = frappe.get_all(
+			"Service Provider Service",
+			filters={"parent": self.provider, "disabled": 0},
+			pluck="service_type",
+		)
 
-			requires_unit = False
-			for service_type in provider_services:
-				req, _unit_types = service_type_requires_service_unit(service_type)
-				if req:
-					requires_unit = True
-					break
+		# Count how many services require a service unit
+		services_requiring_unit = [
+			st for st in provider_services if service_type_requires_service_unit(st)[0]
+		]
+		num_required_services = len(services_requiring_unit)
 
-			if requires_unit:
+		# Count distinct service units already assigned in other shifts
+		existing_units = frappe.db.get_all(
+			"Service Provider Shift Assignment",
+			filters={
+				"provider": self.provider,
+				"name": ["!=", self.name],
+				"status": "Active",
+				"docstatus": 1,
+				"service_unit": ["is", "set"],
+			},
+			pluck="service_unit",
+		)
+		existing_units = set(existing_units)
+
+		# Include the current shift's unit if set
+		if self.service_unit:
+			existing_units.add(self.service_unit)
+
+		# Case 1: There are services that require units
+		if num_required_services > 0:
+			if not self.service_unit and len(existing_units) < num_required_services:
+				# Not enough units assigned yet to cover all required services
 				frappe.throw(
 					_(
-						"Warning: This provider offers services that require a service unit, "
-						"but no service unit is assigned to this shift. "
-						"Appointments requiring service units will not be available during this shift."
+						f"This provider offers {num_required_services} service(s) that require service units, "
+						"but not enough distinct service units are assigned across active shifts. "
+						"Please assign a service unit to this shift."
 					),
 					title=_("Missing Service Unit"),
 				)
+
+		# Case 2: No services require units but shift has one
+		if num_required_services == 0 and self.service_unit:
+			frappe.throw(
+				_(
+					"This provider has no services that require a service unit, "
+					"but a service unit is assigned to this shift. Please remove it."
+				),
+				title=_("Unnecessary Service Unit"),
+			)
 
 	def check_for_slot_regeneration(self):
 		"""
@@ -402,11 +435,6 @@ class ServiceProviderShiftAssignment(Document):
 
 		if removed_days:
 			# Delete slots for removed days (only unbooked ones)
-			frappe.msgprint(
-				_("Removing slots for {0}...").format(", ".join(sorted(removed_days))),
-				indicator="blue",
-				alert=True,
-			)
 			frappe.enqueue(
 				"frappoint.frappoint.doctype.service_provider_appointment_slot.service_provider_appointment_slot.delete_slots_for_specific_days",
 				shift_assignment=self.name,
@@ -418,15 +446,12 @@ class ServiceProviderShiftAssignment(Document):
 
 		if added_days:
 			# Generate slots for added days
-			frappe.msgprint(
-				_("Generating slots for {0}...").format(", ".join(sorted(added_days))),
-				indicator="green",
-				alert=True,
-			)
 			frappe.enqueue(
 				"frappoint.frappoint.doctype.service_provider_appointment_slot.service_provider_appointment_slot.generate_slots_for_specific_days",
 				shift_assignment=self.name,
 				weekdays=list(added_days),
+				start_date=self.start_date,
+				end_date=self.end_date,
 				queue="default",
 				timeout=300,
 				is_async=True,
@@ -455,9 +480,6 @@ class ServiceProviderShiftAssignment(Document):
 
 		if slot_count == 0:
 			# No slots exist, need to generate them
-			frappe.msgprint(
-				_("No existing slots found. Generating new slots..."), indicator="blue", alert=True
-			)
 			generate_for_shift(self.name)
 			return
 
@@ -483,8 +505,8 @@ class ServiceProviderShiftAssignment(Document):
 		booked_slots = frappe.db.sql(
 			"""
 			SELECT
-				COUNT(*) as count,
-				GROUP_CONCAT(DISTINCT service_appointment) as appointments
+				COUNT(DISTINCT service_appointment) AS count,
+				GROUP_CONCAT(DISTINCT service_appointment) AS appointments
 			FROM `tabService Provider Appointment Slot`
 			WHERE shift_assignment = %s
 			AND service_appointment IS NOT NULL
@@ -498,7 +520,7 @@ class ServiceProviderShiftAssignment(Document):
 			appointments = booked_slots[0].appointments.split(",")
 			frappe.throw(
 				_(
-					"Cannot cancel shift assignment. There are {0} booked appointment(s): {1}.<br><br>"
+					"Cannot cancel shift assignment. <br> There are {0} booked appointment(s): {1}.<br><br>"
 					"Please cancel or reschedule these appointments first."
 				).format(
 					booked_slots[0].count,
@@ -508,7 +530,7 @@ class ServiceProviderShiftAssignment(Document):
 			)
 
 		# Delete all slots for this shift assignment
-		deleted_count = frappe.db.sql(
+		frappe.db.sql(
 			"""
 			DELETE FROM `tabService Provider Appointment Slot`
 			WHERE shift_assignment = %s
@@ -517,11 +539,3 @@ class ServiceProviderShiftAssignment(Document):
 		)
 
 		frappe.db.commit()
-
-		frappe.msgprint(
-			_("Deleted {0} appointment slots for this shift assignment").format(
-				deleted_count if isinstance(deleted_count, int) else "all"
-			),
-			indicator="blue",
-			alert=True,
-		)

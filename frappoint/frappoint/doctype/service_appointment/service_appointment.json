@@ -66,7 +66,6 @@
    "default": "Now",
    "fieldname": "scheduled_time",
    "fieldtype": "Datetime",
-   "in_list_view": 1,
    "label": "Scheduled Time",
    "no_copy": 1,
    "read_only": 1,
@@ -76,6 +75,7 @@
    "allow_on_submit": 1,
    "fieldname": "status",
    "fieldtype": "Select",
+   "in_standard_filter": 1,
    "label": "Status",
    "options": "Open\nConfirmed\nRescheduled\nCompleted\nCancelled\nClosed\nNo Show"
   },
@@ -92,6 +92,8 @@
   {
    "fieldname": "customer",
    "fieldtype": "Link",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
    "label": "Customer",
    "options": "Customer",
    "reqd": 1
@@ -113,6 +115,8 @@
   {
    "fieldname": "appointment_date",
    "fieldtype": "Date",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
    "label": "Appointment Date",
    "no_copy": 1,
    "reqd": 1,
@@ -121,6 +125,7 @@
   {
    "fieldname": "start_time",
    "fieldtype": "Time",
+   "in_list_view": 1,
    "label": "Start Time",
    "no_copy": 1,
    "reqd": 1
@@ -136,6 +141,7 @@
   {
    "fieldname": "appointment_type",
    "fieldtype": "Link",
+   "in_standard_filter": 1,
    "label": "Service Type",
    "options": "Service Type",
    "reqd": 1,
@@ -155,6 +161,7 @@
   {
    "fieldname": "total_amount",
    "fieldtype": "Currency",
+   "in_list_view": 1,
    "label": "Total Amount",
    "non_negative": 1,
    "options": "currency",
@@ -208,6 +215,7 @@
   {
    "fieldname": "appointment_provider",
    "fieldtype": "Link",
+   "in_standard_filter": 1,
    "label": "Service Provider",
    "options": "Service Provider",
    "reqd": 1,
@@ -299,7 +307,9 @@
    "fieldname": "currency",
    "fieldtype": "Link",
    "label": "Currency",
-   "options": "Currency"
+   "options": "Currency",
+   "read_only": 1,
+   "reqd": 1
   }
  ],
  "grid_page_length": 50,
@@ -337,7 +347,7 @@
    "link_fieldname": "reference_docname"
   }
  ],
- "modified": "2026-01-23 08:39:53.451836",
+ "modified": "2026-01-27 06:22:00.419172",
  "modified_by": "Administrator",
  "module": "Frappoint",
  "name": "Service Appointment",
@@ -374,6 +384,7 @@
  ],
  "row_format": "Dynamic",
  "rows_threshold_for_grid_search": 20,
+ "search_fields": "customer, appointment_type,  appointment_provider, appointment_date",
  "sort_field": "modified",
  "sort_order": "DESC",
  "states": [],

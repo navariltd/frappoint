@@ -79,7 +79,13 @@ def generate_for_shift(shift_assignment):
 		frappe.db.commit()
 		return "Slots marked as unavailable"
 
-	frappe.db.delete("Service Provider Appointment Slot", {"shift_assignment": shift_assignment})
+	frappe.db.delete(
+		"Service Provider Appointment Slot",
+		{
+			"shift_assignment": shift_assignment,
+			"service_appointment": ["is", "not set"],
+		},
+	)
 	frappe.db.commit()
 
 	provider = sa.provider
@@ -146,19 +152,31 @@ def generate_for_shift(shift_assignment):
 				cursor += timedelta(minutes=slot_size)
 				continue
 
-			slots_to_insert.append(
+			exists = frappe.db.exists(
+				"Service Provider Appointment Slot",
 				{
-					"doctype": "Service Provider Appointment Slot",
 					"provider": provider,
-					"service_unit": sa.service_unit,
 					"posting_date": dt,
 					"start_time": start_t,
 					"end_time": end_t,
-					"shift_assignment": sa.name,
-					"is_available": 1,
-					"is_break": 0,
-				}
+					"service_unit": sa.service_unit,
+				},
 			)
+
+			if not exists:
+				slots_to_insert.append(
+					{
+						"doctype": "Service Provider Appointment Slot",
+						"provider": provider,
+						"service_unit": sa.service_unit,
+						"posting_date": dt,
+						"start_time": start_t,
+						"end_time": end_t,
+						"shift_assignment": sa.name,
+						"is_available": 1,
+						"is_break": 0,
+					}
+				)
 
 			cursor += timedelta(minutes=slot_size)
 
@@ -170,23 +188,7 @@ def generate_for_shift(shift_assignment):
 	return f"Slots generated: {len(slots_to_insert)}"
 
 
-def purge_old_slots():
-	settings = frappe.get_single("Service Appointment Settings")
-
-	today = getdate()
-
-	if settings.allow_past_booking:
-		purge_date = date_diff(today, settings.max_past_days)
-	else:
-		purge_date = today
-
-	frappe.db.delete("Service Provider Appointment Slot", {"posting_date": ["<", purge_date]})
-
-	frappe.db.commit()
-	return f"Purged slots older than {purge_date}"
-
-
-def generate_slots_for_specific_days(shift_assignment, weekdays):
+def generate_slots_for_specific_days(shift_assignment, weekdays, start_date, end_date):
 	"""Generate slots only for specific weekdays"""
 	sa = frappe.get_doc("Service Provider Shift Assignment", shift_assignment)
 	st = frappe.get_doc("Service Provider Shift Type", sa.shift_type)
@@ -199,8 +201,8 @@ def generate_slots_for_specific_days(shift_assignment, weekdays):
 	holiday_list = st.holiday_list
 	max_advance_days = get_global_max_advance_days()
 
-	start_date = sa.start_date
-	end_date = sa.end_date or (start_date + timedelta(days=max_advance_days))
+	if end_date is None:
+		end_date = start_date + timedelta(days=max_advance_days)
 
 	# Map weekday names to indices
 	weekday_indices = {DAYS.index(day) for day in weekdays}
@@ -461,6 +463,7 @@ def get_available_slots(appointment_type, provider=None, date=None, days_ahead=3
 			AND s.is_available = 1
 			AND (s.service_appointment IS NULL OR s.service_appointment = '')
 			AND p.active = 1
+			AND s.service_unit IS NULL
 			{past_booking_filter}
 			ORDER BY s.posting_date, s.start_time, p.provider_name
 		""",
@@ -567,15 +570,18 @@ def group_slots_by_duration_and_capacity(
 
 				# If we have enough duration, create an available slot
 				if accumulated_minutes >= total_duration_needed:
-					actual_start_time = get_end_time_for_duration(start_time, buffer_before)
-					actual_end_time = get_end_time_for_duration(actual_start_time, required_duration)
+					customer_start_time = get_end_time_for_duration(start_time, buffer_before)
+					customer_end_time = get_end_time_for_duration(customer_start_time, required_duration)
+
+					reserved_start_time = start_time
+					reserved_end_time = get_end_time_for_duration(customer_end_time, buffer_after)
 
 					if requires_unit:
 						capacity_available = check_service_unit_capacity(
 							service_unit,
 							date,
-							actual_start_time,
-							actual_end_time,
+							reserved_start_time,
+							reserved_end_time,
 							appointment_type,
 							max_clients,
 						)
@@ -583,9 +589,16 @@ def group_slots_by_duration_and_capacity(
 						if not capacity_available:
 							break
 
+						provider_available = check_provider_slot_capacity(
+							provider, date, reserved_start_time, reserved_end_time, max_clients
+						)
+
+						if not provider_available:
+							break
+
 					else:
 						capacity_available = check_provider_slot_capacity(
-							provider, date, actual_start_time, actual_end_time, max_clients
+							provider, date, reserved_start_time, reserved_end_time, max_clients
 						)
 
 						if not capacity_available:
@@ -598,8 +611,8 @@ def group_slots_by_duration_and_capacity(
 							"service_unit": service_unit,
 							"service_unit_name": getattr(current_slot, "unit_name", None),
 							"date": date,
-							"start_time": actual_start_time,
-							"end_time": actual_end_time,
+							"start_time": customer_start_time,
+							"end_time": customer_end_time,
 							"duration": required_duration,
 							"buffer_before": buffer_before,
 							"buffer_after": buffer_after,

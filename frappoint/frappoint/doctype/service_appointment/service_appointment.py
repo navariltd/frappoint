@@ -45,7 +45,7 @@ class ServiceAppointment(Document):
 		appointment_type: DF.Link
 		company: DF.Link
 		confirmation_token: DF.Data | None
-		currency: DF.Link | None
+		currency: DF.Link
 		customer: DF.Link
 		details: DF.SmallText | None
 		duration: DF.Int
@@ -500,9 +500,7 @@ class ServiceAppointment(Document):
 			self.currency = currency
 
 		if self.currency != currency:
-			frappe.throw(
-				f"Currency mismatch: Service price is in {currency} but appointment currency is {self.currency}"
-			)
+			self.currency = currency
 
 	def _get_price_currency(self):
 		"""Return the rate and currency, given service_type and appointment_price_name"""
@@ -654,8 +652,6 @@ class ServiceAppointment(Document):
 				{"service_appointment": self.name, "is_available": 0},
 			)
 
-		frappe.msgprint(_("Appointment slots booked successfully"), indicator="green", alert=True)
-
 	def release_slots(self):
 		"""Release all booked slots for this appointment"""
 		from frappoint.frappoint.doctype.service_provider_appointment_slot.service_provider_appointment_slot import (
@@ -684,7 +680,11 @@ class ServiceAppointment(Document):
 		"""Handle actions based on status change"""
 		status_handlers = {
 			"Confirmed": self.create_sales_order,
-			"Completed": lambda: (self.create_sales_invoice(), self.auto_issue_consumables()),
+			"Completed": lambda: (
+				self.create_sales_invoice(),
+				self.auto_issue_consumables(),
+				self.complete_linked_event(),
+			),
 			"Cancelled": self.handle_cancellation,
 		}
 
@@ -776,8 +776,8 @@ class ServiceAppointment(Document):
 				title=_("Linked Documents Exist"),
 			)
 
-	def delete_linked_event(self):
-		"""Delete linked event if appointment is in draft or if it's the only linked document"""
+	def complete_linked_event(self):
+		"""Complete linked event if appointment is in Completed"""
 		if not self.event:
 			return
 
@@ -785,7 +785,21 @@ class ServiceAppointment(Document):
 			event_status = frappe.db.get_value("Event", self.event, "status")
 
 			if event_status == "Open":
-				frappe.delete_doc("Event", self.event, force=True, ignore_permissions=True)
+				frappe.db.set_value("Event", self.event, "status", "Completed")
+
+		except Exception as e:
+			frappe.log_error(
+				title=f"Event Completion Failed for Appointment {self.name}",
+				message=f"Failed to complete event {self.event}: {e}",
+			)
+
+	def delete_linked_event(self):
+		"""Delete linked event if appointment is in draft or if it's the only linked document"""
+		if not self.event:
+			return
+
+		try:
+			frappe.delete_doc("Event", self.event, force=True, ignore_permissions=True)
 		except Exception as e:
 			frappe.log_error(
 				title=f"Event Deletion Failed for Appointment {self.name}",
