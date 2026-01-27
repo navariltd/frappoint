@@ -280,13 +280,12 @@ function load_available_slots(frm) {
 }
 
 function show_slot_picker(frm) {
-	frappe.show_alert({
-		message: __("Loading available slots..."),
-		indicator: "blue",
-	});
+	frappe.dom.freeze(__("Loading available slots..."));
 
 	load_available_slots(frm)
 		.then((slots) => {
+			frappe.dom.unfreeze();
+
 			if (!slots || slots.length === 0) {
 				frappe.msgprint(
 					__("No available slots found. Please adjust your search criteria.")
@@ -341,6 +340,7 @@ function show_slot_picker(frm) {
 			d.show();
 		})
 		.catch((err) => {
+			frappe.dom.unfreeze();
 			frappe.msgprint({
 				title: __("Error"),
 				message: __("Failed to load available slots. Please try again."),
