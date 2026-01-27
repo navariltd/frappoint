@@ -170,23 +170,7 @@ def generate_for_shift(shift_assignment):
 	return f"Slots generated: {len(slots_to_insert)}"
 
 
-def purge_old_slots():
-	settings = frappe.get_single("Service Appointment Settings")
-
-	today = getdate()
-
-	if settings.allow_past_booking:
-		purge_date = date_diff(today, settings.max_past_days)
-	else:
-		purge_date = today
-
-	frappe.db.delete("Service Provider Appointment Slot", {"posting_date": ["<", purge_date]})
-
-	frappe.db.commit()
-	return f"Purged slots older than {purge_date}"
-
-
-def generate_slots_for_specific_days(shift_assignment, weekdays):
+def generate_slots_for_specific_days(shift_assignment, weekdays, start_date, end_date):
 	"""Generate slots only for specific weekdays"""
 	sa = frappe.get_doc("Service Provider Shift Assignment", shift_assignment)
 	st = frappe.get_doc("Service Provider Shift Type", sa.shift_type)
@@ -199,8 +183,8 @@ def generate_slots_for_specific_days(shift_assignment, weekdays):
 	holiday_list = st.holiday_list
 	max_advance_days = get_global_max_advance_days()
 
-	start_date = sa.start_date
-	end_date = sa.end_date or (start_date + timedelta(days=max_advance_days))
+	if end_date is None:
+		end_date = start_date + timedelta(days=max_advance_days)
 
 	# Map weekday names to indices
 	weekday_indices = {DAYS.index(day) for day in weekdays}
