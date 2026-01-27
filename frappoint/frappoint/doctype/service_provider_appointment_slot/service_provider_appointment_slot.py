@@ -79,7 +79,13 @@ def generate_for_shift(shift_assignment):
 		frappe.db.commit()
 		return "Slots marked as unavailable"
 
-	frappe.db.delete("Service Provider Appointment Slot", {"shift_assignment": shift_assignment})
+	frappe.db.delete(
+		"Service Provider Appointment Slot",
+		{
+			"shift_assignment": shift_assignment,
+			"service_appointment": ["is", "not set"],
+		},
+	)
 	frappe.db.commit()
 
 	provider = sa.provider
@@ -146,19 +152,30 @@ def generate_for_shift(shift_assignment):
 				cursor += timedelta(minutes=slot_size)
 				continue
 
-			slots_to_insert.append(
+			exists = frappe.db.exists(
+				"Service Provider Appointment Slot",
 				{
-					"doctype": "Service Provider Appointment Slot",
 					"provider": provider,
-					"service_unit": sa.service_unit,
 					"posting_date": dt,
 					"start_time": start_t,
 					"end_time": end_t,
-					"shift_assignment": sa.name,
-					"is_available": 1,
-					"is_break": 0,
-				}
+				},
 			)
+
+			if not exists:
+				slots_to_insert.append(
+					{
+						"doctype": "Service Provider Appointment Slot",
+						"provider": provider,
+						"service_unit": sa.service_unit,
+						"posting_date": dt,
+						"start_time": start_t,
+						"end_time": end_t,
+						"shift_assignment": sa.name,
+						"is_available": 1,
+						"is_break": 0,
+					}
+				)
 
 			cursor += timedelta(minutes=slot_size)
 
