@@ -463,6 +463,7 @@ def get_available_slots(appointment_type, provider=None, date=None, days_ahead=3
 			AND s.is_available = 1
 			AND (s.service_appointment IS NULL OR s.service_appointment = '')
 			AND p.active = 1
+			AND s.service_unit IS NULL
 			{past_booking_filter}
 			ORDER BY s.posting_date, s.start_time, p.provider_name
 		""",
@@ -569,15 +570,18 @@ def group_slots_by_duration_and_capacity(
 
 				# If we have enough duration, create an available slot
 				if accumulated_minutes >= total_duration_needed:
-					actual_start_time = get_end_time_for_duration(start_time, buffer_before)
-					actual_end_time = get_end_time_for_duration(actual_start_time, required_duration)
+					customer_start_time = get_end_time_for_duration(start_time, buffer_before)
+					customer_end_time = get_end_time_for_duration(customer_start_time, required_duration)
+
+					reserved_start_time = start_time
+					reserved_end_time = get_end_time_for_duration(customer_end_time, buffer_after)
 
 					if requires_unit:
 						capacity_available = check_service_unit_capacity(
 							service_unit,
 							date,
-							actual_start_time,
-							actual_end_time,
+							reserved_start_time,
+							reserved_end_time,
 							appointment_type,
 							max_clients,
 						)
@@ -586,7 +590,7 @@ def group_slots_by_duration_and_capacity(
 							break
 
 						provider_available = check_provider_slot_capacity(
-							provider, date, actual_start_time, actual_end_time, max_clients
+							provider, date, reserved_start_time, reserved_end_time, max_clients
 						)
 
 						if not provider_available:
@@ -594,7 +598,7 @@ def group_slots_by_duration_and_capacity(
 
 					else:
 						capacity_available = check_provider_slot_capacity(
-							provider, date, actual_start_time, actual_end_time, max_clients
+							provider, date, reserved_start_time, reserved_end_time, max_clients
 						)
 
 						if not capacity_available:
@@ -607,8 +611,8 @@ def group_slots_by_duration_and_capacity(
 							"service_unit": service_unit,
 							"service_unit_name": getattr(current_slot, "unit_name", None),
 							"date": date,
-							"start_time": actual_start_time,
-							"end_time": actual_end_time,
+							"start_time": customer_start_time,
+							"end_time": customer_end_time,
 							"duration": required_duration,
 							"buffer_before": buffer_before,
 							"buffer_after": buffer_after,
