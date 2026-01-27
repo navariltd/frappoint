@@ -15,6 +15,7 @@ frappe.ui.form.on("Service Provider Shift Assignment Tool", {
 	company(frm) {
 		frm.clear_table("providers");
 		frm.refresh_field("providers");
+		frm.trigger("add_fetch_providers_button");
 	},
 
 	start_date(frm) {
@@ -31,6 +32,54 @@ frappe.ui.form.on("Service Provider Shift Assignment Tool", {
 			frm.set_value("start_date", null);
 			frappe.msgprint(__("Start Date cannot be after End Date"));
 		}
+	},
+
+	add_fetch_providers_button(frm) {
+		frm.add_custom_button(__("Fetch Providers"), () => {
+			frm.events.get_providers(frm);
+		});
+	},
+
+	get_providers(frm) {
+		// Only fetch if company is selected
+		if (!frm.doc.company) {
+			frappe.msgprint(__("Please Select a company"));
+			return;
+		}
+
+		frm.call({
+			method: "get_providers",
+			args: {
+				advanced_filters: frm.advanced_filters || [],
+			},
+			doc: frm.doc,
+		}).then((r) => {
+			if (r.message && r.message.length > 0) {
+				frm.events.populate_providers_table(frm, r.message);
+			} else {
+				frappe.msgprint(__("No eligible providers found based on the selected filters."));
+			}
+		});
+	},
+
+	populate_providers_table(frm, providers) {
+		// Clear existing rows
+		frm.clear_table("providers");
+
+		// Add fetched providers to the table
+		providers.forEach((provider) => {
+			let row = frm.add_child("providers");
+			row.service_provider = provider.service_provider;
+			row.provider_name = provider.provider_name;
+			row.service_unit = provider.service_unit;
+		});
+
+		frm.refresh_field("providers");
+
+		frappe.show_alert({
+			message: __("{0} provider(s) added to the table", [providers.length]),
+			indicator: "green",
+		});
 	},
 
 	set_primary_action(frm) {

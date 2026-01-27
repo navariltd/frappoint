@@ -1,12 +1,13 @@
 # Copyright (c) 2026, Navari LTD and contributors
 # For license information, please see license.txt
 
+from datetime import date
 from typing import ClassVar
 
 import frappe
 from frappe import _
 from frappe.model.document import Document
-from frappe.utils import get_link_to_form
+from frappe.utils import get_link_to_form, getdate, today
 
 
 class ServiceProviderShiftAssignmentTool(Document):
@@ -77,6 +78,9 @@ class ServiceProviderShiftAssignmentTool(Document):
 		Fetch service providers based on quick filters and advanced filters.
 		Returns list of providers eligible for shift assignment.
 		"""
+		if not self.company:
+			frappe.throw(_("Please select a Company to fetch providers."))
+
 		# Build filters from quick filter fields
 		quick_filter_fields = [
 			"company",
@@ -84,12 +88,9 @@ class ServiceProviderShiftAssignmentTool(Document):
 			"department",
 			"designation",
 			"grade",
-			"service_unit",
-			"service_unit_type",
 		]
 		filters = [[d, "=", self.get(d)] for d in quick_filter_fields if self.get(d)]
 
-		# Get Service Provider doctype
 		ServiceProvider = frappe.qb.DocType("Service Provider")
 
 		query = frappe.qb.get_query(
@@ -99,10 +100,9 @@ class ServiceProviderShiftAssignmentTool(Document):
 				ServiceProvider.provider_name,
 				ServiceProvider.branch,
 				ServiceProvider.department,
-				ServiceProvider.service_unit,
 			],
 			filters=filters,
-		).where(ServiceProvider.enabled == 1)
+		).where(ServiceProvider.active == 1)
 
 		# Exclude providers with existing active shift assignments for the date range
 		if self.status == "Active" and self.provider_shift_type and self.start_date:
@@ -260,8 +260,8 @@ class ServiceProviderShiftAssignmentTool(Document):
 	):
 		"""Deactivate existing shift assignments for the provider."""
 		filters = {
-			"service_provider": service_provider,
-			"provider_shift_type": provider_shift_type,
+			"provider": service_provider,
+			"shift_type": provider_shift_type,
 			"status": "Active",
 			"docstatus": 1,
 		}
@@ -278,14 +278,23 @@ class ServiceProviderShiftAssignmentTool(Document):
 			if self._has_date_overlap(doc.start_date, doc.end_date, start_date, end_date):
 				doc.status = "Inactive"
 				doc.save()
-				if doc.docstatus == 1:
-					doc.amend()
+
+	def _normalize_date(self, value):
+		if not value:
+			return None
+		return getdate(value)
 
 	def _has_date_overlap(self, existing_start, existing_end, new_start, new_end) -> bool:
 		"""Check if two date ranges overlap."""
-		if existing_end is None:
-			existing_end = frappe.utils.today()
-		if new_end is None:
-			new_end = frappe.utils.today()
+		# Convert all dates to date objects
+		existing_start = self._normalize_date(existing_start)
+		new_start = self._normalize_date(new_start)
 
+		if not existing_start or not new_start:
+			return True
+
+		new_end = self._normalize_date(new_end) or date.max
+		existing_end = self._normalize_date(existing_end) or date.max
+
+		# Check if ranges overlap
 		return not (existing_end < new_start or new_end < existing_start)
