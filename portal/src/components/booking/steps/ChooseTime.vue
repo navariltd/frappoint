@@ -107,10 +107,8 @@
 						aria-live="polite"
 					>
 						<FeatherIcon name="clock" class="w-10 h-10 text-slate-400 mb-2" />
-						<p class="text-slate-800 font-medium">No available slots for this date.</p>
-						<p class="text-slate-500 text-sm mt-1">
-							Please choose another date or a different staff member.
-						</p>
+						<p class="text-slate-800 font-medium">No available slots at the moment.</p>
+						<p class="text-slate-500 text-sm mt-1">Please choose another service.</p>
 					</div>
 				</div>
 			</div>
