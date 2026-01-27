@@ -159,6 +159,7 @@ def generate_for_shift(shift_assignment):
 					"posting_date": dt,
 					"start_time": start_t,
 					"end_time": end_t,
+					"service_unit": sa.service_unit,
 				},
 			)
 
