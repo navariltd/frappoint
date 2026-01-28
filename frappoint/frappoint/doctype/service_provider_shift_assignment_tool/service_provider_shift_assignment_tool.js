@@ -15,6 +15,9 @@ frappe.ui.form.on("Service Provider Shift Assignment Tool", {
 	company(frm) {
 		frm.clear_table("providers");
 		frm.refresh_field("providers");
+	},
+
+	provider_shift_type(frm) {
 		frm.trigger("add_fetch_providers_button");
 	},
 

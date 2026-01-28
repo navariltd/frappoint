@@ -49,6 +49,7 @@
    "reqd": 1
   },
   {
+   "depends_on": "eval: doc.action === 'Assign Shift'",
    "fieldname": "provider_shift_assignment_details_section",
    "fieldtype": "Section Break",
    "label": "Provider Shift Assignment Details"
@@ -83,6 +84,7 @@
   },
   {
    "collapsible": 1,
+   "depends_on": "eval: doc.provider_shift_type",
    "fieldname": "quick_filters_section",
    "fieldtype": "Section Break",
    "label": "Quick Filters"
@@ -129,6 +131,7 @@
    "options": "Service Unit"
   },
   {
+   "depends_on": "eval: doc.provider_shift_type",
    "fieldname": "providers",
    "fieldtype": "Table",
    "label": "Providers",
@@ -145,7 +148,7 @@
  "is_virtual": 1,
  "issingle": 1,
  "links": [],
- "modified": "2026-01-27 17:14:18.688964",
+ "modified": "2026-01-27 21:34:21.654205",
  "modified_by": "Administrator",
  "module": "Frappoint",
  "name": "Service Provider Shift Assignment Tool",
