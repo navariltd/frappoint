@@ -315,7 +315,7 @@
 			</button>
 			<button
 				@click="saveChanges"
-				:disabled="saving"
+				:disabled="saving || !hasChanges"
 				class="bg-primary hover:bg-primary/90 text-white font-bold py-3 px-6 md:px-8 rounded-xl shadow-md flex items-center justify-center gap-2 transform active:scale-95 transition-all disabled:opacity-70 disabled:cursor-not-allowed"
 			>
 				<svg
@@ -349,7 +349,7 @@
 
 <script setup>
 import { useAuthStore } from "@/stores/auth";
-import { ref, onMounted } from "vue";
+import { ref, onMounted, computed } from "vue";
 import { createResource, FileUploader } from "frappe-ui";
 
 const auth = useAuthStore();
@@ -370,6 +370,28 @@ const passwordData = ref({
 	currentPassword: "",
 	newPassword: "",
 	confirmPassword: "",
+});
+
+// Computed property to check if there are any changes
+const hasChanges = computed(() => {
+	if (!userDetails.value) return false;
+
+	const nameParts = userDetails.value.full_name?.split(" ") || [];
+	const originalFirstName = nameParts[0] || "";
+	const originalLastName = nameParts.slice(1).join(" ") || "";
+	const originalPhone = userDetails.value.phone || "";
+
+	const profileChanged =
+		formData.value.firstName !== originalFirstName ||
+		formData.value.lastName !== originalLastName ||
+		formData.value.phone !== originalPhone;
+
+	const passwordChanged =
+		!!passwordData.value.currentPassword ||
+		!!passwordData.value.newPassword ||
+		!!passwordData.value.confirmPassword;
+
+	return profileChanged || passwordChanged;
 });
 
 // Fetch user details
