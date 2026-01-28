@@ -11,24 +11,32 @@
   "middle_name_optional",
   "last_name",
   "provider_name",
-  "image",
   "column_break_ffid",
+  "company",
+  "column_break_dsdy",
   "active",
-  "color_code",
-  "default_slot_length",
-  "user_details_section",
-  "employee",
-  "designation",
-  "grade",
-  "column_break_ocid",
-  "user",
-  "section_break_nixn",
-  "services",
   "section_break_tyao",
   "email",
   "google_calendar",
   "column_break_rctc",
   "mobile_no",
+  "user_details_section",
+  "employee",
+  "column_break_ocid",
+  "user",
+  "section_break_idhg",
+  "designation",
+  "department",
+  "column_break_twbk",
+  "branch",
+  "grade",
+  "section_break_nixn",
+  "services",
+  "more_info_section",
+  "default_slot_length",
+  "color_code",
+  "column_break_dujg",
+  "image",
   "connections_tab"
  ],
  "fields": [
@@ -158,7 +166,49 @@
   {
    "fieldname": "image",
    "fieldtype": "Attach Image",
+   "hidden": 1,
    "label": "Image"
+  },
+  {
+   "fieldname": "branch",
+   "fieldtype": "Link",
+   "label": "Branch",
+   "options": "Branch"
+  },
+  {
+   "fieldname": "section_break_idhg",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "department",
+   "fieldtype": "Link",
+   "label": "Department",
+   "options": "Department"
+  },
+  {
+   "fieldname": "column_break_twbk",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "label": "Company",
+   "options": "Company",
+   "reqd": 1
+  },
+  {
+   "fieldname": "column_break_dsdy",
+   "fieldtype": "Column Break"
+  },
+  {
+   "collapsible": 1,
+   "fieldname": "more_info_section",
+   "fieldtype": "Section Break",
+   "label": "More Info"
+  },
+  {
+   "fieldname": "column_break_dujg",
+   "fieldtype": "Column Break"
   }
  ],
  "grid_page_length": 50,
@@ -170,7 +220,7 @@
    "link_fieldname": "appointment_provider"
   }
  ],
- "modified": "2026-01-16 05:27:03.191913",
+ "modified": "2026-01-27 17:12:22.653119",
  "modified_by": "Administrator",
  "module": "Frappoint",
  "name": "Service Provider",

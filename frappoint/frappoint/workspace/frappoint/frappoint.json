@@ -1,6 +1,6 @@
 {
  "charts": [],
- "content": "[{\"id\":\"boWqkujk8K\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\">Frappoint</span>\",\"col\":12}},{\"id\":\"HJU22-mjg2\",\"type\":\"card\",\"data\":{\"card_name\":\"Configuration\",\"col\":4}},{\"id\":\"UQiBzHusTj\",\"type\":\"card\",\"data\":{\"card_name\":\"Appointments\",\"col\":4}},{\"id\":\"9rDmtYp7LL\",\"type\":\"card\",\"data\":{\"card_name\":\"Service Units\",\"col\":4}},{\"id\":\"IBojAFvuiC\",\"type\":\"card\",\"data\":{\"card_name\":\"Provider Schedules\",\"col\":4}}]",
+ "content": "[{\"id\":\"boWqkujk8K\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\">Frappoint</span>\",\"col\":12}},{\"id\":\"8BCzOHffzA\",\"type\":\"spacer\",\"data\":{\"col\":12}},{\"id\":\"kOIIwYzHXe\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Today's Appointments\",\"col\":4}},{\"id\":\"VSXQTSgD1E\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Pending Payments\",\"col\":4}},{\"id\":\"ApwvKSNGwc\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Revenue\",\"col\":4}},{\"id\":\"exZkckjiUN\",\"type\":\"spacer\",\"data\":{\"col\":12}},{\"id\":\"2dW0jtQkJj\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\">Quick Actions</span>\",\"col\":12}},{\"id\":\"XbFgs4gb_s\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"New Service Appointment\",\"col\":4}},{\"id\":\"B3486zmFsw\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Assign Services\",\"col\":4}},{\"id\":\"6sZvkkgHHp\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Manage Shifts\",\"col\":4}},{\"id\":\"Jc8Rf_Xf6N\",\"type\":\"spacer\",\"data\":{\"col\":12}},{\"id\":\"uIMQWeCDDa\",\"type\":\"card\",\"data\":{\"card_name\":\"Setup\",\"col\":4}},{\"id\":\"qJJpWdBNBx\",\"type\":\"card\",\"data\":{\"card_name\":\"Masters\",\"col\":4}},{\"id\":\"yhh22m4cxL\",\"type\":\"card\",\"data\":{\"card_name\":\"Operations\",\"col\":4}}]",
  "creation": "2025-11-26 16:39:03.542220",
  "custom_blocks": [],
  "docstatus": 0,
@@ -16,7 +16,7 @@
   {
    "hidden": 0,
    "is_query_report": 0,
-   "label": "Configuration",
+   "label": "Masters",
    "link_count": 3,
    "link_type": "DocType",
    "onboard": 0,
@@ -25,17 +25,7 @@
   {
    "hidden": 0,
    "is_query_report": 0,
-   "label": "Service Type",
-   "link_count": 0,
-   "link_to": "Service Type",
-   "link_type": "DocType",
-   "onboard": 0,
-   "type": "Link"
-  },
-  {
-   "hidden": 0,
-   "is_query_report": 0,
-   "label": "Service Provider",
+   "label": "Service Providers",
    "link_count": 0,
    "link_to": "Service Provider",
    "link_type": "DocType",
@@ -45,28 +35,9 @@
   {
    "hidden": 0,
    "is_query_report": 0,
-   "label": "Service Appointment Settings",
+   "label": "Service Types",
    "link_count": 0,
-   "link_to": "Service Appointment Settings",
-   "link_type": "DocType",
-   "onboard": 0,
-   "type": "Link"
-  },
-  {
-   "hidden": 0,
-   "is_query_report": 0,
-   "label": "Appointments",
-   "link_count": 1,
-   "link_type": "DocType",
-   "onboard": 0,
-   "type": "Card Break"
-  },
-  {
-   "hidden": 0,
-   "is_query_report": 0,
-   "label": "Service Appointment",
-   "link_count": 0,
-   "link_to": "Service Appointment",
+   "link_to": "Service Type",
    "link_type": "DocType",
    "onboard": 0,
    "type": "Link"
@@ -75,7 +46,17 @@
    "hidden": 0,
    "is_query_report": 0,
    "label": "Service Units",
-   "link_count": 2,
+   "link_count": 0,
+   "link_to": "Service Unit",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Setup",
+   "link_count": 3,
    "link_type": "DocType",
    "onboard": 0,
    "type": "Card Break"
@@ -83,9 +64,9 @@
   {
    "hidden": 0,
    "is_query_report": 0,
-   "label": "Service Unit",
+   "label": "Service Appointment Settings",
    "link_count": 0,
-   "link_to": "Service Unit",
+   "link_to": "Service Appointment Settings",
    "link_type": "DocType",
    "onboard": 0,
    "type": "Link"
@@ -103,15 +84,6 @@
   {
    "hidden": 0,
    "is_query_report": 0,
-   "label": "Provider Schedules",
-   "link_count": 2,
-   "link_type": "DocType",
-   "onboard": 0,
-   "type": "Card Break"
-  },
-  {
-   "hidden": 0,
-   "is_query_report": 0,
    "label": "Service Provider Shift Type",
    "link_count": 0,
    "link_to": "Service Provider Shift Type",
@@ -122,25 +94,80 @@
   {
    "hidden": 0,
    "is_query_report": 0,
-   "label": "Service Provider Shift Assignment",
+   "label": "Operations",
+   "link_count": 2,
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Card Break"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Service Appointments",
    "link_count": 0,
-   "link_to": "Service Provider Shift Assignment",
+   "link_to": "Service Appointment",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Service Appointment Payment",
+   "link_count": 0,
+   "link_to": "Service Appointment Payment",
    "link_type": "DocType",
    "onboard": 0,
    "type": "Link"
   }
  ],
- "modified": "2026-01-06 11:44:18.689673",
+ "modified": "2026-01-28 09:24:57.625547",
  "modified_by": "Administrator",
  "module": "Frappoint",
  "name": "Frappoint",
- "number_cards": [],
+ "number_cards": [
+  {
+   "label": "Today's Appointments",
+   "number_card_name": "Today's Appointments"
+  },
+  {
+   "label": "Pending Payments",
+   "number_card_name": "Pending Payments"
+  },
+  {
+   "label": "Revenue",
+   "number_card_name": "Revenue"
+  }
+ ],
  "owner": "Administrator",
  "parent_page": "",
  "public": 1,
  "quick_lists": [],
  "roles": [],
  "sequence_id": 39.0,
- "shortcuts": [],
+ "shortcuts": [
+  {
+   "color": "Grey",
+   "doc_view": "New",
+   "label": "New Service Appointment",
+   "link_to": "Service Appointment",
+   "stats_filter": "[]",
+   "type": "DocType"
+  },
+  {
+   "color": "Grey",
+   "doc_view": "List",
+   "label": "Assign Services",
+   "link_to": "Service Provider Service Assignment Tool",
+   "type": "DocType"
+  },
+  {
+   "color": "Grey",
+   "doc_view": "List",
+   "label": "Manage Shifts",
+   "link_to": "Service Provider Shift Assignment Tool",
+   "type": "DocType"
+  }
+ ],
  "title": "Frappoint"
 }

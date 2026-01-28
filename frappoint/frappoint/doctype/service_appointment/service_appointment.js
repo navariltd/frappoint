@@ -85,6 +85,20 @@ frappe.ui.form.on("Service Appointment", {
 			);
 		}
 
+		// Reschedule Appointment button
+		if (
+			frm.doc.docstatus === 1 &&
+			!["Cancelled", "Completed", "Closed", "No Show"].includes(frm.doc.status)
+		) {
+			frm.add_custom_button(
+				__("Reschedule Appointment"),
+				function () {
+					reschedule_appointment(frm);
+				},
+				__("Actions")
+			);
+		}
+
 		// Cancel Appointment button
 		if (frm.doc.docstatus === 1 && frm.doc.status !== "Cancelled") {
 			frm.add_custom_button(
@@ -98,6 +112,16 @@ frappe.ui.form.on("Service Appointment", {
 				},
 				__("Actions")
 			);
+		}
+
+		// Handle rescheduled appointment submission
+		if (frm.doc.__islocal && frm.doc.__reschedule_from) {
+			frappe.show_alert({
+				message: __(
+					"This is a rescheduled appointment. Select new date/time and save to complete the reschedule."
+				),
+				indicator: "blue",
+			});
 		}
 	},
 
@@ -165,6 +189,19 @@ frappe.ui.form.on("Service Appointment", {
 			frm.doc.start_time
 		) {
 			frm.doc.__booking_required = true;
+		}
+	},
+
+	after_save(frm) {
+		// Complete the reschedule by cancelling the old appointment
+		// Only execute after submission and if not already processed
+		if (
+			frm.doc.rescheduled_from &&
+			frm.doc.docstatus === 1 &&
+			!frm.doc.__reschedule_processed
+		) {
+			frm.doc.__reschedule_processed = true;
+			complete_reschedule(frm, frm.doc.rescheduled_from);
 		}
 	},
 
@@ -618,3 +655,73 @@ window.selectPrice = function (card) {
 	let dialog = cur_dialog;
 	dialog.selected_price = JSON.parse(card.dataset.price);
 };
+
+function reschedule_appointment(frm) {
+	frappe.confirm(
+		__(
+			"This will create a new appointment with the same details. You can then select a new date and time. Continue?"
+		),
+		() => {
+			// Create new appointment doc with prefilled data
+			frappe.new_doc("Service Appointment", {
+				customer: frm.doc.customer,
+				full_name: frm.doc.full_name,
+				mobile_no: frm.doc.mobile_no,
+				email: frm.doc.email,
+				company: frm.doc.company,
+				appointment_type: frm.doc.appointment_type,
+				appointment_provider: frm.doc.appointment_provider,
+				duration: frm.doc.duration,
+				service_unit: frm.doc.service_unit,
+				appointment_price: frm.doc.appointment_price,
+				total_amount: frm.doc.total_amount,
+				currency: frm.doc.currency,
+				details: frm.doc.details,
+				rescheduled_from: frm.doc.name,
+				notes:
+					(frm.doc.notes || "") +
+					`\n\nRescheduled from: ${
+						frm.doc.name
+					} (Original: ${frappe.datetime.str_to_user(frm.doc.appointment_date)} ${
+						frm.doc.start_time
+					})`,
+				source: frm.doc.source,
+				add_video_conferencing: frm.doc.add_video_conferencing,
+			});
+		}
+	);
+}
+
+function complete_reschedule(frm, old_appointment_name) {
+	// Cancel the old appointment
+	frappe.call({
+		method: "frappoint.frappoint.doctype.service_appointment.service_appointment.cancel_old_appointment",
+		args: {
+			old_appointment_name: old_appointment_name,
+			new_appointment_name: frm.doc.name,
+		},
+		freeze: true,
+		freeze_message: __("Completing reschedule..."),
+		callback: function (r) {
+			if (r.message && r.message.success) {
+				frappe.show_alert({
+					message: __(
+						"Appointment rescheduled successfully. Old appointment {0} has been cancelled.",
+						[old_appointment_name]
+					),
+					indicator: "green",
+				});
+
+				// Reload to show updated fields
+				frm.reload_doc();
+			}
+		},
+		error: function (r) {
+			frappe.msgprint({
+				title: __("Reschedule Failed"),
+				message: __("Failed to cancel the old appointment. Please cancel it manually."),
+				indicator: "red",
+			});
+		},
+	});
+}
