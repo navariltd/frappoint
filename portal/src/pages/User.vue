@@ -318,7 +318,8 @@
 		>
 			<button
 				@click="discardChanges"
-				class="text-sm font-bold text-gray-500 hover:text-[#0f1a19] dark:hover:text-white transition-colors py-2 md:py-0 md:mr-4"
+				:disabled="!hasChanges"
+				class="text-sm font-bold text-gray-500 hover:text-[#0f1a19] dark:hover:text-white transition-colors py-2 md:py-0 md:mr-4 disabled:opacity-50 disabled:cursor-not-allowed"
 			>
 				Discard Changes
 			</button>
