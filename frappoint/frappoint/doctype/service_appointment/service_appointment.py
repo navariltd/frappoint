@@ -59,6 +59,8 @@ class ServiceAppointment(Document):
 		naming_series: DF.Literal["SVC-APP-.MM.-.YY.-.###."]
 		notes: DF.Text | None
 		payment_status: DF.Literal["Unpaid", "Paid", "Refunded", "Cancellation"]
+		rescheduled_from: DF.Link | None
+		rescheduled_to: DF.Link | None
 		scheduled_time: DF.Datetime
 		selected_slot_ids: DF.SmallText | None
 		service_unit: DF.Link | None
@@ -824,35 +826,38 @@ class ServiceAppointment(Document):
 
 	def create_sales_order(self):
 		"""Create Sales Order when appointment is confirmed"""
-		sales_order = self.get_linked_document("Sales Order")
+		# TODO: work out appointment accounting logic
+		return
 
-		if sales_order:
-			self.show_already_exists_message("Sales Order", sales_order.name)
-			return
+		# sales_order = self.get_linked_document("Sales Order")
 
-		try:
-			apt_type = frappe.get_doc("Service Type", self.appointment_type)
+		# if sales_order:
+		# 	self.show_already_exists_message("Sales Order", sales_order.name)
+		# 	return
 
-			so = frappe.get_doc(
-				{
-					"doctype": "Sales Order",
-					"customer": self.customer,
-					"company": self.company,
-					"transaction_date": getdate(),
-					"delivery_date": self.appointment_date,
-					"order_type": "Sales",
-					"service_appointment": self.name,
-					"items": self.get_sales_order_items(apt_type),
-				}
-			)
+		# try:
+		# 	apt_type = frappe.get_doc("Service Type", self.appointment_type)
 
-			so.insert(ignore_permissions=True)
-			so.submit()
+		# 	so = frappe.get_doc(
+		# 		{
+		# 			"doctype": "Sales Order",
+		# 			"customer": self.customer,
+		# 			"company": self.company,
+		# 			"transaction_date": getdate(),
+		# 			"delivery_date": self.appointment_date,
+		# 			"order_type": "Sales",
+		# 			"service_appointment": self.name,
+		# 			"items": self.get_sales_order_items(apt_type),
+		# 		}
+		# 	)
 
-			self.show_success_message("Sales Order", so.name)
+		# 	so.insert(ignore_permissions=True)
+		# 	so.submit()
 
-		except Exception as e:
-			self.log_and_throw_error("Sales Order", e)
+		# 	self.show_success_message("Sales Order", so.name)
+
+		# except Exception as e:
+		# 	self.log_and_throw_error("Sales Order", e)
 
 	def get_sales_order_items(self, apt_type):
 		"""Get items for sales order from appointment type"""
@@ -1239,3 +1244,164 @@ def get_events(start, end, filters=None):
 		item.end = item.start + datetime.timedelta(minutes=item.duration)
 
 	return data
+
+
+@frappe.whitelist()
+def cancel_old_appointment(old_appointment_name, new_appointment_name):
+	"""
+	Cancel the old appointment after a successful reschedule.
+	Called from the frontend after the new appointment is created.
+
+	:param old_appointment_name: Name of the old appointment to cancel
+	:param new_appointment_name: Name of the new appointment (for reference)
+	"""
+	try:
+		old_appointment = frappe.get_doc("Service Appointment", old_appointment_name)
+
+		# Validate that appointment can be cancelled
+		if old_appointment.docstatus != 1:
+			frappe.throw(_("Only submitted appointments can be cancelled"))
+
+		if old_appointment.status in ["Cancelled", "Closed"]:
+			return {"success": True, "message": _("Appointment is already cancelled or closed")}
+
+		# Add comment linking to new appointment
+		old_appointment.add_comment(
+			"Comment",
+			_("Rescheduled to {0}").format(get_link_to_form("Service Appointment", new_appointment_name)),
+		)
+
+		# Set rescheduled_to field to link to the new appointment
+		old_appointment.db_set("rescheduled_to", new_appointment_name, update_modified=False)
+
+		# Cancel the appointment
+		old_appointment.flags.ignore_permissions = True
+		old_appointment.cancel()
+		old_appointment.db_set("status", "Rescheduled")
+
+		frappe.db.commit()
+
+		return {
+			"success": True,
+			"message": _("Appointment {0} has been cancelled and linked to {1}").format(
+				old_appointment_name, new_appointment_name
+			),
+		}
+
+	except Exception as e:
+		frappe.db.rollback()
+		frappe.log_error(
+			title=_("Failed to Cancel Old Appointment"),
+			message=f"Failed to cancel appointment {old_appointment_name} during reschedule: {e}\n\n{frappe.get_traceback()}",
+		)
+		frappe.throw(_("Failed to cancel old appointment: {0}").format(str(e)))
+
+
+@frappe.whitelist()
+def reschedule_appointment(
+	appointment_name,
+	new_appointment_date,
+	new_start_time,
+	new_end_time,
+	new_provider=None,
+	new_slot_ids=None,
+	new_service_unit=None,
+):
+	"""
+	Reschedule an existing appointment by creating a new one and cancelling the old one.
+
+	:param appointment_name: Name of the appointment to reschedule
+	:param new_appointment_date: New appointment date
+	:param new_start_time: New start time
+	:param new_end_time: New end time
+	:param new_provider: Optional new provider (if changing provider)
+	:param new_slot_ids: Optional new slot IDs (JSON string or list)
+	:param new_service_unit: Optional new service unit
+	"""
+	# Get the old appointment
+	old_appointment = frappe.get_doc("Service Appointment", appointment_name)
+
+	# Validate that appointment can be rescheduled
+	if old_appointment.docstatus != 1:
+		frappe.throw(_("Only submitted appointments can be rescheduled"))
+
+	if old_appointment.status in ["Cancelled", "Closed", "No Show"]:
+		frappe.throw(_("Cannot reschedule cancelled, closed, or no-show appointments"))
+
+	if old_appointment.status == "Completed":
+		frappe.throw(_("Cannot reschedule completed appointments"))
+
+	# Validate new datetime is in the future
+	new_start_dt = get_datetime(f"{new_appointment_date} {new_start_time}")
+	if new_start_dt < now_datetime():
+		frappe.throw(_("Cannot reschedule to a time in the past"))
+
+	try:
+		# Create new appointment with same details but new date/time
+		new_appointment = frappe.get_doc(
+			{
+				"doctype": "Service Appointment",
+				"customer": old_appointment.customer,
+				"full_name": old_appointment.full_name,
+				"mobile_no": old_appointment.mobile_no,
+				"email": old_appointment.email,
+				"company": old_appointment.company,
+				"appointment_type": old_appointment.appointment_type,
+				"appointment_provider": new_provider or old_appointment.appointment_provider,
+				"appointment_date": new_appointment_date,
+				"start_time": new_start_time,
+				"end_time": new_end_time,
+				"duration": old_appointment.duration,
+				"service_unit": new_service_unit or old_appointment.service_unit,
+				"appointment_price": old_appointment.appointment_price,
+				"total_amount": old_appointment.total_amount,
+				"currency": old_appointment.currency,
+				"details": old_appointment.details,
+				"notes": (old_appointment.notes or "") + f"\n\nRescheduled from: {old_appointment.name}",
+				"status": "Open",
+				"source": old_appointment.source,
+				"add_video_conferencing": old_appointment.add_video_conferencing,
+			}
+		)
+
+		# Handle slot IDs if provided
+		if new_slot_ids:
+			if isinstance(new_slot_ids, str):
+				new_appointment.selected_slot_ids = new_slot_ids
+			else:
+				new_appointment.selected_slot_ids = json.dumps(new_slot_ids)
+
+		# Insert and submit the new appointment
+		new_appointment.insert(ignore_permissions=True)
+		new_appointment.submit()
+
+		# Cancel the old appointment
+		old_appointment.add_comment(
+			"Comment",
+			_("Appointment rescheduled to {0} at {1}. New appointment: {2}").format(
+				frappe.format(new_appointment_date, {"fieldtype": "Date"}),
+				new_start_time,
+				get_link_to_form("Service Appointment", new_appointment.name),
+			),
+		)
+
+		old_appointment.cancel()
+
+		frappe.db.commit()
+
+		return {
+			"success": True,
+			"new_appointment": new_appointment.name,
+			"old_appointment": old_appointment.name,
+			"message": _("Appointment rescheduled successfully. New appointment: {0}").format(
+				get_link_to_form("Service Appointment", new_appointment.name)
+			),
+		}
+
+	except Exception as e:
+		frappe.db.rollback()
+		frappe.log_error(
+			title=_("Appointment Reschedule Failed"),
+			message=f"Failed to reschedule appointment {appointment_name}: {e}\n\n{frappe.get_traceback()}",
+		)
+		frappe.throw(_("Failed to reschedule appointment: {0}").format(str(e)))

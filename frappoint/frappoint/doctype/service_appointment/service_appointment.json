@@ -44,7 +44,10 @@
   "source",
   "notes",
   "section_break_ykh1",
+  "rescheduled_from",
   "amended_from",
+  "column_break_efvt",
+  "rescheduled_to",
   "connections_tab"
  ],
  "fields": [
@@ -103,6 +106,7 @@
    "fieldtype": "Column Break"
   },
   {
+   "allow_on_submit": 1,
    "fieldname": "details",
    "fieldtype": "Small Text",
    "label": "Details"
@@ -128,6 +132,7 @@
    "in_list_view": 1,
    "label": "Start Time",
    "no_copy": 1,
+   "read_only": 1,
    "reqd": 1
   },
   {
@@ -153,6 +158,7 @@
    "label": "Payment Details"
   },
   {
+   "allow_on_submit": 1,
    "fieldname": "payment_status",
    "fieldtype": "Select",
    "label": "Payment Status",
@@ -186,6 +192,7 @@
    "options": "Desk\nPortal"
   },
   {
+   "allow_on_submit": 1,
    "fieldname": "notes",
    "fieldtype": "Text",
    "label": "Notes",
@@ -310,6 +317,24 @@
    "options": "Currency",
    "read_only": 1,
    "reqd": 1
+  },
+  {
+   "fieldname": "rescheduled_from",
+   "fieldtype": "Link",
+   "label": "Rescheduled From",
+   "options": "Service Appointment",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_efvt",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "rescheduled_to",
+   "fieldtype": "Link",
+   "label": "Rescheduled To",
+   "options": "Service Appointment",
+   "read_only": 1
   }
  ],
  "grid_page_length": 50,
@@ -320,11 +345,6 @@
    "group": "Calendar",
    "link_doctype": "Event",
    "link_fieldname": "reference_docname"
-  },
-  {
-   "group": "Accounts",
-   "link_doctype": "Sales Order",
-   "link_fieldname": "service_appointment"
   },
   {
    "group": "Accounts",
@@ -347,7 +367,7 @@
    "link_fieldname": "reference_docname"
   }
  ],
- "modified": "2026-01-27 06:22:00.419172",
+ "modified": "2026-01-28 14:59:27.118796",
  "modified_by": "Administrator",
  "module": "Frappoint",
  "name": "Service Appointment",
