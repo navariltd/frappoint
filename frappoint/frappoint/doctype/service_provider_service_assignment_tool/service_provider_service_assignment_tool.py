@@ -216,7 +216,6 @@ class ServiceProviderServiceAssignmentTool(Document):
 
 				if self.status == "Active":
 					self._add_service_to_provider(self.service_provider, row.service_type)
-					print(f"\n\n Row Service Type: {row.service_type} \n\n")
 					success.append({"service_type": row.service_type, "action": "assigned"})
 				elif self.status == "Inactive":
 					self._remove_service_from_provider(self.service_provider, row.service_type)

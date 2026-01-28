@@ -2,6 +2,19 @@
 // For license information, please see license.txt
 
 frappe.ui.form.on("Service Provider Service Assignment Tool", {
+	onload(frm) {
+		// Set default values
+		if (!frm.doc.company) {
+			frm.set_value("company", frappe.defaults.get_default("company"));
+		}
+		if (!frm.doc.action) {
+			frm.set_value("action", "Assign Service to Providers");
+		}
+		if (!frm.doc.status) {
+			frm.set_value("status", "Active");
+		}
+	},
+
 	refresh(frm) {
 		frm.disable_save();
 		frm.page.clear_primary_action();
