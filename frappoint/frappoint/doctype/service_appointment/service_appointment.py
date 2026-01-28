@@ -98,14 +98,21 @@ class ServiceAppointment(Document):
 			if old_doc:
 				self.check_for_reschedule(old_doc)
 
-		if (
-			self.selected_slot_ids
-			and self.appointment_provider
-			and self.appointment_date
-			and self.start_time
-			and not self._slots_already_booked()
-		):
-			self.book_selected_slots()
+				# Release old slots if slot selection has changed while in draft
+				if self.docstatus == 0 and old_doc.selected_slot_ids != self.selected_slot_ids:
+					if old_doc.selected_slot_ids:
+						self.release_slots()
+
+		if self.selected_slot_ids and self.appointment_provider and self.appointment_date and self.start_time:
+			# For new bookings or when slots have changed, book the new slots
+			if self.is_new() or not self._slots_already_booked():
+				self.book_selected_slots()
+			# If slots already booked but selection changed, release and rebook
+			elif self._slots_already_booked():
+				old_doc = self.get_doc_before_save()
+				if old_doc and old_doc.selected_slot_ids != self.selected_slot_ids:
+					self.release_slots()
+					self.book_selected_slots()
 
 	def on_submit(self):
 		"""Confirm appointment and create Sales Order"""
