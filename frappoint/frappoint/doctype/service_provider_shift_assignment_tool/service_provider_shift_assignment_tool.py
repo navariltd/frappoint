@@ -92,6 +92,7 @@ class ServiceProviderShiftAssignmentTool(Document):
 		filters = [[d, "=", self.get(d)] for d in quick_filter_fields if self.get(d)]
 
 		ServiceProvider = frappe.qb.DocType("Service Provider")
+		ShiftAssignment = frappe.qb.DocType("Service Provider Shift Assignment")
 
 		query = frappe.qb.get_query(
 			ServiceProvider,
@@ -106,36 +107,28 @@ class ServiceProviderShiftAssignmentTool(Document):
 
 		# Exclude providers with existing active shift assignments for the date range
 		if self.status == "Active" and self.provider_shift_type and self.start_date:
-			query = query.where(
-				ServiceProvider.name.notin(
-					frappe.qb.from_("Service Provider Shift Assignment")
-					.select("service_provider")
-					.where(
-						(
-							frappe.qb.from_("Service Provider Shift Assignment").provider_shift_type
-							== self.provider_shift_type
-						)
-						& (frappe.qb.from_("Service Provider Shift Assignment").status == "Active")
-						& (frappe.qb.from_("Service Provider Shift Assignment").docstatus == 1)
-						& (
-							(frappe.qb.from_("Service Provider Shift Assignment").end_date >= self.start_date)
-							| (frappe.qb.from_("Service Provider Shift Assignment").end_date.isnull())
-						)
-					)
+			active_shift_subquery = (
+				frappe.qb.from_(ShiftAssignment)
+				.select(ShiftAssignment.provider)
+				.where(
+					(ShiftAssignment.shift_type == self.provider_shift_type)
+					& (ShiftAssignment.status == "Active")
+					& (ShiftAssignment.docstatus == 1)
+					& ((ShiftAssignment.end_date >= self.start_date) | (ShiftAssignment.end_date.isnull()))
 				)
 			)
 
+			query = query.where(ServiceProvider.name.notin(active_shift_subquery))
+
 			if self.end_date:
-				query = query.where(
-					ServiceProvider.name.notin(
-						frappe.qb.from_("Service Provider Shift Assignment")
-						.select("service_provider")
-						.where(
-							frappe.qb.from_("Service Provider Shift Assignment").start_date <= self.end_date
-						)
-					)
+				end_date_subquery = (
+					frappe.qb.from_(ShiftAssignment)
+					.select(ShiftAssignment.provider)
+					.where(ShiftAssignment.start_date <= self.end_date)
 				)
 
+				query = query.where(ServiceProvider.name.notin(end_date_subquery))
+		print(query.run(as_dict=True))
 		return query.run(as_dict=True)
 
 	@frappe.whitelist()
