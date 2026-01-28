@@ -1,5 +1,14 @@
 <template>
 	<div class="min-h-screen bg-[#fafafa] dark:bg-[#16191d] pb-32">
+		<Alert
+			v-if="alertOptions.message"
+			:title="alertOptions.title"
+			:description="alertOptions.message"
+			:variant="alertOptions.variant"
+			:theme="alertOptions.theme"
+			class="fixed top-8 left-1/2 -translate-x-1/2 z-50 min-w-[300px]"
+			@close="alertOptions.message = ''"
+		/>
 		<div class="max-w-[1000px] mx-auto px-4 md:px-8 py-6 md:py-10">
 			<!-- Header Section -->
 			<header
@@ -309,13 +318,14 @@
 		>
 			<button
 				@click="discardChanges"
-				class="text-sm font-bold text-gray-500 hover:text-[#0f1a19] dark:hover:text-white transition-colors py-2 md:py-0 md:mr-4"
+				:disabled="!hasChanges"
+				class="text-sm font-bold text-gray-500 hover:text-[#0f1a19] dark:hover:text-white transition-colors py-2 md:py-0 md:mr-4 disabled:opacity-50 disabled:cursor-not-allowed"
 			>
 				Discard Changes
 			</button>
 			<button
 				@click="saveChanges"
-				:disabled="saving"
+				:disabled="saving || !hasChanges"
 				class="bg-primary hover:bg-primary/90 text-white font-bold py-3 px-6 md:px-8 rounded-xl shadow-md flex items-center justify-center gap-2 transform active:scale-95 transition-all disabled:opacity-70 disabled:cursor-not-allowed"
 			>
 				<svg
@@ -349,8 +359,8 @@
 
 <script setup>
 import { useAuthStore } from "@/stores/auth";
-import { ref, onMounted } from "vue";
-import { createResource, FileUploader } from "frappe-ui";
+import { ref, onMounted, computed } from "vue";
+import { createResource, FileUploader, Alert } from "frappe-ui";
 
 const auth = useAuthStore();
 const userDetails = ref(null);
@@ -358,6 +368,25 @@ const saving = ref(false);
 const showCurrentPassword = ref(false);
 const showNewPassword = ref(false);
 const showConfirmPassword = ref(false);
+
+const alertOptions = ref({
+	title: "",
+	message: "",
+	variant: "solid",
+	theme: "green",
+});
+
+function showAlert(title, message, theme = "green") {
+	alertOptions.value = {
+		title,
+		message,
+		variant: "solid",
+		theme,
+	};
+	setTimeout(() => {
+		alertOptions.value = { ...alertOptions.value, message: "" };
+	}, 3000);
+}
 
 const formData = ref({
 	firstName: "",
@@ -370,6 +399,28 @@ const passwordData = ref({
 	currentPassword: "",
 	newPassword: "",
 	confirmPassword: "",
+});
+
+// Computed property to check if there are any changes
+const hasChanges = computed(() => {
+	if (!userDetails.value) return false;
+
+	const nameParts = userDetails.value.full_name?.split(" ") || [];
+	const originalFirstName = nameParts[0] || "";
+	const originalLastName = nameParts.slice(1).join(" ") || "";
+	const originalPhone = userDetails.value.phone || "";
+
+	const profileChanged =
+		formData.value.firstName !== originalFirstName ||
+		formData.value.lastName !== originalLastName ||
+		formData.value.phone !== originalPhone;
+
+	const passwordChanged =
+		!!passwordData.value.currentPassword ||
+		!!passwordData.value.newPassword ||
+		!!passwordData.value.confirmPassword;
+
+	return profileChanged || passwordChanged;
 });
 
 // Fetch user details
@@ -487,22 +538,22 @@ async function saveChanges() {
 
 		// Show success message and reload page
 		if (profileUpdated && passwordUpdated) {
-			alert("Profile and password updated successfully!");
-			window.location.reload();
+			showAlert("Success", "Profile and password updated successfully!");
+			setTimeout(() => window.location.reload(), 1500);
 		} else if (profileUpdated) {
-			alert("Profile updated successfully!");
-			window.location.reload();
+			showAlert("Success", "Profile updated successfully!");
+			setTimeout(() => window.location.reload(), 1500);
 		} else if (passwordUpdated) {
-			alert("Password updated successfully!");
-			window.location.reload();
+			showAlert("Success", "Password updated successfully!");
+			setTimeout(() => window.location.reload(), 1500);
 		} else {
-			alert("No changes detected");
+			showAlert("Info", "No changes detected", "gray");
 		}
 	} catch (error) {
 		console.error("Error saving changes:", error);
 		const errorMessage =
 			error.messages?.[0] || error.message || "Failed to save changes. Please try again.";
-		alert(errorMessage);
+		showAlert("Error", errorMessage, "red");
 	} finally {
 		saving.value = false;
 	}
@@ -525,7 +576,7 @@ function handleImageUpload(file) {
 		})
 		.catch((error) => {
 			console.error("Error updating profile image:", error);
-			alert("Failed to update profile image. Please try again.");
+			showAlert("Error", "Failed to update profile image. Please try again.", "red");
 		});
 }
 
