@@ -37,20 +37,27 @@ class ServiceAppointment(Document):
 	if TYPE_CHECKING:
 		from frappe.types import DF
 
+		from frappoint.frappoint.doctype.service_appointment_lost_reason_detail.service_appointment_lost_reason_detail import (
+			ServiceAppointmentLostReasonDetail,
+		)
+
+		actual_duration: DF.Int
+		actual_end_time: DF.Time | None
 		add_video_conferencing: DF.Check
 		amended_from: DF.Link | None
 		appointment_date: DF.Date
 		appointment_price: DF.Data
 		appointment_provider: DF.Link
 		appointment_type: DF.Link
+		cancellation_date: DF.Datetime | None
+		cancellation_notes: DF.Text | None
+		cancellation_reasons: DF.TableMultiSelect[ServiceAppointmentLostReasonDetail]
 		company: DF.Link
 		confirmation_token: DF.Data | None
 		currency: DF.Link
 		customer: DF.Link
 		details: DF.SmallText | None
 		duration: DF.Int
-		actual_end_time: DF.Time | None
-		actual_duration: DF.Int | None
 		email: DF.Data | None
 		end_time: DF.Time
 		event: DF.Link | None
@@ -719,7 +726,7 @@ class ServiceAppointment(Document):
 		status_handlers = {
 			"Confirmed": self.create_sales_order,
 			"Completed": lambda: (
-				self.create_sales_invoice(),
+				# self.create_sales_invoice(),
 				self.auto_issue_consumables(),
 				self.complete_linked_event(),
 			),
@@ -1055,6 +1062,8 @@ class ServiceAppointment(Document):
 		self.cancel_linked_event()
 		self.release_slots()
 		self.cancel_sales_order()
+		if not self.cancellation_date:
+			self.cancellation_date = now_datetime()
 
 	def auto_issue_consumables(self):
 		"""Auto issue consumables if setting is enabled"""
