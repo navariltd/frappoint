@@ -21,6 +21,8 @@
   "start_time",
   "duration",
   "end_time",
+  "actual_end_time",
+  "actual_duration",
   "selected_slot_ids",
   "customer_details_section",
   "customer",
@@ -142,6 +144,22 @@
    "no_copy": 1,
    "read_only": 1,
    "reqd": 1
+  },
+  {
+   "allow_on_submit": 1,
+   "fieldname": "actual_end_time",
+   "fieldtype": "Time",
+   "label": "Actual End Time",
+   "no_copy": 1,
+   "read_only": 1
+  },
+  {
+   "allow_on_submit": 1,
+   "fieldname": "actual_duration",
+   "fieldtype": "Int",
+   "label": "Actual Duration (mins)",
+   "no_copy": 1,
+   "read_only": 1
   },
   {
    "fieldname": "appointment_type",

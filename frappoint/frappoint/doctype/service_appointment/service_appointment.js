@@ -20,11 +20,7 @@ frappe.ui.form.on("Service Appointment", {
 		// Complete Appointment button
 		if (frm.doc.docstatus === 1 && frm.doc.status === "Confirmed") {
 			frm.add_custom_button(__("Complete & Invoice"), function () {
-				frappe.confirm(__("Mark appointment as completed and create invoice?"), () => {
-					frm.set_value("status", "Completed").then(() => {
-						frm.save("Update");
-					});
-				});
+				show_complete_appointment_dialog(frm);
 			}).addClass("btn-primary");
 		}
 
@@ -724,4 +720,86 @@ function complete_reschedule(frm, old_appointment_name) {
 			});
 		},
 	});
+}
+
+function show_complete_appointment_dialog(frm) {
+	// Get current time as default
+	let now = new Date();
+	let default_time = `${now.getHours().toString().padStart(2, "0")}:${now
+		.getMinutes()
+		.toString()
+		.padStart(2, "0")}`;
+
+	let d = new frappe.ui.Dialog({
+		title: __("Complete Appointment"),
+		fields: [
+			{
+				fieldname: "actual_end_time",
+				fieldtype: "Time",
+				label: __("Actual End Time"),
+				reqd: 1,
+				default: default_time,
+				description: __("Enter the actual time the appointment ended"),
+			},
+			{
+				fieldname: "section_break",
+				fieldtype: "Section Break",
+			},
+			{
+				fieldname: "info",
+				fieldtype: "HTML",
+				options: `
+					<div style="padding: 10px; background-color: #f0f4ff; border-radius: 6px; margin-top: 10px;">
+						<p style="margin: 0; color: #5e64ff; font-weight: 500;">
+							<i class="fa fa-info-circle"></i> The actual duration will be calculated automatically and used for invoicing.
+						</p>
+						<p style="margin: 5px 0 0 0; color: #666; font-size: 12px;">
+							Appointment started at: ${frm.doc.start_time}
+						</p>
+					</div>
+				`,
+			},
+		],
+		primary_action_label: __("Complete & Create Invoice"),
+		primary_action: function (values) {
+			frappe.dom.freeze(__("Completing appointment..."));
+
+			// Set the actual end time first, then status, then save
+			frm.set_value("actual_end_time", values.actual_end_time)
+				.then(() => {
+					return frm.set_value("status", "Completed");
+				})
+				.then(() => {
+					// Save the document
+					return frm.save("Update");
+				})
+				.then(() => {
+					frappe.dom.unfreeze();
+					d.hide();
+
+					frappe.show_alert({
+						message: __(
+							"Appointment completed successfully. Invoice will be created."
+						),
+						indicator: "green",
+					});
+
+					// Reload to show updated information including calculated actual_duration
+					setTimeout(() => {
+						frm.reload_doc();
+					}, 1000);
+				})
+				.catch((error) => {
+					frappe.dom.unfreeze();
+					frappe.msgprint({
+						title: __("Error"),
+						message: __("Failed to complete appointment. Please try again."),
+						indicator: "red",
+					});
+				});
+		},
+		secondary_action_label: __("Cancel"),
+	});
+
+	d.show();
 }
