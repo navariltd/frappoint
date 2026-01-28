@@ -2,6 +2,18 @@
 // For license information, please see license.txt
 
 frappe.ui.form.on("Service Provider Shift Assignment Tool", {
+	onload(frm) {
+		// Set default values
+		if (!frm.doc.company) {
+			frm.set_value("company", frappe.defaults.get_default("company"));
+		}
+		if (!frm.doc.action) {
+			frm.set_value("action", "Assign Shift");
+		}
+		if (!frm.doc.status) {
+			frm.set_value("status", "Active");
+		}
+	},
 	refresh(frm) {
 		frm.disable_save();
 		frm.page.clear_primary_action();
@@ -73,7 +85,7 @@ frappe.ui.form.on("Service Provider Shift Assignment Tool", {
 		providers.forEach((provider) => {
 			let row = frm.add_child("providers");
 			row.service_provider = provider.service_provider;
-			row.provider_name = provider.provider_name;
+			row.service_provider_name = provider.provider_name;
 			row.service_unit = provider.service_unit;
 		});
 
@@ -107,6 +119,11 @@ frappe.ui.form.on("Service Provider Shift Assignment Tool", {
 
 		if (!frm.doc.start_date) {
 			frappe.msgprint(__("Please select a Start Date"));
+			return;
+		}
+
+		if (!frm.doc.status) {
+			frappe.msgprint(__("Please select a Status to set"));
 			return;
 		}
 
