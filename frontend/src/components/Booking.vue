@@ -1,5 +1,14 @@
 <template>
 	<div class="flex items-center justify-center min-h-screen bg-gray-200 p-6">
+		<Alert
+			v-if="alertOptions.message"
+			:title="alertOptions.title"
+			:description="alertOptions.message"
+			:variant="alertOptions.variant"
+			:theme="alertOptions.theme"
+			class="fixed top-8 left-1/2 -translate-x-1/2 z-50 min-w-[300px]"
+			@close="alertOptions.message = ''"
+		/>
 		<div class="bg-white rounded-3xl shadow-xl w-full max-w-5xl overflow-hidden flex flex-col">
 			<div class="text-center py-6">
 				<h2 class="text-2xl font-bold text-gray-800">Select Date & Time</h2>
@@ -86,12 +95,21 @@
 <script setup>
 import { ref, computed } from "vue";
 import { createResource } from "frappe-ui";
-import { Calendar } from "frappe-ui";
+import { Calendar, Alert } from "frappe-ui";
 import { useRoute } from "vue-router";
 
 const route = useRoute();
 
 const serviceId = computed(() => route.query.service);
+
+const alertOptions = ref({
+	title: "",
+	message: "",
+	variant: "solid",
+	theme: "green",
+	container: null,
+	dialog: null,
+});
 
 const serviceResource = createResource({
 	url: "frappoint.frappoint.api.service_type.get_service_types",
@@ -138,7 +156,23 @@ const onCellClick = (date) => {
 	selectedTime.value = null;
 };
 
+const showAlert = (title, message) => {
+	alertOptions.value = {
+		title,
+		message,
+		variant: "solid",
+		theme: "green",
+	};
+	setTimeout(() => {
+		alertOptions.value = {
+			title: "",
+			message: "",
+		};
+	}, 3000);
+};
+
 const submitBooking = () => {
-	alert(`Booking confirmed for ${selectedDate.value} at ${selectedTime.value}`);
+	// alert(`Booking confirmed for ${selectedDate.value} at ${selectedTime.value}`);
+	showAlert("Booking Confirmed", `Your appointment is set for ${selectedTime.value}`);
 };
 </script>
