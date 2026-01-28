@@ -18,6 +18,7 @@ declare module 'vue' {
     MpesaIcon: typeof import('./src/components/icons/MpesaIcon.vue')['default']
     Navbar: typeof import('./src/components/common/Navbar.vue')['default']
     PaymentAndConfirmation: typeof import('./src/components/booking/steps/PaymentAndConfirmation.vue')['default']
+    PaymentGatewayList: typeof import('./src/components/booking/PaymentGatewayList.vue')['default']
     PaypalIcon: typeof import('./src/components/icons/PaypalIcon.vue')['default']
     ProviderCard: typeof import('./src/components/providers/ProviderCard.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']

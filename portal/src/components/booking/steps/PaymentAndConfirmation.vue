@@ -1,5 +1,5 @@
 <template>
-	<div class="flex flex-col h-full">
+	<div class="flex flex-col h-full w-full">
 		<div class="flex flex-col lg:flex-row gap-6 lg:gap-8 w-full p-6 md:p-8 flex-1">
 			<!-- Left Column - Payment Form -->
 			<div class="w-full lg:flex-1">
@@ -7,107 +7,11 @@
 					Payment Method
 				</h2>
 
-				<div class="space-y-3 mb-8">
-					<!-- M-Pesa Payment Option -->
-					<label
-						class="flex items-center gap-4 p-4 sm:p-5 border-2 rounded-xl sm:rounded-2xl cursor-pointer transition-all"
-						:class="{
-							'border-[#16a34a] bg-[#16a34a]/5':
-								booking.draft.selectedPaymentGateway === 'Mpesa',
-							'border-gray-200 hover:border-gray-300':
-								booking.draft.selectedPaymentGateway !== 'Mpesa',
-						}"
-					>
-						<div
-							class="flex items-center justify-center w-12 h-12 sm:w-14 sm:h-14 bg-white rounded-xl border border-gray-200 flex-shrink-0"
-						>
-							<MpesaIcon />
-						</div>
-						<div class="flex-1 min-w-0">
-							<h3
-								class="text-base sm:text-lg font-semibold text-gray-900 dark:text-white mb-0.5"
-							>
-								M-Pesa
-							</h3>
-							<p class="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
-								Pay with your M-Pesa mobile money
-							</p>
-						</div>
-						<div class="flex-shrink-0">
-							<div
-								class="w-5 h-5 sm:w-6 sm:h-6 rounded-full border-2 flex items-center justify-center transition-all"
-								:class="{
-									'border-[#16a34a] bg-[#16a34a]':
-										booking.draft.selectedPaymentGateway === 'Mpesa',
-									'border-gray-300':
-										booking.draft.selectedPaymentGateway !== 'Mpesa',
-								}"
-							>
-								<div
-									v-if="booking.draft.selectedPaymentGateway === 'Mpesa'"
-									class="w-2 h-2 sm:w-2.5 sm:h-2.5 bg-white rounded-full"
-								></div>
-							</div>
-						</div>
-						<input
-							type="radio"
-							name="payment_gateway"
-							value="Mpesa"
-							v-model="booking.draft.selectedPaymentGateway"
-							class="sr-only"
-						/>
-					</label>
-
-					<!-- PayPal Payment Option -->
-					<label
-						class="flex items-center gap-4 p-4 sm:p-5 border-2 rounded-xl sm:rounded-2xl cursor-pointer transition-all"
-						:class="{
-							'border-[#0070ba] bg-[#0070ba]/5':
-								booking.draft.selectedPaymentGateway === 'Paypal',
-							'border-gray-200 hover:border-gray-300':
-								booking.draft.selectedPaymentGateway !== 'Paypal',
-						}"
-					>
-						<div
-							class="flex items-center justify-center w-12 h-12 sm:w-14 sm:h-14 bg-white rounded-xl border border-gray-200 flex-shrink-0"
-						>
-							<PaypalIcon />
-						</div>
-						<div class="flex-1 min-w-0">
-							<h3
-								class="text-base sm:text-lg font-semibold text-gray-900 dark:text-white mb-0.5"
-							>
-								PayPal
-							</h3>
-							<p class="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
-								Pay safely with your PayPal account
-							</p>
-						</div>
-						<div class="flex-shrink-0">
-							<div
-								class="w-5 h-5 sm:w-6 sm:h-6 rounded-full border-2 flex items-center justify-center transition-all"
-								:class="{
-									'border-[#0070ba] bg-[#0070ba]':
-										booking.draft.selectedPaymentGateway === 'Paypal',
-									'border-gray-300':
-										booking.draft.selectedPaymentGateway !== 'Paypal',
-								}"
-							>
-								<div
-									v-if="booking.draft.selectedPaymentGateway === 'Paypal'"
-									class="w-2 h-2 sm:w-2.5 sm:h-2.5 bg-white rounded-full"
-								></div>
-							</div>
-						</div>
-						<input
-							type="radio"
-							name="payment_gateway"
-							value="Paypal"
-							v-model="booking.draft.selectedPaymentGateway"
-							class="sr-only"
-						/>
-					</label>
-				</div>
+				<PaymentGatewayList
+					class="mb-8"
+					:gateways="paymentGateways"
+					v-model="selectedPaymentGateway"
+				/>
 
 				<ErrorMessage v-if="paymentError" :message="paymentError" class="mb-6" />
 			</div>
@@ -218,8 +122,7 @@ import { ErrorMessage } from "frappe-ui";
 import { useBookingStore } from "@/stores/bookingStore";
 import { formatCurrency } from "@/utils";
 import { computed, ref } from "vue";
-import MpesaIcon from "../../icons/MpesaIcon.vue";
-import PaypalIcon from "../../icons/PaypalIcon.vue";
+import PaymentGatewayList from "../PaymentGatewayList.vue";
 
 const props = defineProps({
 	canProceed: Boolean,

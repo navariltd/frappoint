@@ -51,45 +51,65 @@
 				</div>
 
 				<!-- Time slots grid -->
-				<div
-					v-else
-					class="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-8 overflow-y-auto max-h-[320px] time-slot-scroll pr-2"
-				>
-					<div class="col-span-full mt-2 mb-1">
-						<p>Morning</p>
+				<div v-else>
+					<!-- Slots available -->
+					<div
+						v-if="hasSlots"
+						class="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-8 overflow-y-auto max-h-[320px] time-slot-scroll pr-2"
+					>
+						<!-- Morning section -->
+						<template v-if="morningSlots.length">
+							<div class="col-span-full mt-2 mb-1">
+								<p>Morning</p>
+							</div>
+
+							<Button
+								v-for="slot in morningSlots"
+								:key="slot.start_time + slot.provider"
+								@click="booking.setSlot(slot)"
+								:class="
+									booking.draft.slot === slot
+										? '!bg-primary !text-white'
+										: 'border hover-bg-primary/10'
+								"
+								class="py-4 px-4 rounded-lg border border-slate-200 text-slate-700 hover:border-primary hover:text-primary hover:bg-[#E2F0F9] transition-all text-sm font-medium"
+							>
+								{{ formatTime(slot.start_time) }}
+							</Button>
+						</template>
+
+						<!-- Afternoon section -->
+						<template v-if="afternoonSlots.length">
+							<div class="col-span-full mt-2 mb-1">
+								<p>Afternoon</p>
+							</div>
+
+							<Button
+								v-for="slot in afternoonSlots"
+								:key="slot.start_time + slot.provider"
+								@click="booking.setSlot(slot)"
+								:class="
+									booking.draft.slot === slot
+										? '!bg-primary !text-white'
+										: 'broder hover-bg-primary/10'
+								"
+								class="py-4 px-4 rounded-lg border border-slate-200 text-slate-700 hover:border-primary hover:text-primary hover:bg-[#E2F0F9] transition-all text-sm font-medium"
+							>
+								{{ formatTime(slot.start_time) }}
+							</Button>
+						</template>
 					</div>
 
-					<Button
-						v-for="slot in morningSlots"
-						:key="slot.start_time + slot.provider"
-						@click="booking.setSlot(slot)"
-						:class="
-							booking.draft.slot === slot
-								? '!bg-primary !text-white'
-								: 'border hover-bg-primary/10'
-						"
-						class="py-4 px-4 rounded-lg border border-slate-200 text-slate-700 hover:border-primary hover:text-primary hover:bg-[#E2F0F9] transition-all text-sm font-medium"
+					<!-- Empty state when no slots -->
+					<div
+						v-else
+						class="flex flex-col items-center justify-center text-center bg-white rounded-lg border border-slate-200 p-8"
+						aria-live="polite"
 					>
-						{{ formatTime(slot.start_time) }}
-					</Button>
-
-					<div class="col-span-full mt-2 mb-1">
-						<p>Afternoon</p>
+						<FeatherIcon name="clock" class="w-10 h-10 text-slate-400 mb-2" />
+						<p class="text-slate-800 font-medium">No available slots at the moment.</p>
+						<p class="text-slate-500 text-sm mt-1">Please choose another service.</p>
 					</div>
-
-					<Button
-						v-for="slot in afternoonSlots"
-						:key="slot.start_time + slot.provider"
-						@click="booking.setSlot(slot)"
-						:class="
-							booking.draft.slot === slot
-								? '!bg-primary !text-white'
-								: 'broder hover-bg-primary/10'
-						"
-						class="py-4 px-4 rounded-lg border border-slate-200 text-slate-700 hover:border-primary hover:text-primary hover:bg-[#E2F0F9] transition-all text-sm font-medium"
-					>
-						{{ formatTime(slot.start_time) }}
-					</Button>
 				</div>
 			</div>
 		</div>
@@ -153,6 +173,8 @@ const visibleSlots = computed(() => {
 
 	return props.availableSlots.filter((slot) => slot.provider === booking.draft.provider);
 });
+
+const hasSlots = computed(() => visibleSlots.value && visibleSlots.value.length > 0);
 
 const morningSlots = computed(() =>
 	visibleSlots.value.filter((s) => Number(s.start_time.split(":")[0]) < 12)
