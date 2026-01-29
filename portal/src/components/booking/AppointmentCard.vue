@@ -65,7 +65,6 @@
 							/>
 						</svg>
 					</div>
-					<span class="font-medium text-[10px] sm:text-xs">Medical</span>
 				</div>
 
 				<div class="flex items-center gap-1 sm:gap-1.5 text-xs sm:text-sm text-gray-500">
