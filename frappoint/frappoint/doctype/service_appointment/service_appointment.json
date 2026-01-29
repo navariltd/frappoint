@@ -21,6 +21,8 @@
   "start_time",
   "duration",
   "end_time",
+  "actual_end_time",
+  "actual_duration",
   "selected_slot_ids",
   "customer_details_section",
   "customer",
@@ -43,6 +45,11 @@
   "confirmation_token",
   "source",
   "notes",
+  "cancellation_section",
+  "cancellation_reasons",
+  "cancellation_date",
+  "column_break_esxt",
+  "cancellation_notes",
   "section_break_ykh1",
   "rescheduled_from",
   "amended_from",
@@ -144,6 +151,22 @@
    "reqd": 1
   },
   {
+   "allow_on_submit": 1,
+   "fieldname": "actual_end_time",
+   "fieldtype": "Time",
+   "label": "Actual End Time",
+   "no_copy": 1,
+   "read_only": 1
+  },
+  {
+   "allow_on_submit": 1,
+   "fieldname": "actual_duration",
+   "fieldtype": "Int",
+   "label": "Actual Duration (mins)",
+   "no_copy": 1,
+   "read_only": 1
+  },
+  {
    "fieldname": "appointment_type",
    "fieldtype": "Link",
    "in_standard_filter": 1,
@@ -197,6 +220,26 @@
    "fieldtype": "Text",
    "label": "Notes",
    "no_copy": 1
+  },
+  {
+   "depends_on": "eval:doc.status === \"Cancelled\"",
+   "fieldname": "cancellation_section",
+   "fieldtype": "Section Break",
+   "label": "Cancellation Details"
+  },
+  {
+   "allow_on_submit": 1,
+   "fieldname": "cancellation_notes",
+   "fieldtype": "Text",
+   "label": "Cancellation Notes"
+  },
+  {
+   "allow_on_submit": 1,
+   "fieldname": "cancellation_date",
+   "fieldtype": "Datetime",
+   "label": "Cancellation Date",
+   "no_copy": 1,
+   "read_only": 1
   },
   {
    "fieldname": "column_break_ahpd",
@@ -335,6 +378,17 @@
    "label": "Rescheduled To",
    "options": "Service Appointment",
    "read_only": 1
+  },
+  {
+   "fieldname": "column_break_esxt",
+   "fieldtype": "Column Break"
+  },
+  {
+   "allow_on_submit": 1,
+   "fieldname": "cancellation_reasons",
+   "fieldtype": "Table MultiSelect",
+   "label": "Cancellation Reasons",
+   "options": "Service Appointment Lost Reason Detail"
   }
  ],
  "grid_page_length": 50,
@@ -367,7 +421,7 @@
    "link_fieldname": "reference_docname"
   }
  ],
- "modified": "2026-01-28 14:59:27.118796",
+ "modified": "2026-01-28 21:55:41.290484",
  "modified_by": "Administrator",
  "module": "Frappoint",
  "name": "Service Appointment",

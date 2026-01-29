@@ -37,12 +37,21 @@ class ServiceAppointment(Document):
 	if TYPE_CHECKING:
 		from frappe.types import DF
 
+		from frappoint.frappoint.doctype.service_appointment_lost_reason_detail.service_appointment_lost_reason_detail import (
+			ServiceAppointmentLostReasonDetail,
+		)
+
+		actual_duration: DF.Int
+		actual_end_time: DF.Time | None
 		add_video_conferencing: DF.Check
 		amended_from: DF.Link | None
 		appointment_date: DF.Date
 		appointment_price: DF.Data
 		appointment_provider: DF.Link
 		appointment_type: DF.Link
+		cancellation_date: DF.Datetime | None
+		cancellation_notes: DF.Text | None
+		cancellation_reasons: DF.TableMultiSelect[ServiceAppointmentLostReasonDetail]
 		company: DF.Link
 		confirmation_token: DF.Data | None
 		currency: DF.Link
@@ -133,6 +142,16 @@ class ServiceAppointment(Document):
 
 	def on_update_after_submit(self):
 		"""Handle status changes and reschedules and cancellations"""
+		# Validate actual end time when completing appointment
+		if self.has_value_changed("status") and self.status == "Completed":
+			if not self.actual_end_time:
+				frappe.throw(
+					_("Actual End Time is required to mark appointment as Completed"),
+					title=_("Actual End Time Required"),
+				)
+
+			self.calculate_actual_duration()
+
 		if self.has_value_changed("status"):
 			self.handle_status_change()
 
@@ -200,6 +219,23 @@ class ServiceAppointment(Document):
 
 		if start_dt < now_datetime():
 			frappe.throw(_("You cannot schedule an appointment in the past"))
+
+	def calculate_actual_duration(self):
+		"""Validate actual end time and calculate actual duration when appointment is completed"""
+
+		start_dt = get_datetime(f"{self.appointment_date} {self.start_time}")
+		actual_end_dt = get_datetime(f"{self.appointment_date} {self.actual_end_time}")
+
+		if actual_end_dt <= start_dt:
+			frappe.throw(
+				_("Actual End Time must be after Start Time"),
+				title=_("Invalid Actual End Time"),
+			)
+
+		# Calculate actual duration in minutes
+		duration_delta = actual_end_dt - start_dt
+		actual_duration_mins = int(duration_delta.total_seconds() / 60)
+		self.db_set("actual_duration", actual_duration_mins, update_modified=False)
 
 	def validate_overlaps(self):
 		"""
@@ -690,7 +726,7 @@ class ServiceAppointment(Document):
 		status_handlers = {
 			"Confirmed": self.create_sales_order,
 			"Completed": lambda: (
-				self.create_sales_invoice(),
+				# self.create_sales_invoice(),
 				self.auto_issue_consumables(),
 				self.complete_linked_event(),
 			),
@@ -901,13 +937,19 @@ class ServiceAppointment(Document):
 		"""Generate description for sales order item"""
 		provider_name = frappe.db.get_value("Service Provider", self.appointment_provider, "provider_name")
 
+		# Use actual duration if appointment is completed, otherwise use scheduled duration
+		duration_to_display = self.actual_duration if self.actual_duration else self.duration
+		end_time_to_display = self.actual_end_time if self.actual_end_time else self.end_time
+
 		description = f"""
 		Service Type: {self.appointment_type}
 		Provider: {provider_name or self.appointment_provider}
 		Date: {frappe.format(self.appointment_date, {"fieldtype": "Date"})}
-		Time: {self.start_time} - {self.end_time}
-		Duration: {self.duration} minutes
+		Time: {self.start_time} - {end_time_to_display}
+		Duration: {duration_to_display} minutes
 		"""
+		if self.actual_duration:
+			description += f"\nActual Duration: {self.actual_duration} minutes"
 		return description.strip()
 
 	def update_sales_order(self):
@@ -1020,6 +1062,8 @@ class ServiceAppointment(Document):
 		self.cancel_linked_event()
 		self.release_slots()
 		self.cancel_sales_order()
+		if not self.cancellation_date:
+			self.cancellation_date = now_datetime()
 
 	def auto_issue_consumables(self):
 		"""Auto issue consumables if setting is enabled"""

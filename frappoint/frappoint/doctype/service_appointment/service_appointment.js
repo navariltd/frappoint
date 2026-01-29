@@ -20,11 +20,7 @@ frappe.ui.form.on("Service Appointment", {
 		// Complete Appointment button
 		if (frm.doc.docstatus === 1 && frm.doc.status === "Confirmed") {
 			frm.add_custom_button(__("Complete & Invoice"), function () {
-				frappe.confirm(__("Mark appointment as completed and create invoice?"), () => {
-					frm.set_value("status", "Completed").then(() => {
-						frm.save("Update");
-					});
-				});
+				show_complete_appointment_dialog(frm);
 			}).addClass("btn-primary");
 		}
 
@@ -104,11 +100,7 @@ frappe.ui.form.on("Service Appointment", {
 			frm.add_custom_button(
 				__("Cancel Appointment"),
 				function () {
-					frappe.confirm(__("Are you sure you want to cancel this appointment?"), () => {
-						frm.set_value("status", "Cancelled").then(() => {
-							frm.save("Cancel");
-						});
-					});
+					show_cancellation_dialog(frm);
 				},
 				__("Actions")
 			);
@@ -219,7 +211,7 @@ frappe.ui.form.on("Service Appointment", {
 					}
 
 					if (!frm.doc.email && res.message.contact_email) {
-						frm.set_value("email", res.message.message.contact_email);
+						frm.set_value("email", res.message.contact_email);
 					}
 
 					if (!frm.doc.phone && res.message.contact_phone) {
@@ -337,7 +329,7 @@ function show_slot_picker(frm) {
 					{
 						fieldname: "focus_sink",
 						fieldtype: "HTML",
-						options: "<div tabindex='-1'></div>",
+						options: '<div tabindex="-1"></div>',
 					},
 					{
 						fieldname: "provider_filter",
@@ -724,4 +716,214 @@ function complete_reschedule(frm, old_appointment_name) {
 			});
 		},
 	});
+}
+
+function show_complete_appointment_dialog(frm) {
+	// Get current time as default
+	let now = new Date();
+	let default_time = `${now.getHours().toString().padStart(2, "0")}:${now
+		.getMinutes()
+		.toString()
+		.padStart(2, "0")}`;
+
+	let d = new frappe.ui.Dialog({
+		title: __("Complete Appointment"),
+		fields: [
+			{
+				fieldname: "actual_end_time",
+				fieldtype: "Time",
+				label: __("Actual End Time"),
+				reqd: 1,
+				default: default_time,
+				description: __("Enter the actual time the appointment ended"),
+			},
+			{
+				fieldname: "section_break",
+				fieldtype: "Section Break",
+			},
+			{
+				fieldname: "info",
+				fieldtype: "HTML",
+				options: `
+					<div style="padding: 10px; background-color: #f0f4ff; border-radius: 6px; margin-top: 10px;">
+						<p style="margin: 0; color: #5e64ff; font-weight: 500;">
+							<i class="fa fa-info-circle"></i> The actual duration will be calculated automatically and used for invoicing.
+						</p>
+						<p style="margin: 5px 0 0 0; color: #666; font-size: 12px;">
+							Appointment started at: ${frm.doc.start_time}
+						</p>
+					</div>
+				`,
+			},
+		],
+		primary_action_label: __("Complete & Create Invoice"),
+		primary_action: function (values) {
+			frappe.dom.freeze(__("Completing appointment..."));
+
+			// Set the actual end time first, then status, then save
+			frm.set_value("actual_end_time", values.actual_end_time)
+				.then(() => {
+					return frm.set_value("status", "Completed");
+				})
+				.then(() => {
+					// Save the document
+					return frm.save("Update");
+				})
+				.then(() => {
+					frappe.dom.unfreeze();
+					d.hide();
+
+					frappe.show_alert({
+						message: __(
+							"Appointment completed successfully. Invoice will be created."
+						),
+						indicator: "green",
+					});
+
+					// Reload to show updated information including calculated actual_duration
+					setTimeout(() => {
+						frm.reload_doc();
+					}, 1000);
+				})
+				.catch((error) => {
+					frappe.dom.unfreeze();
+					frappe.msgprint({
+						title: __("Error"),
+						message: __("Failed to complete appointment. Please try again."),
+						indicator: "red",
+					});
+				});
+		},
+		secondary_action_label: __("Cancel"),
+	});
+
+	d.show();
+}
+
+function show_cancellation_dialog(frm) {
+	// Fetch all available cancellation reasons
+	frappe.call({
+		method: "frappe.client.get_list",
+		args: {
+			doctype: "Service Appointment Lost Reason",
+			fields: ["lost_reason"],
+			limit_page_length: 0,
+		},
+		callback: function (r) {
+			if (r.message && r.message.length > 0) {
+				build_cancellation_dialog(frm, r.message);
+			} else {
+				frappe.msgprint({
+					title: __("No Reasons Available"),
+					message: __(
+						"Please configure cancellation reasons in Service Appointment Lost Reason doctype first."
+					),
+					indicator: "orange",
+				});
+			}
+		},
+	});
+}
+
+function build_cancellation_dialog(frm, reasons) {
+	// Build options string for MultiSelect field
+	let reason_options = reasons.map((r) => r.lost_reason).join("\n");
+
+	let d = new frappe.ui.Dialog({
+		title: __("Cancel Appointment"),
+		fields: [
+			{
+				fieldname: "reasons_section",
+				fieldtype: "Section Break",
+				label: __("Select Cancellation Reasons"),
+			},
+			{
+				fieldname: "selected_reasons",
+				fieldtype: "MultiSelect",
+				label: __("Cancellation Reasons"),
+				options: reason_options,
+				reqd: 1,
+				description: __("Select one or more reasons for cancelling this appointment"),
+			},
+			{
+				fieldname: "cancellation_notes",
+				fieldtype: "Text",
+				label: __("Additional Notes"),
+				description: __("Provide any additional information about the cancellation"),
+			},
+			// {
+			// 	fieldname: "warning_section",
+			// 	fieldtype: "Section Break",
+			// },
+			// {
+			// 	fieldname: "warning_html",
+			// 	fieldtype: "HTML",
+			// 	options: `
+			// 		<div style="padding: 12px; background-color: #fff4e6; border-left: 4px solid #ff9d00; border-radius: 4px; margin-top: 10px;">
+			// 			<p style="margin: 0; color: #333; font-weight: 500;">
+			// 				<i class="fa fa-exclamation-triangle" style="color: #ff9d00;"></i>
+			// 				Important: Once cancelled, this appointment cannot be recovered. Any associated bookings will be released.
+			// 			</p>
+			// 		</div>
+			// 	`,
+			// },
+		],
+		primary_action_label: __("Cancel Appointment"),
+		primary_action: function (values) {
+			// Get selected reasons (MultiSelect returns comma-separated string)
+			let selected_reasons = values.selected_reasons
+				? values.selected_reasons.split(",").map((r) => r.trim())
+				: [];
+
+			if (selected_reasons.length === 0) {
+				frappe.msgprint(__("Please select at least one cancellation reason"));
+				return;
+			}
+
+			frappe.dom.freeze(__("Cancelling appointment..."));
+
+			// Clear existing reasons and add new ones
+			frm.clear_table("cancellation_reasons");
+			selected_reasons.forEach((reason) => {
+				frm.add_child("cancellation_reasons", {
+					lost_reason: reason,
+				});
+			});
+
+			// Set cancellation notes and status
+			frm.set_value("cancellation_notes", values.cancellation_notes)
+				.then(() => {
+					return frm.set_value("status", "Cancelled");
+				})
+				.then(() => {
+					// Save the document
+					return frm.save("Cancel");
+				})
+				.then(() => {
+					frappe.dom.unfreeze();
+					d.hide();
+
+					frappe.show_alert({
+						message: __("Appointment cancelled successfully."),
+						indicator: "orange",
+					});
+
+					// Reload to show updated information
+					setTimeout(() => {
+						frm.reload_doc();
+					}, 1000);
+				})
+				.catch((error) => {
+					frappe.dom.unfreeze();
+					frappe.msgprint({
+						title: __("Error"),
+						message: __("Failed to cancel appointment. Please try again."),
+						indicator: "red",
+					});
+				});
+		},
+		secondary_action_label: __("Don't Cancel"),
+	});
+
+	d.show();
 }
