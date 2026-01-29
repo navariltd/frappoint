@@ -112,13 +112,9 @@ const route = useRoute();
 const router = useRouter();
 const appointmentId = route.params.id;
 const reason = ref("");
-const reasons = [
-	"Schedule conflict",
-	"Feeling better",
-	"Found another provider",
-	"Cost concerns",
-	"Other",
-];
+
+// TODO: Use a better approach
+const reasons = ["Schedule conflict", "Cost concerns", "Other"];
 const cancelling = ref(false);
 
 const appointment = createDocumentResource({
