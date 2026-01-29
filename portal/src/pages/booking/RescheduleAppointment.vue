@@ -64,7 +64,11 @@
 					<div
 						class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden"
 					>
-						<SlotPicker />
+						<SlotPicker
+							:available-dates="availableDates"
+							:available-slots="availableSlots"
+							:slots-loading="getAvailableTimeSlots.loading"
+						/>
 					</div>
 				</div>
 
@@ -129,14 +133,81 @@ const appointmentId = route.params.id;
 const rescheduling = ref(false);
 const alert = ref({ show: false, message: "", variant: "success" });
 
-// Reset store on mount
-onMounted(() => {
+// --- Available Dates/Slots logic (from BookingDialog.vue) ---
+const availableDates = ref([]);
+const availableSlots = ref([]);
+
+const getAvailableDates = createResource({
+	url: "frappoint.frappoint.api.slot_availability.get_available_dates",
+	method: "GET",
+	makeParams() {
+		return {
+			service_type: booking.draft.serviceType,
+		};
+	},
+});
+
+const getAvailableTimeSlots = createResource({
+	url: "frappoint.frappoint.api.slot_availability.get_available_time_slots",
+	method: "GET",
+	makeParams() {
+		return {
+			service_type: booking.draft.serviceType,
+			date: booking.draft.date,
+		};
+	},
+});
+
+onMounted(async () => {
 	booking.$reset();
+
+	// hydrate service details if needed
+	if (booking.draft.serviceType) {
+		await booking.hydrateServiceDetails();
+	}
+
+	if (booking.draft.date) {
+		await loadSlotsForDate(booking.draft.date);
+	}
+	availableDates.value = await getAvailableDates.fetch();
+
+	console.log("DEBUG: Avalibale dates");
+	console.log(availableDates);
 });
 
 onUnmounted(() => {
 	booking.$reset();
 });
+
+watch(
+	() => booking.draft.date,
+	(date) => {
+		if (!date || !booking.draft.serviceType) return;
+		loadSlotsForDate(date);
+	}
+);
+
+async function loadSlotsForDate(date) {
+	if (!date || !booking.draft.serviceType) return;
+
+	const response = await getAvailableTimeSlots.fetch();
+
+	availableSlots.value = response.flatMap((provider) =>
+		(provider.available_dates || [])
+			.filter((d) => d.date === date)
+			.flatMap((d) =>
+				(d.slots || []).map((slot) => ({
+					...slot,
+					provider: provider.provider,
+					provider_name: provider.provider_name,
+					date: d.date,
+				}))
+			)
+	);
+
+	console.log("DEBUG: LOADING AVAILABLE TIME SLOTS");
+	console.log(availableSlots);
+}
 
 const appointment = createDocumentResource({
 	doctype: "Service Appointment",
@@ -160,7 +231,7 @@ const serviceTypeResource = createResource({
 	url: "frappe.client.get",
 	makeParams() {
 		return {
-			doctype: "Appointment Type",
+			doctype: "Service Type",
 			name: appointment.doc?.appointment_type,
 		};
 	},

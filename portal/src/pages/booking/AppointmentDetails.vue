@@ -49,6 +49,13 @@
 						<div class="flex flex-col sm:flex-row justify-between items-start gap-6">
 							<div class="flex items-center gap-4">
 								<img
+									v-if="serviceTypeImage"
+									:src="serviceTypeImage"
+									class="w-16 h-16 rounded object-cover border-2 border-white shadow-sm"
+									alt="Service"
+								/>
+								<img
+									v-else
 									:src="providerImage || defaultAvatar"
 									class="w-16 h-16 rounded-full object-cover border-2 border-white shadow-sm"
 									alt="Provider"
@@ -270,8 +277,27 @@ const providerResource = createResource({
 	},
 });
 
+const serviceTypeResource = createResource({
+	url: "frappe.client.get",
+	makeParams() {
+		return {
+			doctype: "Service Type",
+			name: appointment.doc?.appointment_type,
+		};
+	},
+});
+
+const serviceTypeImage = computed(() => serviceTypeResource.data?.image);
 const providerImage = computed(() => providerResource.data?.image);
 const providerDesignation = computed(() => providerResource.data?.designation); // Assuming designation field exists
+
+watch(
+	() => appointment.doc?.appointment_type,
+	(type) => {
+		if (type) serviceTypeResource.fetch();
+	},
+	{ immediate: true }
+);
 
 function formatDate(dateStr) {
 	if (!dateStr) return "";
