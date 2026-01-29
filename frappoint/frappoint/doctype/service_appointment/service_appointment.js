@@ -3,26 +3,9 @@
 
 frappe.ui.form.on("Service Appointment", {
 	refresh(frm) {
-		// Show Available Slots button
-		if (frm.doc.appointment_type && !frm.doc.docstatus) {
-			frm.add_custom_button(__("Show Available Slots"), function () {
-				show_slot_picker(frm);
-			});
-		}
-
-		// Confirm Appointment button
-		if (frm.doc.docstatus === 0 && frm.doc.status === "Open" && !frm.is_new()) {
-			frm.add_custom_button(__("Confirm Appointment"), function () {
-				confirm_appointment(frm);
-			}).addClass("btn-primary");
-		}
-
-		// Complete Appointment button
-		if (frm.doc.docstatus === 1 && frm.doc.status === "Confirmed") {
-			frm.add_custom_button(__("Complete & Invoice"), function () {
-				show_complete_appointment_dialog(frm);
-			}).addClass("btn-primary");
-		}
+		frm.page.clear_primary_action();
+		if (frm.custom_buttons) frm.clear_custom_buttons();
+		frm.events.add_context_buttons(frm);
 
 		// Issue Consumables button (if not auto-issued)
 		if (frm.doc.docstatus === 1 && frm.doc.status === "Completed") {
@@ -81,31 +64,6 @@ frappe.ui.form.on("Service Appointment", {
 			);
 		}
 
-		// Reschedule Appointment button
-		if (
-			frm.doc.docstatus === 1 &&
-			!["Cancelled", "Completed", "Closed", "No Show"].includes(frm.doc.status)
-		) {
-			frm.add_custom_button(
-				__("Reschedule Appointment"),
-				function () {
-					reschedule_appointment(frm);
-				},
-				__("Actions")
-			);
-		}
-
-		// Cancel Appointment button
-		if (frm.doc.docstatus === 1 && frm.doc.status !== "Cancelled") {
-			frm.add_custom_button(
-				__("Cancel Appointment"),
-				function () {
-					show_cancellation_dialog(frm);
-				},
-				__("Actions")
-			);
-		}
-
 		// Handle rescheduled appointment submission
 		if (frm.doc.__islocal && frm.doc.__reschedule_from) {
 			frappe.show_alert({
@@ -117,13 +75,117 @@ frappe.ui.form.on("Service Appointment", {
 		}
 	},
 
+	add_context_buttons(frm) {
+		// Clear any pending button update
+		if (frm._button_update_timeout) {
+			clearTimeout(frm._button_update_timeout);
+		}
+
+		// Debounce button updates by 100ms
+		frm._button_update_timeout = setTimeout(() => {
+			frm.events._update_buttons(frm);
+		}, 100);
+	},
+
+	_update_buttons(frm) {
+		// Determine which button state we should be in
+		let button_state = null;
+
+		if (frm.doc.status === "Confirmed") {
+			button_state = "confirmed";
+		} else if (
+			frm.doc.appointment_type &&
+			!frm.doc.start_time &&
+			!frm.doc.end_time &&
+			frm.doc.docstatus === 0
+		) {
+			button_state = "fetch_slots";
+		} else if (
+			frm.doc.start_time &&
+			frm.doc.end_time &&
+			frm.is_new() &&
+			frm.doc.docstatus === 0
+		) {
+			button_state = "save";
+		} else if (
+			frm.doc.start_time &&
+			frm.doc.end_time &&
+			!frm.is_new() &&
+			frm.doc.docstatus === 0
+		) {
+			button_state = "confirm";
+		}
+
+		// If button state hasn't changed, don't update
+		if (frm._button_state === button_state) {
+			return;
+		}
+
+		// Update button state
+		frm._button_state = button_state;
+
+		// Clear previous buttons
+		frm.page.clear_primary_action();
+		if (frm.custom_buttons) frm.clear_custom_buttons();
+
+		// Case 1: Status is "Confirmed" - show Cancel and Reschedule buttons
+		if (button_state === "confirmed") {
+			frm.add_custom_button(__("Cancel Appointment"), function () {
+				show_cancellation_dialog(frm);
+			}).addClass("btn-primary");
+
+			frm.add_custom_button(__("Reschedule Appointment"), function () {
+				reschedule_appointment(frm);
+			});
+			frm.page.btn_secondary.hide();
+			return;
+		}
+
+		// Case 2: Has appointment_type but no start_time and end_time, is new (docstatus == 0)
+		if (button_state === "fetch_slots") {
+			frm.page.set_primary_action(__("Fetch Available Slots"), function () {
+				show_slot_picker(frm);
+			});
+			return;
+		}
+
+		// Case 3: Has start_time and end_time, is new (not saved yet)
+		if (button_state === "save") {
+			// Show normal save button (default behavior)
+			frm.page.set_primary_action(__("Save"), function () {
+				frm.save();
+			});
+			return;
+		}
+
+		// Case 4: Has start_time and end_time, saved but not confirmed (not new, docstatus == 0)
+		if (button_state === "confirm") {
+			// Primary: Confirm Appointment
+			frm.page.set_primary_action(__("Confirm Appointment"), function () {
+				confirm_appointment(frm);
+			});
+
+			// Secondary: Fetch Available Slots (if they want to change)
+			frm.add_custom_button(__("Fetch Available Slots"), function () {
+				show_slot_picker(frm);
+			});
+			return;
+		}
+	},
+
 	start_time(frm) {
 		calculate_end_time(frm);
 		validate_appointment_times(frm);
+		if (frm.doc.start_time && frm.doc.end_time) {
+			frm.events.add_context_buttons(frm);
+		}
 	},
 
 	end_time(frm) {
 		validate_appointment_times(frm);
+		if (frm.doc.start_time && frm.doc.end_time) {
+			frm.events.add_context_buttons(frm);
+		}
 	},
 
 	appointment_date(frm) {
@@ -163,13 +225,13 @@ frappe.ui.form.on("Service Appointment", {
 								show_price_selector(frm, apt_type.prices);
 							}
 						}
+
+						frm.events.add_context_buttons(frm);
 					}
 				},
 			});
-
-			frm.add_custom_button(__("Show Available Slots"), function () {
-				show_slot_picker(frm);
-			});
+		} else {
+			frm.events.add_context_buttons(frm);
 		}
 	},
 
