@@ -267,6 +267,7 @@ const appointment = createDocumentResource({
 	},
 });
 
+// TODO: Don't fetch providers, slots avail providers
 const providerResource = createResource({
 	url: "frappe.client.get",
 	makeParams() {

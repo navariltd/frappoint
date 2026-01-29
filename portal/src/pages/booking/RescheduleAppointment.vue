@@ -40,7 +40,7 @@
 						</div>
 
 						<div
-							class="hidden md:block w-48 h-32 rounded-lg bg-gray-100 overflow-hidden relative"
+							class="hidden md:block w-72 h-48 rounded-xl bg-gray-100 overflow-hidden relative"
 						>
 							<img
 								v-if="serviceTypeImage"
@@ -52,7 +52,7 @@
 								v-else
 								class="w-full h-full flex items-center justify-center bg-gray-200 text-gray-400"
 							>
-								<FeatherIcon name="image" class="w-8 h-8" />
+								<FeatherIcon name="image" class="w-12 h-12" />
 							</div>
 						</div>
 					</div>
@@ -158,72 +158,23 @@ const getAvailableTimeSlots = createResource({
 	},
 });
 
-onMounted(async () => {
-	booking.$reset();
-
-	// hydrate service details if needed
-	if (booking.draft.serviceType) {
-		await booking.hydrateServiceDetails();
-	}
-
-	if (booking.draft.date) {
-		await loadSlotsForDate(booking.draft.date);
-	}
-	availableDates.value = await getAvailableDates.fetch();
-
-	console.log("DEBUG: Avalibale dates");
-	console.log(availableDates);
-});
-
-onUnmounted(() => {
+onMounted(() => {
 	booking.$reset();
 });
-
-watch(
-	() => booking.draft.date,
-	(date) => {
-		if (!date || !booking.draft.serviceType) return;
-		loadSlotsForDate(date);
-	}
-);
-
-async function loadSlotsForDate(date) {
-	if (!date || !booking.draft.serviceType) return;
-
-	const response = await getAvailableTimeSlots.fetch();
-
-	availableSlots.value = response.flatMap((provider) =>
-		(provider.available_dates || [])
-			.filter((d) => d.date === date)
-			.flatMap((d) =>
-				(d.slots || []).map((slot) => ({
-					...slot,
-					provider: provider.provider,
-					provider_name: provider.provider_name,
-					date: d.date,
-				}))
-			)
-	);
-
-	console.log("DEBUG: LOADING AVAILABLE TIME SLOTS");
-	console.log(availableSlots);
-}
 
 const appointment = createDocumentResource({
 	doctype: "Service Appointment",
 	name: appointmentId,
 	auto: true,
-	onSuccess(doc) {
-		// Initialize booking store with current appointment details
+	async onSuccess(doc) {
 		booking.setServiceType(doc.appointment_type);
 		booking.setCurrency(doc.currency);
 		booking.setProvider(doc.appointment_provider);
 
-		// If we want to pre-select current date (optional, might be confusing if user wants to change)
-		// booking.setDate(doc.appointment_date);
-
-		// Fetch service type details for image
 		serviceTypeResource.fetch();
+
+		// Now that serviceType is set, fetch available dates
+		availableDates.value = await getAvailableDates.fetch();
 	},
 });
 
