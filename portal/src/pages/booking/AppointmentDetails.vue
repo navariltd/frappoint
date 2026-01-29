@@ -346,14 +346,6 @@ function handleReschedule() {
 }
 
 function handleCancel() {
-	if (confirm("Are you sure you want to cancel this appointment?")) {
-		appointment.setValue
-			.submit({
-				status: "Cancelled",
-			})
-			.then(() => {
-				appointment.reload();
-			});
-	}
+	router.push({ name: "CancelAppointment", params: { id: appointmentId } });
 }
 </script>

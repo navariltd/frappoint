@@ -62,6 +62,12 @@ const routes = [
 		component: () => import("@/pages/booking/BookingConfirmation.vue"),
 		meta: { requiresLogin: true },
 	},
+	{
+		name: "CancelAppointment",
+		path: "/appointments/:id/cancel",
+		component: () => import("@/pages/booking/CancelAppointment.vue"),
+		meta: { requiresLogin: true },
+	},
 ];
 
 const router = createRouter({

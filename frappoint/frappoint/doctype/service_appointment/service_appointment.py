@@ -1412,3 +1412,21 @@ def reschedule_appointment(
 			message=f"Failed to reschedule appointment {appointment_name}: {e}\n\n{frappe.get_traceback()}",
 		)
 		frappe.throw(_("Failed to reschedule appointment: {0}").format(str(e)))
+
+
+@frappe.whitelist()
+def cancel_appointment(appointment_id):
+	"""Cancel a submitted appointment"""
+	appointment = frappe.get_doc("Service Appointment", appointment_id)
+
+	if appointment.docstatus != 1:
+		frappe.throw(_("Only submitted appointments can be cancelled"))
+
+	if appointment.status in ["Cancelled", "Closed"]:
+		return
+
+	appointment.flags.ignore_permissions = True
+	appointment.cancel()
+	appointment.db_set("status", "Cancelled")
+
+	frappe.db.commit()
