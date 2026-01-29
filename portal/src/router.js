@@ -51,6 +51,12 @@ const routes = [
 		meta: { requiresLogin: true },
 	},
 	{
+		name: "RescheduleAppointment",
+		path: "/appointments/:id/reschedule",
+		component: () => import("@/pages/booking/RescheduleAppointment.vue"),
+		meta: { requiresLogin: true },
+	},
+	{
 		name: "BookingConfirmation",
 		path: "/booking/:bookingId",
 		component: () => import("@/pages/booking/BookingConfirmation.vue"),

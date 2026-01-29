@@ -312,8 +312,10 @@ function getStatusColor(status) {
 }
 
 function handleReschedule() {
-	// TODO: Implement reschedule logic
-	alert("Reschedule functionality coming soon!");
+	router.push({
+		name: "RescheduleAppointment",
+		params: { id: appointmentId },
+	});
 }
 
 function handleCancel() {
