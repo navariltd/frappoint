@@ -23,8 +23,11 @@ class ServiceProvider(Document):
 		)
 
 		active: DF.Check
+		branch: DF.Link | None
 		color_code: DF.Color | None
+		company: DF.Link
 		default_slot_length: DF.Int
+		department: DF.Link | None
 		designation: DF.Link | None
 		email: DF.Data | None
 		employee: DF.Link | None
