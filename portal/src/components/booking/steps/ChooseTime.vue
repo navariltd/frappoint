@@ -5,7 +5,7 @@
 			class="w-full lg:w-6/12 p-2 md:p-8 border-b lg:border-b-0 lg:border-r border-slate-100 bg-white flex flex-col"
 		>
 			<VueDatePicker
-				:model-value="booking.draft.date"
+				:model-value="booking.activeDraft.date"
 				@update:model-value="booking.setDate($event)"
 				:allowed-dates="formattedAllowedDates"
 				inline
@@ -18,7 +18,7 @@
 
 		<!-- RIGHT COLUMN: Time Slots  -->
 		<div
-			v-if="booking.draft.date"
+			v-if="booking.activeDraft.date"
 			class="w-full lg:w-7/12 p-6 md:p-8 flex flex-col bg-surface-light relative"
 		>
 			<!-- provider  -->
@@ -26,7 +26,7 @@
 				<FormControl
 					type="select"
 					:options="providerOptions"
-					:model-value="booking.draft.provider"
+					:model-value="booking.activeDraft.provider"
 					@update:model-value="booking.setProvider($event)"
 					size="xl"
 					variant="subtle"
@@ -41,7 +41,7 @@
 			<div>
 				<div class="flex items-center justify-between mb-4">
 					<h1 class="text-lg font-bold text-slate-900">
-						{{ formatSelectedDate(booking.draft.date) }}
+						{{ formatSelectedDate(booking.activeDraft.date) }}
 					</h1>
 				</div>
 
@@ -68,7 +68,7 @@
 								:key="slot.start_time + slot.provider"
 								@click="booking.setSlot(slot)"
 								:class="
-									booking.draft.slot === slot
+									booking.activeDraft.slot === slot
 										? '!bg-primary !text-white'
 										: 'border hover-bg-primary/10'
 								"
@@ -89,7 +89,7 @@
 								:key="slot.start_time + slot.provider"
 								@click="booking.setSlot(slot)"
 								:class="
-									booking.draft.slot === slot
+									booking.activeDraft.slot === slot
 										? '!bg-primary !text-white'
 										: 'broder hover-bg-primary/10'
 								"
@@ -122,7 +122,6 @@ import { VueDatePicker } from "@vuepic/vue-datepicker";
 import "@vuepic/vue-datepicker/dist/main.css";
 import { computed } from "vue";
 import { useBookingStore } from "@/stores/bookingStore";
-import { formatCurrency } from "@/utils";
 import TimeSlotSkeleton from "../TimeSlotSkeleton.vue";
 
 const props = defineProps({
@@ -167,11 +166,11 @@ const providerOptions = computed(() => {
 });
 
 const visibleSlots = computed(() => {
-	if (!booking.draft.provider) {
+	if (!booking.activeDraft.provider) {
 		return props.availableSlots;
 	}
 
-	return props.availableSlots.filter((slot) => slot.provider === booking.draft.provider);
+	return props.availableSlots.filter((slot) => slot.provider === booking.activeDraft.provider);
 });
 
 const hasSlots = computed(() => visibleSlots.value && visibleSlots.value.length > 0);
