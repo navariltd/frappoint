@@ -265,7 +265,7 @@ const appointmentsResourceList = createListResource({
 	doctype: "Service Appointment",
 	fields: ["*"],
 	filters: {
-		status: ["!=", "Cancelled"],
+		status: ["not in", ["Cancelled", "Rescheduled", "No Show"]],
 	},
 	orderBy: "appointment_date asc, start_time asc",
 });
