@@ -102,3 +102,13 @@ def get_service_type_duration(service_type):
 	Returns: The duration of the service type
 	"""
 	return frappe.db.get_value("Service Type", service_type, "default_duration_in_minutes")
+
+
+@frappe.whitelist(allow_guest=True)
+def get_cancellation_reasons():
+	"""Get all active cancellation reasons"""
+	reasons = frappe.get_all(
+		"Service Appointment Lost Reason", fields=["lost_reason"], order_by="lost_reason asc"
+	)
+
+	return reasons
