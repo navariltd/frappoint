@@ -318,8 +318,7 @@
 		>
 			<button
 				@click="discardChanges"
-				:disabled="!hasChanges"
-				class="text-sm font-bold text-gray-500 hover:text-[#0f1a19] dark:hover:text-white transition-colors py-2 md:py-0 md:mr-4 disabled:opacity-50 disabled:cursor-not-allowed"
+				class="text-sm font-bold text-gray-500 hover:text-[#0f1a19] dark:hover:text-white transition-colors py-2 md:py-0 md:mr-4"
 			>
 				Discard Changes
 			</button>
@@ -539,13 +538,10 @@ async function saveChanges() {
 		// Show success message and reload page
 		if (profileUpdated && passwordUpdated) {
 			showAlert("Success", "Profile and password updated successfully!");
-			setTimeout(() => window.location.reload(), 1500);
 		} else if (profileUpdated) {
 			showAlert("Success", "Profile updated successfully!");
-			setTimeout(() => window.location.reload(), 1500);
 		} else if (passwordUpdated) {
 			showAlert("Success", "Password updated successfully!");
-			setTimeout(() => window.location.reload(), 1500);
 		} else {
 			showAlert("Info", "No changes detected", "gray");
 		}

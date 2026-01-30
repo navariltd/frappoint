@@ -1322,13 +1322,17 @@ def cancel_old_appointment(old_appointment_name, new_appointment_name):
 			_("Rescheduled to {0}").format(get_link_to_form("Service Appointment", new_appointment_name)),
 		)
 
-		# Set rescheduled_to field to link to the new appointment
-		old_appointment.db_set("rescheduled_to", new_appointment_name, update_modified=False)
-
 		# Cancel the appointment
 		old_appointment.flags.ignore_permissions = True
+		old_appointment.flags.ignore_links = True
 		old_appointment.cancel()
-		old_appointment.db_set("status", "Rescheduled")
+
+		# Set rescheduled_to field to link to the new appointment
+		frappe.db.set_value(
+			"Service Appointment",
+			old_appointment.name,
+			{"rescheduled_to": new_appointment_name, "status": "Rescheduled"},
+		)
 
 		frappe.db.commit()
 
@@ -1412,6 +1416,7 @@ def reschedule_appointment(
 				"status": "Open",
 				"source": old_appointment.source,
 				"add_video_conferencing": old_appointment.add_video_conferencing,
+				"rescheduled_from": old_appointment.name,
 			}
 		)
 
@@ -1436,6 +1441,8 @@ def reschedule_appointment(
 			),
 		)
 
+		old_appointment.flags.ignore_permissions = True
+		old_appointment.flags.ignore_links = True
 		old_appointment.cancel()
 
 		frappe.db.commit()
@@ -1456,3 +1463,47 @@ def reschedule_appointment(
 			message=f"Failed to reschedule appointment {appointment_name}: {e}\n\n{frappe.get_traceback()}",
 		)
 		frappe.throw(_("Failed to reschedule appointment: {0}").format(str(e)))
+
+
+@frappe.whitelist()
+def cancel_appointment(appointment_id, cancellation_reasons=None):
+	"""Cancel a submitted appointment"""
+	try:
+		appointment = frappe.get_doc("Service Appointment", appointment_id)
+
+		if appointment.docstatus != 1:
+			frappe.throw(_("Only submitted appointments can be cancelled"))
+
+		if appointment.status in ["Cancelled", "Closed"]:
+			return {"success": True, "message": _("Appointment is already cancelled")}
+
+		if cancellation_reasons:
+			if isinstance(cancellation_reasons, str):
+				try:
+					cancellation_reasons = json.loads(cancellation_reasons)
+				except Exception:
+					cancellation_reasons = [cancellation_reasons]
+
+			appointment.cancellation_reasonss = []
+
+			for reason in cancellation_reasons:
+				appointment.append("cancellation_reasons", {"reason": reason})
+
+		appointment.flags.ignore_permissions = True
+		appointment.cancel()
+
+		frappe.db.commit()
+
+		return {
+			"success": True,
+			"message": _("Appointment cancelled successfully"),
+			"appointment": appointment_id,
+		}
+
+	except Exception as e:
+		frappe.db.rollback()
+		frappe.log_error(
+			title=_("Appointment Cancellation Failed"),
+			message=f"Failed to cancel appointment {appointment_id}: {e}\n\n{frappe.get_traceback()}",
+		)
+		frappe.throw(_("Failed to cancel appointment: {0}").format(str(e)))

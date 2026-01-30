@@ -1,7 +1,8 @@
 <template>
 	<div
+		@click="goToDetails"
 		:class="[
-			'flex items-start gap-2 sm:gap-4 rounded-lg sm:rounded-xl shadow-sm transition-shadow p-3 sm:p-5',
+			'flex items-start gap-2 sm:gap-4 rounded-lg sm:rounded-xl shadow-sm transition-shadow p-3 sm:p-5 cursor-pointer',
 			variant === 'past'
 				? 'bg-gray-50 opacity-75 hover:opacity-90'
 				: 'bg-white hover:shadow-md',
@@ -64,7 +65,6 @@
 							/>
 						</svg>
 					</div>
-					<span class="font-medium text-[10px] sm:text-xs">Medical</span>
 				</div>
 
 				<div class="flex items-center gap-1 sm:gap-1.5 text-xs sm:text-sm text-gray-500">
@@ -132,11 +132,13 @@
 			<!-- Next Up Actions -->
 			<div v-if="variant === 'next'" class="flex flex-col gap-1.5 sm:gap-2">
 				<button
+					@click.stop
 					class="px-2.5 sm:px-4 py-1.5 sm:py-2 bg-teal-600 text-white text-xs sm:text-sm font-medium rounded-md sm:rounded-lg hover:bg-teal-700 transition-colors whitespace-nowrap"
 				>
 					Reschedule
 				</button>
 				<button
+					@click.stop
 					class="px-2.5 sm:px-4 py-1.5 sm:py-2 text-gray-600 text-xs sm:text-sm font-medium hover:text-red-600 transition-colors whitespace-nowrap"
 				>
 					Cancel
@@ -170,6 +172,7 @@
 				</div>
 
 				<button
+					@click.stop
 					:class="[
 						'p-0.5 sm:p-1 transition-colors',
 						variant === 'past'
@@ -190,6 +193,9 @@
 
 <script setup>
 import { computed } from "vue";
+import { useRouter } from "vue-router";
+
+const router = useRouter();
 
 const props = defineProps({
 	appointment: Object,
@@ -198,6 +204,13 @@ const props = defineProps({
 		default: "upcoming",
 	},
 });
+
+const goToDetails = () => {
+	router.push({
+		name: "AppointmentDetails",
+		params: { id: props.appointment.name },
+	});
+};
 
 const formatTime = (time) => {
 	if (!time) return "";

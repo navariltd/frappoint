@@ -45,9 +45,27 @@ const routes = [
 		meta: { requiresLogin: false },
 	},
 	{
+		name: "AppointmentDetails",
+		path: "/appointments/:id",
+		component: () => import("@/pages/booking/AppointmentDetails.vue"),
+		meta: { requiresLogin: true },
+	},
+	{
+		name: "RescheduleAppointment",
+		path: "/appointments/:id/reschedule",
+		component: () => import("@/pages/booking/RescheduleAppointment.vue"),
+		meta: { requiresLogin: true },
+	},
+	{
 		name: "BookingConfirmation",
 		path: "/booking/:bookingId",
 		component: () => import("@/pages/booking/BookingConfirmation.vue"),
+		meta: { requiresLogin: true },
+	},
+	{
+		name: "CancelAppointment",
+		path: "/appointments/:id/cancel",
+		component: () => import("@/pages/booking/CancelAppointment.vue"),
 		meta: { requiresLogin: true },
 	},
 ];

@@ -264,7 +264,9 @@ function goToServices() {
 const appointmentsResourceList = createListResource({
 	doctype: "Service Appointment",
 	fields: ["*"],
-	filters: {},
+	filters: {
+		status: ["not in", ["Cancelled", "Rescheduled", "No Show"]],
+	},
 	orderBy: "appointment_date asc, start_time asc",
 });
 

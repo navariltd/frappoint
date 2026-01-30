@@ -2,9 +2,7 @@
 	<div
 		class="w-full sticky top-0 z-50 bg-surface-light/90 backdrop-blur-md border-b border-gray-200 transition-colors duration-300 overflow-visible"
 	>
-		<div
-			class="w-full max-w-7xl mx-auto flex justify-between items-center py-3 md:py-4 px-4 md:px-6 relative"
-		>
+		<div class="w-full max-w-7xl mx-auto flex items-center py-3 md:py-4 px-4 md:px-6 relative">
 			<!-- Logo -->
 			<RouterLink :to="{ name: 'Services' }">
 				<div class="flex items-center gap-2 md:gap-3">
@@ -20,18 +18,20 @@
 			</RouterLink>
 
 			<!-- Desktop Navigation -->
-			<div class="hidden md:flex gap-4 lg:gap-6">
+			<div class="hidden md:flex gap-4 lg:gap-6 ml-auto mr-6">
 				<RouterLink
 					class="text-gray-700 hover:text-primary transition-colors font-medium"
+					active-class="!text-primary font-bold"
 					:to="{ name: 'Services' }"
 				>
 					Services
 				</RouterLink>
 				<RouterLink
 					class="text-gray-700 hover:text-primary transition-colors font-medium"
+					active-class="!text-primary font-bold"
 					:to="{ name: 'Bookings' }"
 				>
-					My Bookings
+					My Appointments
 				</RouterLink>
 			</div>
 
@@ -48,14 +48,11 @@
 						<button
 							class="flex items-center gap-2 cursor-pointer hover:opacity-80 transition-opacity"
 						>
-							<p class="hidden lg:block text-gray-700">{{ auth.userName }}</p>
 							<img
-								class="h-10 w-10 lg:h-12 lg:w-12 rounded-full object-cover"
-								v-if="auth.userImage"
-								:src="auth.userImage"
+								class="h-10 w-10 lg:h-12 lg:w-12 rounded-full object-cover bg-gray-100"
+								:src="auth.userImage || defaultAvatar"
 								alt="profile"
 							/>
-							<FeatherIcon v-else class="h-10 w-10" name="user" />
 						</button>
 					</template>
 				</Dropdown>
@@ -64,7 +61,7 @@
 			<!-- Mobile Menu Button -->
 			<button
 				@click="mobileMenuOpen = !mobileMenuOpen"
-				class="md:hidden p-2 text-gray-700 hover:text-primary transition-colors flex items-center justify-center"
+				class="md:hidden ml-auto p-2 text-gray-700 hover:text-primary transition-colors flex items-center justify-center"
 				aria-label="Toggle menu"
 			>
 				<MenuIcon v-if="!mobileMenuOpen" />
@@ -89,6 +86,7 @@
 					<RouterLink
 						@click="mobileMenuOpen = false"
 						class="block py-2 text-gray-700 hover:text-primary transition-colors font-medium"
+						active-class="!text-primary font-bold"
 						:to="{ name: 'Services' }"
 					>
 						Services
@@ -96,6 +94,7 @@
 					<RouterLink
 						@click="mobileMenuOpen = false"
 						class="block py-2 text-gray-700 hover:text-primary transition-colors font-medium"
+						active-class="!text-primary font-bold"
 						:to="{ name: 'Bookings' }"
 					>
 						My Bookings
@@ -113,11 +112,9 @@
 							<div class="flex items-center gap-3 py-2 px-2">
 								<img
 									class="h-10 w-10 rounded-full object-cover"
-									v-if="auth.userImage"
-									:src="auth.userImage"
+									:src="auth.userImage || defaultAvatar"
 									alt="profile"
 								/>
-								<FeatherIcon v-else class="h-10 w-10" name="user" />
 								<p class="text-gray-700 font-medium">{{ auth.userName }}</p>
 							</div>
 							<RouterLink
@@ -142,12 +139,13 @@
 </template>
 
 <script setup>
-import { FeatherIcon, Dropdown } from "frappe-ui";
+import { Dropdown } from "frappe-ui";
 import { useAuthStore } from "@/stores/auth";
 import { ref, computed } from "vue";
 import { useRouter } from "vue-router";
 import MenuIcon from "@/components/icons/MenuIcon.vue";
 import CloseIcon from "@/components/icons/CloseIcon.vue";
+import defaultAvatar from "@/assets/images/profile-circle.svg";
 
 const auth = useAuthStore();
 const router = useRouter();
