@@ -38,29 +38,73 @@
 					/>
 					<div class="flex-1">
 						<div class="font-semibold text-gray-900">
-							{{ appointment.doc.appointment_type }}
+							{{ appointment.doc?.appointment_type }}
 						</div>
 						<div class="text-xs text-gray-500">
-							{{ formatDate(appointment.doc.appointment_date) }} at
-							{{ formatTime(appointment.doc.start_time) }}
+							{{ formatDate(appointment.doc?.appointment_date) }} at
+							{{ formatTime(appointment.doc?.start_time) }}
 						</div>
 					</div>
 				</div>
 
 				<!-- Reason Dropdown -->
 				<div class="mb-4">
-					<label class="block text-sm font-medium text-gray-700 mb-1"
-						>Reason for Cancellation</label
-					>
-					<select
-						v-model="reason"
-						class="w-full border rounded-lg px-3 py-2 text-gray-700 focus:outline-none focus:ring-2 focus:ring-primary"
-					>
-						<option value="" disabled>Select a reason...</option>
-						<option v-for="option in reasons" :key="option" :value="option">
-							{{ option }}
-						</option>
-					</select>
+					<!-- Cancellation Reasons -->
+					<div class="bg-white rounded-lg shadow-md p-6 mb-6">
+						<label class="block text-sm font-medium text-gray-700 mb-3">
+							Why are you cancelling? (Select all that apply)
+							<span class="text-red-500">*</span>
+						</label>
+
+						<div v-if="cancellationReasonsResource.loading" class="text-center py-4">
+							<div
+								class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"
+							></div>
+						</div>
+
+						<div v-else class="space-y-2">
+							<div
+								v-for="reason in availableReasons"
+								:key="reason.lost_reason"
+								@click="toggleReason(reason.lost_reason)"
+								class="flex items-center p-3 border rounded-lg cursor-pointer transition-all"
+								:class="
+									selectedReasons.includes(reason.lost_reason)
+										? 'border-blue-500 bg-blue-50'
+										: 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+								"
+							>
+								<div
+									class="flex-shrink-0 w-5 h-5 rounded border-2 mr-3 flex items-center justify-center transition-colors"
+									:class="
+										selectedReasons.includes(reason.lost_reason)
+											? 'border-blue-500 bg-blue-500'
+											: 'border-gray-300'
+									"
+								>
+									<FeatherIcon
+										v-if="selectedReasons.includes(reason.lost_reason)"
+										name="check"
+										class="w-3 h-3 text-white"
+									/>
+								</div>
+								<span
+									class="text-sm"
+									:class="
+										selectedReasons.includes(reason.name)
+											? 'text-blue-900 font-medium'
+											: 'text-gray-700'
+									"
+								>
+									{{ reason.lost_reason }}
+								</span>
+							</div>
+						</div>
+
+						<p v-if="selectedReasons.length === 0" class="text-xs text-red-500 mt-2">
+							Please select at least one reason
+						</p>
+					</div>
 				</div>
 
 				<!-- Cancellation Policy -->
@@ -77,7 +121,7 @@
 				<!-- Action Buttons -->
 				<div class="flex flex-col gap-2 mt-6">
 					<button
-						:disabled="!reason || cancelling"
+						:disabled="selectedReasons.length === 0 || cancelling"
 						@click="handleCancel"
 						class="w-full bg-teal-600 text-white font-semibold py-3 rounded-xl hover:bg-teal-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
 					>
@@ -106,15 +150,13 @@
 <script setup>
 import { FeatherIcon, createDocumentResource, createResource } from "frappe-ui";
 import { useRoute, useRouter } from "vue-router";
-import { ref, computed, watch } from "vue";
+import { ref, computed, onMounted, watch } from "vue";
 
 const route = useRoute();
 const router = useRouter();
 const appointmentId = route.params.id;
-const reason = ref("");
 
-// TODO: Use a better approach
-const reasons = ["Schedule conflict", "Cost concerns", "Other"];
+const selectedReasons = ref([]);
 const cancelling = ref(false);
 
 const appointment = createDocumentResource({
@@ -136,7 +178,14 @@ const serviceTypeResource = createResource({
 	},
 });
 
+const cancellationReasonsResource = createResource({
+	url: "frappoint.frappoint.api.service_appointment.get_cancellation_reasons",
+	auto: true,
+});
+
 const serviceTypeImage = computed(() => serviceTypeResource.data?.image);
+
+const availableReasons = computed(() => cancellationReasonsResource.data || []);
 
 function formatDate(dateStr) {
 	if (!dateStr) return "";
@@ -163,17 +212,33 @@ const cancelResource = createResource({
 });
 
 async function handleCancel() {
-	if (!reason.value) return;
+	if (selectedReasons.value.length === 0) {
+		alert("Please select at least one reason for cancellation");
+	}
+
 	cancelling.value = true;
 	try {
-		await cancelResource.submit({
+		const result = await cancelResource.submit({
 			appointment_id: appointmentId,
+			cancellation_reasons: JSON.stringify(selectedReasons.value),
 		});
-		router.push({ name: "Bookings" });
+
+		if (result?.success) {
+			router.push({ name: "Bookings" });
+		}
 	} catch (error) {
-		alert("Failed to cancel appointment. Please try again.");
+		alert(error.messages?.[0] || "Failed to cancel appointment. Please try again.");
 	} finally {
 		cancelling.value = false;
+	}
+}
+
+function toggleReason(reasonName) {
+	const index = selectedReasons.value.indexOf(reasonName);
+	if (index > -1) {
+		selectedReasons.value.splice(index, 1);
+	} else {
+		selectedReasons.value.push(reasonName);
 	}
 }
 </script>
