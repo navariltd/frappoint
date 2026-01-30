@@ -137,13 +137,37 @@ const alert = ref({ show: false, message: "", variant: "success" });
 const availableDates = ref([]);
 const availableSlots = ref([]);
 
+onMounted(() => {
+	booking.setMode("rescheduling");
+});
+
+onUnmounted(() => {
+	booking.resetReschedule();
+	booking.setMode("booking");
+});
+
+const appointment = createDocumentResource({
+	doctype: "Service Appointment",
+	name: appointmentId,
+	auto: true,
+	async onSuccess(doc) {
+		booking.initializeForReschedule(doc.appointment_type);
+
+		await booking.hydrateServiceDetails();
+	},
+});
+
 const getAvailableDates = createResource({
 	url: "frappoint.frappoint.api.slot_availability.get_available_dates",
 	method: "GET",
 	makeParams() {
 		return {
-			service_type: booking.draft.serviceType,
+			service_type: booking.activeDraft.serviceType,
 		};
+	},
+	auto: false,
+	onSuccess(data) {
+		availableDates.value = data;
 	},
 });
 
@@ -152,29 +176,9 @@ const getAvailableTimeSlots = createResource({
 	method: "GET",
 	makeParams() {
 		return {
-			service_type: booking.draft.serviceType,
-			date: booking.draft.date,
+			service_type: booking.activeDraft.serviceType,
+			date: booking.activeDraft.date,
 		};
-	},
-});
-
-onMounted(() => {
-	booking.$reset();
-});
-
-const appointment = createDocumentResource({
-	doctype: "Service Appointment",
-	name: appointmentId,
-	auto: true,
-	async onSuccess(doc) {
-		booking.setServiceType(doc.appointment_type);
-		booking.setCurrency(doc.currency);
-		booking.setProvider(doc.appointment_provider);
-
-		serviceTypeResource.fetch();
-
-		// Now that serviceType is set, fetch available dates
-		availableDates.value = await getAvailableDates.fetch();
 	},
 });
 
@@ -189,30 +193,62 @@ const serviceTypeResource = createResource({
 });
 
 const serviceTypeImage = computed(() => serviceTypeResource.data?.image);
-
-// Reschedule API
 const rescheduleResource = createResource({
 	url: "frappoint.frappoint.doctype.service_appointment.service_appointment.reschedule_appointment",
 });
 
-const cancelOldResource = createResource({
-	url: "frappoint.frappoint.doctype.service_appointment.service_appointment.cancel_old_appointment",
-});
+watch(
+	() => booking.activeDraft.serviceType,
+	async (serviceType) => {
+		if (serviceType) {
+			await getAvailableDates.fetch();
+		}
+	},
+	{ immediate: true }
+);
+
+watch(
+	() => booking.activeDraft.date,
+	async (date) => {
+		if (!date || !booking.activeDraft.serviceType) return;
+
+		loadSlotsForDate(date);
+	}
+);
+
+async function loadSlotsForDate(date) {
+	if (!date || !booking.activeDraft.serviceType) return;
+
+	const response = await getAvailableTimeSlots.fetch();
+
+	availableSlots.value = response.flatMap((provider) =>
+		(provider.available_dates || [])
+			.filter((d) => d.date === date)
+			.flatMap((d) =>
+				(d.slots || []).map((slot) => ({
+					...slot,
+					provider: provider.provider,
+					provider_name: provider.provider_name,
+					date: d.date,
+				}))
+			)
+	);
+}
 
 const isValidSelection = computed(() => {
-	return booking.draft.date && booking.draft.slot;
+	return booking.activeDraft.date && booking.activeDraft.slot;
 });
 
 const newSelectionDisplay = computed(() => {
-	if (!booking.draft.date || !booking.draft.slot) return null;
+	if (!booking.activeDraft.date || !booking.activeDraft.slot) return null;
 
-	const date = new Date(booking.draft.date);
+	const date = new Date(booking.activeDraft.date);
 	const dateStr = date.toLocaleDateString("en-US", {
 		weekday: "long",
 		month: "short",
 		day: "numeric",
 	});
-	const timeStr = formatTime(booking.draft.slot.start_time);
+	const timeStr = formatTime(booking.activeDraft.slot.start_time);
 
 	return `${dateStr} at ${timeStr}`;
 });
@@ -245,39 +281,27 @@ async function handleConfirmReschedule() {
 		// 1. Create new appointment via reschedule_appointment
 		const result = await rescheduleResource.submit({
 			appointment_name: appointmentId,
-			new_appointment_date: booking.draft.date,
-			new_start_time: booking.draft.slot.start_time,
-			new_end_time: booking.draft.slot.end_time,
-			new_provider: booking.draft.provider || booking.draft.slot.provider,
-			new_slot_ids: JSON.stringify(booking.draft.slot.slot_ids),
+			new_appointment_date: booking.activeDraft.date,
+			new_start_time: booking.activeDraft.slot.start_time,
+			new_end_time: booking.activeDraft.slot.end_time,
+			new_provider: booking.activeDraft.slot.provider,
+			new_slot_ids: JSON.stringify(booking.activeDraft.slot.slot_ids),
 		});
 
-		// result is the name of the new appointment (or doc json, check return of function)
-		// The python function returns frappe.get_doc(new_appointment).name usually or the doc name directly?
-		// Let's assume it returns the name or we check payload.
-
-		const newAppointmentName = result;
-
-		if (newAppointmentName) {
-			// 2. Cancel old appointment
-			await cancelOldResource.submit({
-				old_appointment_name: appointmentId,
-				new_appointment_name: newAppointmentName,
-			});
-
-			alert.value = {
-				show: true,
-				message: "Appointment Rescheduled Successfully!",
-				variant: "success",
-			};
-
-			// Delay redirect
-			setTimeout(() => {
-				router.push({ name: "Bookings" });
-			}, 2000);
-		} else {
-			throw new Error("Failed to create new appointment");
+		if (!result?.success) {
+			throw new Error("Reschedule failed");
 		}
+
+		alert.value = {
+			show: true,
+			message: "Appointment Rescheduled Successfully!",
+			variant: "success",
+		};
+
+		// Delay redirect
+		setTimeout(() => {
+			router.replace({ name: "AppointmentDetails", params: { id: result.new_appointment } });
+		}, 2000);
 	} catch (error) {
 		console.error(error);
 		alert.value = {
