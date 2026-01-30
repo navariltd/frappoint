@@ -68,8 +68,8 @@ class ServiceAppointment(Document):
 		naming_series: DF.Literal["SVC-APP-.MM.-.YY.-.###."]
 		notes: DF.Text | None
 		payment_status: DF.Literal["Unpaid", "Paid", "Refunded", "Cancellation"]
-		rescheduled_from: DF.Link | None
-		rescheduled_to: DF.Link | None
+		rescheduled_from: DF.Data | None
+		rescheduled_to: DF.Data | None
 		scheduled_time: DF.Datetime
 		selected_slot_ids: DF.SmallText | None
 		service_unit: DF.Link | None

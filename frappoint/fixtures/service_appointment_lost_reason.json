@@ -1,0 +1,44 @@
+[
+ {
+  "docstatus": 0,
+  "doctype": "Service Appointment Lost Reason",
+  "lost_reason": "Schedule Conflict",
+  "modified": "2026-01-30 09:06:15.865408",
+  "name": "Schedule Conflict"
+ },
+ {
+  "docstatus": 0,
+  "doctype": "Service Appointment Lost Reason",
+  "lost_reason": "Personal Emergency",
+  "modified": "2026-01-30 09:06:25.613446",
+  "name": "Personal Emergency"
+ },
+ {
+  "docstatus": 0,
+  "doctype": "Service Appointment Lost Reason",
+  "lost_reason": "Service No Longer Needed",
+  "modified": "2026-01-30 09:06:36.654294",
+  "name": "Service No Longer Needed"
+ },
+ {
+  "docstatus": 0,
+  "doctype": "Service Appointment Lost Reason",
+  "lost_reason": "Found Better Price",
+  "modified": "2026-01-30 09:06:44.086207",
+  "name": "Found Better Price"
+ },
+ {
+  "docstatus": 0,
+  "doctype": "Service Appointment Lost Reason",
+  "lost_reason": "Booking Error",
+  "modified": "2026-01-30 09:06:51.362190",
+  "name": "Booking Error"
+ },
+ {
+  "docstatus": 0,
+  "doctype": "Service Appointment Lost Reason",
+  "lost_reason": "Other",
+  "modified": "2026-01-30 09:06:56.873808",
+  "name": "Other"
+ }
+]
