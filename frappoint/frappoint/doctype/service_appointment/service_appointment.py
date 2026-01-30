@@ -1322,13 +1322,17 @@ def cancel_old_appointment(old_appointment_name, new_appointment_name):
 			_("Rescheduled to {0}").format(get_link_to_form("Service Appointment", new_appointment_name)),
 		)
 
-		# Set rescheduled_to field to link to the new appointment
-		old_appointment.db_set("rescheduled_to", new_appointment_name, update_modified=False)
-
 		# Cancel the appointment
 		old_appointment.flags.ignore_permissions = True
+		old_appointment.flags.ignore_links = True
 		old_appointment.cancel()
-		old_appointment.db_set("status", "Rescheduled")
+
+		# Set rescheduled_to field to link to the new appointment
+		frappe.db.set_value(
+			"Service Appointment",
+			old_appointment.name,
+			{"rescheduled_to": new_appointment_name, "status": "Rescheduled"},
+		)
 
 		frappe.db.commit()
 
