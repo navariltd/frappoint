@@ -31,6 +31,26 @@ website_route_rules = [
 	{"from_route": "/portal/<path:app_path>", "to_route": "portal"},
 ]
 
+fixtures = [
+	{
+		"doctype": "Service Appointment Lost Reason",
+		"filters": [
+			[
+				"name",
+				"in",
+				[
+					"Schedule Conflict",
+					"Personal Emergency",
+					"Service No Longer Needed",
+					"Found Better Price",
+					"Booking Error",
+					"Other",
+				],
+			]
+		],
+	}
+]
+
 # Includes in <head>
 # ------------------
 
