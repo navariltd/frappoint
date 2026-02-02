@@ -4,12 +4,10 @@
   "description": "Frappe Appointments",
   "main": "index.js",
   "scripts": {
-    "frontend-install": "cd frontend && yarn install",
-    "frontend-build": "cd frontend && yarn build",
     "portal-install": "cd portal && yarn install",
     "portal-build": "cd portal && yarn build",
-    "postinstall": "yarn frontend-install && yarn portal-install",
-    "build": "yarn frontend-build && yarn portal-build"
+    "postinstall": "yarn portal-install",
+    "build": "yarn portal-build"
   },
   "repository": {
     "type": "git",
