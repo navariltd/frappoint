@@ -8,6 +8,7 @@
 				:model-value="booking.activeDraft.date"
 				@update:model-value="booking.setDate($event)"
 				:allowed-dates="formattedAllowedDates"
+				:start-date="firstAvailableDate"
 				inline
 				auto-apply
 				:transitions="true"
@@ -182,6 +183,14 @@ const morningSlots = computed(() =>
 const afternoonSlots = computed(() =>
 	visibleSlots.value.filter((s) => Number(s.start_time.split(":")[0]) >= 12)
 );
+
+const firstAvailableDate = computed(() => {
+	if (!formattedAllowedDates.value || formattedAllowedDates.value.length === 0) {
+		return new Date();
+	}
+	const sortedDates = [...formattedAllowedDates.value].sort((a, b) => a - b);
+	return sortedDates[0];
+});
 
 function formatTime(time) {
 	if (!time) return "";
