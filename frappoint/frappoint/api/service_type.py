@@ -8,10 +8,16 @@ from .service_provider import get_providers_for_service
 
 
 @frappe.whitelist(allow_guest=True)
-def get_service_types(company=None, active_only=True):
+def get_service_types(company=None, active_only=True, search_term=None, item_group=None):
 	"""
 	Get all available service types
 	Use case: Display services on booking page
+
+	Args:
+	        company: Filter by company
+	        active_only: Only return active services (default: True)
+	        search_term: Search in service name, appointment_type, item_name, short_description
+	        item_group: Filter by item group/category
 	"""
 
 	filters = {}
@@ -21,6 +27,9 @@ def get_service_types(company=None, active_only=True):
 
 	if active_only:
 		filters["disabled"] = 0
+
+	if item_group:
+		filters["item_group"] = item_group
 
 	service_types = frappe.get_all(
 		"Service Type",
@@ -36,6 +45,20 @@ def get_service_types(company=None, active_only=True):
 		],
 		order_by="appointment_type",
 	)
+
+	# Apply search filter if provided
+	if search_term:
+		search_term = search_term.lower()
+		service_types = [
+			service
+			for service in service_types
+			if (
+				search_term in (service.get("name") or "").lower()
+				or search_term in (service.get("appointment_type") or "").lower()
+				or search_term in (service.get("item_name") or "").lower()
+				or search_term in (service.get("short_description") or "").lower()
+			)
+		]
 
 	for service in service_types:
 		prices = frappe.get_all(
