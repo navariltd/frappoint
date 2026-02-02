@@ -20,7 +20,7 @@
 				<input
 					v-model="searchQuery"
 					class="w-full rounded-lg border-0 shadow-sm pl-12 pr-10 py-2.5 text-sm md:text-base focus:ring-2 focus:ring-primary/50 transition-shadow"
-					type="search"
+					type="text"
 					placeholder="Search for a service..."
 				/>
 				<button
