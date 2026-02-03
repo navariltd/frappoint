@@ -169,7 +169,7 @@ after_install = "frappoint.setup.setup.execute"
 
 doc_events = {
 	"Integration Request": {
-		"on_update": "frappoint.hooks.mpesa.integration_request.hook_integration_request",
+		"on_update": "frappoint.mpesa.hook_integration_request",
 	}
 }
 

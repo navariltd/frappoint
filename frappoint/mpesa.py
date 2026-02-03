@@ -1,6 +1,6 @@
 import frappe
 
-from ...frappoint.doctype.service_appointment.service_appointment import ServiceAppointment
+from .frappoint.doctype.service_appointment.service_appointment import ServiceAppointment
 
 
 def hook_integration_request(doc, method=None):
