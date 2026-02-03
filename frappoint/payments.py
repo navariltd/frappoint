@@ -63,6 +63,9 @@ def get_payment_link(service_appointment_id, payment_gateway):
 		"payment": payment.name,
 	}
 
+	if controller.doctype == "Mpesa Settings":
+		payment_details["phone_number"] = service_appointment_doc.mobile_no
+
 	url = controller.get_payment_url(**payment_details)
 
 	return url
