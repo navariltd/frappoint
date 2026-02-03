@@ -136,17 +136,30 @@ class ServiceProviderServiceAssignmentTool(Document):
 		).where(ServiceType.disabled == 0)
 
 		# Exclude services already assigned to this provider (if status is Active)
-		if self.status == "Active" and self.service_provider and self.action == "Assign Services to Provider":
-			query = query.where(
-				ServiceType.name.notin(
-					frappe.qb.from_(ProviderService)
-					.select(ProviderService.service_type)
-					.where(
-						(ProviderService.parent == self.service_provider)
-						& (ProviderService.parenttype == "Service Provider")
+		if self.action == "Assign Services to Provider" and self.service_provider:
+			if self.status == "Active":
+				query = query.where(
+					ServiceType.name.notin(
+						frappe.qb.from_(ProviderService)
+						.select(ProviderService.service_type)
+						.where(
+							(ProviderService.parent == self.service_provider)
+							& (ProviderService.parenttype == "Service Provider")
+						)
 					)
 				)
-			)
+
+			elif self.status == "Inactive":
+				query = query.where(
+					ServiceType.name.isin(
+						frappe.qb.from_(ProviderService)
+						.select(ProviderService.service_type)
+						.where(
+							(ProviderService.parent == self.service_provider)
+							& (ProviderService.parenttype == "Service Provider")
+						)
+					)
+				)
 
 		return query.run(as_dict=True)
 
