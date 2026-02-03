@@ -5,6 +5,8 @@ mpesa_hook_logger = frappe.logger("frappoint_mpesa_hook", allow_site=True, file_
 
 
 def hook_mpesa_express_request(doc, method=None):
+	doc.reload()
+
 	mpesa_hook_logger.info(
 		"Hook fired",
 		extra={
