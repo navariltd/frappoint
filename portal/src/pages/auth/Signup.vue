@@ -188,7 +188,10 @@
 			<div class="mt-6 text-center">
 				<p class="text-sm text-[#5e8787]">
 					Already have an account?
-					<RouterLink to="/login" class="text-[#2c7677] font-bold hover:underline">
+					<RouterLink
+						:to="{ name: 'Login', query: { redirect: route.query.redirect } }"
+						class="text-[#2c7677] font-bold hover:underline"
+					>
 						Log in
 					</RouterLink>
 				</p>
