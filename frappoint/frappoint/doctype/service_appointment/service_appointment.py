@@ -191,6 +191,8 @@ class ServiceAppointment(Document):
 				payment_id = "razorpay_payment_id"
 			elif "Stripe" in payment_gateway:
 				payment_id = "stripe_token_id"
+			elif "Paypal" in payment_gateway:
+				payment_id = "transaction_id"
 			else:
 				payment_id = "order_id"
 
@@ -206,9 +208,11 @@ class ServiceAppointment(Document):
 
 			try:
 				# Confirm the payment has gone through
+				self.db_set("payment_status", "Paid")
+				self.db.set("status", "Confirmed")
 				self.submit()
 			except Exception:
-				frappe.log_error(frappe.get_traceback(), _("Appointment COnfirmation Failed"))
+				frappe.log_error(_("Appointment Confirmation Failed"), frappe.get_traceback())
 
 	def validate_appointment_date_and_times(self):
 		start_dt = get_datetime(f"{self.appointment_date} {self.start_time}")
@@ -645,7 +649,7 @@ class ServiceAppointment(Document):
 			try:
 				self.send_message(message)
 			except Exception:
-				frappe.log_error(frappe.get_traceback(), _("Appointment Confirmation Message Not Sent"))
+				frappe.log_error(_("Appointment Confirmation Message Not Sent"), frappe.get_traceback())
 				frappe.msgprint(_("Appointment Confirmation Message Not Sent"), indicator="orange")
 
 	@staticmethod
@@ -1059,11 +1063,10 @@ class ServiceAppointment(Document):
 		"""Handle appointment cancellation"""
 		# Release slots
 		self.db_set("status", "Cancelled")
+		self.db_set("cancellation_date", now_datetime())
 		self.cancel_linked_event()
 		self.release_slots()
 		self.cancel_sales_order()
-		if not self.cancellation_date:
-			self.cancellation_date = now_datetime()
 
 	def auto_issue_consumables(self):
 		"""Auto issue consumables if setting is enabled"""
@@ -1210,8 +1213,8 @@ class ServiceAppointment(Document):
 	def log_error(self, operation, error):
 		"""Log error without throwing"""
 		frappe.log_error(
-			message=frappe.get_traceback(),
 			title=_("Failed to {0} for Appointment {1}").format(operation, self.name),
+			message=frappe.get_traceback(),
 		)
 
 	def log_and_throw_error(self, doctype, error):

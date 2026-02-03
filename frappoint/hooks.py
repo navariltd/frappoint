@@ -167,13 +167,11 @@ after_install = "frappoint.setup.setup.execute"
 # ---------------
 # Hook on document methods and events
 
-# doc_events = {
-# 	"*": {
-# 		"on_update": "method",
-# 		"on_cancel": "method",
-# 		"on_trash": "method"
-# 	}
-# }
+doc_events = {
+	"Integration Request": {
+		"on_update": "frappoint.hooks.mpesa.integration_request.hook_integration_request",
+	}
+}
 
 # Scheduled Tasks
 # ---------------

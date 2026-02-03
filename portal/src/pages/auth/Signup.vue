@@ -188,7 +188,10 @@
 			<div class="mt-6 text-center">
 				<p class="text-sm text-[#5e8787]">
 					Already have an account?
-					<RouterLink to="/login" class="text-[#2c7677] font-bold hover:underline">
+					<RouterLink
+						:to="{ name: 'Login', query: { redirect: route.query.redirect } }"
+						class="text-[#2c7677] font-bold hover:underline"
+					>
 						Log in
 					</RouterLink>
 				</p>
@@ -197,12 +200,16 @@
 	</div>
 </template>
 
-<script setup>
+<script lang="ts" setup>
 import { ref } from "vue";
-import { useRouter } from "vue-router";
+import { useRoute, useRouter } from "vue-router";
 import { createResource } from "frappe-ui";
+import { useAuthStore } from "@/stores/auth";
 
+const route = useRoute();
 const router = useRouter();
+
+const auth = useAuthStore();
 
 // Form fields
 const fullName = ref("");
@@ -243,7 +250,11 @@ async function submit() {
 		});
 
 		await createUserResource.submit();
-		window.location.href = "/";
+
+		await auth.setUser();
+
+		const redirect = (route.query.redirect as string) || "/";
+		router.replace(redirect);
 	} catch (error) {
 		errorMessage.value =
 			error.messages?.[0] || error.message || "Failed to create account. Please try again.";

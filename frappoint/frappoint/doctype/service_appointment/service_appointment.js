@@ -3,65 +3,22 @@
 
 frappe.ui.form.on("Service Appointment", {
 	refresh(frm) {
-		frm.page.clear_primary_action();
-		if (frm.custom_buttons) frm.clear_custom_buttons();
-		frm.events.add_context_buttons(frm);
+		frm._button_state = null;
 
-		// Issue Consumables button (if not auto-issued)
-		if (frm.doc.docstatus === 1 && frm.doc.status === "Completed") {
-			frm.add_custom_button(
-				__("Issue Consumables"),
-				function () {
-					frappe.call({
-						method: "frappoint.frappoint.doctype.service_appointment.service_appointment.issue_consumables_manual",
-						args: {
-							appointment: frm.doc.name,
-						},
-						callback: function (r) {
-							frm.reload_doc();
-						},
-					});
-				},
-				__("Stock")
-			);
+		if (frm._button_update_timeout) {
+			clearTimeout(frm._button_update_timeout);
+			frm._button_update_timeout = null;
+		}
 
-			// Material Request button
-			frm.add_custom_button(
-				__("Create Material Request"),
-				function () {
-					const d = new frappe.ui.Dialog({
-						title: "Select Target Warehouse",
-						fields: [
-							{
-								fieldname: "t_warehouse",
-								label: "Target Warehouse",
-								fieldtype: "Link",
-								options: "Warehouse",
-								reqd: 1,
-							},
-						],
-						primary_action_label: "Create Request",
-						primary_action(values) {
-							d.hide();
+		frm.events._update_buttons(frm);
 
-							frappe.call({
-								method: "frappoint.frappoint.doctype.service_appointment.service_appointment.create_material_request_manual",
-								args: {
-									appointment: frm.doc.name,
-									t_warehouse: values.t_warehouse,
-								},
-								callback: function (r) {
-									if (r.message) {
-										frappe.set_route("Form", "Material Request", r.message);
-									}
-								},
-							});
-						},
-					});
-					d.show();
-				},
-				__("Stock")
-			);
+		if (
+			frm.doc.status === "Confirmed" ||
+			(frm.doc.docstatus === 1 && frm.doc.status === "Completed")
+		) {
+			if (frm.page.btn_secondary) {
+				frm.page.btn_secondary.hide();
+			}
 		}
 
 		// Handle rescheduled appointment submission
@@ -91,7 +48,9 @@ frappe.ui.form.on("Service Appointment", {
 		// Determine which button state we should be in
 		let button_state = null;
 
-		if (frm.doc.status === "Confirmed") {
+		if (frm.doc.docstatus === 1 && frm.doc.status === "Completed") {
+			button_state = "completed";
+		} else if (frm.doc.status === "Confirmed") {
 			button_state = "confirmed";
 		} else if (
 			frm.doc.appointment_type &&
@@ -121,23 +80,102 @@ frappe.ui.form.on("Service Appointment", {
 			return;
 		}
 
-		// Update button state
-		frm._button_state = button_state;
-
 		// Clear previous buttons
 		frm.page.clear_primary_action();
 		if (frm.custom_buttons) frm.clear_custom_buttons();
 
-		// Case 1: Status is "Confirmed" - show Cancel and Reschedule buttons
-		if (button_state === "confirmed") {
+		// Update button state
+		frm._button_state = button_state;
+
+		if (button_state === "completed") {
 			frm.add_custom_button(__("Cancel Appointment"), function () {
 				show_cancellation_dialog(frm);
 			}).addClass("btn-primary");
 
+			// Issue Consumables button (if not auto-issued)
+			if (frm.doc.docstatus === 1 && frm.doc.status === "Completed") {
+				frm.add_custom_button(
+					__("Issue Consumables"),
+					function () {
+						frappe.call({
+							method: "frappoint.frappoint.doctype.service_appointment.service_appointment.issue_consumables_manual",
+							args: {
+								appointment: frm.doc.name,
+							},
+							callback: function (r) {
+								frm.reload_doc();
+							},
+						});
+					},
+					__("Stock")
+				);
+
+				// Material Request button
+				frm.add_custom_button(
+					__("Create Material Request"),
+					function () {
+						const d = new frappe.ui.Dialog({
+							title: "Select Target Warehouse",
+							fields: [
+								{
+									fieldname: "t_warehouse",
+									label: "Target Warehouse",
+									fieldtype: "Link",
+									options: "Warehouse",
+									reqd: 1,
+								},
+							],
+							primary_action_label: "Create Request",
+							primary_action(values) {
+								d.hide();
+
+								frappe.call({
+									method: "frappoint.frappoint.doctype.service_appointment.service_appointment.create_material_request_manual",
+									args: {
+										appointment: frm.doc.name,
+										t_warehouse: values.t_warehouse,
+									},
+									callback: function (r) {
+										if (r.message) {
+											frappe.set_route(
+												"Form",
+												"Material Request",
+												r.message
+											);
+										}
+									},
+								});
+							},
+						});
+						d.show();
+					},
+					__("Stock")
+				);
+			}
+
+			if (frm.page.btn_secondary) {
+				frm.page.btn_secondary.hide();
+			}
+			return;
+		}
+
+		// Case 1: Status is "Confirmed" - show Cancel and Reschedule buttons
+		if (button_state === "confirmed") {
+			frm.page.set_primary_action(__("Complete Appointment"), function () {
+				show_complete_appointment_dialog(frm);
+			});
+
+			frm.add_custom_button(__("Cancel Appointment"), function () {
+				show_cancellation_dialog(frm);
+			});
+
 			frm.add_custom_button(__("Reschedule Appointment"), function () {
 				reschedule_appointment(frm);
 			});
-			frm.page.btn_secondary.hide();
+
+			if (frm.page.btn_secondary) {
+				frm.page.btn_secondary.hide();
+			}
 			return;
 		}
 

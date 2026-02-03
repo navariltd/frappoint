@@ -81,6 +81,8 @@ class ServiceProviderServiceAssignmentTool(Document):
 		filters = [[d, "=", self.get(d)] for d in quick_filter_fields if self.get(d)]
 
 		ServiceProvider = frappe.qb.DocType("Service Provider")
+		ProviderService = frappe.qb.DocType("Service Provider Service")
+
 		query = frappe.qb.get_query(
 			ServiceProvider,
 			fields=[
@@ -92,9 +94,20 @@ class ServiceProviderServiceAssignmentTool(Document):
 
 		# Exclude providers who already have this service assigned (if status is Active)
 		if self.status == "Active" and self.service_type and self.action == "Assign Service to Providers":
-			ProviderService = frappe.qb.DocType("Service Provider Service")
 			query = query.where(
 				ServiceProvider.name.notin(
+					frappe.qb.from_(ProviderService)
+					.select(ProviderService.parent)
+					.where(
+						(ProviderService.service_type == self.service_type)
+						& (ProviderService.parenttype == "Service Provider")
+					)
+				)
+			)
+
+		elif self.status == "Inactive" and self.service_type:
+			query = query.where(
+				ServiceProvider.name.isin(
 					frappe.qb.from_(ProviderService)
 					.select(ProviderService.parent)
 					.where(
@@ -113,6 +126,8 @@ class ServiceProviderServiceAssignmentTool(Document):
 			frappe.throw(_("Please select a Company to fetch services."))
 
 		ServiceType = frappe.qb.DocType("Service Type")
+		ProviderService = frappe.qb.DocType("Service Provider Service")
+
 		query = frappe.qb.get_query(
 			ServiceType,
 			fields=[
@@ -121,18 +136,30 @@ class ServiceProviderServiceAssignmentTool(Document):
 		).where(ServiceType.disabled == 0)
 
 		# Exclude services already assigned to this provider (if status is Active)
-		if self.status == "Active" and self.service_provider and self.action == "Assign Services to Provider":
-			ProviderService = frappe.qb.DocType("Service Provider Service")
-			query = query.where(
-				ServiceType.name.notin(
-					frappe.qb.from_(ProviderService)
-					.select(ProviderService.service_type)
-					.where(
-						(ProviderService.parent == self.service_provider)
-						& (ProviderService.parenttype == "Service Provider")
+		if self.action == "Assign Services to Provider" and self.service_provider:
+			if self.status == "Active":
+				query = query.where(
+					ServiceType.name.notin(
+						frappe.qb.from_(ProviderService)
+						.select(ProviderService.service_type)
+						.where(
+							(ProviderService.parent == self.service_provider)
+							& (ProviderService.parenttype == "Service Provider")
+						)
 					)
 				)
-			)
+
+			elif self.status == "Inactive":
+				query = query.where(
+					ServiceType.name.isin(
+						frappe.qb.from_(ProviderService)
+						.select(ProviderService.service_type)
+						.where(
+							(ProviderService.parent == self.service_provider)
+							& (ProviderService.parenttype == "Service Provider")
+						)
+					)
+				)
 
 		return query.run(as_dict=True)
 

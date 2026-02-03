@@ -81,7 +81,7 @@ router.beforeEach(async (to) => {
 	await auth.refreshUser?.();
 
 	if (to.meta.requiresLogin && !auth.isLoggedIn) {
-		return { name: "Login" };
+		return { name: "Login", query: { redirect: to.fullPath } };
 	}
 
 	if (to.name === "Login" && auth.isLoggedIn) {

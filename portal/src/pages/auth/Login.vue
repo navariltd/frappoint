@@ -131,7 +131,10 @@
 			<div class="mt-6 text-center">
 				<p class="text-sm text-[#5e8787]">
 					Don't have an account?
-					<RouterLink to="/signup" class="text-[#2c7677] font-bold hover:underline">
+					<RouterLink
+						:to="{ name: 'Signup', query: { redirect: route.query.redirect } }"
+						class="text-[#2c7677] font-bold hover:underline"
+					>
 						Sign up
 					</RouterLink>
 				</p>
