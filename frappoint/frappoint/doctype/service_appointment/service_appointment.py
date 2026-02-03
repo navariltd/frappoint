@@ -1063,11 +1063,10 @@ class ServiceAppointment(Document):
 		"""Handle appointment cancellation"""
 		# Release slots
 		self.db_set("status", "Cancelled")
+		self.db_set("cancellation_date", now_datetime())
 		self.cancel_linked_event()
 		self.release_slots()
 		self.cancel_sales_order()
-		if not self.cancellation_date:
-			self.cancellation_date = now_datetime()
 
 	def auto_issue_consumables(self):
 		"""Auto issue consumables if setting is enabled"""
