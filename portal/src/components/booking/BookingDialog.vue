@@ -346,6 +346,7 @@ async function submitBooking() {
 		appointment_price: booking.draft.priceName,
 		start_time: booking.draft.slot.start_time,
 		end_time: booking.draft.slot.end_time,
+		selected_slot_ids: JSON.stringify([booking.draft.slot.slot_ids]),
 		customer: booking.draft.customer,
 		full_name: booking.draft.customer,
 		email: booking.draft.email,
