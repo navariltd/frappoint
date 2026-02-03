@@ -201,9 +201,12 @@
 import { ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { createResource } from "frappe-ui";
+import { useAuthStore } from "@/stores/auth";
 
 const route = useRoute();
 const router = useRouter();
+
+const auth = useAuthStore();
 
 // Form fields
 const fullName = ref("");
@@ -244,6 +247,9 @@ async function submit() {
 		});
 
 		await createUserResource.submit();
+
+		await auth.setUser();
+
 		const redirect = (route.query.redirect as string) || "/";
 		router.replace(redirect);
 	} catch (error) {
