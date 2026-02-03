@@ -168,8 +168,8 @@ after_install = "frappoint.setup.setup.execute"
 # Hook on document methods and events
 
 doc_events = {
-	"Integration Request": {
-		"on_update": "frappoint.mpesa.hook_integration_request",
+	"Mpesa Express Request": {
+		"on_update": "frappoint.mpesa.hook_mpesa_express_request",
 	}
 }
 
