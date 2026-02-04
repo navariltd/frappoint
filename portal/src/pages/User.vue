@@ -359,6 +359,7 @@
 <script setup>
 import { useAuthStore } from "@/stores/auth";
 import { ref, onMounted, computed } from "vue";
+import { useAlert } from "@/composables/useAlert";
 import { createResource, FileUploader, Alert } from "frappe-ui";
 
 const auth = useAuthStore();
@@ -368,24 +369,7 @@ const showCurrentPassword = ref(false);
 const showNewPassword = ref(false);
 const showConfirmPassword = ref(false);
 
-const alertOptions = ref({
-	title: "",
-	message: "",
-	variant: "solid",
-	theme: "green",
-});
-
-function showAlert(title, message, theme = "green") {
-	alertOptions.value = {
-		title,
-		message,
-		variant: "solid",
-		theme,
-	};
-	setTimeout(() => {
-		alertOptions.value = { ...alertOptions.value, message: "" };
-	}, 3000);
-}
+const { alertOptions, showAlert } = useAlert();
 
 const formData = ref({
 	firstName: "",
