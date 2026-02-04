@@ -101,6 +101,7 @@
 						:available-dates="availableDates"
 						:available-slots="availableSlots"
 						:can-proceed="canProceed"
+						:dates-loading="getAvailableDates.loading"
 						:slots-loading="getAvailableTimeSlots.loading"
 						@continue="currentStep++"
 					/>

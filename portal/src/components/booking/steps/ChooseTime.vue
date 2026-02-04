@@ -4,6 +4,21 @@
 		<div
 			class="w-full lg:w-6/12 p-2 md:p-8 border-b lg:border-b-0 lg:border-r border-slate-100 bg-white flex flex-col"
 		>
+			<!-- Loading skeleton for calendar -->
+			<div v-if="datesLoading" class="animate-pulse">
+				<div class="flex items-center justify-between mb-6">
+					<div class="h-6 w-24 bg-slate-200 rounded"></div>
+					<div class="h-6 w-24 bg-slate-200 rounded"></div>
+				</div>
+				<div class="grid grid-cols-7 gap-2 mb-4">
+					<div v-for="i in 7" :key="i" class="h-10 bg-slate-100 rounded"></div>
+				</div>
+				<div class="grid grid-cols-7 gap-2">
+					<div v-for="i in 35" :key="i" class="h-12 bg-slate-100 rounded"></div>
+				</div>
+			</div>
+
+			<!-- Actual calendar -->
 			<VueDatePicker
 				:model-value="booking.activeDraft.date"
 				@update:model-value="booking.setDate($event)"
@@ -24,7 +39,15 @@
 		>
 			<!-- provider  -->
 			<div class="mb-8 border-collapse">
+				<!-- Loading skeleton for provider dropdown -->
+				<div v-if="slotsLoading" class="animate-pulse">
+					<div class="h-4 w-48 bg-slate-200 rounded mb-2"></div>
+					<div class="h-12 w-full bg-slate-100 rounded"></div>
+				</div>
+
+				<!-- Actual dropdown -->
 				<FormControl
+					v-else
 					type="select"
 					:options="providerOptions"
 					:model-value="booking.activeDraft.provider"
@@ -129,6 +152,7 @@ const props = defineProps({
 	availableDates: Array,
 	availableSlots: Array,
 	canProceed: Boolean,
+	datesLoading: Boolean,
 	slotsLoading: Boolean,
 });
 
