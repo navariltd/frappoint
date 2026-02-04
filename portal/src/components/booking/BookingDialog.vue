@@ -159,7 +159,7 @@
 						Back
 					</button>
 					<button
-						:disabled="!canProceed"
+						:disabled="!canProceed || availableDates.length === 0"
 						@click="currentStep++"
 						class="px-8 py-3 rounded-lg bg-primary hover:bg-primary-dark text-white font-semibold shadow-lg shadow-primary/30 transition-all flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
 						type="button"
