@@ -18,8 +18,24 @@
 				</div>
 			</div>
 
+			<!-- Empty state when no dates available -->
+			<div
+				v-else-if="!datesLoading && formattedAllowedDates.length === 0"
+				class="flex-1 flex flex-col items-center justify-center text-center p-8"
+			>
+				<div class="mb-4 p-4 bg-slate-100 rounded-full">
+					<FeatherIcon name="calendar-x" class="w-12 h-12 text-slate-400" />
+				</div>
+				<h3 class="text-lg font-bold text-slate-900 mb-2">No Dates Available</h3>
+				<p class="text-slate-600 text-sm max-w-xs">
+					There are currently no available dates for this service. Please check back
+					later or contact us for assistance.
+				</p>
+			</div>
+
 			<!-- Actual calendar -->
 			<VueDatePicker
+				v-else
 				:model-value="booking.activeDraft.date"
 				@update:model-value="booking.setDate($event)"
 				:allowed-dates="formattedAllowedDates"
