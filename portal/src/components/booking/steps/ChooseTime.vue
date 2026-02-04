@@ -4,7 +4,38 @@
 		<div
 			class="w-full lg:w-6/12 p-2 md:p-8 border-b lg:border-b-0 lg:border-r border-slate-100 bg-white flex flex-col"
 		>
+			<!-- Loading skeleton for calendar -->
+			<div v-if="datesLoading" class="animate-pulse">
+				<div class="flex items-center justify-between mb-6">
+					<div class="h-6 w-24 bg-slate-200 rounded"></div>
+					<div class="h-6 w-24 bg-slate-200 rounded"></div>
+				</div>
+				<div class="grid grid-cols-7 gap-2 mb-4">
+					<div v-for="i in 7" :key="i" class="h-10 bg-slate-100 rounded"></div>
+				</div>
+				<div class="grid grid-cols-7 gap-2">
+					<div v-for="i in 35" :key="i" class="h-12 bg-slate-100 rounded"></div>
+				</div>
+			</div>
+
+			<!-- Empty state when no dates available -->
+			<div
+				v-else-if="!datesLoading && formattedAllowedDates.length === 0"
+				class="flex-1 flex flex-col items-center justify-center text-center p-8"
+			>
+				<div class="mb-4 p-4 bg-slate-100 rounded-full">
+					<FeatherIcon name="calendar-x" class="w-12 h-12 text-slate-400" />
+				</div>
+				<h3 class="text-lg font-bold text-slate-900 mb-2">No Dates Available</h3>
+				<p class="text-slate-600 text-sm max-w-xs">
+					There are currently no available dates for this service. Please check back
+					later or contact us for assistance.
+				</p>
+			</div>
+
+			<!-- Actual calendar -->
 			<VueDatePicker
+				v-else
 				:model-value="booking.activeDraft.date"
 				@update:model-value="booking.setDate($event)"
 				:allowed-dates="formattedAllowedDates"
@@ -24,7 +55,15 @@
 		>
 			<!-- provider  -->
 			<div class="mb-8 border-collapse">
+				<!-- Loading skeleton for provider dropdown -->
+				<div v-if="slotsLoading" class="animate-pulse">
+					<div class="h-4 w-48 bg-slate-200 rounded mb-2"></div>
+					<div class="h-12 w-full bg-slate-100 rounded"></div>
+				</div>
+
+				<!-- Actual dropdown -->
 				<FormControl
+					v-else
 					type="select"
 					:options="providerOptions"
 					:model-value="booking.activeDraft.provider"
@@ -129,6 +168,7 @@ const props = defineProps({
 	availableDates: Array,
 	availableSlots: Array,
 	canProceed: Boolean,
+	datesLoading: Boolean,
 	slotsLoading: Boolean,
 });
 
