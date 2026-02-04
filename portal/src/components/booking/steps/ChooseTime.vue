@@ -216,12 +216,53 @@ const visibleSlots = computed(() => {
 
 const hasSlots = computed(() => visibleSlots.value && visibleSlots.value.length > 0);
 
+// Filter out past time slots if the selected date is today
+const availableSlots = computed(() => {
+	if (!booking.draft.date) return visibleSlots.value;
+
+	// Get selected date
+	let selectedDate;
+	if (booking.draft.date instanceof Date) {
+		selectedDate = booking.draft.date;
+	} else {
+		selectedDate = new Date(`${booking.draft.date}T00:00:00`);
+	}
+
+	// Get current date and time
+	const now = new Date();
+	const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+	const selectedDateOnly = new Date(
+		selectedDate.getFullYear(),
+		selectedDate.getMonth(),
+		selectedDate.getDate()
+	);
+
+	// If selected date is not today, return all slots
+	if (selectedDateOnly.getTime() !== today.getTime()) {
+		return visibleSlots.value;
+	}
+
+	// If it's today, filter out past time slots
+	const currentHours = now.getHours();
+	const currentMinutes = now.getMinutes();
+
+	return visibleSlots.value.filter((slot) => {
+		const [slotHours, slotMinutes] = slot.start_time.split(":").map(Number);
+
+		// Compare time
+		if (slotHours > currentHours) return true;
+		if (slotHours === currentHours && slotMinutes > currentMinutes) return true;
+
+		return false;
+	});
+});
+
 const morningSlots = computed(() =>
-	visibleSlots.value.filter((s) => Number(s.start_time.split(":")[0]) < 12)
+	availableSlots.value.filter((s) => Number(s.start_time.split(":")[0]) < 12)
 );
 
 const afternoonSlots = computed(() =>
-	visibleSlots.value.filter((s) => Number(s.start_time.split(":")[0]) >= 12)
+	availableSlots.value.filter((s) => Number(s.start_time.split(":")[0]) >= 12)
 );
 
 const firstAvailableDate = computed(() => {

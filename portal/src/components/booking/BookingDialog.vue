@@ -1,5 +1,16 @@
 <template>
 	<div class="max-w-6xl mx-auto px-4 sm:px-6 py-4 sm:py-6">
+		<!-- Alert notification -->
+		<Alert
+			v-if="alertOptions.message"
+			:title="alertOptions.title"
+			:description="alertOptions.message"
+			:variant="alertOptions.variant"
+			:theme="alertOptions.theme"
+			class="fixed top-8 left-1/2 -translate-x-1/2 z-50 min-w-[300px]"
+			@close="alertOptions.message = ''"
+		/>
+
 		<!-- Show errors at the top -->
 		<ErrorMessage
 			v-if="getAvailableDates.error"
@@ -181,8 +192,9 @@
 </template>
 
 <script setup>
-import { createListResource, createResource, ErrorMessage } from "frappe-ui";
+import { createListResource, createResource, ErrorMessage, Alert } from "frappe-ui";
 import { ref, watch, computed, onMounted } from "vue";
+import { useAlert } from "@/composables/useAlert";
 import { useBookingStore } from "@/stores/bookingStore";
 import { useAuthStore } from "@/stores/auth";
 import { useRouter, useRoute } from "vue-router";
@@ -194,6 +206,7 @@ const booking = useBookingStore();
 const auth = useAuthStore();
 const router = useRouter();
 const route = useRoute();
+const { alertOptions, showAlert } = useAlert();
 
 const serviceType = computed(() => booking.draft.serviceType);
 
@@ -334,7 +347,11 @@ async function submitBooking() {
 
 	const validation = await checkSlotAvailability.fetch();
 	if (!validation.available) {
-		alert("Slot no longer available, pick another");
+		showAlert(
+			"Slot Timeout",
+			"The selected time slot is no longer available. Please pick another.",
+			"red"
+		);
 		return;
 	}
 
