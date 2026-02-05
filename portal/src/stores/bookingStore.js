@@ -111,15 +111,10 @@ export const useBookingStore = defineStore("booking", {
 
 			const service = await resource.fetch();
 
-			if (this.mode === "booking") {
-				this.draft.paymentGateways = service.payment_gateways || [];
+			this.draft.paymentGateways = service.payment_gateways || [];
 
-				if (
-					!this.draft.selectedPaymentGateway &&
-					this.draft.paymentGateways.length === 1
-				) {
-					this.draft.selectedPaymentGateway = this.draft.paymentGateways[0];
-				}
+			if (!this.draft.selectedPaymentGateway && this.draft.paymentGateways.length === 1) {
+				this.draft.selectedPaymentGateway = this.draft.paymentGateways[0];
 			}
 		},
 
