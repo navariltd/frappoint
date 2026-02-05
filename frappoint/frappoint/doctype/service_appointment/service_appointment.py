@@ -1416,7 +1416,7 @@ def reschedule_appointment(
 				"currency": old_appointment.currency,
 				"details": old_appointment.details,
 				"notes": (old_appointment.notes or "") + f"\n\nRescheduled from: {old_appointment.name}",
-				"status": "Open",
+				"status": "Confirmed",
 				"source": old_appointment.source,
 				"add_video_conferencing": old_appointment.add_video_conferencing,
 				"rescheduled_from": old_appointment.name,
@@ -1447,6 +1447,7 @@ def reschedule_appointment(
 		old_appointment.flags.ignore_permissions = True
 		old_appointment.flags.ignore_links = True
 		old_appointment.cancel()
+		old_appointment.db_set("status", "Rescheduled")
 
 		frappe.db.commit()
 
