@@ -36,8 +36,8 @@
 			<!-- Actual calendar -->
 			<VueDatePicker
 				v-else
-				:model-value="booking.activeDraft.date"
-				@update:model-value="booking.setDate($event)"
+				:model-value="date"
+				@update:model-value="$emit('update:date', $event)"
 				:allowed-dates="formattedAllowedDates"
 				:start-date="firstAvailableDate"
 				inline
@@ -50,7 +50,7 @@
 
 		<!-- RIGHT COLUMN: Time Slots  -->
 		<div
-			v-if="booking.activeDraft.date"
+			v-if="date"
 			class="w-full lg:w-7/12 p-6 md:p-8 flex flex-col bg-surface-light relative"
 		>
 			<!-- provider  -->
@@ -66,8 +66,8 @@
 					v-else
 					type="select"
 					:options="providerOptions"
-					:model-value="booking.activeDraft.provider"
-					@update:model-value="booking.setProvider($event)"
+					:model-value="provider"
+					@update:model-value="$emit('update:provider', $event)"
 					size="xl"
 					variant="subtle"
 					placeholder="Any Available Staff"
@@ -81,7 +81,7 @@
 			<div>
 				<div class="flex items-center justify-between mb-4">
 					<h1 class="text-lg font-bold text-slate-900">
-						{{ formatSelectedDate(booking.activeDraft.date) }}
+						{{ formatSelectedDate(date) }}
 					</h1>
 				</div>
 
@@ -106,9 +106,9 @@
 							<Button
 								v-for="slot in morningSlots"
 								:key="slot.start_time + slot.provider"
-								@click="booking.setSlot(slot)"
+								@click="$emit('update:slot', slot)"
 								:class="
-									booking.activeDraft.slot === slot
+									isSlotSelected(slot)
 										? '!bg-primary !text-white'
 										: 'border hover-bg-primary/10'
 								"
@@ -127,9 +127,9 @@
 							<Button
 								v-for="slot in afternoonSlots"
 								:key="slot.start_time + slot.provider"
-								@click="booking.setSlot(slot)"
+								@click="$emit('update:slot', slot)"
 								:class="
-									booking.activeDraft.slot === slot
+									isSlotSelected(slot)
 										? '!bg-primary !text-white'
 										: 'broder hover-bg-primary/10'
 								"
@@ -161,10 +161,12 @@ import { Button, FeatherIcon, FormControl } from "frappe-ui";
 import { VueDatePicker } from "@vuepic/vue-datepicker";
 import "@vuepic/vue-datepicker/dist/main.css";
 import { computed } from "vue";
-import { useBookingStore } from "@/stores/bookingStore";
 import TimeSlotSkeleton from "../TimeSlotSkeleton.vue";
 
 const props = defineProps({
+	date: [String, Object],
+	slot: Object,
+	provider: String,
 	availableDates: Array,
 	availableSlots: Array,
 	canProceed: Boolean,
@@ -172,9 +174,7 @@ const props = defineProps({
 	slotsLoading: Boolean,
 });
 
-defineEmits(["continue"]);
-
-const booking = useBookingStore();
+defineEmits(["continue", "update:date", "update:slot", "update:provider"]);
 
 // Convert available dates to Date objects for VueDatepicker
 const formattedAllowedDates = computed(() => {
@@ -207,26 +207,22 @@ const providerOptions = computed(() => {
 });
 
 const visibleSlots = computed(() => {
-	if (!booking.activeDraft.provider) {
+	if (!props.provider) {
 		return props.availableSlots;
 	}
 
-	return props.availableSlots.filter((slot) => slot.provider === booking.activeDraft.provider);
+	return props.availableSlots.filter((slot) => slot.provider === props.provider);
 });
 
 const hasSlots = computed(() => visibleSlots.value && visibleSlots.value.length > 0);
 
 // Filter out past time slots if the selected date is today
 const availableSlots = computed(() => {
-	if (!booking.draft.date) return visibleSlots.value;
+	if (!props.date) return visibleSlots.value;
 
 	// Get selected date
-	let selectedDate;
-	if (booking.draft.date instanceof Date) {
-		selectedDate = booking.draft.date;
-	} else {
-		selectedDate = new Date(`${booking.draft.date}T00:00:00`);
-	}
+	const selectedDate =
+		props.date instanceof Date ? props.date : new Date(`${props.date}T00:00:00`);
 
 	// Get current date and time
 	const now = new Date();
@@ -264,6 +260,10 @@ const morningSlots = computed(() =>
 const afternoonSlots = computed(() =>
 	availableSlots.value.filter((s) => Number(s.start_time.split(":")[0]) >= 12)
 );
+
+const isSlotSelected = (s) => {
+	return props.slot?.start_time === s.start_time && props.slot?.provider === s.provider;
+};
 
 const firstAvailableDate = computed(() => {
 	if (!formattedAllowedDates.value || formattedAllowedDates.value.length === 0) {
