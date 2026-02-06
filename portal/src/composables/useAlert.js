@@ -8,7 +8,7 @@ export function useAlert() {
 		theme: "green",
 	});
 
-	function showAlert(title, message, theme = "green") {
+	function showAlert(title, message, theme = "green", duration = 5000) {
 		alertOptions.value = {
 			title,
 			message,
@@ -16,9 +16,12 @@ export function useAlert() {
 			theme,
 		};
 
-		setTimeout(() => {
-			alertOptions.value = { ...alertOptions.value, message: "" };
-		}, 3000);
+		// Auto-dismiss after duration
+		if (duration > 0) {
+			setTimeout(() => {
+				alertOptions.value = { ...alertOptions.value, message: "" };
+			}, duration);
+		}
 	}
 
 	function hideAlert() {
