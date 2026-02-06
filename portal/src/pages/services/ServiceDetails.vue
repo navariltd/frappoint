@@ -53,10 +53,10 @@
 						<div>
 							<p class="text-gray-700 mb-2">Starting from</p>
 							<h2
-								v-if="servicePrice.rate && servicePrice.currency"
+								v-if="servicePrice.amount && servicePrice.currency"
 								class="text-2xl font-black"
 							>
-								{{ formatCurrency(servicePrice.rate, servicePrice.currency) }}
+								{{ formatCurrency(servicePrice.amount, servicePrice.currency) }}
 								<span class="text-lg text-gray-700">/ session</span>
 							</h2>
 						</div>
@@ -66,12 +66,25 @@
 					</div>
 					<div>
 						<h3 class="font-medium text-lg mb-4">DURATION</h3>
-						<div
-							class="border-primary border-2 px-6 py-4 rounded-lg text-center max-w-40"
-						>
-							<span class="font-semibold text-primary text-xl">
-								{{ serviceDetails.default_duration_in_minutes }} min</span
+						<div class="grid grid-cols-2 gap-2">
+							<div
+								v-for="duration in serviceDetails.prices"
+								:key="duration.price_name"
+								@click="setSelectedPrice(duration)"
+								class="px-6 py-4 rounded-lg text-center max-w-40 cursor-pointer flex flex-col items-center justify-center border-2 transition-all"
+								:class="
+									booking.draft.priceName === duration.price_name
+										? 'border-primary bg-primary/10'
+										: 'border-gray-300 hover:border-primary'
+								"
 							>
+								<span class="font-semibold text-primary text-xl">
+									{{ duration.duration }} min</span
+								>
+								<span class="text-xs opacity-80">
+									{{ formatCurrency(duration.amount, duration.currency) }}</span
+								>
+							</div>
 						</div>
 					</div>
 					<div>
@@ -104,7 +117,7 @@ import { createResource, FeatherIcon, Button, FormControl } from "frappe-ui";
 import ServiceTag from "@/components/common/ServiceTag.vue";
 import ProviderCard from "@/components/providers/ProviderCard.vue";
 import { formatCurrency } from "@/utils";
-import { computed } from "vue";
+import { computed, watch } from "vue";
 import { useBookingStore } from "@/stores/bookingStore";
 
 const booking = useBookingStore();
@@ -117,9 +130,6 @@ function showBookingDialog() {
 		params: { serviceType: serviceDetails.value.name },
 	});
 	booking.setServiceType(serviceDetails.value.name);
-	booking.setPriceName(servicePrice.value.price_name);
-	booking.setPrice(servicePrice.value.rate);
-	booking.setCurrency(servicePrice.value.currency);
 }
 
 const serviceTypeDetailsResource = createResource({
@@ -140,9 +150,32 @@ const serviceDetails = computed(() => {
 });
 
 const servicePrice = computed(() => {
-	if (serviceDetails.value.prices) {
-		return serviceDetails.value.prices[0];
+	if (booking.draft.priceName) {
+		return {
+			price_name: booking.draft.priceName,
+			amount: booking.draft.price,
+			currency: booking.draft.currency,
+		};
 	}
-	return {};
+	return serviceDetails.value.prices?.[0] || {};
 });
+
+watch(
+	() => serviceDetails.value.prices,
+	(prices) => {
+		if (prices?.length && !booking.draft.priceName) {
+			const first = prices[0];
+			booking.setPriceName(first.price_name);
+			booking.setPrice(first.amount);
+			booking.setCurrency(first.currency);
+		}
+	},
+	{ immediate: true }
+);
+
+const setSelectedPrice = (price) => {
+	booking.setPriceName(price.price_name);
+	booking.setPrice(price.amount);
+	booking.setCurrency(price.currency);
+};
 </script>
