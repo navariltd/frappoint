@@ -258,6 +258,7 @@ const getAvailableDates = createResource({
 	makeParams() {
 		return {
 			service_type: serviceType.value,
+			duration: booking.draft.duration,
 		};
 	},
 });
@@ -268,6 +269,7 @@ const getAvailableTimeSlots = createResource({
 	makeParams() {
 		return {
 			service_type: serviceType.value,
+			duration: booking.draft.duration,
 			date: booking.draft.date,
 		};
 	},

@@ -75,5 +75,6 @@ function showBookingDialog() {
 	booking.setPriceName(props.serviceType?.price.price_name);
 	booking.setPrice(props.serviceType.price?.amount);
 	booking.setCurrency(props.serviceType.price?.currency);
+	booking.setDuration(props.serviceType?.price.duration);
 }
 </script>

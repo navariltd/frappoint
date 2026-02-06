@@ -64,7 +64,7 @@ def get_service_types(company=None, active_only=True, search_term=None, item_gro
 		prices = frappe.get_all(
 			"Service Type Price",
 			filters={"parent": service.name, "duration": service.default_duration_in_minutes},
-			fields=["price_name", "rate", "amount", "currency"],
+			fields=["price_name", "rate", "amount", "duration", "currency"],
 			limit=1,
 		)
 		service["price"] = prices[0] if prices else None
