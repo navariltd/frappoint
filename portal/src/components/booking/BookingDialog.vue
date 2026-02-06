@@ -368,6 +368,7 @@ async function submitBooking() {
 		appointment_type: booking.draft.serviceType,
 		appointment_date: booking.draft.date,
 		appointment_provider: booking.draft.slot.provider,
+		duration: booking.draft.duration,
 		currency: booking.draft.currency,
 		appointment_price: booking.draft.priceName,
 		start_time: booking.draft.slot.start_time,
