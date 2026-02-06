@@ -114,11 +114,19 @@
 				</div>
 			</div>
 
+			<!-- Backdrop for better contrast -->
+			<div
+				v-if="alert.show"
+				class="fixed inset-0 bg-black/20 backdrop-blur-sm z-[100] transition-opacity duration-300"
+				@click="alert.show = false"
+			></div>
+
+			<!-- Alert with enhanced visibility -->
 			<Alert
 				v-if="alert.show"
 				:variant="alert.variant"
 				:message="alert.message"
-				class="fixed bottom-4 right-4 z-50 shadow-xl"
+				class="fixed top-4 md:top-8 left-1/2 -translate-x-1/2 z-[101] w-[90%] md:w-auto md:min-w-[400px] md:max-w-[500px] shadow-2xl animate-slide-down"
 				@close="alert.show = false"
 			/>
 		</div>
@@ -331,3 +339,19 @@ async function handleConfirmReschedule() {
 	}
 }
 </script>
+<style scoped>
+@keyframes slide-down {
+	from {
+		opacity: 0;
+		transform: translate(-50%, -100%);
+	}
+	to {
+		opacity: 1;
+		transform: translate(-50%, 0);
+	}
+}
+
+.animate-slide-down {
+	animation: slide-down 0.3s ease-out;
+}
+</style>
