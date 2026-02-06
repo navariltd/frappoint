@@ -1,6 +1,8 @@
 import frappe
 from frappe.utils.password import update_password
 
+from ...utils import get_customer_contact_details
+
 
 @frappe.whitelist(allow_guest=False)
 def get_user_details():
@@ -167,3 +169,23 @@ def update_user_image(**kwargs):
 	except Exception as e:
 		frappe.log_error(frappe.get_traceback(), "User Image Update Failed")
 		frappe.throw(f"Failed to update profile image: {e!s}")
+
+
+@frappe.whitelist()
+def get_logged_in_customer():
+	if not frappe.session.user or frappe.session.user == "Guest":
+		return {}
+
+	portal_user = frappe.get_all(
+		"Portal User",
+		filters={"user": frappe.session.user},
+		fields=["parent"],
+	)
+
+	if not portal_user:
+		return {}
+
+	customer = portal_user[0].parent
+	customer_details = get_customer_contact_details(customer)
+
+	return {"customer": customer, "contact": customer_details}

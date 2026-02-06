@@ -14,7 +14,7 @@
 						</label>
 						<input
 							id="full-name"
-							v-model="booking.draft.customer"
+							v-model="booking.draft.fullName"
 							:disabled="isLoggedIn"
 							class="w-full px-4 py-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary/50 focus:border-primary text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 outline-none transition-all disabled:bg-gray-50 disabled:cursor-not-allowed"
 							type="text"
@@ -215,7 +215,7 @@
 <script setup>
 import { useBookingStore } from "@/stores/bookingStore";
 import { formatCurrency } from "@/utils";
-import { computed, ref, watch } from "vue";
+import { computed } from "vue";
 
 const props = defineProps({
 	isLoggedIn: {

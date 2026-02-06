@@ -335,6 +335,32 @@ async function loadSlotsForDate(date) {
 	);
 }
 
+const customerResource = createResource({
+	url: "frappoint.frappoint.api.user.get_logged_in_customer",
+	method: "GET",
+	auto: false,
+});
+
+watch(
+	() => currentStep.value,
+	async (step) => {
+		if (step === 2 && auth.isLoggedIn) {
+			try {
+				const res = await customerResource.fetch();
+				if (res) {
+					booking.draft.customer = res.customer || "";
+					booking.draft.fullName = res.contact.contact_display || "";
+					booking.draft.email = res.contact.contact_email || "";
+					booking.draft.mobileNo = res.contact.contact_phone || "";
+				}
+			} catch (err) {
+				console.error("Failed to fetch customer info", err);
+			}
+		}
+	},
+	{ immediate: true }
+);
+
 // TODO: Check validate customer appointment for same date and time
 
 async function submitBooking() {
@@ -375,7 +401,7 @@ async function submitBooking() {
 		end_time: booking.draft.slot.end_time,
 		selected_slot_ids: JSON.stringify([booking.draft.slot.slot_ids]),
 		customer: booking.draft.customer,
-		full_name: booking.draft.customer,
+		full_name: booking.draft.fullName,
 		email: booking.draft.email,
 		mobile_no: booking.draft.mobileNo,
 		total_amount: booking.draft.price,

@@ -296,8 +296,7 @@ frappe.ui.form.on("Service Appointment", {
 	customer(frm) {
 		if (frm.doc.customer) {
 			frappe.call({
-				method: "get_customer_contact_details",
-				doc: frm.doc,
+				method: "frappoint.utils.get_customer_contact_details",
 				args: {
 					customer: frm.doc.customer,
 				},
