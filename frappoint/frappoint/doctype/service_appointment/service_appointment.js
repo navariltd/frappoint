@@ -246,18 +246,14 @@ frappe.ui.form.on("Service Appointment", {
 					if (r.message) {
 						let apt_type = r.message;
 
-						// Set duration
-						if (apt_type.default_duration_in_minutes) {
-							frm.set_value("duration", apt_type.default_duration_in_minutes);
-						}
-
 						// Handle price selection
 						if (apt_type.prices && apt_type.prices.length > 0) {
 							if (apt_type.prices.length === 1) {
 								// Only one price, auto-select
 								frm.set_value("appointment_price", apt_type.prices[0].price_name);
-								frm.set_value("total_amount", apt_type.prices[0].rate);
+								frm.set_value("total_amount", apt_type.prices[0].amount);
 								frm.set_value("currency", apt_type.prices[0].currency);
+								frm.set_value("duration", apt_type.prices[0].duration);
 							} else {
 								// Multiple prices, let user select
 								show_price_selector(frm, apt_type.prices);
@@ -666,8 +662,9 @@ function show_price_selector(frm, prices) {
 			}
 
 			frm.set_value("appointment_price", selected_price.price_name);
-			frm.set_value("total_amount", selected_price.rate);
+			frm.set_value("total_amount", selected_price.amount);
 			frm.set_value("currency", selected_price.currency);
+			frm.set_value("duration", selected_price.duration);
 			d.hide();
 		},
 	});
@@ -679,7 +676,7 @@ function show_price_selector(frm, prices) {
 		html += `
 			<div class="price-card" data-price='${JSON.stringify(price)}' onclick="selectPrice(this)">
 				<div class="price-name">${price.price_name}</div>
-				<div class="price-amount">${format_currency(price.rate, price.currency)}</div>
+				<div class="price-amount">${format_currency(price.amount, price.currency)}</div>
 				<div class="price-details">
 					<small class="text-muted">Price List: ${price.price_list}</small>
 				</div>

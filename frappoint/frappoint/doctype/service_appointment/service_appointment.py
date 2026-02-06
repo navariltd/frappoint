@@ -558,7 +558,11 @@ class ServiceAppointment(Document):
 
 	def set_duration_from_type(self):
 		"""Set duration from appointment type"""
-		duration = frappe.db.get_value("Service Type", self.appointment_type, "default_duration_in_minutes")
+		duration = frappe.db.get_value(
+			"Service Type Price",
+			{"parent": self.appointment_type, "price_name": self.appointment_price},
+			"duration",
+		)
 		if duration:
 			self.duration = duration
 
