@@ -88,7 +88,7 @@ class ServiceType(Document):
 			frappe.throw(_("At least one valid Price is required."), title=_("Missing Price."))
 		self._validate_no_duplicates(
 			items=self.prices,
-			fields_to_check=["price_list", "uom"],
+			fields_to_check=["price_list", "duration"],
 			error_title="Duplicate Price Lists",
 			item_label="price list",
 		)
