@@ -330,12 +330,13 @@ def service_type_requires_service_unit(service_type):
 
 
 @frappe.whitelist()
-def get_available_slots(appointment_type, provider=None, date=None, days_ahead=30):
+def get_available_slots(appointment_type, duration, provider=None, date=None, days_ahead=30):
 	"""
 	Get available slots for an appointment type
 
 	Args:
 		appointment_type: Name of the Appointment Type
+		duration: Duration of the appointment
 		provider: Optional - Filter by specific provider
 		date: Optional - Filter by specific date (YYYY-MM-DD)
 		days_ahead: Number of days to look ahead if no date specified
@@ -347,10 +348,10 @@ def get_available_slots(appointment_type, provider=None, date=None, days_ahead=3
 	apt_type = frappe.db.get_value(
 		"Service Type",
 		appointment_type,
-		["default_duration_in_minutes", "buffer_before", "buffer_after"],
+		["buffer_before", "buffer_after"],
 		as_dict=True,
 	)
-	duration = apt_type.default_duration_in_minutes
+	duration = int(duration)
 
 	# Check if service unit is required
 	requires_unit, required_unit_types = service_type_requires_service_unit(appointment_type)

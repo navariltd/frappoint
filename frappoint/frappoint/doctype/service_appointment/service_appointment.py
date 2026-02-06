@@ -1047,7 +1047,7 @@ class ServiceAppointment(Document):
 
 
 @frappe.whitelist()
-def get_appointment_slots(appointment_type, provider=None, date=None, days_ahead=30):
+def get_appointment_slots(appointment_type, duration, provider=None, date=None, days_ahead=30):
 	"""
 	Wrapper method for getting available slots
 	Can be called from frontend
@@ -1056,7 +1056,7 @@ def get_appointment_slots(appointment_type, provider=None, date=None, days_ahead
 		get_available_slots,
 	)
 
-	return get_available_slots(appointment_type, provider, date, days_ahead)
+	return get_available_slots(appointment_type, duration, provider, date, days_ahead)
 
 
 @frappe.whitelist()

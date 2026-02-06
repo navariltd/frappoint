@@ -386,6 +386,7 @@ function load_available_slots(frm) {
 			method: "frappoint.frappoint.doctype.service_appointment.service_appointment.get_appointment_slots",
 			args: {
 				appointment_type: frm.doc.appointment_type,
+				duration: frm.doc.duration,
 				provider: frm.doc.appointment_provider || null,
 				date: frm.doc.appointment_date || null,
 			},
