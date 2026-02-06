@@ -11,7 +11,7 @@ from frappe.core.doctype.sms_settings.sms_settings import send_sms
 from frappe.desk.calendar import get_event_conditions
 from frappe.desk.reportview import build_match_conditions
 from frappe.model.document import Document
-from frappe.utils import flt, get_datetime, get_link_to_form, get_time, getdate, now_datetime
+from frappe.utils import flt, get_datetime, get_link_to_form, get_time, getdate, now_datetime, today
 
 from ..service_provider_appointment_slot.service_provider_appointment_slot import (
 	check_provider_slot_capacity,
@@ -838,24 +838,40 @@ class ServiceAppointment(Document):
 	def create_sales_invoice(self):
 		"""Create Sales Invoice when appointment is completed"""
 		sales_invoice = self.get_linked_document("Sales Invoice")
-		sales_order = self.get_linked_document("Sales Order")
 
 		if sales_invoice:
 			self.show_already_exists_message("Sales Invoice", sales_invoice.name)
 			return
 
-		if not sales_order:
-			frappe.throw(
-				_("Sales Order must exist before creating invoice. Please confirm the appointment first.")
-			)
+		item_code = frappe.db.get_value("Service Type", self.appointment_type, "item")
+		rate, price_list = frappe.db.get_value(
+			"Service Type Price",
+			{"price_name": self.appointment_price, "parent": self.appointment_type},
+			["rate", "price_list"],
+		)
 
 		try:
-			# Create Sales Invoice from Sales Order
-			from erpnext.selling.doctype.sales_order.sales_order import make_sales_invoice
-
-			si = make_sales_invoice(sales_order, ignore_permissions=True)
-			si.service_appointment = self.name
-			si.allocate_advances_automatically = True
+			si = frappe.get_doc(
+				{
+					"doctype": "Sales Invoice",
+					"company": self.company,
+					"customer": self.customer,
+					"posting_date": today(),
+					"payment_due_date": today(),
+					"currency": self.currency,
+					"selling_price_list": price_list,
+					"items": [
+						{
+							"item_code": item_code,
+							"qty": self.actual_duration,
+							"rate": rate,
+						}
+					],
+					"service_appointment": self.name,
+					"allocate_advances_automatically": True,
+				}
+			)
+			si.insert(ignore_permissions=True)
 			si.submit()
 
 			self.show_success_message("Sales Invoice", si.name)
@@ -1115,12 +1131,12 @@ def cancel_old_appointment(old_appointment_name, new_appointment_name):
 	try:
 		old_appointment = frappe.get_doc("Service Appointment", old_appointment_name)
 
+		if old_appointment.status in ["Cancelled", "Closed", "Rescheduled"]:
+			return {"success": True, "message": _("Appointment is already cancelled or closed")}
+
 		# Validate that appointment can be cancelled
 		if old_appointment.docstatus != 1:
 			frappe.throw(_("Only submitted appointments can be cancelled"))
-
-		if old_appointment.status in ["Cancelled", "Closed"]:
-			return {"success": True, "message": _("Appointment is already cancelled or closed")}
 
 		# Add comment linking to new appointment
 		old_appointment.add_comment(
