@@ -69,7 +69,8 @@ class ServiceProviderServiceAssignmentTool(Document):
 
 	def check_if_latest(self):
 		"""Override to skip version checking for this tool."""
-		pass
+		if not hasattr(self, "_action"):
+			self._action = "save"
 
 	@frappe.whitelist()
 	def get_providers(self):
