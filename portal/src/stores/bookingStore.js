@@ -5,6 +5,7 @@ export const useBookingStore = defineStore("booking", {
 	state: () => ({
 		draft: {
 			serviceType: null,
+			duration: null,
 			date: null,
 			slot: null,
 			provider: null,
@@ -46,6 +47,10 @@ export const useBookingStore = defineStore("booking", {
 
 		setServiceType(serviceType) {
 			this.draft.serviceType = serviceType;
+		},
+
+		setDuration(duration) {
+			this.draft.duration = duration;
 		},
 
 		setDate(date) {

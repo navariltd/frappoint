@@ -7,13 +7,15 @@ from ..doctype.service_provider_appointment_slot.service_provider_appointment_sl
 
 
 @frappe.whitelist(allow_guest=True)
-def get_available_dates(service_type, provider=None, days_ahead=30):
+def get_available_dates(service_type, duration, provider=None, days_ahead=30):
 	"""
 	Get dates that have availability
 	Use case: Calendar view, date picker
 	"""
 
-	slots = get_available_slots(appointment_type=service_type, provider=provider, days_ahead=days_ahead)
+	slots = get_available_slots(
+		appointment_type=service_type, duration=duration, provider=provider, days_ahead=days_ahead
+	)
 
 	# Extract unique dates
 	available_dates = set()
@@ -25,14 +27,14 @@ def get_available_dates(service_type, provider=None, days_ahead=30):
 
 
 @frappe.whitelist(allow_guest=True)
-def get_available_time_slots(service_type, provider=None, date=None, days_ahead=30):
+def get_available_time_slots(service_type, duration, provider=None, date=None, days_ahead=30):
 	"""
 	Get available time slots
 	Use case: Main booking interface
 	"""
 
 	return get_available_slots(
-		appointment_type=service_type, provider=provider, date=date, days_ahead=days_ahead
+		appointment_type=service_type, duration=duration, provider=provider, date=date, days_ahead=days_ahead
 	)
 
 

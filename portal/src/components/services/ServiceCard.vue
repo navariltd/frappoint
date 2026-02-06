@@ -31,7 +31,7 @@
 				<div class="flex flex-col">
 					<span class="text-xs text-gray-400 font-medium mb-2">Price</span>
 					<span class="text-base font-bold text-gray-900">{{
-						formatCurrency(serviceType.price.rate, serviceType.price.currency)
+						formatCurrency(serviceType.price.amount, serviceType.price.currency)
 					}}</span>
 				</div>
 
@@ -73,7 +73,8 @@ function showBookingDialog() {
 	});
 	booking.setServiceType(props.serviceType.name);
 	booking.setPriceName(props.serviceType?.price.price_name);
-	booking.setPrice(props.serviceType.price?.rate);
+	booking.setPrice(props.serviceType.price?.amount);
 	booking.setCurrency(props.serviceType.price?.currency);
+	booking.setDuration(props.serviceType?.price.duration);
 }
 </script>

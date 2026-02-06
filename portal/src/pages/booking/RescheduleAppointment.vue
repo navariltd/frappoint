@@ -147,6 +147,7 @@ const reschedulingState = ref({
 	slot: null,
 	provider: null,
 	serviceType: null,
+	duration: null,
 });
 
 const appointment = createDocumentResource({
@@ -161,6 +162,7 @@ const getAvailableDates = createResource({
 	makeParams() {
 		return {
 			service_type: reschedulingState.value.serviceType,
+			duration: reschedulingState.value.duration,
 		};
 	},
 	auto: false,
@@ -175,6 +177,7 @@ watch(
 	async (doc) => {
 		if (doc?.appointment_type) {
 			reschedulingState.value.serviceType = doc.appointment_type;
+			reschedulingState.value.duration = doc.duration;
 			await getAvailableDates.fetch();
 		}
 	},
@@ -187,6 +190,7 @@ const getAvailableTimeSlots = createResource({
 	makeParams() {
 		return {
 			service_type: reschedulingState.value.serviceType,
+			duration: reschedulingState.value.duration,
 			date: reschedulingState.value.date,
 		};
 	},

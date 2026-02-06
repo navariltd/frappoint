@@ -296,6 +296,7 @@
   },
   {
    "fetch_from": "appointment_type.default_duration_in_minutes",
+   "fetch_if_empty": 1,
    "fieldname": "duration",
    "fieldtype": "Int",
    "label": "Duration",
@@ -419,7 +420,7 @@
    "link_fieldname": "reference_docname"
   }
  ],
- "modified": "2026-01-30 09:20:50.860257",
+ "modified": "2026-02-06 11:57:34.073912",
  "modified_by": "Administrator",
  "module": "Frappoint",
  "name": "Service Appointment",
@@ -459,7 +460,36 @@
  "search_fields": "customer, appointment_type,  appointment_provider, appointment_date",
  "sort_field": "modified",
  "sort_order": "DESC",
- "states": [],
+ "states": [
+  {
+   "color": "Cyan",
+   "title": "Open"
+  },
+  {
+   "color": "Blue",
+   "title": "Confirmed"
+  },
+  {
+   "color": "Orange",
+   "title": "Rescheduled"
+  },
+  {
+   "color": "Green",
+   "title": "Completed"
+  },
+  {
+   "color": "Red",
+   "title": "Cancelled"
+  },
+  {
+   "color": "Gray",
+   "title": "No Show"
+  },
+  {
+   "color": "Gray",
+   "title": "Closed"
+  }
+ ],
  "track_changes": 1,
  "track_seen": 1
 }

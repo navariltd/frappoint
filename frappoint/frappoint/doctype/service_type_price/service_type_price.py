@@ -14,7 +14,9 @@ class ServiceTypePrice(Document):
 	if TYPE_CHECKING:
 		from frappe.types import DF
 
+		amount: DF.Currency
 		currency: DF.Link | None
+		duration: DF.Int
 		parent: DF.Data
 		parentfield: DF.Data
 		parenttype: DF.Data

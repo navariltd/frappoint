@@ -147,6 +147,8 @@ frappe.ui.form.on("Service Type", {
 			}
 		});
 
+		frm.fields_dict.prices.grid.toggle_enable("uom", !use_erpnext_pricing);
+
 		frm.set_query("price_list", "prices", function () {
 			if (!use_erpnext_pricing) return {};
 			return {
@@ -240,6 +242,12 @@ frappe.ui.form.on("Service Type Price", {
 	prices_add(frm, cdt, cdn) {
 		frm.trigger("load_pricing_settings");
 
+		const row = locals[cdt][cdn];
+
+		if (!row.duration && frm.doc.default_duration_in_minutes) {
+			frappe.model.set_value(cdt, cdn, "duration", frm.doc.default_duration_in_minutes);
+		}
+
 		if (frm.doc.item) {
 			frappe.db.get_value("Item", frm.doc.item, "stock_uom").then((r) => {
 				if (r.message && r.message.stock_uom) {
@@ -263,5 +271,19 @@ frappe.ui.form.on("Service Type Price", {
 			});
 			frappe.model.set_value(cdt, cdn, "rate", 0);
 		}
+
+		calculate_amount(frm, cdt, cdn);
+	},
+
+	duration(frm, cdt, cdn) {
+		calculate_amount(frm, cdt, cdn);
 	},
 });
+
+function calculate_amount(frm, cdt, cdn) {
+	const row = locals[cdt][cdn];
+
+	if (row.rate && row.duration) {
+		frappe.model.set_value(cdt, cdn, "amount", flt(row.rate) * flt(row.duration));
+	}
+}
