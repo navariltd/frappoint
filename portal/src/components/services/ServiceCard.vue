@@ -31,10 +31,11 @@
 				<div class="flex flex-col">
 					<span class="text-xs text-gray-400 font-medium mb-2">Price</span>
 					<span class="text-base font-bold text-gray-900">{{
-						formatCurrency(serviceType.price.amount, serviceType.price.currency)
+						serviceType.price
+							? formatCurrency(serviceType.price.amount, serviceType.price.currency)
+							: "Contact for pricing"
 					}}</span>
 				</div>
-
 				<div
 					class="flex items-center justify-center gap-1 text-xs font-medium text-gray-500 bg-gray-100 px-2 py-1 rounded-md"
 				>
@@ -72,9 +73,9 @@ function showBookingDialog() {
 		params: { serviceType: props.serviceType.name },
 	});
 	booking.setServiceType(props.serviceType.name);
-	booking.setPriceName(props.serviceType?.price.price_name);
-	booking.setPrice(props.serviceType.price?.amount);
-	booking.setCurrency(props.serviceType.price?.currency);
-	booking.setDuration(props.serviceType?.price.duration);
+	booking.setPriceName(props.serviceType?.price?.price_name);
+	booking.setPrice(props.serviceType?.price?.amount);
+	booking.setCurrency(props.serviceType?.price?.currency);
+	booking.setDuration(props.serviceType?.price?.duration);
 }
 </script>
