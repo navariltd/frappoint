@@ -10,6 +10,7 @@ export const useBookingStore = defineStore("booking", {
 			slot: null,
 			provider: null,
 			customer: null,
+			fullName: null,
 			email: null,
 			mobileNo: null,
 			priceName: null,
@@ -33,6 +34,7 @@ export const useBookingStore = defineStore("booking", {
 				state.draft.date &&
 				state.draft.slot &&
 				state.draft.customer &&
+				state.draft.fullName &&
 				state.draft.mobileNo &&
 				state.draft.email &&
 				state.draft.priceName &&
@@ -75,6 +77,10 @@ export const useBookingStore = defineStore("booking", {
 
 		setCustomer(customer) {
 			this.draft.customer = customer;
+		},
+
+		setFullName(fullName) {
+			this.draft.fullName = fullName;
 		},
 
 		setMobileNo(mobileNo) {
