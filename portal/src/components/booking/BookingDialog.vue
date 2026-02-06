@@ -109,11 +109,17 @@
 				<div class="flex-1 flex flex-col lg:flex-row">
 					<SlotPicker
 						v-if="currentStep === 1"
+						:date="booking.draft.date"
+						:slot="booking.draft.slot"
+						:provider="booking.draft.provider"
 						:available-dates="availableDates"
 						:available-slots="availableSlots"
 						:can-proceed="canProceed"
 						:dates-loading="getAvailableDates.loading"
 						:slots-loading="getAvailableTimeSlots.loading"
+						@update:date="booking.setDate"
+						@update:slot="booking.setSlot"
+						@update:provider="booking.setProvider"
 						@continue="currentStep++"
 					/>
 

@@ -101,17 +101,6 @@ class ServiceAppointment(Document):
 		self.assign_service_unit_to_appointment()
 		self.validate_service_unit_requirement()
 
-		# Track if this is a reschedule
-		if not self.is_new():
-			old_doc = self.get_doc_before_save()
-			if old_doc:
-				self.check_for_reschedule(old_doc)
-
-				# Release old slots if slot selection has changed while in draft
-				if self.docstatus == 0 and old_doc.selected_slot_ids != self.selected_slot_ids:
-					if old_doc.selected_slot_ids:
-						self.release_slots()
-
 		if self.selected_slot_ids and self.appointment_provider and self.appointment_date and self.start_time:
 			# For new bookings or when slots have changed, book the new slots
 			if self.is_new() or not self._slots_already_booked():
@@ -124,7 +113,7 @@ class ServiceAppointment(Document):
 					self.book_selected_slots()
 
 	def on_submit(self):
-		"""Confirm appointment and create Sales Order"""
+		"""Confirm appointment"""
 		if not self.appointment_price:
 			frappe.throw("Please select a price for this appointment")
 
@@ -154,10 +143,6 @@ class ServiceAppointment(Document):
 
 		if self.has_value_changed("status"):
 			self.handle_status_change()
-
-		# Handle reschedule
-		if self.flags.get("is_rescheduled"):
-			self.handle_reschedule()
 
 	def on_trash(self):
 		"""Release slots when appointment is deleted and prevent deletion if billing exists"""
@@ -709,28 +694,11 @@ class ServiceAppointment(Document):
 
 		release_appointment_slots(self.name)
 
-	def check_for_reschedule(self, old_doc):
-		"""Check if appointment is being rescheduled"""
-		if old_doc.status not in ["Cancelled", "Completed", "Closed", "Open"] and (
-			str(old_doc.appointment_date) != str(self.appointment_date)
-			or str(old_doc.start_time) != str(self.start_time)
-			or old_doc.appointment_provider != self.appointment_provider
-		):
-			# Mark as rescheduled
-			if self.status not in ["Cancelled", "Closed"]:
-				self.flags.is_rescheduled = True
-				# if self.status != "Rescheduled":
-				# 	self.status = "Rescheduled"
-
-			# Release old slots
-			self.release_slots()
-
 	def handle_status_change(self):
 		"""Handle actions based on status change"""
 		status_handlers = {
-			"Confirmed": self.create_sales_order,
 			"Completed": lambda: (
-				# self.create_sales_invoice(),
+				self.create_sales_invoice(),
 				self.auto_issue_consumables(),
 				self.complete_linked_event(),
 			),
@@ -740,21 +708,6 @@ class ServiceAppointment(Document):
 		handler = status_handlers.get(self.status)
 		if handler:
 			handler()
-
-	def handle_reschedule(self):
-		"""Handle rescheduling of appointment"""
-		sales_order = self.get_linked_document("Sales Order")
-		if sales_order:
-			# Update the sales order with new date/time
-			self.update_sales_order()
-
-			frappe.msgprint(
-				_("Appointment rescheduled and Sales Order {0} updated").format(
-					get_link_to_form("Sales Order", sales_order)
-				),
-				indicator="orange",
-				alert=True,
-			)
 
 	def get_linked_document(self, doctype, fields=None):
 		"""Generic method to get linked document"""
@@ -776,7 +729,6 @@ class ServiceAppointment(Document):
 	def get_all_linked_documents(self):
 		"""Get all linked documents for checking before deletion"""
 		doctypes = {
-			"Sales Order": "sales_order",
 			"Sales Invoice": "sales_invoice",
 			"Stock Entry": "stock_entry",
 			"Material Request": "material_request",
@@ -871,60 +823,6 @@ class ServiceAppointment(Document):
 				message=f"Failed to cancel event {self.event}: {e}",
 			)
 
-	def create_sales_order(self):
-		"""Create Sales Order when appointment is confirmed"""
-		# TODO: work out appointment accounting logic
-		return
-
-		# sales_order = self.get_linked_document("Sales Order")
-
-		# if sales_order:
-		# 	self.show_already_exists_message("Sales Order", sales_order.name)
-		# 	return
-
-		# try:
-		# 	apt_type = frappe.get_doc("Service Type", self.appointment_type)
-
-		# 	so = frappe.get_doc(
-		# 		{
-		# 			"doctype": "Sales Order",
-		# 			"customer": self.customer,
-		# 			"company": self.company,
-		# 			"transaction_date": getdate(),
-		# 			"delivery_date": self.appointment_date,
-		# 			"order_type": "Sales",
-		# 			"service_appointment": self.name,
-		# 			"items": self.get_sales_order_items(apt_type),
-		# 		}
-		# 	)
-
-		# 	so.insert(ignore_permissions=True)
-		# 	so.submit()
-
-		# 	self.show_success_message("Sales Order", so.name)
-
-		# except Exception as e:
-		# 	self.log_and_throw_error("Sales Order", e)
-
-	def get_sales_order_items(self, apt_type):
-		"""Get items for sales order from appointment type"""
-		selected_price = self.get_selected_price(apt_type)
-
-		if not selected_price:
-			frappe.throw(_("No price found for this appointment type"))
-
-		return [
-			{
-				"item_code": apt_type.item,
-				"item_name": apt_type.item_name,
-				"qty": 1,
-				"uom": selected_price.uom,
-				"rate": selected_price.rate,
-				"delivery_date": self.appointment_date,
-				"description": self.get_appointment_description(),
-			}
-		]
-
 	def get_selected_price(self, apt_type):
 		"""Get the selected price from appointment type"""
 		if self.appointment_price:
@@ -936,100 +834,6 @@ class ServiceAppointment(Document):
 			return apt_type.prices[0]
 
 		return None
-
-	def get_appointment_description(self):
-		"""Generate description for sales order item"""
-		provider_name = frappe.db.get_value("Service Provider", self.appointment_provider, "provider_name")
-
-		# Use actual duration if appointment is completed, otherwise use scheduled duration
-		duration_to_display = self.actual_duration if self.actual_duration else self.duration
-		end_time_to_display = self.actual_end_time if self.actual_end_time else self.end_time
-
-		description = f"""
-		Service Type: {self.appointment_type}
-		Provider: {provider_name or self.appointment_provider}
-		Date: {frappe.format(self.appointment_date, {"fieldtype": "Date"})}
-		Time: {self.start_time} - {end_time_to_display}
-		Duration: {duration_to_display} minutes
-		"""
-		if self.actual_duration:
-			description += f"\nActual Duration: {self.actual_duration} minutes"
-		return description.strip()
-
-	def update_sales_order(self):
-		"""Update Sales Order when appointment is rescheduled"""
-
-		sales_order = self.get_linked_document("Sales Order")
-
-		if not sales_order:
-			return
-
-		try:
-			so = frappe.get_doc("Sales Order", sales_order)
-
-			# Check if sales order can be updated
-			if so.docstatus == 2:
-				frappe.throw(_("Cannot update cancelled Sales Order"))
-
-			if so.per_billed > 0:
-				frappe.msgprint(
-					_("Sales Order has been partially/fully billed. Cannot update automatically."),
-					indicator="orange",
-					alert=True,
-				)
-				return
-
-			# Cancel if submitted
-			if so.docstatus == 1:
-				so.cancel()
-
-			# Update delivery date and item description
-			so.delivery_date = self.appointment_date
-			for item in so.items:
-				if item.item_code == frappe.db.get_value("Service Type", self.appointment_type, "item"):
-					item.delivery_date = self.appointment_date
-					item.description = self.get_appointment_description()
-
-			# Save and resubmit
-			so.save(ignore_permissions=True)
-			so.submit()
-
-			frappe.msgprint(_("Sales Order updated successfully"), indicator="green", alert=True)
-
-		except Exception as e:
-			self.log_error("Update Sales Order", e)
-			frappe.msgprint(
-				_("Failed to update Sales Order: {0}").format(str(e)), indicator="red", alert=True
-			)
-
-	def cancel_sales_order(self):
-		"""Cancel Sales Order if exists"""
-		sales_order = self.get_linked_document("Sales Order")
-
-		if not sales_order:
-			return
-
-		try:
-			so = frappe.get_doc("Sales Order", sales_order)
-
-			if so.docstatus == 1:
-				if so.per_billed > 0:
-					frappe.msgprint(
-						_("Cannot cancel Sales Order {0} as it has been partially or fully billed").format(
-							get_link_to_form("Sales Order", so.name)
-						),
-						indicator="red",
-						alert=True,
-					)
-				else:
-					so.cancel()
-					frappe.msgprint(
-						_("Sales Order {0} cancelled").format(get_link_to_form("Sales Order", so.name)),
-						indicator="orange",
-						alert=True,
-					)
-		except Exception as e:
-			self.log_error("cancel Sales Order", e)
 
 	def create_sales_invoice(self):
 		"""Create Sales Invoice when appointment is completed"""
@@ -1066,7 +870,6 @@ class ServiceAppointment(Document):
 		self.db_set("cancellation_date", now_datetime())
 		self.cancel_linked_event()
 		self.release_slots()
-		self.cancel_sales_order()
 
 	def auto_issue_consumables(self):
 		"""Auto issue consumables if setting is enabled"""
@@ -1416,7 +1219,7 @@ def reschedule_appointment(
 				"currency": old_appointment.currency,
 				"details": old_appointment.details,
 				"notes": (old_appointment.notes or "") + f"\n\nRescheduled from: {old_appointment.name}",
-				"status": "Open",
+				"status": "Confirmed",
 				"source": old_appointment.source,
 				"add_video_conferencing": old_appointment.add_video_conferencing,
 				"rescheduled_from": old_appointment.name,
@@ -1447,6 +1250,7 @@ def reschedule_appointment(
 		old_appointment.flags.ignore_permissions = True
 		old_appointment.flags.ignore_links = True
 		old_appointment.cancel()
+		old_appointment.db_set("status", "Rescheduled")
 
 		frappe.db.commit()
 

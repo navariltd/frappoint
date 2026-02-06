@@ -65,9 +65,16 @@
 						class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden"
 					>
 						<SlotPicker
+							:date="reschedulingState.date"
+							:slot="reschedulingState.slot"
+							:provider="reschedulingState.provider"
 							:available-dates="availableDates"
 							:available-slots="availableSlots"
+							:dates-loading="getAvailableDates.loading"
 							:slots-loading="getAvailableTimeSlots.loading"
+							@update:date="handleDateChange"
+							@update:slot="(val) => (reschedulingState.slot = val)"
+							@update:provider="(val) => (reschedulingState.provider = val)"
 						/>
 					</div>
 				</div>
@@ -121,13 +128,11 @@
 <script setup>
 import { FeatherIcon, createDocumentResource, createResource, Alert } from "frappe-ui";
 import { useRoute, useRouter } from "vue-router";
-import { computed, watch, ref, onMounted, onUnmounted } from "vue";
-import { useBookingStore } from "@/stores/bookingStore";
+import { computed, watch, ref, nextTick } from "vue";
 import SlotPicker from "@/components/booking/steps/ChooseTime.vue";
 
 const route = useRoute();
 const router = useRouter();
-const booking = useBookingStore();
 
 const appointmentId = route.params.id;
 const rescheduling = ref(false);
@@ -137,24 +142,17 @@ const alert = ref({ show: false, message: "", variant: "success" });
 const availableDates = ref([]);
 const availableSlots = ref([]);
 
-onMounted(() => {
-	booking.setMode("rescheduling");
-});
-
-onUnmounted(() => {
-	booking.resetReschedule();
-	booking.setMode("booking");
+const reschedulingState = ref({
+	date: null,
+	slot: null,
+	provider: null,
+	serviceType: null,
 });
 
 const appointment = createDocumentResource({
 	doctype: "Service Appointment",
 	name: appointmentId,
 	auto: true,
-	async onSuccess(doc) {
-		booking.initializeForReschedule(doc.appointment_type);
-
-		await booking.hydrateServiceDetails();
-	},
 });
 
 const getAvailableDates = createResource({
@@ -162,25 +160,44 @@ const getAvailableDates = createResource({
 	method: "GET",
 	makeParams() {
 		return {
-			service_type: booking.activeDraft.serviceType,
+			service_type: reschedulingState.value.serviceType,
 		};
 	},
 	auto: false,
-	onSuccess(data) {
-		availableDates.value = data;
+	async onSuccess(data) {
+		availableDates.value = data || [];
+		await nextTick();
 	},
 });
+
+watch(
+	() => appointment.doc,
+	async (doc) => {
+		if (doc?.appointment_type) {
+			reschedulingState.value.serviceType = doc.appointment_type;
+			await getAvailableDates.fetch();
+		}
+	},
+	{ immediate: true }
+);
 
 const getAvailableTimeSlots = createResource({
 	url: "frappoint.frappoint.api.slot_availability.get_available_time_slots",
 	method: "GET",
 	makeParams() {
 		return {
-			service_type: booking.activeDraft.serviceType,
-			date: booking.activeDraft.date,
+			service_type: reschedulingState.value.serviceType,
+			date: reschedulingState.value.date,
 		};
 	},
 });
+
+watch(
+	() => reschedulingState.value.date,
+	(newDate) => {
+		if (newDate) loadSlotsForDate(newDate);
+	}
+);
 
 const serviceTypeResource = createResource({
 	url: "frappe.client.get",
@@ -197,27 +214,8 @@ const rescheduleResource = createResource({
 	url: "frappoint.frappoint.doctype.service_appointment.service_appointment.reschedule_appointment",
 });
 
-watch(
-	() => booking.activeDraft.serviceType,
-	async (serviceType) => {
-		if (serviceType) {
-			await getAvailableDates.fetch();
-		}
-	},
-	{ immediate: true }
-);
-
-watch(
-	() => booking.activeDraft.date,
-	async (date) => {
-		if (!date || !booking.activeDraft.serviceType) return;
-
-		loadSlotsForDate(date);
-	}
-);
-
 async function loadSlotsForDate(date) {
-	if (!date || !booking.activeDraft.serviceType) return;
+	if (!date || !reschedulingState.value.serviceType) return;
 
 	const response = await getAvailableTimeSlots.fetch();
 
@@ -236,19 +234,19 @@ async function loadSlotsForDate(date) {
 }
 
 const isValidSelection = computed(() => {
-	return booking.activeDraft.date && booking.activeDraft.slot;
+	return reschedulingState.value.date && reschedulingState.value.slot;
 });
 
 const newSelectionDisplay = computed(() => {
-	if (!booking.activeDraft.date || !booking.activeDraft.slot) return null;
+	if (!reschedulingState.value.date || !reschedulingState.value.slot) return null;
 
-	const date = new Date(booking.activeDraft.date);
+	const date = new Date(reschedulingState.value.date);
 	const dateStr = date.toLocaleDateString("en-US", {
 		weekday: "long",
 		month: "short",
 		day: "numeric",
 	});
-	const timeStr = formatTime(booking.activeDraft.slot.start_time);
+	const timeStr = formatTime(reschedulingState.value.slot.start_time);
 
 	return `${dateStr} at ${timeStr}`;
 });
@@ -273,6 +271,21 @@ function formatTime(timeStr) {
 	return `${displayHour}:${minutes} ${ampm}`;
 }
 
+function handleDateChange(newDate) {
+	if (!newDate) return;
+
+	let formattedDate = newDate;
+	if (newDate instanceof Date) {
+		// Correct for timezone offset to prevent the date jumping back by one day
+		const offset = newDate.getTimezoneOffset();
+		const correctedDate = new Date(newDate.getTime() - offset * 60 * 1000);
+		formattedDate = correctedDate.toISOString().split("T")[0];
+	}
+
+	reschedulingState.value.date = formattedDate;
+	reschedulingState.value.slot = null;
+}
+
 async function handleConfirmReschedule() {
 	if (!isValidSelection.value) return;
 
@@ -281,11 +294,11 @@ async function handleConfirmReschedule() {
 		// 1. Create new appointment via reschedule_appointment
 		const result = await rescheduleResource.submit({
 			appointment_name: appointmentId,
-			new_appointment_date: booking.activeDraft.date,
-			new_start_time: booking.activeDraft.slot.start_time,
-			new_end_time: booking.activeDraft.slot.end_time,
-			new_provider: booking.activeDraft.slot.provider,
-			new_slot_ids: JSON.stringify(booking.activeDraft.slot.slot_ids),
+			new_appointment_date: reschedulingState.value.date,
+			new_start_time: reschedulingState.value.slot.start_time,
+			new_end_time: reschedulingState.value.slot.end_time,
+			new_provider: reschedulingState.value.slot.provider,
+			new_slot_ids: JSON.stringify(reschedulingState.value.slot.slot_ids),
 		});
 
 		if (!result?.success) {

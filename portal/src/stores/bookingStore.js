@@ -20,24 +20,12 @@ export const useBookingStore = defineStore("booking", {
 			source: "Portal",
 		},
 
-		rescheduleDraft: {
-			serviceType: null,
-			date: null,
-			slot: null,
-			provider: null,
-		},
-
 		currentStep: 1,
 		attemptedCheckout: false,
 		isResetting: false,
-		mode: "booking",
 	}),
 
 	getters: {
-		activeDraft: (state) => {
-			return state.mode === "rescheduling" ? state.rescheduleDraft : state.draft;
-		},
-
 		isComplete: (state) =>
 			!!(
 				state.draft.serviceType &&
@@ -49,9 +37,6 @@ export const useBookingStore = defineStore("booking", {
 				state.draft.priceName &&
 				state.draft.price
 			),
-
-		isRescheduleComplete: (state) =>
-			!!(state.draft.serviceType && state.draft.date && state.draft.slot),
 	},
 
 	actions: {
@@ -60,11 +45,7 @@ export const useBookingStore = defineStore("booking", {
 		},
 
 		setServiceType(serviceType) {
-			if (this.mode === "rescheduling") {
-				this.rescheduleDraft.serviceType = serviceType;
-			} else {
-				this.draft.serviceType = serviceType;
-			}
+			this.draft.serviceType = serviceType;
 		},
 
 		setDate(date) {
@@ -77,26 +58,14 @@ export const useBookingStore = defineStore("booking", {
 				formattedDate = `${year}-${month}-${day}`;
 			}
 
-			if (this.mode === "rescheduling") {
-				this.rescheduleDraft.date = formattedDate;
-			} else {
-				this.draft.date = formattedDate;
-			}
+			this.draft.date = formattedDate;
 		},
 		setSlot(slot) {
-			if (this.mode === "rescheduling") {
-				this.rescheduleDraft.slot = slot;
-			} else {
-				this.draft.slot = slot;
-			}
+			this.draft.slot = slot;
 		},
 
 		setProvider(provider) {
-			if (this.mode === "rescheduling") {
-				this.rescheduleDraft.provider = provider;
-			} else {
-				this.draft.provider = provider;
-			}
+			this.draft.provider = provider;
 		},
 
 		setCustomer(customer) {
@@ -132,15 +101,9 @@ export const useBookingStore = defineStore("booking", {
 		},
 
 		async hydrateServiceDetails() {
-			const serviceType =
-				this.mode === "rescheduling"
-					? this.rescheduleDraft.serviceType
-					: this.draft.serviceType;
-
-			if (!serviceType) return;
-
 			const resource = createResource({
 				url: "frappoint.frappoint.api.service_type.get_service_type_details",
+				method: "GET",
 				makeParams: () => ({
 					service_type: this.draft.serviceType,
 				}),
@@ -148,15 +111,10 @@ export const useBookingStore = defineStore("booking", {
 
 			const service = await resource.fetch();
 
-			if (this.mode === "booking") {
-				this.draft.paymentGateways = service.payment_gateways || [];
+			this.draft.paymentGateways = service.payment_gateways || [];
 
-				if (
-					!this.draft.selectedPaymentGateway &&
-					this.draft.paymentGateways.length === 1
-				) {
-					this.draft.selectedPaymentGateway = this.draft.paymentGateways[0];
-				}
+			if (!this.draft.selectedPaymentGateway && this.draft.paymentGateways.length === 1) {
+				this.draft.selectedPaymentGateway = this.draft.paymentGateways[0];
 			}
 		},
 
@@ -193,15 +151,6 @@ export const useBookingStore = defineStore("booking", {
 				source: "Portal",
 			};
 			this.mode = "booking";
-		},
-
-		resetReschedule() {
-			this.rescheduleDraft = {
-				serviceType: null,
-				date: null,
-				slot: null,
-				provider: null,
-			};
 		},
 
 		// Save to localStorage to persist even on refresh
