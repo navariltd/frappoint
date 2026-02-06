@@ -168,6 +168,7 @@ watch(
 			booking.setPriceName(first.price_name);
 			booking.setPrice(first.amount);
 			booking.setCurrency(first.currency);
+			booking.setDuration(first.duration);
 		}
 	},
 	{ immediate: true }
@@ -177,5 +178,6 @@ const setSelectedPrice = (price) => {
 	booking.setPriceName(price.price_name);
 	booking.setPrice(price.amount);
 	booking.setCurrency(price.currency);
+	booking.setDuration(price.duration);
 };
 </script>
