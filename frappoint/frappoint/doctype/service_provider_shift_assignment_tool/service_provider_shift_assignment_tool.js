@@ -25,11 +25,11 @@ frappe.ui.form.on("Service Provider Shift Assignment Tool", {
 	},
 
 	company(frm) {
-		frm.clear_table("providers");
-		frm.refresh_field("providers");
+		frm.clear_table("service_providers");
+		frm.refresh_field("service_providers");
 	},
 
-	provider_shift_type(frm) {
+	service_provider_shift_type(frm) {
 		frm.trigger("add_fetch_providers_button");
 	},
 
@@ -79,22 +79,17 @@ frappe.ui.form.on("Service Provider Shift Assignment Tool", {
 
 	populate_providers_table(frm, providers) {
 		// Clear existing rows
-		frm.clear_table("providers");
+		frm.clear_table("service_providers");
 
 		// Add fetched providers to the table
 		providers.forEach((provider) => {
-			let row = frm.add_child("providers");
+			let row = frm.add_child("service_providers");
 			row.service_provider = provider.service_provider;
 			row.service_provider_name = provider.provider_name;
 			row.service_unit = provider.service_unit;
 		});
 
-		frm.refresh_field("providers");
-
-		frappe.show_alert({
-			message: __("{0} provider(s) added to the table", [providers.length]),
-			indicator: "green",
-		});
+		frm.refresh_field("service_providers");
 	},
 
 	set_primary_action(frm) {
@@ -112,7 +107,7 @@ frappe.ui.form.on("Service Provider Shift Assignment Tool", {
 			return;
 		}
 
-		if (!frm.doc.provider_shift_type) {
+		if (!frm.doc.service_provider_shift_type) {
 			frappe.msgprint(__("Please select a Service Provider Shift Type"));
 			return;
 		}
@@ -127,18 +122,18 @@ frappe.ui.form.on("Service Provider Shift Assignment Tool", {
 			return;
 		}
 
-		if (!frm.doc.providers || frm.doc.providers.length === 0) {
+		if (!frm.doc.service_providers || frm.doc.service_providers.length === 0) {
 			frappe.msgprint(__("Please add at least one Service Provider to the table"));
 			return;
 		}
 
-		const provider_names = frm.doc.providers.map((p) => p.service_provider).join(", ");
+		const provider_names = frm.doc.service_providers.map((p) => p.service_provider).join(", ");
 
 		// Show confirmation dialog
 		frappe.confirm(
 			__("Assign <b>{0}</b> status to {1} Service Provider(s)?", [
 				frm.doc.status,
-				frm.doc.providers.length,
+				frm.doc.service_providers.length,
 			]),
 			() => {
 				frm.events.call_bulk_assign(frm);
@@ -197,8 +192,8 @@ frappe.ui.form.on("Service Provider Shift Assignment Tool", {
 
 		// Clear the table after successful assignment
 		if (success_count > 0) {
-			frm.clear_table("providers");
-			frm.refresh_field("providers");
+			frm.clear_table("service_providers");
+			frm.refresh_field("service_providers");
 		}
 	},
 });
