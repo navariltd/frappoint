@@ -1,5 +1,6 @@
 {
  "actions": [],
+ "allow_import": 1,
  "allow_rename": 1,
  "autoname": "field:unit_name",
  "creation": "2025-10-20 07:02:16.700507",
@@ -153,7 +154,7 @@
  "index_web_pages_for_search": 1,
  "is_tree": 1,
  "links": [],
- "modified": "2026-01-26 06:49:16.932230",
+ "modified": "2026-02-10 15:20:58.659981",
  "modified_by": "Administrator",
  "module": "Frappoint",
  "name": "Service Unit",
