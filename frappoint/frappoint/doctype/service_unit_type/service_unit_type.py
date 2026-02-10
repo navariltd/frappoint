@@ -15,12 +15,7 @@ class ServiceUnitType(Document):
 		from frappe.types import DF
 
 		allow_appointments: DF.Check
-		allow_overlap: DF.Check
 		company: DF.Link
 		disabled: DF.Check
-		is_billable: DF.Check
-		item_code: DF.Link | None
-		rate__uom: DF.Float
-		uom: DF.Link | None
 	# end: auto-generated types
 	pass

@@ -1,5 +1,6 @@
 {
  "actions": [],
+ "allow_import": 1,
  "allow_rename": 1,
  "autoname": "format:FA-PROV-{#####}",
  "creation": "2025-10-20 06:58:24.065580",
@@ -220,7 +221,7 @@
    "link_fieldname": "appointment_provider"
   }
  ],
- "modified": "2026-01-27 17:12:22.653119",
+ "modified": "2026-02-10 15:20:33.734269",
  "modified_by": "Administrator",
  "module": "Frappoint",
  "name": "Service Provider",

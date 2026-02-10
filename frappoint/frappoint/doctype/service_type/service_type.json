@@ -1,5 +1,6 @@
 {
  "actions": [],
+ "allow_import": 1,
  "allow_rename": 1,
  "autoname": "field:appointment_type",
  "creation": "2025-10-20 06:40:51.355292",
@@ -219,7 +220,7 @@
    "link_fieldname": "appointment_type"
   }
  ],
- "modified": "2026-01-26 07:24:31.701389",
+ "modified": "2026-02-10 14:57:08.849948",
  "modified_by": "Administrator",
  "module": "Frappoint",
  "name": "Service Type",
