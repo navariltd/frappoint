@@ -1,30 +1,29 @@
 {
  "actions": [],
- "allow_copy": 1,
  "allow_rename": 1,
- "creation": "2026-01-27 11:59:36.599351",
+ "creation": "2026-02-10 12:00:04.935713",
  "doctype": "DocType",
  "engine": "InnoDB",
  "field_order": [
   "action",
-  "column_break_ygwc",
+  "column_break_lkvg",
   "company",
-  "provider_shift_assignment_details_section",
-  "provider_shift_type",
+  "shift_assignment_details_section",
+  "service_provider_shift_type",
   "status",
   "service_unit_type",
   "service_unit",
-  "column_break_acwe",
+  "column_break_yxgu",
   "start_date",
   "end_date",
   "quick_filters_section",
   "branch",
   "department",
-  "column_break_ddmh",
+  "column_break_ddtf",
   "grade",
   "designation",
-  "section_break_nnpu",
-  "providers"
+  "section_break_nocn",
+  "service_providers"
  ],
  "fields": [
   {
@@ -37,27 +36,26 @@
    "reqd": 1
   },
   {
-   "fieldname": "column_break_ygwc",
+   "fieldname": "column_break_lkvg",
    "fieldtype": "Column Break"
   },
   {
    "fieldname": "company",
    "fieldtype": "Link",
-   "in_list_view": 1,
    "label": "Company",
    "options": "Company",
    "reqd": 1
   },
   {
    "depends_on": "eval: doc.action === 'Assign Shift'",
-   "fieldname": "provider_shift_assignment_details_section",
+   "fieldname": "shift_assignment_details_section",
    "fieldtype": "Section Break",
-   "label": "Provider Shift Assignment Details"
+   "label": "Shift Assignment Details"
   },
   {
-   "fieldname": "provider_shift_type",
+   "fieldname": "service_provider_shift_type",
    "fieldtype": "Link",
-   "label": "Provider Shift Type",
+   "label": "Service Provider Shift Type",
    "options": "Service Provider Shift Type"
   },
   {
@@ -68,54 +66,19 @@
    "options": "Active\nInactive"
   },
   {
-   "fieldname": "column_break_acwe",
+   "fieldname": "column_break_yxgu",
    "fieldtype": "Column Break"
   },
   {
    "fieldname": "start_date",
    "fieldtype": "Date",
    "label": "Start Date",
-   "mandatory_depends_on": "eval:doc.action === \"Assign Shift\""
+   "mandatory_depends_on": "eval: doc.action === \"Assign Shift\""
   },
   {
    "fieldname": "end_date",
    "fieldtype": "Date",
    "label": "End Date"
-  },
-  {
-   "collapsible": 1,
-   "depends_on": "eval: doc.provider_shift_type",
-   "fieldname": "quick_filters_section",
-   "fieldtype": "Section Break",
-   "label": "Quick Filters"
-  },
-  {
-   "fieldname": "branch",
-   "fieldtype": "Link",
-   "label": "Branch",
-   "options": "Designation"
-  },
-  {
-   "fieldname": "department",
-   "fieldtype": "Link",
-   "label": "Department",
-   "options": "Department"
-  },
-  {
-   "fieldname": "column_break_ddmh",
-   "fieldtype": "Column Break"
-  },
-  {
-   "fieldname": "grade",
-   "fieldtype": "Link",
-   "label": "Grade",
-   "options": "Employee Grade"
-  },
-  {
-   "fieldname": "designation",
-   "fieldtype": "Link",
-   "label": "Designation",
-   "options": "Designation"
   },
   {
    "fieldname": "service_unit_type",
@@ -131,15 +94,49 @@
    "options": "Service Unit"
   },
   {
-   "depends_on": "eval: doc.provider_shift_type",
-   "fieldname": "providers",
+   "collapsible": 1,
+   "depends_on": "eval: doc.service_provider_shift_type",
+   "fieldname": "quick_filters_section",
+   "fieldtype": "Section Break",
+   "label": "Quick Filters"
+  },
+  {
+   "fieldname": "branch",
+   "fieldtype": "Link",
+   "label": "Branch",
+   "options": "Branch"
+  },
+  {
+   "fieldname": "department",
+   "fieldtype": "Link",
+   "label": "Department",
+   "options": "Department"
+  },
+  {
+   "fieldname": "column_break_ddtf",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "designation",
+   "fieldtype": "Link",
+   "label": "Designation",
+   "options": "Designation"
+  },
+  {
+   "fieldname": "section_break_nocn",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "service_providers",
    "fieldtype": "Table",
-   "label": "Providers",
+   "label": "Service Providers",
    "options": "Service Provider Shift Assignment Tool Detail"
   },
   {
-   "fieldname": "section_break_nnpu",
-   "fieldtype": "Section Break"
+   "fieldname": "grade",
+   "fieldtype": "Link",
+   "label": "Grade",
+   "options": "Employee Grade"
   }
  ],
  "grid_page_length": 50,
@@ -148,7 +145,7 @@
  "is_virtual": 1,
  "issingle": 1,
  "links": [],
- "modified": "2026-01-27 21:34:21.654205",
+ "modified": "2026-02-10 13:18:02.706146",
  "modified_by": "Administrator",
  "module": "Frappoint",
  "name": "Service Provider Shift Assignment Tool",

@@ -40,14 +40,14 @@ class ServiceProviderServiceAssignmentTool(Document):
 
 	_table_fieldnames: ClassVar[list] = []
 
+	def save(self):
+		pass
+
 	def db_insert(self, *args, **kwargs):
 		pass
 
 	def load_from_db(self):
-		"""Override to prevent database loading for this tool."""
-		self.name = "Service Provider Service Assignment Tool"
-		self._original_modified = frappe.utils.now()
-		self.modified = self._original_modified
+		pass
 
 	def db_update(self):
 		pass

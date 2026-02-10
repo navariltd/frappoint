@@ -30,8 +30,8 @@ class ServiceProviderShiftAssignmentTool(Document):
 		designation: DF.Link | None
 		end_date: DF.Date | None
 		grade: DF.Link | None
-		provider_shift_type: DF.Link | None
-		providers: DF.Table[ServiceProviderShiftAssignmentToolDetail]
+		service_provider_shift_type: DF.Link | None
+		service_providers: DF.Table[ServiceProviderShiftAssignmentToolDetail]
 		service_unit: DF.Link | None
 		service_unit_type: DF.Link | None
 		start_date: DF.Date | None
@@ -40,15 +40,14 @@ class ServiceProviderShiftAssignmentTool(Document):
 
 	_table_fieldnames: ClassVar[list] = []
 
+	def save(self):
+		pass
+
 	def db_insert(self, *args, **kwargs):
 		pass
 
 	def load_from_db(self):
-		"""Override to prevent database loading for this tool."""
-		# Set required attributes for a single doctype
-		self.name = "Service Provider Shift Assignment Tool"
-		self._original_modified = frappe.utils.now()
-		self.modified = self._original_modified
+		pass
 
 	def db_update(self):
 		pass
@@ -106,12 +105,12 @@ class ServiceProviderShiftAssignmentTool(Document):
 		).where(ServiceProvider.active == 1)
 
 		# Exclude providers with existing active shift assignments for the date range
-		if self.status == "Active" and self.provider_shift_type and self.start_date:
+		if self.status == "Active" and self.service_provider_shift_type and self.start_date:
 			active_shift_subquery = (
 				frappe.qb.from_(ShiftAssignment)
 				.select(ShiftAssignment.provider)
 				.where(
-					(ShiftAssignment.shift_type == self.provider_shift_type)
+					(ShiftAssignment.shift_type == self.service_provider_shift_type)
 					& (ShiftAssignment.status == "Active")
 					& (ShiftAssignment.docstatus == 1)
 					& ((ShiftAssignment.end_date >= self.start_date) | (ShiftAssignment.end_date.isnull()))
@@ -138,10 +137,10 @@ class ServiceProviderShiftAssignmentTool(Document):
 		If status is 'Active': Create new Service Provider Shift Assignments
 		If status is 'Inactive': Deactivate existing Service Provider Shift Assignments
 		"""
-		if not self.providers:
+		if not self.service_providers:
 			frappe.throw(_("Please select at least one Service Provider to assign shifts."))
 
-		if not self.provider_shift_type:
+		if not self.service_provider_shift_type:
 			frappe.throw(_("Please select a Service Provider Shift Type."))
 
 		if not self.start_date:
@@ -152,7 +151,7 @@ class ServiceProviderShiftAssignmentTool(Document):
 
 		success, failure = [], []
 
-		for row in self.providers:
+		for row in self.service_providers:
 			try:
 				frappe.db.savepoint("before_shift_assignment")
 
@@ -161,7 +160,7 @@ class ServiceProviderShiftAssignmentTool(Document):
 					assignment = self._create_shift_assignment(
 						row.service_provider,
 						self.company,
-						self.provider_shift_type,
+						self.service_provider_shift_type,
 						self.start_date,
 						self.end_date,
 						self.status,
@@ -177,7 +176,7 @@ class ServiceProviderShiftAssignmentTool(Document):
 					# Deactivate existing shift assignments
 					self._deactivate_shift_assignment(
 						row.service_provider,
-						self.provider_shift_type,
+						self.service_provider_shift_type,
 						self.start_date,
 						self.end_date,
 					)
@@ -224,7 +223,7 @@ class ServiceProviderShiftAssignmentTool(Document):
 		self,
 		service_provider: str,
 		company: str,
-		provider_shift_type: str,
+		service_provider_shift_type: str,
 		start_date: str,
 		end_date: str | None,
 		status: str,
@@ -234,7 +233,7 @@ class ServiceProviderShiftAssignmentTool(Document):
 		assignment = frappe.new_doc("Service Provider Shift Assignment")
 		assignment.provider = service_provider
 		assignment.company = company
-		assignment.shift_type = provider_shift_type
+		assignment.shift_type = service_provider_shift_type
 		assignment.start_date = start_date
 		assignment.end_date = end_date
 		assignment.status = status
@@ -247,14 +246,14 @@ class ServiceProviderShiftAssignmentTool(Document):
 	def _deactivate_shift_assignment(
 		self,
 		service_provider: str,
-		provider_shift_type: str,
+		service_provider_shift_type: str,
 		start_date: str,
 		end_date: str | None,
 	):
 		"""Deactivate existing shift assignments for the provider."""
 		filters = {
 			"provider": service_provider,
-			"shift_type": provider_shift_type,
+			"shift_type": service_provider_shift_type,
 			"status": "Active",
 			"docstatus": 1,
 		}
