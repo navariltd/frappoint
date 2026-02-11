@@ -88,6 +88,7 @@ class ServiceAppointment(Document):
 
 	def validate(self):
 		self.validate_appointment_date_and_times()
+		self.validate_guest_requirements()
 		self.validate_overlaps()
 		self.validate_customer_overlap()
 		self.validate_appointment_capacity()
@@ -478,34 +479,99 @@ class ServiceAppointment(Document):
 		if not self.appointment_type or not self.appointment_price:
 			frappe.throw("Service Type and Service Price are required to validate the price.")
 
-		amount, currency = self._get_price_currency()
+		self.validate_guest_requirements()
 
-		if not self.total_amount:
-			self.total_amount = amount
+		price_record = self.get_selected_price_record()
+
+		if not price_record:
+			frappe.throw(
+				f"No matching price found for '{self.appointment_price}' in service '{self.appointment_type}'"
+			)
+
+		grand_total = self.calculate_total_with_guests(price_record)
+		currency = price_record.currency
+
+		if not self.total_amount or self.total_amount != grand_total:
+			self.total_amount = grand_total
+			self.grand_total = grand_total
 			self.currency = currency
 
 		if self.currency != currency:
 			self.currency = currency
 
-	def _get_price_currency(self):
-		"""Return the amount and currency, given service_type and appointment_price_name"""
-
+	def validate_guest_requirements(self):
+		"""Validate guest count against service type requirements"""
 		if not self.appointment_type:
-			frappe.throw("Service Type is required before setting price")
+			return
+
+		service_type = frappe.get_doc("Service Type", self.appointment_type, ignore_permissions=True)
+
+		guest_count = len(self.guests) if self.guests else 1
+		self.total_guests = guest_count
+
+		if service_type.min_guests and guest_count < service_type.min_guests:
+			frappe.throw(
+				title=_("Minimum Guests Required"),
+				msg=_("This service requires a minimum of {0} guests. You have {1}.").format(
+					service_type.min_guests, guest_count
+				),
+			)
+
+		if service_type.max_guests and guest_count > service_type.max_guests:
+			frappe.throw(
+				title=_("Maximum Guests Exceeded"),
+				msg=_("This service allows a maximum of {0} guests. You have {1}.").format(
+					service_type.max_guests, guest_count
+				),
+			)
+
+	def get_selected_price_record(self):
+		"""Return the price, given service_type and appointment_price_name"""
+
+		if not self.appointment_type or not self.appointment_price:
+			return None
 
 		prices = frappe.get_all(
 			"Service Type Price",
 			filters={"parent": self.appointment_type, "price_name": self.appointment_price},
-			fields=["amount", "currency"],
+			fields=["name", "price_name", "amount", "currency", "pricing_model", "guest_count"],
 		)
 
 		if not prices:
-			frappe.throw(
-				f"No matching price found for '{self.appointment_price}' in service '{self.appointment_type}'"
-			)
+			return None
 
-		price_info = prices[0]
-		return price_info["amount"], price_info["currency"]
+		guest_count = self.total_guests or 1
+
+		for price in prices:
+			pricing_model = price.pricing_model
+
+			if pricing_model == "Guest Tier":
+				if price.guest_count and price.guest_count <= guest_count:
+					return price
+
+			else:
+				return price
+
+		return prices[0] if prices else None
+
+	def calculate_total_with_guests(self, price_record):
+		"""Calculate total amount based on pricing model and guest count"""
+		if not price_record:
+			return 0
+
+		base_amount = flt(price_record.amount)
+		pricing_model = price_record.pricing_model
+		guest_count = self.total_guests or 1
+
+		if pricing_model == "Per Guest":
+			return flt(base_amount) * guest_count
+
+		elif pricing_model == "Guest Tier":
+			return base_amount
+
+		else:
+			# Per Booking: Flat rate regardless of guests
+			return flt(base_amount)
 
 	def set_duration_from_type(self):
 		"""Set duration from appointment type"""
