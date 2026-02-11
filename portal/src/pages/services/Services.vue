@@ -99,6 +99,78 @@
 			</div>
 		</div>
 
+		<!-- Pagination Controls -->
+		<div
+			v-if="!serviceTypesResource.loading && pagination && pagination.total_pages > 1"
+			class="mt-8 flex flex-col sm:flex-row items-center justify-between gap-4 border-t border-gray-200 pt-6"
+		>
+			<!-- Page info -->
+			<p class="text-sm text-gray-600">
+				Showing
+				<span class="font-medium">{{
+					(pagination.page - 1) * pagination.page_size + 1
+				}}</span>
+				to
+				<span class="font-medium">{{
+					Math.min(pagination.page * pagination.page_size, pagination.total_count)
+				}}</span>
+				of
+				<span class="font-medium">{{ pagination.total_count }}</span>
+				services
+			</p>
+
+			<!-- Pagination buttons -->
+			<div class="flex items-center gap-2">
+				<button
+					@click="previousPage"
+					:disabled="!pagination.has_previous"
+					:class="[
+						pagination.has_previous
+							? 'bg-white text-gray-700 hover:bg-gray-50'
+							: 'bg-gray-100 text-gray-400 cursor-not-allowed',
+						'px-4 py-2 rounded-lg border border-gray-300 text-sm font-medium transition-colors flex items-center gap-2',
+					]"
+				>
+					<FeatherIcon class="h-4" name="chevron-left" />
+					<span class="hidden sm:inline">Previous</span>
+				</button>
+
+				<!-- Page numbers -->
+				<div class="flex items-center gap-1">
+					<button
+						v-for="page in getPageNumbers()"
+						:key="page"
+						@click="page !== '...' && goToPage(page)"
+						:class="[
+							page === currentPage
+								? 'bg-primary text-white'
+								: page === '...'
+								? 'cursor-default text-gray-400'
+								: 'bg-white text-gray-700 hover:bg-gray-50',
+							'px-3 py-2 rounded-lg border border-gray-300 text-sm font-medium transition-colors min-w-[40px]',
+						]"
+						:disabled="page === '...'"
+					>
+						{{ page }}
+					</button>
+				</div>
+
+				<button
+					@click="nextPage"
+					:disabled="!pagination.has_next"
+					:class="[
+						pagination.has_next
+							? 'bg-white text-gray-700 hover:bg-gray-50'
+							: 'bg-gray-100 text-gray-400 cursor-not-allowed',
+						'px-4 py-2 rounded-lg border border-gray-300 text-sm font-medium transition-colors flex items-center gap-2',
+					]"
+				>
+					<span class="hidden sm:inline">Next</span>
+					<FeatherIcon class="h-4" name="chevron-right" />
+				</button>
+			</div>
+		</div>
+
 		<ErrorMessage
 			v-if="serviceTypesResource.error"
 			:message="serviceTypesResource.error"
@@ -117,6 +189,8 @@ const searchQuery = ref("");
 const selectedCategory = ref(null);
 const debouncedSearchQuery = ref("");
 const allCategories = ref([]); // Store categories from initial load
+const currentPage = ref(1);
+const pageSize = 12;
 let debounceTimer = null;
 
 // Client-side debouncing for search input
@@ -127,6 +201,7 @@ watch(searchQuery, (newValue) => {
 
 	debounceTimer = setTimeout(() => {
 		debouncedSearchQuery.value = newValue;
+		currentPage.value = 1; // Reset to first page on search
 	}, 500); // 500ms debounce delay
 });
 
@@ -135,7 +210,10 @@ const serviceTypesResource = createResource({
 	method: "GET",
 	auto: true,
 	makeParams() {
-		const params = {};
+		const params = {
+			page: currentPage.value,
+			page_size: pageSize,
+		};
 
 		// Only add search_term if it has a value
 		if (debouncedSearchQuery.value && debouncedSearchQuery.value.trim()) {
@@ -149,26 +227,40 @@ const serviceTypesResource = createResource({
 
 		return params;
 	},
-	onSuccess(data) {
+	onSuccess(response) {
 		// Extract and store categories only from initial unfiltered load
-		if (!debouncedSearchQuery.value && !selectedCategory.value && data) {
+		if (!debouncedSearchQuery.value && !selectedCategory.value && response?.data) {
 			const uniqueCategories = [
-				...new Set(data.map((service) => service.item_group).filter((group) => group)),
+				...new Set(
+					response.data.map((service) => service.item_group).filter((group) => group)
+				),
 			];
 			allCategories.value = uniqueCategories.sort();
 		}
 	},
 });
 
-watch([debouncedSearchQuery, selectedCategory], () => {
+// Watch for changes and reload data, reset to page 1 when filters change
+watch(selectedCategory, () => {
+	currentPage.value = 1;
+});
+
+watch([debouncedSearchQuery, selectedCategory, currentPage], () => {
 	serviceTypesResource.reload();
 });
 
 const serviceTypes = computed(() => {
-	if (serviceTypesResource.data) {
-		return serviceTypesResource.data;
+	if (serviceTypesResource.data?.data) {
+		return serviceTypesResource.data.data;
 	}
 	return [];
+});
+
+const pagination = computed(() => {
+	if (serviceTypesResource.data?.pagination) {
+		return serviceTypesResource.data.pagination;
+	}
+	return null;
 });
 
 // Use the stored categories (from initial load)
@@ -177,5 +269,69 @@ const categories = computed(() => allCategories.value);
 function clearFilters() {
 	searchQuery.value = "";
 	selectedCategory.value = null;
+	currentPage.value = 1;
+}
+
+function goToPage(page) {
+	currentPage.value = page;
+	window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+function nextPage() {
+	if (pagination.value?.has_next) {
+		currentPage.value++;
+		window.scrollTo({ top: 0, behavior: "smooth" });
+	}
+}
+
+function previousPage() {
+	if (pagination.value?.has_previous) {
+		currentPage.value--;
+		window.scrollTo({ top: 0, behavior: "smooth" });
+	}
+}
+
+function getPageNumbers() {
+	if (!pagination.value) return [];
+
+	const total = pagination.value.total_pages;
+	const current = pagination.value.page;
+	const pages = [];
+
+	// Always show first page
+	pages.push(1);
+
+	if (total <= 7) {
+		// Show all pages if total is 7 or less
+		for (let i = 2; i <= total; i++) {
+			pages.push(i);
+		}
+	} else {
+		// Show smart pagination with ellipsis
+		if (current <= 3) {
+			// Near the start
+			for (let i = 2; i <= 4; i++) {
+				pages.push(i);
+			}
+			pages.push("...");
+			pages.push(total);
+		} else if (current >= total - 2) {
+			// Near the end
+			pages.push("...");
+			for (let i = total - 3; i <= total; i++) {
+				pages.push(i);
+			}
+		} else {
+			// In the middle
+			pages.push("...");
+			for (let i = current - 1; i <= current + 1; i++) {
+				pages.push(i);
+			}
+			pages.push("...");
+			pages.push(total);
+		}
+	}
+
+	return pages;
 }
 </script>
