@@ -9,13 +9,13 @@ from .service_provider import get_providers_for_service
 
 @frappe.whitelist(allow_guest=True)
 def get_service_types(
-	company=None,
-	active_only=True,
-	search_term=None,
-	item_group=None,
-	page=1,
-	page_size=12,
-):
+	company: str | None = None,
+	active_only: bool = True,
+	search_term: str | None = None,
+	item_group: str | None = None,
+	page: int = 1,
+	page_size: int = 12,
+) -> dict:
 	"""
 	Get all available service types with pagination
 	Use case: Display services on booking page
@@ -119,7 +119,7 @@ def get_service_types(
 
 
 @frappe.whitelist(allow_guest=True)
-def get_service_type_details(service_type):
+def get_service_type_details(service_type: str) -> dict:
 	"""
 	Get detailed information about a specific service type
 	Use case: Service detail page, booking form

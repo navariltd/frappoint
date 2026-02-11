@@ -658,7 +658,7 @@ class ServiceAppointment(Document):
 		return invoice_name
 
 	@frappe.whitelist()
-	def complete_and_invoice(self, actual_start_time, actual_end_time):
+	def complete_and_invoice(self, actual_start_time: str, actual_end_time: str) -> str:
 		self.actual_start_time = actual_start_time
 		self.actual_end_time = actual_end_time
 		self.status = "Completed"
