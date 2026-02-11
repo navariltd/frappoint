@@ -8,17 +8,20 @@
   "max_advance_days",
   "lead_time_hours",
   "default_slot_size",
+  "column_break_qpdv",
   "allow_past_booking",
   "max_past_days",
-  "column_break_iscu",
+  "section_break_tznz",
   "use_erpnext_pricing",
+  "auto_issue_consumables",
+  "column_break_dhhf",
   "auto_create_service_items",
   "default_item_group",
-  "auto_issue_consumables",
   "section_break_iodw",
   "default_google_calendar",
   "buffer_tab",
   "buffer_before",
+  "column_break_tgkw",
   "buffer_after",
   "alerts_tab",
   "appointment_confirmation",
@@ -52,10 +55,6 @@
    "label": "Max Advance Days",
    "non_negative": 1,
    "reqd": 1
-  },
-  {
-   "fieldname": "column_break_iscu",
-   "fieldtype": "Column Break"
   },
   {
    "default": "1",
@@ -170,13 +169,29 @@
    "fieldname": "payment_gateway_tab",
    "fieldtype": "Tab Break",
    "label": "Payment Gateway"
+  },
+  {
+   "fieldname": "column_break_qpdv",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "section_break_tznz",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "column_break_dhhf",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "column_break_tgkw",
+   "fieldtype": "Column Break"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2026-01-26 07:25:11.965794",
+ "modified": "2026-02-11 06:03:58.880819",
  "modified_by": "Administrator",
  "module": "Frappoint",
  "name": "Service Appointment Settings",

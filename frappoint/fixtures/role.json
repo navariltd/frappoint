@@ -1,0 +1,93 @@
+[
+ {
+  "desk_access": 1,
+  "disabled": 0,
+  "docstatus": 0,
+  "doctype": "Role",
+  "home_page": null,
+  "is_custom": 0,
+  "modified": "2026-02-10 16:07:11.949143",
+  "name": "HR Manager",
+  "restrict_to_domain": null,
+  "role_name": "HR Manager",
+  "two_factor_auth": 0
+ },
+ {
+  "desk_access": 1,
+  "disabled": 0,
+  "docstatus": 0,
+  "doctype": "Role",
+  "home_page": null,
+  "is_custom": 0,
+  "modified": "2026-02-10 16:07:15.374438",
+  "name": "HR User",
+  "restrict_to_domain": null,
+  "role_name": "HR User",
+  "two_factor_auth": 0
+ },
+ {
+  "desk_access": 0,
+  "disabled": 0,
+  "docstatus": 0,
+  "doctype": "Role",
+  "home_page": null,
+  "is_custom": 0,
+  "modified": "2026-02-10 16:07:34.111478",
+  "name": "Customer",
+  "restrict_to_domain": null,
+  "role_name": "Customer",
+  "two_factor_auth": 0
+ },
+ {
+  "desk_access": 1,
+  "disabled": 0,
+  "docstatus": 0,
+  "doctype": "Role",
+  "home_page": null,
+  "is_custom": 0,
+  "modified": "2026-02-11 05:35:41.426491",
+  "name": "Service Provider",
+  "restrict_to_domain": null,
+  "role_name": "Service Provider",
+  "two_factor_auth": 0
+ },
+ {
+  "desk_access": 1,
+  "disabled": 0,
+  "docstatus": 0,
+  "doctype": "Role",
+  "home_page": null,
+  "is_custom": 0,
+  "modified": "2026-02-11 05:37:05.187246",
+  "name": "Receptionist",
+  "restrict_to_domain": null,
+  "role_name": "Receptionist",
+  "two_factor_auth": 0
+ },
+ {
+  "desk_access": 1,
+  "disabled": 0,
+  "docstatus": 0,
+  "doctype": "Role",
+  "home_page": null,
+  "is_custom": 0,
+  "modified": "2026-02-11 05:45:05.093191",
+  "name": "Service Manager",
+  "restrict_to_domain": null,
+  "role_name": "Service Manager",
+  "two_factor_auth": 0
+ },
+ {
+  "desk_access": 1,
+  "disabled": 0,
+  "docstatus": 0,
+  "doctype": "Role",
+  "home_page": null,
+  "is_custom": 0,
+  "modified": "2026-02-11 05:45:15.808452",
+  "name": "Operations Manager",
+  "restrict_to_domain": null,
+  "role_name": "Operations Manager",
+  "two_factor_auth": 0
+ }
+]

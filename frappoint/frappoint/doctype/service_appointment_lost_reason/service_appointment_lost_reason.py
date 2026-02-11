@@ -15,5 +15,6 @@ class ServiceAppointmentLostReason(Document):
 		from frappe.types import DF
 
 		lost_reason: DF.Data
+		portal_access: DF.Check
 	# end: auto-generated types
 	pass

@@ -136,7 +136,7 @@
  "hide_toolbar": 1,
  "issingle": 1,
  "links": [],
- "modified": "2026-01-27 21:32:39.032924",
+ "modified": "2026-02-11 05:59:59.738690",
  "modified_by": "Administrator",
  "module": "Frappoint",
  "name": "Service Provider Service Assignment Tool",
@@ -147,7 +147,25 @@
    "email": 1,
    "print": 1,
    "read": 1,
-   "role": "Healthcare Administrator",
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "role": "HR Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "role": "HR User",
    "share": 1,
    "write": 1
   }
