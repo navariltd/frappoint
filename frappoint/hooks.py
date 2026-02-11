@@ -48,7 +48,25 @@ fixtures = [
 				],
 			]
 		],
-	}
+	},
+	{
+		"doctype": "Role",
+		"filters": [
+			[
+				"name",
+				"in",
+				[
+					"Service Provider",
+					"Receptionist",
+					"HR User",
+					"HR Manager",
+					"Service Manager",
+					"Operations Manager",
+					"Customer",
+				],
+			]
+		],
+	},
 ]
 
 # Includes in <head>
