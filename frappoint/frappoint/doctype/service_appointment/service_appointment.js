@@ -256,6 +256,7 @@ frappe.ui.form.on("Service Appointment", {
 								// Only one price, auto-select
 								frm.set_value("appointment_price", apt_type.prices[0].price_name);
 								frm.set_value("total_amount", apt_type.prices[0].amount);
+								frm.set_value("grand_total", apt_type.prices[0].amount);
 								frm.set_value("currency", apt_type.prices[0].currency);
 								frm.set_value("duration", apt_type.prices[0].duration);
 							} else {
@@ -804,6 +805,7 @@ function show_price_selector(frm, prices) {
 			}
 
 			frm.set_value("total_amount", estimated_amount);
+			frm.set_value("grand_total", estimated_amount);
 			frm.set_value("currency", selected_price.currency);
 
 			d.hide();
@@ -945,6 +947,7 @@ function reschedule_appointment(frm) {
 				service_unit: frm.doc.service_unit,
 				appointment_price: frm.doc.appointment_price,
 				total_amount: frm.doc.total_amount,
+				grand_total: frm.doc.grand_total,
 				currency: frm.doc.currency,
 				details: frm.doc.details,
 				rescheduled_from: frm.doc.name,

@@ -491,7 +491,7 @@ class ServiceAppointment(Document):
 		grand_total = self.calculate_total_with_guests(price_record)
 		currency = price_record.currency
 
-		if not self.total_amount or self.total_amount != grand_total:
+		if not self.total_amount or not self.grand_total or self.total_amount != grand_total:
 			self.total_amount = grand_total
 			self.grand_total = grand_total
 			self.currency = currency
@@ -1262,6 +1262,7 @@ def reschedule_appointment(
 				"service_unit": new_service_unit or old_appointment.service_unit,
 				"appointment_price": old_appointment.appointment_price,
 				"total_amount": old_appointment.total_amount,
+				"grand_total": old_appointment.grand_total,
 				"currency": old_appointment.currency,
 				"details": old_appointment.details,
 				"notes": (old_appointment.notes or "") + f"\n\nRescheduled from: {old_appointment.name}",
