@@ -11,6 +11,7 @@ declare module 'vue' {
     AppointmentCard: typeof import('./src/components/booking/AppointmentCard.vue')['default']
     AppointmentCardSkeleton: typeof import('./src/components/booking/AppointmentCardSkeleton.vue')['default']
     BookingDialog: typeof import('./src/components/booking/BookingDialog.vue')['default']
+    CategoryFilter: typeof import('./src/components/common/CategoryFilter.vue')['default']
     ChooseTime: typeof import('./src/components/booking/steps/ChooseTime.vue')['default']
     CloseIcon: typeof import('./src/components/icons/CloseIcon.vue')['default']
     CustomerDetails: typeof import('./src/components/booking/steps/CustomerDetails.vue')['default']

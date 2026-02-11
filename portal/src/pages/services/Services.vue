@@ -30,20 +30,13 @@
 				</button>
 			</div>
 
-			<!-- Category Filter Combobox -->
-			<div class="sm:w-56 flex flex-col gap-1.5">
-				<Combobox
-					v-model="selectedCategory"
-					:options="categoryOptions"
-					placeholder="All Categories"
-					variant="outline"
-					class="sm:w-56 border-gray-300"
-				>
-					<template #prefix>
-						<FeatherIcon class="h-4 text-primary" name="filter" />
-					</template>
-				</Combobox>
-			</div>
+			<!-- Category Filter -->
+			<CategoryFilter
+				v-model="selectedCategory"
+				:options="categoryOptions"
+				placeholder="All Categories"
+				class="sm:w-56"
+			/>
 		</div>
 
 		<!-- Services Grid -->
@@ -106,7 +99,8 @@
 import ServiceCard from "@/components/services/ServiceCard.vue";
 import ServiceCardSkeleton from "@/components/services/ServiceCardSkeleton.vue";
 import Pagination from "@/components/common/Pagination.vue";
-import { createResource, FeatherIcon, ErrorMessage, Combobox } from "frappe-ui";
+import CategoryFilter from "@/components/common/CategoryFilter.vue";
+import { createResource, FeatherIcon, ErrorMessage } from "frappe-ui";
 import { computed, ref, watch } from "vue";
 
 const searchQuery = ref("");
