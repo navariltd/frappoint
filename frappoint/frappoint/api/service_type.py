@@ -93,6 +93,7 @@ def get_service_types(
 		order_by="appointment_type",
 		start=start,
 		page_length=page_size,
+		ignore_permissions=True,
 	)
 
 	# Add price information to paginated results only
