@@ -111,11 +111,13 @@
 							<p class="text-sm text-slate-600 dark:text-slate-300">
 								{{ formattedStartTime }} - {{ formattedEndTime }}
 							</p>
-							<div
-								class="mt-2 text-xs text-primary font-medium cursor-pointer hover:underline"
+							<button
+								@click="downloadCalendarEvent"
+								class="mt-2 text-xs text-primary font-medium cursor-pointer hover:underline inline-flex items-center gap-1"
 							>
+								<FeatherIcon class="h-3" name="download" />
 								Add to Calendar
-							</div>
+							</button>
 						</div>
 					</div>
 					<!-- Location -->
@@ -153,9 +155,10 @@
 			<!-- Action Buttons -->
 			<div class="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
 				<button
+					@click="downloadCalendarEvent"
 					class="flex items-center justify-center gap-2 h-14 rounded-xl bg-primary hover:bg-primary/90 text-white font-bold text-base shadow-lg shadow-primary/20 transition-all hover:scale-[1.01] active:scale-[0.98]"
 				>
-					<FeatherIcon class="h-4" name="check-square" />
+					<FeatherIcon class="h-4" name="download" />
 					Add to Calendar
 				</button>
 				<button
@@ -183,6 +186,7 @@ import { buildDate } from "@/utils";
 import { FeatherIcon, createResource, createDocumentResource } from "frappe-ui";
 import { computed } from "vue";
 import { useRoute } from "vue-router";
+import { createEvent } from "ics";
 
 const route = useRoute();
 const bookingId = route.params.bookingId;
@@ -276,4 +280,62 @@ const formattedEndTime = computed(() => {
 		hour12: true,
 	}).format(endDateTime.value);
 });
+
+/**
+ * Generate and download ICS calendar file
+ */
+function downloadCalendarEvent() {
+	if (!startDateTime.value || !endDateTime.value || !bookingResource.value) return;
+
+	const start = startDateTime.value;
+	const end = endDateTime.value;
+
+	const event = {
+		start: [
+			start.getFullYear(),
+			start.getMonth() + 1,
+			start.getDate(),
+			start.getHours(),
+			start.getMinutes(),
+		],
+		end: [
+			end.getFullYear(),
+			end.getMonth() + 1,
+			end.getDate(),
+			end.getHours(),
+			end.getMinutes(),
+		],
+		title: bookingResource.value.appointment_type,
+		description: `Appointment with ${bookingResource.value.appointment_provider}. Duration: ${bookingResource.value.duration} minutes. Booking ID: ${bookingResource.value.name}`,
+		location: "Coming Soon",
+		status: "CONFIRMED",
+		url: window.location.href,
+		organizer: {
+			name: bookingResource.value.appointment_provider,
+		},
+		attendees: [
+			{
+				name: bookingResource.value.email,
+				email: bookingResource.value.email,
+			},
+		],
+	};
+
+	createEvent(event, (error, value) => {
+		if (error) {
+			console.error("Error creating calendar event:", error);
+			return;
+		}
+
+		// Create blob and download
+		const blob = new Blob([value], { type: "text/calendar;charset=utf-8" });
+		const link = document.createElement("a");
+		link.href = URL.createObjectURL(blob);
+		link.download = `appointment-${bookingResource.value.name}.ics`;
+		document.body.appendChild(link);
+		link.click();
+		document.body.removeChild(link);
+		URL.revokeObjectURL(link.href);
+	});
+}
 </script>
