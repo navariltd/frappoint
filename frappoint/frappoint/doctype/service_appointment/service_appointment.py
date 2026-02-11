@@ -43,6 +43,7 @@ class ServiceAppointment(Document):
 
 		actual_duration: DF.Int
 		actual_end_time: DF.Time | None
+		actual_start_time: DF.Time | None
 		add_video_conferencing: DF.Check
 		amended_from: DF.Link | None
 		appointment_date: DF.Date
@@ -212,17 +213,17 @@ class ServiceAppointment(Document):
 	def calculate_actual_duration(self):
 		"""Validate actual end time and calculate actual duration when appointment is completed"""
 
-		start_dt = get_datetime(f"{self.appointment_date} {self.start_time}")
+		actual_start_dt = get_datetime(f"{self.appointment_date} {self.actual_start_time}")
 		actual_end_dt = get_datetime(f"{self.appointment_date} {self.actual_end_time}")
 
-		if actual_end_dt <= start_dt:
+		if actual_end_dt <= actual_start_dt:
 			frappe.throw(
 				_("Actual End Time must be after Start Time"),
 				title=_("Invalid Actual End Time"),
 			)
 
 		# Calculate actual duration in minutes
-		duration_delta = actual_end_dt - start_dt
+		duration_delta = actual_end_dt - actual_start_dt
 		actual_duration_mins = int(duration_delta.total_seconds() / 60)
 		self.db_set("actual_duration", actual_duration_mins, update_modified=False)
 
@@ -644,18 +645,30 @@ class ServiceAppointment(Document):
 
 	def handle_status_change(self):
 		"""Handle actions based on status change"""
-		status_handlers = {
-			"Completed": lambda: (
-				self.create_sales_invoice(),
-				self.auto_issue_consumables(),
-				self.complete_linked_event(),
-			),
-			"Cancelled": self.handle_cancellation,
-		}
+		if self.status == "Cancelled":
+			self.handle_cancellation()
 
-		handler = status_handlers.get(self.status)
-		if handler:
-			handler()
+	def complete_appointment(self):
+		self.calculate_actual_duration()
+		self.auto_issue_consumables()
+		self.complete_linked_event()
+
+		invoice_name = self.create_sales_invoice()
+
+		return invoice_name
+
+	@frappe.whitelist()
+	def complete_and_invoice(self, actual_start_time, actual_end_time):
+		self.actual_start_time = actual_start_time
+		self.actual_end_time = actual_end_time
+		self.status = "Completed"
+		self.save()
+
+		invoice_name = self.complete_appointment()
+
+		print(f"\n\n Sales Invoice: {invoice_name} \n\n")
+
+		return invoice_name
 
 	def get_linked_document(self, doctype, fields=None):
 		"""Generic method to get linked document"""
@@ -792,10 +805,10 @@ class ServiceAppointment(Document):
 			return
 
 		item_code = frappe.db.get_value("Service Type", self.appointment_type, "item")
-		rate, price_list = frappe.db.get_value(
+		amount = frappe.db.get_value(
 			"Service Type Price",
 			{"price_name": self.appointment_price, "parent": self.appointment_type},
-			["rate", "price_list"],
+			["amount"],
 		)
 
 		try:
@@ -807,22 +820,21 @@ class ServiceAppointment(Document):
 					"posting_date": today(),
 					"payment_due_date": today(),
 					"currency": self.currency,
-					"selling_price_list": price_list,
 					"items": [
 						{
 							"item_code": item_code,
-							"qty": self.actual_duration,
-							"rate": rate,
+							"qty": 1,
+							"rate": amount,
+							"amount": amount,
 						}
 					],
 					"service_appointment": self.name,
 					"allocate_advances_automatically": True,
 				}
 			)
-			si.insert(ignore_permissions=True)
-			si.submit()
+			si.insert(ignore_permissions=True, ignore_mandatory=True)
 
-			self.show_success_message("Sales Invoice", si.name)
+			return si.name
 
 		except Exception as e:
 			self.log_and_throw_error("Sales Invoice", e)

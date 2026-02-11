@@ -21,8 +21,10 @@
   "start_time",
   "duration",
   "end_time",
-  "actual_end_time",
+  "column_break_nzyf",
+  "actual_start_time",
   "actual_duration",
+  "actual_end_time",
   "selected_slot_ids",
   "customer_details_section",
   "customer",
@@ -388,6 +390,19 @@
    "fieldtype": "Table MultiSelect",
    "label": "Cancellation Reasons",
    "options": "Service Appointment Lost Reason Detail"
+  },
+  {
+   "fieldname": "column_break_nzyf",
+   "fieldtype": "Column Break"
+  },
+  {
+   "allow_on_submit": 1,
+   "fieldname": "actual_start_time",
+   "fieldtype": "Time",
+   "in_list_view": 1,
+   "label": "Actual Start Time",
+   "no_copy": 1,
+   "read_only": 1
   }
  ],
  "grid_page_length": 50,
@@ -420,7 +435,7 @@
    "link_fieldname": "reference_docname"
   }
  ],
- "modified": "2026-02-11 05:56:54.509582",
+ "modified": "2026-02-11 12:09:05.643093",
  "modified_by": "Administrator",
  "module": "Frappoint",
  "name": "Service Appointment",
