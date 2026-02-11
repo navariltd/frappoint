@@ -12,7 +12,6 @@
   "allow_past_booking",
   "max_past_days",
   "section_break_tznz",
-  "use_erpnext_pricing",
   "auto_issue_consumables",
   "column_break_dhhf",
   "auto_create_service_items",
@@ -33,13 +32,6 @@
   "payment_gateways"
  ],
  "fields": [
-  {
-   "default": "1",
-   "description": "If checked defers pricing to ERPNext price list, item prices",
-   "fieldname": "use_erpnext_pricing",
-   "fieldtype": "Check",
-   "label": "Use ERPNext Pricing"
-  },
   {
    "description": "Minimum hours required before booking.",
    "fieldname": "lead_time_hours",
@@ -191,7 +183,7 @@
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2026-02-11 06:03:58.880819",
+ "modified": "2026-02-11 11:37:35.922589",
  "modified_by": "Administrator",
  "module": "Frappoint",
  "name": "Service Appointment Settings",
