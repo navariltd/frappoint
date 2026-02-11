@@ -666,8 +666,6 @@ class ServiceAppointment(Document):
 
 		invoice_name = self.complete_appointment()
 
-		print(f"\n\n Sales Invoice: {invoice_name} \n\n")
-
 		return invoice_name
 
 	def get_linked_document(self, doctype, fields=None):

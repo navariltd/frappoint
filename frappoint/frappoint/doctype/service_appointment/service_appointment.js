@@ -876,7 +876,6 @@ function show_complete_appointment_dialog(frm) {
 				callback: function (res) {
 					frappe.dom.unfreeze();
 					d.hide();
-					console.log(res);
 
 					if (res.message) {
 						frappe.set_route("Form", "Sales Invoice", res.message);
