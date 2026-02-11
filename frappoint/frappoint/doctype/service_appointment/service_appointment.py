@@ -472,17 +472,17 @@ class ServiceAppointment(Document):
 		if not self.appointment_type or not self.appointment_price:
 			frappe.throw("Service Type and Service Price are required to validate the price.")
 
-		rate, currency = self._get_price_currency()
+		amount, currency = self._get_price_currency()
 
 		if not self.total_amount:
-			self.total_amount = rate
+			self.total_amount = amount
 			self.currency = currency
 
 		if self.currency != currency:
 			self.currency = currency
 
 	def _get_price_currency(self):
-		"""Return the rate and currency, given service_type and appointment_price_name"""
+		"""Return the amount and currency, given service_type and appointment_price_name"""
 
 		if not self.appointment_type:
 			frappe.throw("Service Type is required before setting price")
@@ -490,7 +490,7 @@ class ServiceAppointment(Document):
 		prices = frappe.get_all(
 			"Service Type Price",
 			filters={"parent": self.appointment_type, "price_name": self.appointment_price},
-			fields=["rate", "currency"],
+			fields=["amount", "currency"],
 		)
 
 		if not prices:
@@ -499,7 +499,7 @@ class ServiceAppointment(Document):
 			)
 
 		price_info = prices[0]
-		return price_info["rate"], price_info["currency"]
+		return price_info["amount"], price_info["currency"]
 
 	def set_duration_from_type(self):
 		"""Set duration from appointment type"""
