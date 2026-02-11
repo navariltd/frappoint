@@ -250,8 +250,7 @@ const stepSubtitle = computed(() => {
 
 const canProceed = computed(() => {
 	if (currentStep.value === 1) return booking.draft.date && booking.draft.slot;
-	if (currentStep.value === 2)
-		return booking.draft.customer && booking.draft.email && booking.draft.mobileNo;
+	if (currentStep.value === 2) return booking.draft.email && booking.draft.mobileNo;
 	return booking.isComplete;
 });
 

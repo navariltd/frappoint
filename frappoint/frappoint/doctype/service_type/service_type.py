@@ -57,9 +57,6 @@ class ServiceType(Document):
 		self.validate_consumables()
 		self.auto_create_item_if_missing()
 
-	def on_update(self):
-		self.sync_item_prices()
-
 	def validate_default_duration(self):
 		if self.default_duration_in_minutes <= 0:
 			frappe.throw("Default duration must be greater than zero.")
@@ -88,8 +85,8 @@ class ServiceType(Document):
 			frappe.throw(_("At least one valid Price is required."), title=_("Missing Price."))
 		self._validate_no_duplicates(
 			items=self.prices,
-			fields_to_check=["price_list", "duration"],
-			error_title="Duplicate Price Lists",
+			fields_to_check=["price_name", "duration"],
+			error_title="Duplicate Prices",
 			item_label="price list",
 		)
 
@@ -98,14 +95,14 @@ class ServiceType(Document):
 
 	def _validate_positive_prices(self):
 		invalid_prices = [
-			{"row": idx, "price_name": price.price_name, "rate": price.rate or 0}
+			{"row": idx, "price_name": price.price_name, "amount": price.amount or 0}
 			for idx, price in enumerate(self.prices, start=1)
-			if price.rate is not None and price.rate <= 0
+			if price.amount is not None and price.amount <= 0
 		]
 
 		if invalid_prices:
 			error_messages = [
-				f"Row {item['row']}: <b>{item['price_name']}</b> - Rate must be greater than 0 (currently {item['rate']})"
+				f"Row {item['row']}: <b>{item['price_name']}</b> - Amount must be greater than 0 (currently {item['amount']})"
 				for item in invalid_prices
 			]
 
@@ -119,7 +116,7 @@ class ServiceType(Document):
 
 		Args:
 			items: Child table items to validate
-			fields_to_check: List of field names to form a unique key (e.g. ["price_list", "uom"])
+			fields_to_check: List of field names to form a unique key (e.g. ["price_name", "duration"])
 			error_title: Title for the error message
 			item_label: Human-readable label for the item (singular)
 		"""
@@ -159,117 +156,6 @@ class ServiceType(Document):
 	def get_appointment_settings(self):
 		return frappe.get_single("Service Appointment Settings")
 
-	def sync_item_prices(self):
-		settings = self.get_appointment_settings()
-
-		if not settings.use_erpnext_pricing:
-			return
-
-		if not self.item:
-			return
-
-		for price_row in self.prices:
-			self._sync_single_item_price(price_row)
-
-	def _sync_single_item_price(self, price_row):
-		filters = {
-			"item_code": self.item,
-			"price_list": price_row.price_list,
-			"uom": price_row.uom,
-		}
-
-		existing_prices = frappe.get_all(
-			"Item Price",
-			filters=filters,
-			fields=["name", "price_list_rate", "valid_from", "valid_upto"],
-			order_by="valid_from desc",
-		)
-
-		if not existing_prices:
-			self._create_item_price(price_row)
-			return
-
-		current_date = getdate(today())
-		target_price = self._select_best_item_price(existing_prices, current_date)
-
-		if target_price:
-			item_price = frappe.get_doc("Item Price", target_price["name"])
-			item_price.price_list_rate = price_row.rate
-			item_price.save(ignore_permissions=True)
-
-		else:
-			self._create_item_price(price_row)
-
-	def _select_best_item_price(self, prices, reference_date):
-		"""
-		Select the most appropriate Item Price from multiple options based on date validity
-
-		Priority:
-		1. Currently valid price (reference_date is within valid_from and valid_upto)
-		2. Price with no date restrictions (always valid)
-
-		Args:
-			prices: List of Item Price records with valid_from and valid_upto
-			reference_date: Date to check validity against
-
-		Returns:
-			Selected Item Price record or None
-		"""
-		current_valid = []
-		future_valid = []
-		no_date_restriction = []
-		expired = []
-
-		for price in prices:
-			valid_from = getdate(price.valid_from) if price.valid_from else None
-			valid_upto = getdate(price.valid_upto) if price.valid_upto else None
-
-			if not valid_from and not valid_upto:
-				no_date_restriction.append(price)
-				continue
-
-			is_valid_now = True
-			if valid_from and valid_from > reference_date:
-				is_valid_now = False
-			if valid_upto and valid_upto < reference_date:
-				is_valid_now = False
-
-			if is_valid_now:
-				current_valid.append(price)
-			elif valid_from and valid_from > reference_date:
-				future_valid.append(price)
-			else:
-				expired.append(price)
-
-		if current_valid:
-			return max(
-				current_valid, key=lambda x: getdate(x.valid_from) if x.valid_from else getdate("1900-01-01")
-			)
-
-		if no_date_restriction:
-			return no_date_restriction[0]
-
-		return None
-
-	def _create_item_price(self, price_row):
-		item_price_doc = frappe.get_doc(
-			{
-				"doctype": "Item Price",
-				"item_code": self.item,
-				"price_list": price_row.price_list,
-				"price_list_rate": price_row.rate,
-			}
-		)
-		item_price_doc.insert(ignore_permissions=True)
-
-		frappe.msgprint(
-			_("New Item Price <b>{1}</b> created for {0}").format(
-				get_link_to_form("Item Price", item_price_doc.name), self.item
-			),
-			indicator="green",
-			alert=True,
-		)
-
 	def auto_create_item_if_missing(self):
 		settings = self.get_appointment_settings()
 
@@ -306,44 +192,3 @@ class ServiceType(Document):
 			)
 
 		return materials
-
-	@frappe.whitelist()
-	def get_applicable_item_price(self, price_list, uom, date=None):
-		"""
-		Get the most applicable item price for a given price list and date
-		Focuses on date validity (valid_from and valid_upto)
-		"""
-
-		if not self.item or not price_list:
-			return None
-
-		reference_date = getdate(date) if date else getdate(today())
-
-		# Get all Item Prices for this item and price list
-		filters = {"item_code": self.item, "price_list": price_list, "selling": 1, "uom": uom}
-
-		item_prices = frappe.get_all(
-			"Item Price",
-			filters=filters,
-			fields=["name", "price_list_rate", "valid_from", "valid_upto"],
-			order_by="valid_from desc",
-		)
-
-		if not item_prices:
-			return {
-				"price_found": False,
-				"multiple_prices": False,
-			}
-
-		selected_price = self._select_best_item_price(item_prices, reference_date)
-
-		if selected_price:
-			return {
-				"price_found": True,
-				"multiple_prices": False,
-				"rate": selected_price.price_list_rate,
-				"uom": selected_price.uom,
-				"currency": selected_price.currency,
-			}
-
-		return {"price_found": False, "multiple_prices": False}

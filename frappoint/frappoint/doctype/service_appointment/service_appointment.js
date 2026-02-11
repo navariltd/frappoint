@@ -827,6 +827,14 @@ function show_complete_appointment_dialog(frm) {
 		title: __("Complete Appointment"),
 		fields: [
 			{
+				fieldname: "actual_start_time",
+				fieldtype: "Time",
+				label: __("Actual Start Time"),
+				reqd: 1,
+				default: frm.doc.start_time,
+				description: __("Enter the actual time the appointment started"),
+			},
+			{
 				fieldname: "actual_end_time",
 				fieldtype: "Time",
 				label: __("Actual End Time"),
@@ -858,38 +866,30 @@ function show_complete_appointment_dialog(frm) {
 			frappe.dom.freeze(__("Completing appointment..."));
 
 			// Set the actual end time first, then status, then save
-			frm.set_value("actual_end_time", values.actual_end_time)
-				.then(() => {
-					return frm.set_value("status", "Completed");
-				})
-				.then(() => {
-					// Save the document
-					return frm.save("Update");
-				})
-				.then(() => {
+			frappe.call({
+				method: "complete_and_invoice",
+				doc: frm.doc,
+				args: {
+					actual_start_time: values.actual_start_time,
+					actual_end_time: values.actual_end_time,
+				},
+				callback: function (res) {
 					frappe.dom.unfreeze();
 					d.hide();
 
-					frappe.show_alert({
-						message: __(
-							"Appointment completed successfully. Invoice will be created."
-						),
-						indicator: "green",
-					});
-
-					// Reload to show updated information including calculated actual_duration
-					setTimeout(() => {
-						frm.reload_doc();
-					}, 1000);
-				})
-				.catch((error) => {
+					if (res.message) {
+						frappe.set_route("Form", "Sales Invoice", res.message);
+					}
+				},
+				error: function () {
 					frappe.dom.unfreeze();
 					frappe.msgprint({
 						title: __("Error"),
 						message: __("Failed to complete appointment. Please try again."),
 						indicator: "red",
 					});
-				});
+				},
+			});
 		},
 		secondary_action_label: __("Cancel"),
 	});

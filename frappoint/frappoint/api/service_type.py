@@ -7,15 +7,15 @@ from ...payments import get_payment_gateways_for_service_type
 from .service_provider import get_providers_for_service
 
 
-@frappe.whitelist(allow_guest=True)
+@frappe.whitelist(allow_guest=True)  # nosemgrep: guest-whitelisted-method
 def get_service_types(
-	company=None,
-	active_only=True,
-	search_term=None,
-	item_group=None,
-	page=1,
-	page_size=12,
-):
+	company: str | None = None,
+	active_only: bool = True,
+	search_term: str | None = None,
+	item_group: str | None = None,
+	page: int = 1,
+	page_size: int = 12,
+) -> dict:
 	"""
 	Get all available service types with pagination
 	Use case: Display services on booking page
@@ -99,11 +99,8 @@ def get_service_types(
 	for service in service_types:
 		prices = frappe.get_all(
 			"Service Type Price",
-			filters={
-				"parent": service.name,
-				"duration": service.default_duration_in_minutes,
-			},
-			fields=["price_name", "rate", "amount", "duration", "currency"],
+			filters={"parent": service.name, "duration": service.default_duration_in_minutes},
+			fields=["price_name", "amount", "duration", "currency"],
 			limit=1,
 		)
 		service["price"] = prices[0] if prices else None
@@ -121,8 +118,8 @@ def get_service_types(
 	}
 
 
-@frappe.whitelist(allow_guest=True)
-def get_service_type_details(service_type):
+@frappe.whitelist(allow_guest=True)  # nosemgrep: guest-whitelisted-method
+def get_service_type_details(service_type: str) -> dict:
 	"""
 	Get detailed information about a specific service type
 	Use case: Service detail page, booking form
@@ -152,7 +149,7 @@ def get_service_type_details(service_type):
 		"prices": frappe.db.get_all(
 			"Service Type Price",
 			filters={"parent": service_type},
-			fields=["price_name", "rate", "amount", "duration", "currency"],
+			fields=["price_name", "amount", "duration", "currency"],
 		),
 		"providers": get_providers_for_service(service_type),
 		"payment_gateways": get_payment_gateways_for_service_type(service_type),

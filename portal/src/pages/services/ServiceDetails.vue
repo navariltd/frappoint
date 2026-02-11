@@ -87,19 +87,24 @@
 							</div>
 						</div>
 					</div>
-					<div>
+					<!-- <div>
 						<p class="text-gray-900 font-medium mb-4">DATE & TIME</p>
 						<FormControl type="text" size="lg" placeholder="Select a Slot">
 							<template #suffix>
 								<FeatherIcon class="w-4" name="calendar" />
 							</template>
 						</FormControl>
-					</div>
+					</div> -->
 
 					<div>
 						<Button
 							@click="showBookingDialog"
-							class="mt-4 w-full !bg-primary !text-white/80 font-semibold py-6 rounded-xl hover:!bg-primary-dark hover:!text-white transition-all duration-300 text-lg"
+							class="mt-4 w-full font-semibold py-6 rounded-xl transition-all duration-300 text-lg"
+							:class="
+								isPriceSelected
+									? '!bg-primary !text-white/80 hover:!bg-primary-dark hover:!text-white'
+									: 'bg-gray-300 text-gray-500 cursor-not-allowed'
+							"
 						>
 							Book Appointment
 						</Button>
@@ -124,7 +129,14 @@ const booking = useBookingStore();
 const route = useRoute();
 const router = useRouter();
 
+const isPriceSelected = computed(() => {
+	return !!booking.draft.priceName;
+});
+
 function showBookingDialog() {
+	if (!isPriceSelected.value) {
+		return;
+	}
 	router.push({
 		name: "BookingDetails",
 		params: { serviceType: serviceDetails.value.name },

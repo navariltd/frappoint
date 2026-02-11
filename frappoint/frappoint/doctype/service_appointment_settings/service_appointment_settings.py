@@ -34,6 +34,5 @@ class ServiceAppointmentSettings(Document):
 		max_advance_days: DF.Int
 		max_past_days: DF.Int
 		payment_gateways: DF.Table[ServiceTypePaymentGateway]
-		use_erpnext_pricing: DF.Check
 	# end: auto-generated types
 	pass
