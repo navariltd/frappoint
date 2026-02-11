@@ -64,7 +64,7 @@ def get_service_types(company=None, active_only=True, search_term=None, item_gro
 		prices = frappe.get_all(
 			"Service Type Price",
 			filters={"parent": service.name, "duration": service.default_duration_in_minutes},
-			fields=["price_name", "rate", "amount", "duration", "currency"],
+			fields=["price_name", "amount", "duration", "currency"],
 			limit=1,
 		)
 		service["price"] = prices[0] if prices else None
@@ -103,7 +103,7 @@ def get_service_type_details(service_type):
 		"prices": frappe.db.get_all(
 			"Service Type Price",
 			filters={"parent": service_type},
-			fields=["price_name", "rate", "amount", "duration", "currency"],
+			fields=["price_name", "amount", "duration", "currency"],
 		),
 		"providers": get_providers_for_service(service_type),
 		"payment_gateways": get_payment_gateways_for_service_type(service_type),
