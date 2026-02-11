@@ -33,7 +33,6 @@ export const useBookingStore = defineStore("booking", {
 				state.draft.serviceType &&
 				state.draft.date &&
 				state.draft.slot &&
-				state.draft.customer &&
 				state.draft.fullName &&
 				state.draft.mobileNo &&
 				state.draft.email &&
