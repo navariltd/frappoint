@@ -102,73 +102,56 @@
 		<!-- Pagination Controls -->
 		<div
 			v-if="!serviceTypesResource.loading && pagination && pagination.total_pages > 1"
-			class="mt-8 flex flex-col sm:flex-row items-center justify-between gap-4 border-t border-gray-200 pt-6"
+			class="mt-10 flex items-center justify-center gap-2 pb-6"
 		>
-			<!-- Page info -->
-			<p class="text-sm text-gray-600">
-				Showing
-				<span class="font-medium">{{
-					(pagination.page - 1) * pagination.page_size + 1
-				}}</span>
-				to
-				<span class="font-medium">{{
-					Math.min(pagination.page * pagination.page_size, pagination.total_count)
-				}}</span>
-				of
-				<span class="font-medium">{{ pagination.total_count }}</span>
-				services
-			</p>
-
 			<!-- Pagination buttons -->
-			<div class="flex items-center gap-2">
-				<button
-					@click="previousPage"
-					:disabled="!pagination.has_previous"
-					:class="[
-						pagination.has_previous
-							? 'bg-white text-gray-700 hover:bg-gray-50'
-							: 'bg-gray-100 text-gray-400 cursor-not-allowed',
-						'px-4 py-2 rounded-lg border border-gray-300 text-sm font-medium transition-colors flex items-center gap-2',
-					]"
-				>
-					<FeatherIcon class="h-4" name="chevron-left" />
-					<span class="hidden sm:inline">Previous</span>
-				</button>
+			<button
+				@click="previousPage"
+				:disabled="!pagination.has_previous"
+				:class="[
+					pagination.has_previous
+						? 'bg-white text-gray-700 hover:bg-gray-50 hover:border-gray-400'
+						: 'bg-gray-50 text-gray-400 cursor-not-allowed border-gray-200',
+					'px-4 py-2.5 rounded-lg border text-sm font-medium transition-all flex items-center gap-2 shadow-sm',
+				]"
+			>
+				<FeatherIcon class="h-4" name="chevron-left" />
+				<span class="hidden sm:inline">Previous</span>
+			</button>
 
-				<!-- Page numbers -->
-				<div class="flex items-center gap-1">
-					<button
-						v-for="page in getPageNumbers()"
-						:key="page"
-						@click="page !== '...' && goToPage(page)"
-						:class="[
-							page === currentPage
-								? 'bg-primary text-white'
-								: page === '...'
-								? 'cursor-default text-gray-400'
-								: 'bg-white text-gray-700 hover:bg-gray-50',
-							'px-3 py-2 rounded-lg border border-gray-300 text-sm font-medium transition-colors min-w-[40px]',
-						]"
-						:disabled="page === '...'"
-					>
-						{{ page }}
-					</button>
-				</div>
-
+			<!-- Page numbers -->
+			<div class="flex items-center gap-1.5">
 				<button
-					@click="nextPage"
-					:disabled="!pagination.has_next"
+					v-for="page in getPageNumbers()"
+					:key="page"
+					@click="page !== '...' && goToPage(page)"
 					:class="[
-						pagination.has_next
-							? 'bg-white text-gray-700 hover:bg-gray-50'
-							: 'bg-gray-100 text-gray-400 cursor-not-allowed',
-						'px-4 py-2 rounded-lg border border-gray-300 text-sm font-medium transition-colors flex items-center gap-2',
+						page === currentPage
+							? 'bg-primary text-white border-primary shadow-sm'
+							: page === '...'
+							? 'cursor-default text-gray-400 border-transparent bg-transparent'
+							: 'bg-white text-gray-700 hover:bg-gray-50 hover:border-gray-400 border-gray-300',
+						'px-3.5 py-2.5 rounded-lg border text-sm font-medium transition-all min-w-[42px] shadow-sm',
 					]"
+					:disabled="page === '...'"
 				>
-					<span class="hidden sm:inline">Next</span>
-					<FeatherIcon class="h-4" name="chevron-right" />
+					{{ page }}
 				</button>
 			</div>
+
+			<button
+				@click="nextPage"
+				:disabled="!pagination.has_next"
+				:class="[
+					pagination.has_next
+						? 'bg-white text-gray-700 hover:bg-gray-50 hover:border-gray-400'
+						: 'bg-gray-50 text-gray-400 cursor-not-allowed border-gray-200',
+					'px-4 py-2.5 rounded-lg border text-sm font-medium transition-all flex items-center gap-2 shadow-sm',
+				]"
+			>
+				<span class="hidden sm:inline">Next</span>
+				<FeatherIcon class="h-4" name="chevron-right" />
+			</button>
 		</div>
 
 		<ErrorMessage
