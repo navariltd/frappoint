@@ -14,6 +14,7 @@ declare module 'vue' {
     ChooseTime: typeof import('./src/components/booking/steps/ChooseTime.vue')['default']
     CloseIcon: typeof import('./src/components/icons/CloseIcon.vue')['default']
     CustomerDetails: typeof import('./src/components/booking/steps/CustomerDetails.vue')['default']
+    Footer: typeof import('./src/components/common/Footer.vue')['default']
     MenuIcon: typeof import('./src/components/icons/MenuIcon.vue')['default']
     MpesaIcon: typeof import('./src/components/icons/MpesaIcon.vue')['default']
     Navbar: typeof import('./src/components/common/Navbar.vue')['default']
