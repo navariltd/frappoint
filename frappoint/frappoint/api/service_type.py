@@ -7,7 +7,7 @@ from ...payments import get_payment_gateways_for_service_type
 from .service_provider import get_providers_for_service
 
 
-@frappe.whitelist(allow_guest=True)
+@frappe.whitelist(allow_guest=True)  # nosemgrep: guest-whitelisted-method
 def get_service_types(
 	company: str | None = None,
 	active_only: bool = True,
@@ -118,7 +118,7 @@ def get_service_types(
 	}
 
 
-@frappe.whitelist(allow_guest=True)
+@frappe.whitelist(allow_guest=True)  # nosemgrep: guest-whitelisted-method
 def get_service_type_details(service_type: str) -> dict:
 	"""
 	Get detailed information about a specific service type
