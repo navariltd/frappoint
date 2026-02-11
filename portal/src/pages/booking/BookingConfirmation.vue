@@ -162,6 +162,7 @@
 					Add to Calendar
 				</button>
 				<button
+					@click="navigateToAppointmentDetails"
 					class="flex items-center justify-center gap-2 h-14 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 hover:border-primary/50 text-slate-700 dark:text-slate-200 font-bold text-base transition-all hover:bg-slate-50 dark:hover:bg-slate-700"
 				>
 					<FeatherIcon class="h-4" name="edit" />
@@ -185,10 +186,11 @@
 import { buildDate } from "@/utils";
 import { FeatherIcon, createResource, createDocumentResource } from "frappe-ui";
 import { computed } from "vue";
-import { useRoute } from "vue-router";
+import { useRoute, useRouter } from "vue-router";
 import { createEvent } from "ics";
 
 const route = useRoute();
+const router = useRouter();
 const bookingId = route.params.bookingId;
 
 const serviceTypeDetailsResource = createResource({
@@ -336,6 +338,16 @@ function downloadCalendarEvent() {
 		link.click();
 		document.body.removeChild(link);
 		URL.revokeObjectURL(link.href);
+	});
+}
+
+/**
+ * Navigate to appointment details page
+ */
+function navigateToAppointmentDetails() {
+	router.push({
+		name: "AppointmentDetails",
+		params: { id: bookingId },
 	});
 }
 </script>
