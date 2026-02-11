@@ -22,6 +22,6 @@ class ServiceTypePrice(Document):
 		parentfield: DF.Data
 		parenttype: DF.Data
 		price_name: DF.Data
-		price_type: DF.Literal["", "Per Booking", "Per Guest", "Guest Tier"]
+		pricing_model: DF.Literal["", "Per Booking", "Per Guest", "Guest Tier"]
 	# end: auto-generated types
 	pass
