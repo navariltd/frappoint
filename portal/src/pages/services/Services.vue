@@ -11,11 +11,9 @@
 		</div>
 
 		<!-- Search section  -->
-		<div
-			class="flex flex-col md:flex-row md:justify-between md:items-center gap-4 my-6 md:my-8"
-		>
+		<div class="flex flex-col sm:flex-row gap-3 my-6 md:my-8">
 			<!-- Search Bar -->
-			<div class="relative w-full md:w-auto md:flex-1 md:max-w-md">
+			<div class="relative flex-1">
 				<FeatherIcon class="h-5 text-gray-500 absolute top-2.5 left-4" name="search" />
 				<input
 					v-model="searchQuery"
@@ -32,32 +30,19 @@
 				</button>
 			</div>
 
-			<!-- Filter Buttons -->
-			<div
-				class="flex gap-2 md:gap-3 items-center overflow-x-auto pb-2 md:pb-0 scrollbar-hide"
-			>
-				<span
-					@click="selectedCategory = null"
-					:class="[
-						selectedCategory === null
-							? 'text-white bg-primary'
-							: 'text-gray-700 bg-white shadow-sm',
-						'px-4 sm:px-5 md:px-6 py-2 rounded-full whitespace-nowrap text-sm md:text-base cursor-pointer hover:bg-primary/90 hover:text-white transition-colors',
-					]"
-					>All</span
+			<!-- Category Filter Combobox -->
+			<div class="sm:w-56 flex flex-col gap-1.5">
+				<Combobox
+					v-model="selectedCategory"
+					:options="categoryOptions"
+					placeholder="All Categories"
+					variant="outline"
+					class="sm:w-56 border-gray-300"
 				>
-				<span
-					v-for="category in categories"
-					:key="category"
-					@click="selectedCategory = category"
-					:class="[
-						selectedCategory === category
-							? 'text-white bg-primary'
-							: 'text-gray-700 bg-white shadow-sm',
-						'px-4 sm:px-5 md:px-6 py-2 rounded-full whitespace-nowrap text-sm md:text-base cursor-pointer hover:bg-primary/90 hover:text-white transition-colors',
-					]"
-					>{{ category }}</span
-				>
+					<template #prefix>
+						<FeatherIcon class="h-4 text-primary" name="filter" />
+					</template>
+				</Combobox>
 			</div>
 		</div>
 
@@ -121,7 +106,7 @@
 import ServiceCard from "@/components/services/ServiceCard.vue";
 import ServiceCardSkeleton from "@/components/services/ServiceCardSkeleton.vue";
 import Pagination from "@/components/common/Pagination.vue";
-import { createResource, FeatherIcon, ErrorMessage } from "frappe-ui";
+import { createResource, FeatherIcon, ErrorMessage, Combobox } from "frappe-ui";
 import { computed, ref, watch } from "vue";
 
 const searchQuery = ref("");
@@ -204,6 +189,18 @@ const pagination = computed(() => {
 
 // Use the stored categories (from initial load)
 const categories = computed(() => allCategories.value);
+
+// Format options for Combobox component
+const categoryOptions = computed(() => {
+	const options = [
+		{ label: "All Categories", value: null },
+		...allCategories.value.map((category) => ({
+			label: category,
+			value: category,
+		})),
+	];
+	return options;
+});
 
 function clearFilters() {
 	searchQuery.value = "";
