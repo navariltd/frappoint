@@ -100,59 +100,14 @@
 		</div>
 
 		<!-- Pagination Controls -->
-		<div
-			v-if="!serviceTypesResource.loading && pagination && pagination.total_pages > 1"
-			class="mt-10 flex items-center justify-center gap-2 pb-6"
-		>
-			<!-- Pagination buttons -->
-			<button
-				@click="previousPage"
-				:disabled="!pagination.has_previous"
-				:class="[
-					pagination.has_previous
-						? 'bg-white text-gray-700 hover:bg-gray-50 hover:border-gray-400'
-						: 'bg-gray-50 text-gray-400 cursor-not-allowed border-gray-200',
-					'px-4 py-2.5 rounded-lg border text-sm font-medium transition-all flex items-center gap-2 shadow-sm',
-				]"
-			>
-				<FeatherIcon class="h-4" name="chevron-left" />
-				<span class="hidden sm:inline">Previous</span>
-			</button>
-
-			<!-- Page numbers -->
-			<div class="flex items-center gap-1.5">
-				<button
-					v-for="page in getPageNumbers()"
-					:key="page"
-					@click="page !== '...' && goToPage(page)"
-					:class="[
-						page === currentPage
-							? 'bg-primary text-white border-primary shadow-sm'
-							: page === '...'
-							? 'cursor-default text-gray-400 border-transparent bg-transparent'
-							: 'bg-white text-gray-700 hover:bg-gray-50 hover:border-gray-400 border-gray-300',
-						'px-3.5 py-2.5 rounded-lg border text-sm font-medium transition-all min-w-[42px] shadow-sm',
-					]"
-					:disabled="page === '...'"
-				>
-					{{ page }}
-				</button>
-			</div>
-
-			<button
-				@click="nextPage"
-				:disabled="!pagination.has_next"
-				:class="[
-					pagination.has_next
-						? 'bg-white text-gray-700 hover:bg-gray-50 hover:border-gray-400'
-						: 'bg-gray-50 text-gray-400 cursor-not-allowed border-gray-200',
-					'px-4 py-2.5 rounded-lg border text-sm font-medium transition-all flex items-center gap-2 shadow-sm',
-				]"
-			>
-				<span class="hidden sm:inline">Next</span>
-				<FeatherIcon class="h-4" name="chevron-right" />
-			</button>
-		</div>
+		<Pagination
+			v-if="!serviceTypesResource.loading && pagination"
+			:current-page="currentPage"
+			:total-pages="pagination.total_pages"
+			:has-next="pagination.has_next"
+			:has-previous="pagination.has_previous"
+			@page-change="handlePageChange"
+		/>
 
 		<ErrorMessage
 			v-if="serviceTypesResource.error"
@@ -165,6 +120,7 @@
 <script setup>
 import ServiceCard from "@/components/services/ServiceCard.vue";
 import ServiceCardSkeleton from "@/components/services/ServiceCardSkeleton.vue";
+import Pagination from "@/components/common/Pagination.vue";
 import { createResource, FeatherIcon, ErrorMessage } from "frappe-ui";
 import { computed, ref, watch } from "vue";
 
@@ -255,66 +211,8 @@ function clearFilters() {
 	currentPage.value = 1;
 }
 
-function goToPage(page) {
+function handlePageChange(page) {
 	currentPage.value = page;
 	window.scrollTo({ top: 0, behavior: "smooth" });
-}
-
-function nextPage() {
-	if (pagination.value?.has_next) {
-		currentPage.value++;
-		window.scrollTo({ top: 0, behavior: "smooth" });
-	}
-}
-
-function previousPage() {
-	if (pagination.value?.has_previous) {
-		currentPage.value--;
-		window.scrollTo({ top: 0, behavior: "smooth" });
-	}
-}
-
-function getPageNumbers() {
-	if (!pagination.value) return [];
-
-	const total = pagination.value.total_pages;
-	const current = pagination.value.page;
-	const pages = [];
-
-	// Always show first page
-	pages.push(1);
-
-	if (total <= 7) {
-		// Show all pages if total is 7 or less
-		for (let i = 2; i <= total; i++) {
-			pages.push(i);
-		}
-	} else {
-		// Show smart pagination with ellipsis
-		if (current <= 3) {
-			// Near the start
-			for (let i = 2; i <= 4; i++) {
-				pages.push(i);
-			}
-			pages.push("...");
-			pages.push(total);
-		} else if (current >= total - 2) {
-			// Near the end
-			pages.push("...");
-			for (let i = total - 3; i <= total; i++) {
-				pages.push(i);
-			}
-		} else {
-			// In the middle
-			pages.push("...");
-			for (let i = current - 1; i <= current + 1; i++) {
-				pages.push(i);
-			}
-			pages.push("...");
-			pages.push(total);
-		}
-	}
-
-	return pages;
 }
 </script>
