@@ -15,6 +15,9 @@ def get_service_types(
 	item_group=None,
 	page=1,
 	page_size=12,
+	sort_by=None,
+	min_price=None,
+	max_price=None,
 ):
 	"""
 	Get all available service types with pagination
@@ -27,6 +30,9 @@ def get_service_types(
 	        item_group: Filter by item group/category
 	        page: Page number (default: 1)
 	        page_size: Number of items per page (default: 12)
+	        sort_by: Sort order (name_asc, name_desc, price_asc, price_desc, duration_asc, duration_desc)
+	        min_price: Minimum price filter
+	        max_price: Maximum price filter
 	"""
 
 	# Convert page and page_size to integers
@@ -76,6 +82,18 @@ def get_service_types(
 	total_pages = (total_count + page_size - 1) // page_size  # Ceiling division
 	start = (page - 1) * page_size
 
+	# Determine sort order
+	order_by = "appointment_type"  # default
+	if sort_by == "name_asc":
+		order_by = "appointment_type asc"
+	elif sort_by == "name_desc":
+		order_by = "appointment_type desc"
+	elif sort_by == "duration_asc":
+		order_by = "default_duration_in_minutes asc"
+	elif sort_by == "duration_desc":
+		order_by = "default_duration_in_minutes desc"
+	# Note: price sorting will be done after fetching since price is in child table
+
 	# Get paginated service types using database-level pagination
 	service_types = frappe.get_list(
 		"Service Type",
@@ -90,7 +108,7 @@ def get_service_types(
 			"item_group",
 			"image",
 		],
-		order_by="appointment_type",
+		order_by=order_by,
 		start=start,
 		page_length=page_size,
 	)
@@ -107,6 +125,26 @@ def get_service_types(
 			limit=1,
 		)
 		service["price"] = prices[0] if prices else None
+
+	# Filter by price range if specified
+	if min_price is not None or max_price is not None:
+		min_price = float(min_price) if min_price else 0
+		max_price = float(max_price) if max_price else float("inf")
+
+		service_types = [
+			service
+			for service in service_types
+			if service.get("price") and min_price <= service["price"].get("amount", 0) <= max_price
+		]
+
+	# Sort by price if requested (must be done after fetching prices)
+	if sort_by == "price_asc":
+		service_types.sort(key=lambda x: x.get("price", {}).get("amount", 0) if x.get("price") else 0)
+	elif sort_by == "price_desc":
+		service_types.sort(
+			key=lambda x: x.get("price", {}).get("amount", 0) if x.get("price") else 0,
+			reverse=True,
+		)
 
 	return {
 		"data": service_types,

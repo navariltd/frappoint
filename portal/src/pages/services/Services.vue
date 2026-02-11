@@ -10,33 +10,60 @@
 			</p>
 		</div>
 
-		<!-- Search section  -->
-		<div class="flex flex-col sm:flex-row gap-3 my-6 md:my-8">
-			<!-- Search Bar -->
-			<div class="relative flex-1">
-				<FeatherIcon class="h-5 text-gray-500 absolute top-2.5 left-4" name="search" />
-				<input
-					v-model="searchQuery"
-					class="w-full rounded-lg border-0 shadow-sm pl-12 pr-10 py-2.5 text-sm md:text-base focus:ring-2 focus:ring-primary/50 transition-shadow"
-					type="text"
-					placeholder="Search for a service..."
+		<!-- Search & Filters section  -->
+		<div class="flex flex-col gap-3 my-6 md:my-8">
+			<!-- Row 1: Search + Category -->
+			<div class="flex flex-col sm:flex-row gap-3">
+				<!-- Search Bar -->
+				<div class="relative flex-1">
+					<FeatherIcon class="h-5 text-gray-500 absolute top-2.5 left-4" name="search" />
+					<input
+						v-model="searchQuery"
+						class="w-full rounded-lg border-0 shadow-sm pl-12 pr-10 py-2.5 text-sm md:text-base focus:ring-2 focus:ring-primary/50 transition-shadow"
+						type="text"
+						placeholder="Search for a service..."
+					/>
+					<button
+						v-if="searchQuery"
+						@click="searchQuery = ''"
+						class="absolute right-3 top-2.5 text-gray-400 hover:text-gray-600 transition-colors"
+					>
+						<FeatherIcon class="h-5" name="x" />
+					</button>
+				</div>
+
+				<!-- Category Filter -->
+				<CategoryFilter
+					v-model="selectedCategory"
+					:options="categoryOptions"
+					placeholder="All Categories"
+					class="sm:w-56"
 				/>
-				<button
-					v-if="searchQuery"
-					@click="searchQuery = ''"
-					class="absolute right-3 top-2.5 text-gray-400 hover:text-gray-600 transition-colors"
-				>
-					<FeatherIcon class="h-5" name="x" />
-				</button>
 			</div>
 
-			<!-- Category Filter -->
-			<CategoryFilter
-				v-model="selectedCategory"
-				:options="categoryOptions"
-				placeholder="All Categories"
-				class="sm:w-56"
-			/>
+			<!-- Row 2: Additional Filters -->
+			<div class="flex flex-wrap items-center gap-3">
+				<PriceRangeFilter
+					v-model="selectedPriceRange"
+					:options="priceRangeOptions"
+					placeholder="Any price"
+					class="w-full sm:w-48"
+				/>
+				<SortFilter
+					v-model="selectedSort"
+					:options="sortOptions"
+					placeholder="Sort by"
+					class="w-full sm:w-52"
+				/>
+				<button
+					v-if="hasActiveFilters"
+					@click="clearFilters"
+					class="text-sm text-gray-600 hover:text-primary transition-colors font-medium flex items-center gap-1"
+				>
+					<FeatherIcon class="h-4" name="x" />
+					Clear all filters
+				</button>
+			</div>
 		</div>
 
 		<!-- Services Grid -->
@@ -68,7 +95,7 @@
 					Try adjusting your search or filter to find what you're looking for.
 				</p>
 				<button
-					v-if="searchQuery || selectedCategory"
+					v-if="hasActiveFilters"
 					@click="clearFilters"
 					class="mt-4 px-6 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors"
 				>
@@ -100,16 +127,39 @@ import ServiceCard from "@/components/services/ServiceCard.vue";
 import ServiceCardSkeleton from "@/components/services/ServiceCardSkeleton.vue";
 import Pagination from "@/components/common/Pagination.vue";
 import CategoryFilter from "@/components/common/CategoryFilter.vue";
+import PriceRangeFilter from "@/components/common/PriceRangeFilter.vue";
+import SortFilter from "@/components/common/SortFilter.vue";
 import { createResource, FeatherIcon, ErrorMessage } from "frappe-ui";
 import { computed, ref, watch } from "vue";
 
 const searchQuery = ref("");
 const selectedCategory = ref(null);
+const selectedPriceRange = ref(null);
+const selectedSort = ref(null);
 const debouncedSearchQuery = ref("");
 const allCategories = ref([]); // Store categories from initial load
 const currentPage = ref(1);
 const pageSize = 12;
 let debounceTimer = null;
+
+// Sort options
+const sortOptions = [
+	{ label: "Name: A-Z", value: "name_asc" },
+	{ label: "Name: Z-A", value: "name_desc" },
+	{ label: "Price: Low to High", value: "price_asc" },
+	{ label: "Price: High to Low", value: "price_desc" },
+	{ label: "Duration: Shortest", value: "duration_asc" },
+	{ label: "Duration: Longest", value: "duration_desc" },
+];
+
+// Price range options
+const priceRangeOptions = [
+	{ label: "Any price", value: null },
+	{ label: "Under $50", value: "0-50" },
+	{ label: "$50 - $100", value: "50-100" },
+	{ label: "$100 - $200", value: "100-200" },
+	{ label: "Over $200", value: "200-999999" },
+];
 
 // Client-side debouncing for search input
 watch(searchQuery, (newValue) => {
@@ -143,6 +193,18 @@ const serviceTypesResource = createResource({
 			params.item_group = selectedCategory.value;
 		}
 
+		// Add sort parameter
+		if (selectedSort.value) {
+			params.sort_by = selectedSort.value;
+		}
+
+		// Add price range parameters
+		if (selectedPriceRange.value) {
+			const [min, max] = selectedPriceRange.value.split("-");
+			params.min_price = min;
+			params.max_price = max;
+		}
+
 		return params;
 	},
 	onSuccess(response) {
@@ -159,13 +221,16 @@ const serviceTypesResource = createResource({
 });
 
 // Watch for changes and reload data, reset to page 1 when filters change
-watch(selectedCategory, () => {
+watch([selectedCategory, selectedPriceRange, selectedSort], () => {
 	currentPage.value = 1;
 });
 
-watch([debouncedSearchQuery, selectedCategory, currentPage], () => {
-	serviceTypesResource.reload();
-});
+watch(
+	[debouncedSearchQuery, selectedCategory, selectedPriceRange, selectedSort, currentPage],
+	() => {
+		serviceTypesResource.reload();
+	}
+);
 
 const serviceTypes = computed(() => {
 	if (serviceTypesResource.data?.data) {
@@ -196,9 +261,21 @@ const categoryOptions = computed(() => {
 	return options;
 });
 
+// Check if any filters are active
+const hasActiveFilters = computed(() => {
+	return !!(
+		searchQuery.value ||
+		selectedCategory.value ||
+		selectedPriceRange.value ||
+		selectedSort.value
+	);
+});
+
 function clearFilters() {
 	searchQuery.value = "";
 	selectedCategory.value = null;
+	selectedPriceRange.value = null;
+	selectedSort.value = null;
 	currentPage.value = 1;
 }
 

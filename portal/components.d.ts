@@ -23,12 +23,14 @@ declare module 'vue' {
     PaymentAndConfirmation: typeof import('./src/components/booking/steps/PaymentAndConfirmation.vue')['default']
     PaymentGatewayList: typeof import('./src/components/booking/PaymentGatewayList.vue')['default']
     PaypalIcon: typeof import('./src/components/icons/PaypalIcon.vue')['default']
+    PriceRangeFilter: typeof import('./src/components/common/PriceRangeFilter.vue')['default']
     ProviderCard: typeof import('./src/components/providers/ProviderCard.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']
     ServiceCard: typeof import('./src/components/services/ServiceCard.vue')['default']
     ServiceCardSkeleton: typeof import('./src/components/services/ServiceCardSkeleton.vue')['default']
     ServiceTag: typeof import('./src/components/common/ServiceTag.vue')['default']
+    SortFilter: typeof import('./src/components/common/SortFilter.vue')['default']
     TimeSlotSkeleton: typeof import('./src/components/booking/TimeSlotSkeleton.vue')['default']
   }
 }
