@@ -1,15 +1,15 @@
 <template>
-	<footer class="bg-white border-t border-gray-200 mt-16">
+	<footer class="bg-white border-t border-gray-200">
 		<div class="max-w-7xl mx-auto px-4 sm:px-6 py-12 md:py-16">
 			<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 lg:gap-12">
 				<!-- Brand Section -->
 				<div class="lg:col-span-1">
 					<div class="flex items-center gap-2 mb-4">
-						<div
-							class="w-8 h-8 bg-primary rounded-lg flex items-center justify-center"
-						>
-							<FeatherIcon class="h-5 w-5 text-white" name="heart" />
-						</div>
+						<img
+							class="h-8 w-8"
+							src="@/assets/images/logo_img.png"
+							alt="Frappoint logo"
+						/>
 						<h3 class="text-xl font-bold text-gray-900">Frappoint</h3>
 					</div>
 					<p class="text-sm text-gray-600 leading-relaxed">
