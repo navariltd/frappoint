@@ -99,6 +99,16 @@
 			</div>
 		</div>
 
+		<!-- Pagination Controls -->
+		<Pagination
+			v-if="!serviceTypesResource.loading && pagination"
+			:current-page="currentPage"
+			:total-pages="pagination.total_pages"
+			:has-next="pagination.has_next"
+			:has-previous="pagination.has_previous"
+			@page-change="handlePageChange"
+		/>
+
 		<ErrorMessage
 			v-if="serviceTypesResource.error"
 			:message="serviceTypesResource.error"
@@ -110,6 +120,7 @@
 <script setup>
 import ServiceCard from "@/components/services/ServiceCard.vue";
 import ServiceCardSkeleton from "@/components/services/ServiceCardSkeleton.vue";
+import Pagination from "@/components/common/Pagination.vue";
 import { createResource, FeatherIcon, ErrorMessage } from "frappe-ui";
 import { computed, ref, watch } from "vue";
 
@@ -117,6 +128,8 @@ const searchQuery = ref("");
 const selectedCategory = ref(null);
 const debouncedSearchQuery = ref("");
 const allCategories = ref([]); // Store categories from initial load
+const currentPage = ref(1);
+const pageSize = 12;
 let debounceTimer = null;
 
 // Client-side debouncing for search input
@@ -127,6 +140,7 @@ watch(searchQuery, (newValue) => {
 
 	debounceTimer = setTimeout(() => {
 		debouncedSearchQuery.value = newValue;
+		currentPage.value = 1; // Reset to first page on search
 	}, 500); // 500ms debounce delay
 });
 
@@ -135,7 +149,10 @@ const serviceTypesResource = createResource({
 	method: "GET",
 	auto: true,
 	makeParams() {
-		const params = {};
+		const params = {
+			page: currentPage.value,
+			page_size: pageSize,
+		};
 
 		// Only add search_term if it has a value
 		if (debouncedSearchQuery.value && debouncedSearchQuery.value.trim()) {
@@ -149,26 +166,40 @@ const serviceTypesResource = createResource({
 
 		return params;
 	},
-	onSuccess(data) {
+	onSuccess(response) {
 		// Extract and store categories only from initial unfiltered load
-		if (!debouncedSearchQuery.value && !selectedCategory.value && data) {
+		if (!debouncedSearchQuery.value && !selectedCategory.value && response?.data) {
 			const uniqueCategories = [
-				...new Set(data.map((service) => service.item_group).filter((group) => group)),
+				...new Set(
+					response.data.map((service) => service.item_group).filter((group) => group)
+				),
 			];
 			allCategories.value = uniqueCategories.sort();
 		}
 	},
 });
 
-watch([debouncedSearchQuery, selectedCategory], () => {
+// Watch for changes and reload data, reset to page 1 when filters change
+watch(selectedCategory, () => {
+	currentPage.value = 1;
+});
+
+watch([debouncedSearchQuery, selectedCategory, currentPage], () => {
 	serviceTypesResource.reload();
 });
 
 const serviceTypes = computed(() => {
-	if (serviceTypesResource.data) {
-		return serviceTypesResource.data;
+	if (serviceTypesResource.data?.data) {
+		return serviceTypesResource.data.data;
 	}
 	return [];
+});
+
+const pagination = computed(() => {
+	if (serviceTypesResource.data?.pagination) {
+		return serviceTypesResource.data.pagination;
+	}
+	return null;
 });
 
 // Use the stored categories (from initial load)
@@ -177,5 +208,11 @@ const categories = computed(() => allCategories.value);
 function clearFilters() {
 	searchQuery.value = "";
 	selectedCategory.value = null;
+	currentPage.value = 1;
+}
+
+function handlePageChange(page) {
+	currentPage.value = page;
+	window.scrollTo({ top: 0, behavior: "smooth" });
 }
 </script>

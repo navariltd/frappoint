@@ -8,9 +8,16 @@ from .service_provider import get_providers_for_service
 
 
 @frappe.whitelist(allow_guest=True)
-def get_service_types(company=None, active_only=True, search_term=None, item_group=None):
+def get_service_types(
+	company=None,
+	active_only=True,
+	search_term=None,
+	item_group=None,
+	page=1,
+	page_size=12,
+):
 	"""
-	Get all available service types
+	Get all available service types with pagination
 	Use case: Display services on booking page
 
 	Args:
@@ -18,7 +25,17 @@ def get_service_types(company=None, active_only=True, search_term=None, item_gro
 	        active_only: Only return active services (default: True)
 	        search_term: Search in service name, appointment_type, item_name, short_description
 	        item_group: Filter by item group/category
+	        page: Page number (default: 1)
+	        page_size: Number of items per page (default: 12)
 	"""
+
+	# Convert page and page_size to integers
+	page = int(page) if page else 1
+	page_size = int(page_size) if page_size else 12
+
+	# Ensure page is at least 1
+	if page < 1:
+		page = 1
 
 	filters = {}
 
@@ -31,9 +48,39 @@ def get_service_types(company=None, active_only=True, search_term=None, item_gro
 	if item_group:
 		filters["item_group"] = item_group
 
-	service_types = frappe.get_all(
+	# Build or_filters for search functionality
+	or_filters = None
+	if search_term and search_term.strip():
+		search_term = search_term.strip()
+		or_filters = [
+			["name", "like", f"%{search_term}%"],
+			["appointment_type", "like", f"%{search_term}%"],
+			["item_name", "like", f"%{search_term}%"],
+			["short_description", "like", f"%{search_term}%"],
+		]
+
+	# Get total count for pagination metadata
+	if or_filters:
+		total_count = len(
+			frappe.get_all(
+				"Service Type",
+				filters=filters,
+				or_filters=or_filters,
+				fields=["name"],
+			)
+		)
+	else:
+		total_count = frappe.db.count("Service Type", filters=filters)
+
+	# Calculate pagination
+	total_pages = (total_count + page_size - 1) // page_size  # Ceiling division
+	start = (page - 1) * page_size
+
+	# Get paginated service types using database-level pagination
+	service_types = frappe.get_list(
 		"Service Type",
 		filters=filters,
+		or_filters=or_filters,
 		fields=[
 			"name",
 			"appointment_type",
@@ -44,22 +91,11 @@ def get_service_types(company=None, active_only=True, search_term=None, item_gro
 			"image",
 		],
 		order_by="appointment_type",
+		start=start,
+		page_length=page_size,
 	)
 
-	# Apply search filter if provided
-	if search_term:
-		search_term = search_term.lower()
-		service_types = [
-			service
-			for service in service_types
-			if (
-				search_term in (service.get("name") or "").lower()
-				or search_term in (service.get("appointment_type") or "").lower()
-				or search_term in (service.get("item_name") or "").lower()
-				or search_term in (service.get("short_description") or "").lower()
-			)
-		]
-
+	# Add price information to paginated results only
 	for service in service_types:
 		prices = frappe.get_all(
 			"Service Type Price",
@@ -69,7 +105,17 @@ def get_service_types(company=None, active_only=True, search_term=None, item_gro
 		)
 		service["price"] = prices[0] if prices else None
 
-	return service_types
+	return {
+		"data": service_types,
+		"pagination": {
+			"page": page,
+			"page_size": page_size,
+			"total_count": total_count,
+			"total_pages": total_pages,
+			"has_next": page < total_pages,
+			"has_previous": page > 1,
+		},
+	}
 
 
 @frappe.whitelist(allow_guest=True)

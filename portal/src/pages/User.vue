@@ -1,12 +1,20 @@
 <template>
 	<div class="min-h-screen bg-[#fafafa] dark:bg-[#16191d] pb-32">
+		<!-- Backdrop for better contrast -->
+		<div
+			v-if="alertOptions.message"
+			class="fixed inset-0 bg-black/20 backdrop-blur-sm z-[100] transition-opacity duration-300"
+			@click="alertOptions.message = ''"
+		></div>
+
+		<!-- Alert with enhanced visibility -->
 		<Alert
 			v-if="alertOptions.message"
 			:title="alertOptions.title"
 			:description="alertOptions.message"
 			:variant="alertOptions.variant"
 			:theme="alertOptions.theme"
-			class="fixed top-8 left-1/2 -translate-x-1/2 z-50 min-w-[300px]"
+			class="fixed top-4 md:top-8 left-1/2 -translate-x-1/2 z-[101] w-[90%] md:w-auto md:min-w-[400px] md:max-w-[500px] shadow-2xl animate-slide-down"
 			@close="alertOptions.message = ''"
 		/>
 		<div class="max-w-[1000px] mx-auto px-4 md:px-8 py-6 md:py-10">
@@ -564,3 +572,20 @@ onMounted(() => {
 	getUserDetails.fetch();
 });
 </script>
+
+<style scoped>
+@keyframes slide-down {
+	from {
+		opacity: 0;
+		transform: translate(-50%, -100%);
+	}
+	to {
+		opacity: 1;
+		transform: translate(-50%, 0);
+	}
+}
+
+.animate-slide-down {
+	animation: slide-down 0.3s ease-out;
+}
+</style>
