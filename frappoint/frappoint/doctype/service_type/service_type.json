@@ -12,7 +12,6 @@
   "item",
   "item_name",
   "item_group",
-  "image",
   "column_break_lijj",
   "company",
   "column_break_kbef",
@@ -20,6 +19,9 @@
   "section_break_lgvr",
   "default_duration_in_minutes",
   "max_clients_per_slot",
+  "column_break_mniu",
+  "min_guests",
+  "max_guests",
   "column_break_dygq",
   "buffer_before",
   "buffer_after",
@@ -27,9 +29,13 @@
   "prices",
   "section_break_zfet",
   "service_unit_types",
+  "portal_info_tab",
   "more_info_section",
+  "image",
   "short_description",
+  "column_break_iomc",
   "tags",
+  "section_break_yomg",
   "description",
   "materials_tab",
   "section_break_epzh",
@@ -52,7 +58,7 @@
   {
    "fieldname": "default_duration_in_minutes",
    "fieldtype": "Int",
-   "label": "Default Duration (In Minutes)",
+   "label": "Default Duration (Min)",
    "non_negative": 1,
    "reqd": 1
   },
@@ -158,13 +164,13 @@
   {
    "fieldname": "buffer_before",
    "fieldtype": "Int",
-   "label": "Buffer Before (In Minutes)",
+   "label": "Buffer Before (Min)",
    "non_negative": 1
   },
   {
    "fieldname": "buffer_after",
    "fieldtype": "Int",
-   "label": "Buffer After (In Minutes)",
+   "label": "Buffer After (Min)",
    "non_negative": 1
   },
   {
@@ -209,6 +215,36 @@
    "fieldtype": "Table",
    "label": "Payment Gateways",
    "options": "Service Type Payment Gateway"
+  },
+  {
+   "fieldname": "portal_info_tab",
+   "fieldtype": "Tab Break",
+   "label": "Portal Info"
+  },
+  {
+   "fieldname": "column_break_iomc",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "section_break_yomg",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "column_break_mniu",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "1",
+   "fieldname": "min_guests",
+   "fieldtype": "Int",
+   "label": "Min Guests Required",
+   "reqd": 1
+  },
+  {
+   "default": "1",
+   "fieldname": "max_guests",
+   "fieldtype": "Int",
+   "label": "Max Guests Allowed"
   }
  ],
  "grid_page_length": 50,
@@ -225,7 +261,7 @@
    "table_fieldname": "services"
   }
  ],
- "modified": "2026-02-11 05:52:53.941748",
+ "modified": "2026-02-11 16:45:57.587627",
  "modified_by": "Administrator",
  "module": "Frappoint",
  "name": "Service Type",

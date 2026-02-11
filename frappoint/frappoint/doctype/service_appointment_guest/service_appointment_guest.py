@@ -1,11 +1,11 @@
-# Copyright (c) 2025, Navari LTD and contributors
+# Copyright (c) 2026, Navari LTD and contributors
 # For license information, please see license.txt
 
 # import frappe
 from frappe.model.document import Document
 
 
-class ServiceTypePrice(Document):
+class ServiceAppointmentGuest(Document):
 	# begin: auto-generated types
 	# This code is auto-generated. Do not modify anything in this block.
 
@@ -14,14 +14,13 @@ class ServiceTypePrice(Document):
 	if TYPE_CHECKING:
 		from frappe.types import DF
 
-		amount: DF.Currency
-		currency: DF.Link
-		duration: DF.Int
-		guest_count: DF.Int
+		email: DF.Data | None
+		full_name: DF.Data
+		is_primary: DF.Check
+		mobile_no: DF.Data | None
+		notes: DF.TextEditor | None
 		parent: DF.Data
 		parentfield: DF.Data
 		parenttype: DF.Data
-		price_name: DF.Data
-		price_type: DF.Literal["", "Per Booking", "Per Guest", "Guest Tier"]
 	# end: auto-generated types
 	pass

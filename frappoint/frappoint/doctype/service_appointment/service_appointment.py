@@ -37,6 +37,9 @@ class ServiceAppointment(Document):
 	if TYPE_CHECKING:
 		from frappe.types import DF
 
+		from frappoint.frappoint.doctype.service_appointment_guest.service_appointment_guest import (
+			ServiceAppointmentGuest,
+		)
 		from frappoint.frappoint.doctype.service_appointment_lost_reason_detail.service_appointment_lost_reason_detail import (
 			ServiceAppointmentLostReasonDetail,
 		)
@@ -64,6 +67,8 @@ class ServiceAppointment(Document):
 		event: DF.Link | None
 		full_name: DF.Data
 		google_meet_link: DF.Data | None
+		grand_total: DF.Currency
+		guests: DF.Table[ServiceAppointmentGuest]
 		mobile_no: DF.Data
 		mode_of_payment: DF.Link | None
 		naming_series: DF.Literal["SVC-APP-.MM.-.YY.-.###."]
@@ -78,6 +83,7 @@ class ServiceAppointment(Document):
 		start_time: DF.Time
 		status: DF.Literal["Open", "Confirmed", "Rescheduled", "Completed", "Cancelled", "Closed", "No Show"]
 		total_amount: DF.Currency
+		total_guests: DF.Int
 	# end: auto-generated types
 
 	def validate(self):

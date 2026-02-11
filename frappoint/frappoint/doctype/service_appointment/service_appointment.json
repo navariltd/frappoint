@@ -33,16 +33,29 @@
   "mobile_no",
   "column_break_gsph",
   "details",
-  "google_sync_section",
-  "add_video_conferencing",
-  "event",
-  "google_meet_link",
+  "section_break_ykh1",
+  "rescheduled_from",
+  "amended_from",
+  "column_break_efvt",
+  "rescheduled_to",
+  "guests_tab",
+  "guests",
+  "section_break_jpcd",
+  "total_guests",
+  "column_break_pwmh",
+  "grand_total",
+  "payment_tab",
   "payment_details_section",
   "payment_status",
   "mode_of_payment",
   "column_break_ahpd",
   "total_amount",
   "currency",
+  "more_info_tab",
+  "google_sync_section",
+  "add_video_conferencing",
+  "event",
+  "google_meet_link",
   "more_info_section",
   "confirmation_token",
   "source",
@@ -52,11 +65,6 @@
   "cancellation_date",
   "column_break_esxt",
   "cancellation_notes",
-  "section_break_ykh1",
-  "rescheduled_from",
-  "amended_from",
-  "column_break_efvt",
-  "rescheduled_to",
   "connections_tab"
  ],
  "fields": [
@@ -403,6 +411,50 @@
    "label": "Actual Start Time",
    "no_copy": 1,
    "read_only": 1
+  },
+  {
+   "fieldname": "guests_tab",
+   "fieldtype": "Tab Break",
+   "label": "Guests"
+  },
+  {
+   "fieldname": "guests",
+   "fieldtype": "Table",
+   "label": "Guests",
+   "options": "Service Appointment Guest",
+   "reqd": 1
+  },
+  {
+   "fieldname": "more_info_tab",
+   "fieldtype": "Tab Break",
+   "label": "More Info"
+  },
+  {
+   "fieldname": "payment_tab",
+   "fieldtype": "Tab Break",
+   "label": "Payment"
+  },
+  {
+   "fieldname": "total_guests",
+   "fieldtype": "Int",
+   "label": "Total Guests",
+   "non_negative": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "section_break_jpcd",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "column_break_pwmh",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "grand_total",
+   "fieldtype": "Currency",
+   "label": "Grand Total",
+   "options": "currency",
+   "read_only": 1
   }
  ],
  "grid_page_length": 50,
@@ -435,7 +487,7 @@
    "link_fieldname": "reference_docname"
   }
  ],
- "modified": "2026-02-11 12:09:05.643093",
+ "modified": "2026-02-11 16:34:58.272069",
  "modified_by": "Administrator",
  "module": "Frappoint",
  "name": "Service Appointment",
