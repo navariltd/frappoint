@@ -5,7 +5,9 @@
  "doctype": "DocType",
  "engine": "InnoDB",
  "field_order": [
-  "lost_reason"
+  "lost_reason",
+  "column_break_puaz",
+  "portal_access"
  ],
  "fields": [
   {
@@ -15,12 +17,22 @@
    "label": "Service Appointment Lost Reason",
    "reqd": 1,
    "unique": 1
+  },
+  {
+   "fieldname": "column_break_puaz",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "0",
+   "fieldname": "portal_access",
+   "fieldtype": "Check",
+   "label": "Portal Access"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-01-28 21:50:47.090041",
+ "modified": "2026-02-11 05:58:25.370825",
  "modified_by": "Administrator",
  "module": "Frappoint",
  "name": "Service Appointment Lost Reason",
@@ -36,6 +48,18 @@
    "read": 1,
    "report": 1,
    "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Receptionist",
    "share": 1,
    "write": 1
   }

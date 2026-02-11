@@ -221,7 +221,7 @@
    "link_fieldname": "appointment_provider"
   }
  ],
- "modified": "2026-02-10 15:20:33.734269",
+ "modified": "2026-02-11 05:51:22.730382",
  "modified_by": "Administrator",
  "module": "Frappoint",
  "name": "Service Provider",
@@ -233,10 +233,45 @@
    "delete": 1,
    "email": 1,
    "export": 1,
+   "import": 1,
    "print": 1,
    "read": 1,
    "report": 1,
    "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "import": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "HR Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "HR User",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Service Provider",
    "share": 1,
    "write": 1
   }
