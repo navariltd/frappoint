@@ -15,14 +15,11 @@ class ServiceTypePrice(Document):
 		from frappe.types import DF
 
 		amount: DF.Currency
-		currency: DF.Link | None
+		currency: DF.Link
 		duration: DF.Int
 		parent: DF.Data
 		parentfield: DF.Data
 		parenttype: DF.Data
-		price_list: DF.Link | None
 		price_name: DF.Data
-		rate: DF.Currency
-		uom: DF.Link
 	# end: auto-generated types
 	pass

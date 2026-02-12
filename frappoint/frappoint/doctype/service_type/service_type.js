@@ -16,37 +16,7 @@ frappe.ui.form.on("Service Type", {
 	},
 
 	onload(frm) {
-		frm.trigger("load_pricing_settings");
 		frm.trigger("setup_field_dependencies");
-	},
-
-	refresh(frm) {
-		if (!frm.appointment_settings) {
-			frm.trigger("load_pricing_settings");
-		} else {
-			frm.trigger("apply_pricing_settings");
-		}
-	},
-
-	before_save: function (frm) {
-		// Validate before saving
-		if (frm.appointment_settings && frm.appointment_settings.use_erpnext_pricing) {
-			let has_empty_price_list = false;
-
-			(frm.doc.prices || []).forEach(function (row) {
-				if (!row.price_list) {
-					has_empty_price_list = true;
-				}
-			});
-
-			if (has_empty_price_list) {
-				frappe.throw(
-					__(
-						"Price List is mandatory for all price rows when ERPNext Pricing is enabled"
-					)
-				);
-			}
-		}
 	},
 
 	disabled(frm) {
@@ -120,170 +90,28 @@ frappe.ui.form.on("Service Type", {
 			);
 		}
 	},
-
-	load_pricing_settings(frm) {
-		frm.call("get_appointment_settings").then((r) => {
-			if (r && r.message) {
-				frm.appointment_settings = {
-					use_erpnext_pricing: r.message.use_erpnext_pricing,
-				};
-				frm.trigger("apply_pricing_settings");
-			}
-		});
-	},
-
-	apply_pricing_settings(frm) {
-		if (!frm.appointment_settings) return;
-
-		let use_erpnext_pricing = frm.appointment_settings.use_erpnext_pricing;
-
-		let prices_grid = frm.fields_dict["prices"].grid;
-
-		if (!prices_grid) return;
-
-		prices_grid.docfields.forEach(function (df) {
-			if (df.fieldname === "price_list") {
-				df.reqd = use_erpnext_pricing ? 1 : 0;
-			}
-		});
-
-		frm.fields_dict.prices.grid.toggle_enable("uom", !use_erpnext_pricing);
-
-		frm.set_query("price_list", "prices", function () {
-			if (!use_erpnext_pricing) return {};
-			return {
-				filters: {
-					selling: 1,
-				},
-			};
-		});
-
-		prices_grid.refresh();
-
-		frm.refresh_field("prices");
-	},
-
-	fetch_and_set_item_price(frm, cdt, cdn, row) {
-		frappe.dom.freeze("Fetching Price");
-
-		frm.call("get_applicable_item_price", {
-			price_list: row.price_list,
-			uom: row.uom,
-			date: frappe.datetime.now_date(),
-		}).then(
-			(r) => {
-				frappe.dom.unfreeze();
-
-				if (r.message) {
-					if (r.message.price_found) {
-						frm.events.apply_fetched_price(frm, cdt, cdn, r.message);
-					} else {
-						frappe.show_alert({
-							message: __("No Item price found for {0} in {1}", [
-								frm.doc.item,
-								row.price_list,
-							]),
-							indicator: "orange",
-						});
-					}
-				} else {
-					frappe.msgprint({
-						title: __("No Price Found"),
-						indicator: "orange",
-						message: __(
-							"No Item Price found for this combination. Please enter manually."
-						),
-					});
-				}
-			},
-			(err) => {
-				frappe.dom.unfreeze();
-				frappe.msgprint({
-					title: __("Error"),
-					indicator: "red",
-					message: __("Failed to fetch Item Price. Please try again."),
-				});
-			}
-		);
-	},
-
-	apply_fetched_price(frm, cdt, cdn, data) {
-		let row = locals[cdt][cdn];
-
-		frappe.model.set_value(cdt, cdn, "rate", data.rate);
-
-		let info_parts = [];
-		info_parts.push(__("Rate: {0}", [format_currency(data.rate, data.currency)]));
-
-		frappe.show_alert({
-			message: __("Price fetched: {0}", [info_parts.join(", ")]),
-			indicator: "green",
-		});
-	},
 });
 
 frappe.ui.form.on("Service Type Price", {
-	price_list(frm, cdt, cdn) {
-		let row = locals[cdt][cdn];
-
-		if (row.price_list && frm.doc.item) {
-			frm.events.fetch_and_set_item_price(frm, cdt, cdn, row);
-		}
-	},
-
-	uom(frm, cdt, cdn) {
-		let row = locals[cdt][cdn];
-
-		if (row.price_list && frm.doc.item) {
-			frm.events.fetch_and_set_item_price(frm, cdt, cdn, row);
-		}
-	},
-
 	prices_add(frm, cdt, cdn) {
-		frm.trigger("load_pricing_settings");
-
 		const row = locals[cdt][cdn];
 
 		if (!row.duration && frm.doc.default_duration_in_minutes) {
 			frappe.model.set_value(cdt, cdn, "duration", frm.doc.default_duration_in_minutes);
 		}
-
-		if (frm.doc.item) {
-			frappe.db.get_value("Item", frm.doc.item, "stock_uom").then((r) => {
-				if (r.message && r.message.stock_uom) {
-					setTimeout(() => {
-						frappe.model.set_value(cdt, cdn, "uom", r.message.stock_uom);
-					}, 200);
-				}
-			});
-		}
 	},
 
-	rate(frm, cdt, cdn) {
+	amount(frm, cdt, cdn) {
 		let row = locals[cdt][cdn];
 
-		// validate positive rate
-		if (row.rate && row.rate <= 0) {
+		// validate positive amount
+		if (row.amount && row.amount <= 0) {
 			frappe.msgprint({
-				title: __("Invalid Rate"),
+				title: __("Invalid Amount"),
 				indicator: "red",
-				message: __("Rate must be greater than zero"),
+				message: __("Amount must be greater than zero"),
 			});
-			frappe.model.set_value(cdt, cdn, "rate", 0);
+			frappe.model.set_value(cdt, cdn, "amount", 0);
 		}
-
-		calculate_amount(frm, cdt, cdn);
-	},
-
-	duration(frm, cdt, cdn) {
-		calculate_amount(frm, cdt, cdn);
 	},
 });
-
-function calculate_amount(frm, cdt, cdn) {
-	const row = locals[cdt][cdn];
-
-	if (row.rate && row.duration) {
-		frappe.model.set_value(cdt, cdn, "amount", flt(row.rate) * flt(row.duration));
-	}
-}
