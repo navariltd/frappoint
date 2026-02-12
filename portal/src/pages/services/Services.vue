@@ -45,9 +45,9 @@
 			<div class="flex flex-wrap items-center gap-3">
 				<PriceRangeFilter
 					v-model="selectedPriceRange"
-					:options="priceRangeOptions"
-					placeholder="Any price"
-					class="w-full sm:w-48"
+					:min="priceRangeInfo.min_price"
+					:max="priceRangeInfo.max_price"
+					class="w-full sm:w-80"
 				/>
 				<SortFilter
 					v-model="selectedSort"
@@ -140,6 +140,7 @@ const debouncedSearchQuery = ref("");
 const allCategories = ref([]); // Store categories from initial load
 const currentPage = ref(1);
 const pageSize = 12;
+const priceRangeInfo = ref({ min_price: 0, max_price: 1000, currency: "USD" });
 let debounceTimer = null;
 
 // Sort options
@@ -150,15 +151,6 @@ const sortOptions = [
 	{ label: "Price: High to Low", value: "price_desc" },
 	{ label: "Duration: Shortest", value: "duration_asc" },
 	{ label: "Duration: Longest", value: "duration_desc" },
-];
-
-// Price range options
-const priceRangeOptions = [
-	{ label: "Any price", value: null },
-	{ label: "Under $50", value: "0-50" },
-	{ label: "$50 - $100", value: "50-100" },
-	{ label: "$100 - $200", value: "100-200" },
-	{ label: "Over $200", value: "200-999999" },
 ];
 
 // Client-side debouncing for search input
@@ -199,10 +191,13 @@ const serviceTypesResource = createResource({
 		}
 
 		// Add price range parameters
-		if (selectedPriceRange.value) {
-			const [min, max] = selectedPriceRange.value.split("-");
-			params.min_price = min;
-			params.max_price = max;
+		if (
+			selectedPriceRange.value &&
+			(selectedPriceRange.value.min !== priceRangeInfo.value.min_price ||
+				selectedPriceRange.value.max !== priceRangeInfo.value.max_price)
+		) {
+			params.min_price = selectedPriceRange.value.min;
+			params.max_price = selectedPriceRange.value.max;
 		}
 
 		return params;
@@ -216,6 +211,25 @@ const serviceTypesResource = createResource({
 				),
 			];
 			allCategories.value = uniqueCategories.sort();
+		}
+	},
+});
+
+// Fetch price range for slider
+const priceRangeResource = createResource({
+	url: "frappoint.frappoint.api.service_type.get_price_range",
+	method: "GET",
+	auto: true,
+	onSuccess(response) {
+		if (response) {
+			priceRangeInfo.value = response;
+			// Initialize selectedPriceRange with full range
+			if (!selectedPriceRange.value) {
+				selectedPriceRange.value = {
+					min: response.min_price,
+					max: response.max_price,
+				};
+			}
 		}
 	},
 });
@@ -263,10 +277,15 @@ const categoryOptions = computed(() => {
 
 // Check if any filters are active
 const hasActiveFilters = computed(() => {
+	const priceRangeActive =
+		selectedPriceRange.value &&
+		(selectedPriceRange.value.min !== priceRangeInfo.value.min_price ||
+			selectedPriceRange.value.max !== priceRangeInfo.value.max_price);
+
 	return !!(
 		searchQuery.value ||
 		selectedCategory.value ||
-		selectedPriceRange.value ||
+		priceRangeActive ||
 		selectedSort.value
 	);
 });
@@ -274,7 +293,10 @@ const hasActiveFilters = computed(() => {
 function clearFilters() {
 	searchQuery.value = "";
 	selectedCategory.value = null;
-	selectedPriceRange.value = null;
+	selectedPriceRange.value = {
+		min: priceRangeInfo.value.min_price,
+		max: priceRangeInfo.value.max_price,
+	};
 	selectedSort.value = null;
 	currentPage.value = 1;
 }

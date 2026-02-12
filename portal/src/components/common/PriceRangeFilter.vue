@@ -1,127 +1,170 @@
 <template>
-	<div class="relative">
-		<div
-			class="flex items-center gap-2 px-4 py-2.5 bg-white border-2 border-gray-200 rounded-lg hover:border-primary/50 transition-all cursor-pointer group"
-			:class="{ 'border-primary': isOpen }"
-			@click="toggleDropdown"
-		>
-			<FeatherIcon
-				class="h-4 flex-shrink-0 transition-colors"
-				:class="selectedRange ? 'text-primary' : 'text-gray-400 group-hover:text-primary'"
-				name="dollar-sign"
-			/>
-			<span
-				class="flex-1 text-sm md:text-base truncate transition-colors"
-				:class="
-					selectedRange
-						? 'text-gray-900 font-medium'
-						: 'text-gray-500 group-hover:text-gray-700'
-				"
-			>
-				{{ displayText }}
-			</span>
-			<FeatherIcon
-				class="h-4 flex-shrink-0 text-gray-400 transition-transform"
-				:class="{ 'rotate-180': isOpen }"
-				name="chevron-down"
-			/>
+	<div class="bg-white border-2 border-gray-200 rounded-lg px-6 py-6">
+		<!-- Header -->
+		<div class="flex items-center gap-2 mb-6">
+			<!-- <FeatherIcon class="h-5 text-primary" name="dollar-sign" /> -->
+			<span class="text-sm font-semibold text-gray-700">Price Range</span>
 		</div>
 
-		<!-- Dropdown Menu -->
-		<Transition
-			enter-active-class="transition ease-out duration-100"
-			enter-from-class="transform opacity-0 scale-95"
-			enter-to-class="transform opacity-100 scale-100"
-			leave-active-class="transition ease-in duration-75"
-			leave-from-class="transform opacity-100 scale-100"
-			leave-to-class="transform opacity-0 scale-95"
-		>
+		<!-- Slider Container -->
+		<div class="relative pt-2 pb-8">
+			<!-- Track Background -->
+			<div class="absolute top-2 w-full h-1 bg-gray-200 rounded-full"></div>
+
+			<!-- Active Track -->
 			<div
-				v-if="isOpen"
-				class="absolute z-50 mt-2 w-full min-w-[200px] bg-white rounded-lg shadow-lg border border-gray-200 py-1"
-			>
-				<div
-					v-for="option in options"
-					:key="option.value"
-					@click="selectOption(option)"
-					class="px-4 py-2.5 text-sm md:text-base cursor-pointer transition-colors flex items-center gap-2"
-					:class="
-						selectedRange === option.value
-							? 'bg-primary/10 text-primary font-medium'
-							: 'text-gray-700 hover:bg-gray-50'
-					"
-				>
-					<FeatherIcon
-						v-if="selectedRange === option.value"
-						class="h-4 text-primary flex-shrink-0"
-						name="check"
-					/>
-					<span :class="{ 'ml-6': selectedRange !== option.value }">
-						{{ option.label }}
-					</span>
-				</div>
+				class="absolute top-2 h-1 bg-primary rounded-full"
+				:style="{
+					left: minPercent + '%',
+					width: maxPercent - minPercent + '%',
+				}"
+			></div>
+
+			<!-- Min Range Input -->
+			<input
+				type="range"
+				:min="min"
+				:max="max"
+				:step="step"
+				v-model.number="minValue"
+				@input="updateMinValue"
+				class="range-slider absolute w-full h-1 top-2 pointer-events-none appearance-none bg-transparent"
+			/>
+
+			<!-- Max Range Input -->
+			<input
+				type="range"
+				:min="min"
+				:max="max"
+				:step="step"
+				v-model.number="maxValue"
+				@input="updateMaxValue"
+				class="range-slider absolute w-full h-1 top-2 pointer-events-none appearance-none bg-transparent"
+			/>
+
+			<!-- Price Labels -->
+			<div class="flex justify-between text-sm text-gray-600 mt-6">
+				<span>${{ formatPrice(min) }}</span>
+				<span>${{ formatPrice(max) }}</span>
 			</div>
-		</Transition>
+		</div>
 	</div>
 </template>
 
 <script setup>
 import { FeatherIcon } from "frappe-ui";
-import { computed, ref, onMounted, onUnmounted } from "vue";
+import { computed, ref, watch } from "vue";
 
 const props = defineProps({
 	modelValue: {
-		type: [String, null],
-		default: null,
+		type: Object,
+		default: () => ({ min: 0, max: 1000 }),
 	},
-	options: {
-		type: Array,
-		required: true,
-		default: () => [],
+	min: {
+		type: Number,
+		default: 0,
 	},
-	placeholder: {
-		type: String,
-		default: "Any price",
+	max: {
+		type: Number,
+		default: 1000,
+	},
+	step: {
+		type: Number,
+		default: 10,
 	},
 });
 
 const emit = defineEmits(["update:modelValue"]);
 
-const isOpen = ref(false);
+const minValue = ref(props.modelValue?.min ?? props.min);
+const maxValue = ref(props.modelValue?.max ?? props.max);
 
-const selectedRange = computed({
-	get: () => props.modelValue,
-	set: (value) => emit("update:modelValue", value),
+// Watch for external changes to modelValue
+watch(
+	() => props.modelValue,
+	(newValue) => {
+		if (newValue) {
+			minValue.value = newValue.min ?? props.min;
+			maxValue.value = newValue.max ?? props.max;
+		}
+	},
+	{ deep: true }
+);
+
+// Compute percentages for styling
+const minPercent = computed(() => {
+	return ((minValue.value - props.min) / (props.max - props.min)) * 100;
 });
 
-const displayText = computed(() => {
-	if (selectedRange.value === null) {
-		return props.placeholder;
+const maxPercent = computed(() => {
+	return ((maxValue.value - props.min) / (props.max - props.min)) * 100;
+});
+
+function updateMinValue() {
+	if (minValue.value > maxValue.value - props.step) {
+		minValue.value = maxValue.value - props.step;
 	}
-	const selected = props.options.find((opt) => opt.value === selectedRange.value);
-	return selected ? selected.label : props.placeholder;
-});
-
-function toggleDropdown() {
-	isOpen.value = !isOpen.value;
+	emitValue();
 }
 
-function selectOption(option) {
-	selectedRange.value = option.value;
-	isOpen.value = false;
-}
-
-function closeDropdown(event) {
-	if (!event.target.closest(".relative")) {
-		isOpen.value = false;
+function updateMaxValue() {
+	if (maxValue.value < minValue.value + props.step) {
+		maxValue.value = minValue.value + props.step;
 	}
+	emitValue();
 }
 
-onMounted(() => {
-	document.addEventListener("click", closeDropdown);
-});
+function emitValue() {
+	emit("update:modelValue", {
+		min: minValue.value,
+		max: maxValue.value,
+	});
+}
 
-onUnmounted(() => {
-	document.removeEventListener("click", closeDropdown);
-});
+function formatPrice(value) {
+	return new Intl.NumberFormat("en-US", {
+		minimumFractionDigits: 0,
+		maximumFractionDigits: 0,
+	}).format(value);
+}
 </script>
+
+<style scoped>
+/* Style for the range slider thumb */
+.range-slider::-webkit-slider-thumb {
+	pointer-events: all;
+	width: 20px;
+	height: 20px;
+	border-radius: 50%;
+	border: 3px solid white;
+	background: #6366f1; /* primary color */
+	cursor: pointer;
+	appearance: none;
+	box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+	position: relative;
+	z-index: 10;
+}
+
+.range-slider::-moz-range-thumb {
+	pointer-events: all;
+	width: 20px;
+	height: 20px;
+	border-radius: 50%;
+	border: 3px solid white;
+	background: #6366f1;
+	cursor: pointer;
+	box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+	position: relative;
+	z-index: 10;
+}
+
+.range-slider::-webkit-slider-thumb:hover {
+	background: #4f46e5;
+	transform: scale(1.1);
+}
+
+.range-slider::-moz-range-thumb:hover {
+	background: #4f46e5;
+	transform: scale(1.1);
+}
+</style>
