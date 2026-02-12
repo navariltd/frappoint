@@ -184,22 +184,34 @@ def get_price_range(company: str | None = None, item_group: str | None = None) -
 		)
 
 		if not service_types:
-			return {"min_price": 0, "max_price": 0}
+			return {"min_price": 0, "max_price": 0, "currency": "USD"}
 
 		filters["parent"] = ["in", service_types]
 
-	prices = frappe.get_all("Service Type Price", filters=filters, fields=["amount"], order_by="amount")
+	prices = frappe.get_all(
+		"Service Type Price",
+		filters=filters,
+		fields=["amount", "currency"],
+		order_by="amount",
+	)
 
 	if not prices:
-		return {"min_price": 0, "max_price": 1000}
+		return {"min_price": 0, "max_price": 1000, "currency": "USD"}
 
 	min_price = min(p.amount for p in prices)
 	max_price = max(p.amount for p in prices)
 
+	# Get the most common currency (in case there are multiple)
+	currency = max(
+		set(p.currency for p in prices if p.currency),
+		key=lambda c: sum(1 for p in prices if p.currency == c),
+		default="USD",
+	)
+
 	min_price = int(min_price / 10) * 10
 	max_price = int((max_price + 9) / 10) * 10  # Round up
 
-	return {"min_price": min_price, "max_price": max_price}
+	return {"min_price": min_price, "max_price": max_price, "currency": currency}
 
 
 @frappe.whitelist(allow_guest=True)  # nosemgrep: guest-whitelisted-method
