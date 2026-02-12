@@ -10,54 +10,63 @@
 			</p>
 		</div>
 
-		<!-- Search section  -->
-		<div
-			class="flex flex-col md:flex-row md:justify-between md:items-center gap-4 my-6 md:my-8"
-		>
-			<!-- Search Bar -->
-			<div class="relative w-full md:w-auto md:flex-1 md:max-w-md">
-				<FeatherIcon class="h-5 text-gray-500 absolute top-2.5 left-4" name="search" />
-				<input
-					v-model="searchQuery"
-					class="w-full rounded-lg border-0 shadow-sm pl-12 pr-10 py-2.5 text-sm md:text-base focus:ring-2 focus:ring-primary/50 transition-shadow"
-					type="text"
-					placeholder="Search for a service..."
+		<!-- Search & Filters section  -->
+		<div class="flex flex-col gap-3 my-6 md:my-8">
+			<!-- All Filters in One Row for Desktop -->
+			<div class="flex flex-col lg:flex-row gap-3">
+				<!-- Search Bar -->
+				<div class="relative flex-1">
+					<FeatherIcon class="h-5 text-gray-500 absolute top-2.5 left-4" name="search" />
+					<input
+						v-model="searchQuery"
+						class="w-full rounded-lg border-0 shadow-sm pl-12 pr-10 py-2.5 text-sm md:text-base focus:ring-2 focus:ring-primary/50 transition-shadow"
+						type="text"
+						placeholder="Search for a service..."
+					/>
+					<button
+						v-if="searchQuery"
+						@click="searchQuery = ''"
+						class="absolute right-3 top-2.5 text-gray-400 hover:text-gray-600 transition-colors"
+					>
+						<FeatherIcon class="h-5" name="x" />
+					</button>
+				</div>
+
+				<!-- Category Filter -->
+				<CategoryFilter
+					v-model="selectedCategory"
+					:options="categoryOptions"
+					placeholder="All Categories"
+					class="w-full lg:w-56"
 				/>
-				<button
-					v-if="searchQuery"
-					@click="searchQuery = ''"
-					class="absolute right-3 top-2.5 text-gray-400 hover:text-gray-600 transition-colors"
-				>
-					<FeatherIcon class="h-5" name="x" />
-				</button>
+
+				<!-- Price Range Filter -->
+				<PriceRangeFilter
+					v-model="selectedPriceRange"
+					:min="priceRangeInfo.min_price"
+					:max="priceRangeInfo.max_price"
+					:currency="priceRangeInfo.currency"
+					class="w-full lg:w-64"
+				/>
+
+				<!-- Sort Filter -->
+				<SortFilter
+					v-model="selectedSort"
+					:options="sortOptions"
+					placeholder="Sort by"
+					class="w-full lg:w-52"
+				/>
 			</div>
 
-			<!-- Filter Buttons -->
-			<div
-				class="flex gap-2 md:gap-3 items-center overflow-x-auto pb-2 md:pb-0 scrollbar-hide"
-			>
-				<span
-					@click="selectedCategory = null"
-					:class="[
-						selectedCategory === null
-							? 'text-white bg-primary'
-							: 'text-gray-700 bg-white shadow-sm',
-						'px-4 sm:px-5 md:px-6 py-2 rounded-full whitespace-nowrap text-sm md:text-base cursor-pointer hover:bg-primary/90 hover:text-white transition-colors',
-					]"
-					>All</span
+			<!-- Clear Filters Button -->
+			<div v-if="hasActiveFilters" class="flex">
+				<button
+					@click="clearFilters"
+					class="text-sm text-gray-600 hover:text-primary transition-colors font-medium flex items-center gap-1"
 				>
-				<span
-					v-for="category in categories"
-					:key="category"
-					@click="selectedCategory = category"
-					:class="[
-						selectedCategory === category
-							? 'text-white bg-primary'
-							: 'text-gray-700 bg-white shadow-sm',
-						'px-4 sm:px-5 md:px-6 py-2 rounded-full whitespace-nowrap text-sm md:text-base cursor-pointer hover:bg-primary/90 hover:text-white transition-colors',
-					]"
-					>{{ category }}</span
-				>
+					<FeatherIcon class="h-4" name="x" />
+					Clear all filters
+				</button>
 			</div>
 		</div>
 
@@ -90,7 +99,7 @@
 					Try adjusting your search or filter to find what you're looking for.
 				</p>
 				<button
-					v-if="searchQuery || selectedCategory"
+					v-if="hasActiveFilters"
 					@click="clearFilters"
 					class="mt-4 px-6 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors"
 				>
@@ -121,16 +130,32 @@
 import ServiceCard from "@/components/services/ServiceCard.vue";
 import ServiceCardSkeleton from "@/components/services/ServiceCardSkeleton.vue";
 import Pagination from "@/components/common/Pagination.vue";
+import CategoryFilter from "@/components/common/CategoryFilter.vue";
+import PriceRangeFilter from "@/components/common/PriceRangeFilter.vue";
+import SortFilter from "@/components/common/SortFilter.vue";
 import { createResource, FeatherIcon, ErrorMessage } from "frappe-ui";
 import { computed, ref, watch } from "vue";
 
 const searchQuery = ref("");
 const selectedCategory = ref(null);
+const selectedPriceRange = ref(null);
+const selectedSort = ref(null);
 const debouncedSearchQuery = ref("");
 const allCategories = ref([]); // Store categories from initial load
 const currentPage = ref(1);
 const pageSize = 12;
+const priceRangeInfo = ref({ min_price: 0, max_price: 1000, currency: "USD" });
 let debounceTimer = null;
+
+// Sort options
+const sortOptions = [
+	{ label: "Name: A-Z", value: "name_asc" },
+	{ label: "Name: Z-A", value: "name_desc" },
+	{ label: "Price: Low to High", value: "price_asc" },
+	{ label: "Price: High to Low", value: "price_desc" },
+	{ label: "Duration: Shortest", value: "duration_asc" },
+	{ label: "Duration: Longest", value: "duration_desc" },
+];
 
 // Client-side debouncing for search input
 watch(searchQuery, (newValue) => {
@@ -164,6 +189,21 @@ const serviceTypesResource = createResource({
 			params.item_group = selectedCategory.value;
 		}
 
+		// Add sort parameter
+		if (selectedSort.value) {
+			params.sort_by = selectedSort.value;
+		}
+
+		// Add price range parameters
+		if (
+			selectedPriceRange.value &&
+			(selectedPriceRange.value.min !== priceRangeInfo.value.min_price ||
+				selectedPriceRange.value.max !== priceRangeInfo.value.max_price)
+		) {
+			params.min_price = selectedPriceRange.value.min;
+			params.max_price = selectedPriceRange.value.max;
+		}
+
 		return params;
 	},
 	onSuccess(response) {
@@ -179,14 +219,36 @@ const serviceTypesResource = createResource({
 	},
 });
 
+// Fetch price range for slider
+const priceRangeResource = createResource({
+	url: "frappoint.frappoint.api.service_type.get_price_range",
+	method: "GET",
+	auto: true,
+	onSuccess(response) {
+		if (response) {
+			priceRangeInfo.value = response;
+			// Initialize selectedPriceRange with full range
+			if (!selectedPriceRange.value) {
+				selectedPriceRange.value = {
+					min: response.min_price,
+					max: response.max_price,
+				};
+			}
+		}
+	},
+});
+
 // Watch for changes and reload data, reset to page 1 when filters change
-watch(selectedCategory, () => {
+watch([selectedCategory, selectedPriceRange, selectedSort], () => {
 	currentPage.value = 1;
 });
 
-watch([debouncedSearchQuery, selectedCategory, currentPage], () => {
-	serviceTypesResource.reload();
-});
+watch(
+	[debouncedSearchQuery, selectedCategory, selectedPriceRange, selectedSort, currentPage],
+	() => {
+		serviceTypesResource.reload();
+	}
+);
 
 const serviceTypes = computed(() => {
 	if (serviceTypesResource.data?.data) {
@@ -205,9 +267,41 @@ const pagination = computed(() => {
 // Use the stored categories (from initial load)
 const categories = computed(() => allCategories.value);
 
+// Format options for Combobox component
+const categoryOptions = computed(() => {
+	const options = [
+		{ label: "All Categories", value: null },
+		...allCategories.value.map((category) => ({
+			label: category,
+			value: category,
+		})),
+	];
+	return options;
+});
+
+// Check if any filters are active
+const hasActiveFilters = computed(() => {
+	const priceRangeActive =
+		selectedPriceRange.value &&
+		(selectedPriceRange.value.min !== priceRangeInfo.value.min_price ||
+			selectedPriceRange.value.max !== priceRangeInfo.value.max_price);
+
+	return !!(
+		searchQuery.value ||
+		selectedCategory.value ||
+		priceRangeActive ||
+		selectedSort.value
+	);
+});
+
 function clearFilters() {
 	searchQuery.value = "";
 	selectedCategory.value = null;
+	selectedPriceRange.value = {
+		min: priceRangeInfo.value.min_price,
+		max: priceRangeInfo.value.max_price,
+	};
+	selectedSort.value = null;
 	currentPage.value = 1;
 }
 
