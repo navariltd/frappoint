@@ -1,3 +1,5 @@
+import router from "./router";
+
 export function formatCurrency(amount, currency) {
 	return Intl.NumberFormat("en-US", { style: "currency", currency: currency }).format(amount);
 }
@@ -16,4 +18,11 @@ export function buildDate(date, time) {
 	);
 
 	return isNaN(d.getTime()) ? null : d;
+}
+
+export function handleAppointmentCancel(appointmentId) {
+	router.push({ name: "CancelAppointment", params: { id: appointmentId } });
+}
+export function handleAppointmentReschedule(appointmentId) {
+	router.push({ name: "RescheduleAppointment", params: { id: appointmentId } });
 }
