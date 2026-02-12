@@ -187,14 +187,14 @@
 						"
 					>
 						<button
-							@click="handleReschedule"
+							@click="handleAppointmentReschedule"
 							class="flex-1 bg-teal-600 text-white font-medium py-2.5 px-4 rounded-lg hover:bg-teal-700 transition-colors flex items-center justify-center gap-2 shadow-sm"
 						>
 							<FeatherIcon name="calendar" class="w-4 h-4" />
 							Reschedule Appointment
 						</button>
 						<button
-							@click="handleCancel"
+							@click="handleAppointmentCancel"
 							class="flex-1 bg-white text-red-600 border border-red-200 font-medium py-2.5 px-4 rounded-lg hover:bg-red-50 hover:border-red-300 transition-colors flex items-center justify-center gap-2 shadow-sm"
 						>
 							<FeatherIcon name="x-circle" class="w-4 h-4" />
@@ -247,12 +247,12 @@
 
 <script setup>
 import { FeatherIcon, createDocumentResource, createResource } from "frappe-ui";
-import { useRoute, useRouter } from "vue-router";
+import { useRoute } from "vue-router";
 import { computed, watch } from "vue";
+import { handleAppointmentCancel, handleAppointmentReschedule } from "@/utils";
 import defaultAvatar from "@/assets/images/profile-circle.svg";
 
 const route = useRoute();
-const router = useRouter();
 
 const appointmentId = route.params.id;
 
@@ -336,16 +336,5 @@ function getStatusColor(status) {
 		Rescheduled: "bg-orange-100 text-orange-700",
 	};
 	return colors[status] || "bg-gray-100 text-gray-700";
-}
-
-function handleReschedule() {
-	router.push({
-		name: "RescheduleAppointment",
-		params: { id: appointmentId },
-	});
-}
-
-function handleCancel() {
-	router.push({ name: "CancelAppointment", params: { id: appointmentId } });
 }
 </script>

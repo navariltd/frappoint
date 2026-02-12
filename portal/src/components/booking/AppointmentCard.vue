@@ -132,13 +132,13 @@
 			<!-- Next Up Actions -->
 			<div v-if="variant === 'next'" class="flex flex-col gap-1.5 sm:gap-2">
 				<button
-					@click.stop
+					@click="handleAppointmentReschedule"
 					class="px-2.5 sm:px-4 py-1.5 sm:py-2 bg-teal-600 text-white text-xs sm:text-sm font-medium rounded-md sm:rounded-lg hover:bg-teal-700 transition-colors whitespace-nowrap"
 				>
 					Reschedule
 				</button>
 				<button
-					@click.stop
+					@click="handleAppointmentCancel"
 					class="px-2.5 sm:px-4 py-1.5 sm:py-2 text-gray-600 text-xs sm:text-sm font-medium hover:text-red-600 transition-colors whitespace-nowrap"
 				>
 					Cancel
@@ -192,6 +192,7 @@
 </template>
 
 <script setup>
+import { handleAppointmentCancel, handleAppointmentReschedule } from "@/utils";
 import { computed } from "vue";
 import { useRouter } from "vue-router";
 
