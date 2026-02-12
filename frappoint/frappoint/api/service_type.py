@@ -118,7 +118,10 @@ def get_service_types(
 	for service in service_types:
 		prices = frappe.get_all(
 			"Service Type Price",
-			filters={"parent": service.name, "duration": service.default_duration_in_minutes},
+			filters={
+				"parent": service.name,
+				"duration": service.default_duration_in_minutes,
+			},
 			fields=["price_name", "amount", "duration", "currency"],
 			limit=1,
 		)
@@ -155,6 +158,48 @@ def get_service_types(
 			"has_previous": page > 1,
 		},
 	}
+
+
+@frappe.whitelist(allow_guest=True)  # nosemgrep: guest-whitelisted-method
+def get_price_range(company: str | None = None, item_group: str | None = None) -> dict:
+	"""
+	Get the minimum and maximum price across all service types
+	Use case: Set slider limits for price range filter
+
+	Args:
+	        company: Filter by company
+	        item_group: Filter by item group/category
+	"""
+	filters: dict[str, int | str | list] = {"parenttype": "Service Type"}
+
+	if company or item_group:
+		service_type_filters: dict[str, int | str] = {"disabled": 0}
+		if company:
+			service_type_filters["company"] = company
+		if item_group:
+			service_type_filters["item_group"] = item_group
+
+		service_types = frappe.get_all(
+			"Service Type", filters=service_type_filters, fields=["name"], pluck="name"
+		)
+
+		if not service_types:
+			return {"min_price": 0, "max_price": 0}
+
+		filters["parent"] = ["in", service_types]
+
+	prices = frappe.get_all("Service Type Price", filters=filters, fields=["amount"], order_by="amount")
+
+	if not prices:
+		return {"min_price": 0, "max_price": 1000}
+
+	min_price = min(p.amount for p in prices)
+	max_price = max(p.amount for p in prices)
+
+	min_price = int(min_price / 10) * 10
+	max_price = int((max_price + 9) / 10) * 10  # Round up
+
+	return {"min_price": min_price, "max_price": max_price}
 
 
 @frappe.whitelist(allow_guest=True)  # nosemgrep: guest-whitelisted-method
