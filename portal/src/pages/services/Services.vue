@@ -12,8 +12,8 @@
 
 		<!-- Search & Filters section  -->
 		<div class="flex flex-col gap-3 my-6 md:my-8">
-			<!-- Row 1: Search + Category -->
-			<div class="flex flex-col sm:flex-row gap-3">
+			<!-- All Filters in One Row for Desktop -->
+			<div class="flex flex-col lg:flex-row gap-3">
 				<!-- Search Bar -->
 				<div class="relative flex-1">
 					<FeatherIcon class="h-5 text-gray-500 absolute top-2.5 left-4" name="search" />
@@ -37,27 +37,30 @@
 					v-model="selectedCategory"
 					:options="categoryOptions"
 					placeholder="All Categories"
-					class="sm:w-56"
+					class="w-full lg:w-56"
 				/>
-			</div>
 
-			<!-- Row 2: Additional Filters -->
-			<div class="flex flex-wrap items-center gap-3">
+				<!-- Price Range Filter -->
 				<PriceRangeFilter
 					v-model="selectedPriceRange"
 					:min="priceRangeInfo.min_price"
 					:max="priceRangeInfo.max_price"
 					:currency="priceRangeInfo.currency"
-					class="w-full sm:w-80"
+					class="w-full lg:w-64"
 				/>
+
+				<!-- Sort Filter -->
 				<SortFilter
 					v-model="selectedSort"
 					:options="sortOptions"
 					placeholder="Sort by"
-					class="w-full sm:w-52"
+					class="w-full lg:w-52"
 				/>
+			</div>
+
+			<!-- Clear Filters Button -->
+			<div v-if="hasActiveFilters" class="flex">
 				<button
-					v-if="hasActiveFilters"
 					@click="clearFilters"
 					class="text-sm text-gray-600 hover:text-primary transition-colors font-medium flex items-center gap-1"
 				>

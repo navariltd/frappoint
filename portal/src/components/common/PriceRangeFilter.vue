@@ -109,6 +109,11 @@ const emit = defineEmits(["update:modelValue"]);
 
 const isOpen = ref(false);
 
+// Round up to nearest hundred
+const roundToNearestHundred = (value) => {
+	return Math.ceil(value / 100) * 100;
+};
+
 // Dynamically generate price ranges based on min and max props
 const priceRanges = computed(() => {
 	const range = props.max - props.min;
@@ -116,8 +121,8 @@ const priceRanges = computed(() => {
 	const ranges = [];
 
 	for (let i = 0; i < 4; i++) {
-		const rangeMin = props.min + step * i;
-		const rangeMax = props.min + step * (i + 1);
+		const rangeMin = roundToNearestHundred(props.min + step * i);
+		const rangeMax = roundToNearestHundred(props.min + step * (i + 1));
 		ranges.push({
 			label: `${formatCurrency(rangeMin, props.currency)} - ${formatCurrency(
 				rangeMax,
@@ -130,7 +135,7 @@ const priceRanges = computed(() => {
 	}
 
 	// Last range is "X+"
-	const lastMin = props.min + step * 4;
+	const lastMin = roundToNearestHundred(props.min + step * 4);
 	ranges.push({
 		label: `${formatCurrency(lastMin, props.currency)}+`,
 		value: `${lastMin}+`,
