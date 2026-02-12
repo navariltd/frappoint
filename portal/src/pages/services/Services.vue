@@ -47,6 +47,7 @@
 					v-model="selectedPriceRange"
 					:min="priceRangeInfo.min_price"
 					:max="priceRangeInfo.max_price"
+					:currency="priceRangeInfo.currency"
 					class="w-full sm:w-80"
 				/>
 				<SortFilter

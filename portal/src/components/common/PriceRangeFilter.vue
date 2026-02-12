@@ -60,7 +60,7 @@
 					v-for="range in priceRanges"
 					:key="range.value"
 					@click="selectOption(range)"
-					class="px-4 py-2.5 text-sm md:text-base cursor-pointer transition-colors flex items-center gap-2"
+					class="px-4 py-2.5 text-sm md:text-base cursor-pointer transition-colors flex items-center gap-2 whitespace-nowrap"
 					:class="
 						selectedRange === range.value
 							? 'bg-primary/10 text-primary font-medium'
@@ -84,6 +84,7 @@
 <script setup>
 import { FeatherIcon } from "frappe-ui";
 import { computed, ref, watch, onMounted, onUnmounted } from "vue";
+import { formatCurrency } from "@/utils";
 
 const props = defineProps({
 	modelValue: {
@@ -98,19 +99,47 @@ const props = defineProps({
 		type: Number,
 		default: 1000,
 	},
+	currency: {
+		type: String,
+		default: "USD",
+	},
 });
 
 const emit = defineEmits(["update:modelValue"]);
 
 const isOpen = ref(false);
 
-const priceRanges = [
-	{ label: "$0 - $50", value: "0-50", min: 0, max: 50 },
-	{ label: "$50 - $100", value: "50-100", min: 50, max: 100 },
-	{ label: "$100 - $200", value: "100-200", min: 100, max: 200 },
-	{ label: "$200 - $500", value: "200-500", min: 200, max: 500 },
-	{ label: "$500+", value: "500+", min: 500, max: props.max },
-];
+// Dynamically generate price ranges based on min and max props
+const priceRanges = computed(() => {
+	const range = props.max - props.min;
+	const step = Math.ceil(range / 5); // Divide into 5 ranges
+	const ranges = [];
+
+	for (let i = 0; i < 4; i++) {
+		const rangeMin = props.min + step * i;
+		const rangeMax = props.min + step * (i + 1);
+		ranges.push({
+			label: `${formatCurrency(rangeMin, props.currency)} - ${formatCurrency(
+				rangeMax,
+				props.currency
+			)}`,
+			value: `${rangeMin}-${rangeMax}`,
+			min: rangeMin,
+			max: rangeMax,
+		});
+	}
+
+	// Last range is "X+"
+	const lastMin = props.min + step * 4;
+	ranges.push({
+		label: `${formatCurrency(lastMin, props.currency)}+`,
+		value: `${lastMin}+`,
+		min: lastMin,
+		max: props.max,
+	});
+
+	return ranges;
+});
 
 const selectedRange = ref("");
 
@@ -118,7 +147,7 @@ const displayText = computed(() => {
 	if (!selectedRange.value) {
 		return "All Prices";
 	}
-	const range = priceRanges.find((r) => r.value === selectedRange.value);
+	const range = priceRanges.value.find((r) => r.value === selectedRange.value);
 	return range ? range.label : "All Prices";
 });
 
@@ -127,7 +156,7 @@ watch(
 	() => props.modelValue,
 	(newValue) => {
 		if (newValue && (newValue.min !== props.min || newValue.max !== props.max)) {
-			const matchingRange = priceRanges.find(
+			const matchingRange = priceRanges.value.find(
 				(r) => r.min === newValue.min && r.max === newValue.max
 			);
 			selectedRange.value = matchingRange ? matchingRange.value : "";
