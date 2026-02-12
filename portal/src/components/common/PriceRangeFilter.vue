@@ -1,59 +1,89 @@
 <template>
-	<div class="bg-white border-2 border-gray-200 rounded-lg px-6 py-6">
-		<!-- Header -->
-		<div class="flex items-center gap-2 mb-6">
-			<!-- <FeatherIcon class="h-5 text-primary" name="dollar-sign" /> -->
-			<span class="text-sm font-semibold text-gray-700">Price Range</span>
+	<div class="relative">
+		<div
+			class="flex items-center gap-2 px-4 py-2.5 bg-white border-2 border-gray-200 rounded-lg hover:border-primary/50 transition-all cursor-pointer group"
+			:class="{ 'border-primary': isOpen }"
+			@click="toggleDropdown"
+		>
+			<FeatherIcon
+				class="h-4 flex-shrink-0 transition-colors"
+				:class="selectedRange ? 'text-primary' : 'text-gray-400 group-hover:text-primary'"
+				name="dollar-sign"
+			/>
+			<span
+				class="flex-1 text-sm md:text-base truncate transition-colors"
+				:class="
+					selectedRange
+						? 'text-gray-900 font-medium'
+						: 'text-gray-500 group-hover:text-gray-700'
+				"
+			>
+				{{ displayText }}
+			</span>
+			<FeatherIcon
+				class="h-4 flex-shrink-0 text-gray-400 transition-transform"
+				:class="{ 'rotate-180': isOpen }"
+				name="chevron-down"
+			/>
 		</div>
 
-		<!-- Slider Container -->
-		<div class="relative pt-2 pb-8">
-			<!-- Track Background -->
-			<div class="absolute top-2 w-full h-1 bg-gray-200 rounded-full"></div>
-
-			<!-- Active Track -->
+		<!-- Dropdown Menu -->
+		<Transition
+			enter-active-class="transition ease-out duration-100"
+			enter-from-class="transform opacity-0 scale-95"
+			enter-to-class="transform opacity-100 scale-100"
+			leave-active-class="transition ease-in duration-75"
+			leave-from-class="transform opacity-100 scale-100"
+			leave-to-class="transform opacity-0 scale-95"
+		>
 			<div
-				class="absolute top-2 h-1 bg-primary rounded-full"
-				:style="{
-					left: minPercent + '%',
-					width: maxPercent - minPercent + '%',
-				}"
-			></div>
-
-			<!-- Min Range Input -->
-			<input
-				type="range"
-				:min="min"
-				:max="max"
-				:step="step"
-				v-model.number="minValue"
-				@input="updateMinValue"
-				class="range-slider absolute w-full h-1 top-2 pointer-events-none appearance-none bg-transparent"
-			/>
-
-			<!-- Max Range Input -->
-			<input
-				type="range"
-				:min="min"
-				:max="max"
-				:step="step"
-				v-model.number="maxValue"
-				@input="updateMaxValue"
-				class="range-slider absolute w-full h-1 top-2 pointer-events-none appearance-none bg-transparent"
-			/>
-
-			<!-- Price Labels -->
-			<div class="flex justify-between text-sm text-gray-600 mt-6">
-				<span>${{ formatPrice(min) }}</span>
-				<span>${{ formatPrice(max) }}</span>
+				v-if="isOpen"
+				class="absolute z-50 mt-2 w-full bg-white rounded-lg shadow-lg border border-gray-200 py-1 max-h-60 overflow-y-auto"
+			>
+				<div
+					@click="selectOption(null)"
+					class="px-4 py-2.5 text-sm md:text-base cursor-pointer transition-colors flex items-center gap-2"
+					:class="
+						!selectedRange
+							? 'bg-primary/10 text-primary font-medium'
+							: 'text-gray-700 hover:bg-gray-50'
+					"
+				>
+					<FeatherIcon
+						v-if="!selectedRange"
+						class="h-4 text-primary flex-shrink-0"
+						name="check"
+					/>
+					<span :class="{ 'ml-6': selectedRange }">All Prices</span>
+				</div>
+				<div
+					v-for="range in priceRanges"
+					:key="range.value"
+					@click="selectOption(range)"
+					class="px-4 py-2.5 text-sm md:text-base cursor-pointer transition-colors flex items-center gap-2"
+					:class="
+						selectedRange === range.value
+							? 'bg-primary/10 text-primary font-medium'
+							: 'text-gray-700 hover:bg-gray-50'
+					"
+				>
+					<FeatherIcon
+						v-if="selectedRange === range.value"
+						class="h-4 text-primary flex-shrink-0"
+						name="check"
+					/>
+					<span :class="{ 'ml-6': selectedRange !== range.value }">
+						{{ range.label }}
+					</span>
+				</div>
 			</div>
-		</div>
+		</Transition>
 	</div>
 </template>
 
 <script setup>
 import { FeatherIcon } from "frappe-ui";
-import { computed, ref, watch } from "vue";
+import { computed, ref, watch, onMounted, onUnmounted } from "vue";
 
 const props = defineProps({
 	modelValue: {
@@ -68,103 +98,72 @@ const props = defineProps({
 		type: Number,
 		default: 1000,
 	},
-	step: {
-		type: Number,
-		default: 10,
-	},
 });
 
 const emit = defineEmits(["update:modelValue"]);
 
-const minValue = ref(props.modelValue?.min ?? props.min);
-const maxValue = ref(props.modelValue?.max ?? props.max);
+const isOpen = ref(false);
 
-// Watch for external changes to modelValue
+const priceRanges = [
+	{ label: "$0 - $50", value: "0-50", min: 0, max: 50 },
+	{ label: "$50 - $100", value: "50-100", min: 50, max: 100 },
+	{ label: "$100 - $200", value: "100-200", min: 100, max: 200 },
+	{ label: "$200 - $500", value: "200-500", min: 200, max: 500 },
+	{ label: "$500+", value: "500+", min: 500, max: props.max },
+];
+
+const selectedRange = ref("");
+
+const displayText = computed(() => {
+	if (!selectedRange.value) {
+		return "All Prices";
+	}
+	const range = priceRanges.find((r) => r.value === selectedRange.value);
+	return range ? range.label : "All Prices";
+});
+
+// Initialize selected range based on modelValue
 watch(
 	() => props.modelValue,
 	(newValue) => {
-		if (newValue) {
-			minValue.value = newValue.min ?? props.min;
-			maxValue.value = newValue.max ?? props.max;
+		if (newValue && (newValue.min !== props.min || newValue.max !== props.max)) {
+			const matchingRange = priceRanges.find(
+				(r) => r.min === newValue.min && r.max === newValue.max
+			);
+			selectedRange.value = matchingRange ? matchingRange.value : "";
+		} else {
+			selectedRange.value = "";
 		}
 	},
-	{ deep: true }
+	{ immediate: true }
 );
 
-// Compute percentages for styling
-const minPercent = computed(() => {
-	return ((minValue.value - props.min) / (props.max - props.min)) * 100;
+function toggleDropdown() {
+	isOpen.value = !isOpen.value;
+}
+
+function selectOption(range) {
+	if (!range) {
+		selectedRange.value = "";
+		emit("update:modelValue", { min: props.min, max: props.max });
+	} else {
+		selectedRange.value = range.value;
+		emit("update:modelValue", { min: range.min, max: range.max });
+	}
+	isOpen.value = false;
+}
+
+function closeDropdown(event) {
+	if (!event.target.closest(".relative")) {
+		isOpen.value = false;
+	}
+}
+
+onMounted(() => {
+	document.addEventListener("click", closeDropdown);
 });
 
-const maxPercent = computed(() => {
-	return ((maxValue.value - props.min) / (props.max - props.min)) * 100;
+onUnmounted(() => {
+	document.removeEventListener("click", closeDropdown);
 });
-
-function updateMinValue() {
-	if (minValue.value > maxValue.value - props.step) {
-		minValue.value = maxValue.value - props.step;
-	}
-	emitValue();
-}
-
-function updateMaxValue() {
-	if (maxValue.value < minValue.value + props.step) {
-		maxValue.value = minValue.value + props.step;
-	}
-	emitValue();
-}
-
-function emitValue() {
-	emit("update:modelValue", {
-		min: minValue.value,
-		max: maxValue.value,
-	});
-}
-
-function formatPrice(value) {
-	return new Intl.NumberFormat("en-US", {
-		minimumFractionDigits: 0,
-		maximumFractionDigits: 0,
-	}).format(value);
-}
 </script>
-
-<style scoped>
-/* Style for the range slider thumb */
-.range-slider::-webkit-slider-thumb {
-	pointer-events: all;
-	width: 20px;
-	height: 20px;
-	border-radius: 50%;
-	border: 3px solid white;
-	background: #6366f1; /* primary color */
-	cursor: pointer;
-	appearance: none;
-	box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
-	position: relative;
-	z-index: 10;
-}
-
-.range-slider::-moz-range-thumb {
-	pointer-events: all;
-	width: 20px;
-	height: 20px;
-	border-radius: 50%;
-	border: 3px solid white;
-	background: #6366f1;
-	cursor: pointer;
-	box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
-	position: relative;
-	z-index: 10;
-}
-
-.range-slider::-webkit-slider-thumb:hover {
-	background: #4f46e5;
-	transform: scale(1.1);
-}
-
-.range-slider::-moz-range-thumb:hover {
-	background: #4f46e5;
-	transform: scale(1.1);
-}
-</style>
