@@ -93,29 +93,157 @@
 		</div>
 
 		<!-- Main Content -->
-		<div class="grid grid-cols-1 xl:grid-cols-3 gap-4 sm:gap-6 max-w-7xl mx-auto">
-			<!-- Left Column - Appointments List -->
-			<div class="xl:col-span-2 space-y-4 sm:space-y-6">
-				<!-- Loading State -->
-				<div v-if="appointmentsResourceList.loading" class="space-y-4">
-					<AppointmentCardSkeleton v-for="i in 3" :key="i" />
+		<div class="max-w-7xl mx-auto">
+			<!-- Calendar View -->
+			<div v-if="viewMode === 'calendar'" class="bg-white rounded-2xl shadow-sm p-4 sm:p-6">
+				<Calendar
+					:config="{
+						defaultMode: 'Month',
+						isEditMode: false,
+						eventIcons: {},
+						allowCustomClickEvents: true,
+						enableShortcuts: false,
+					}"
+					:events="calendarEvents"
+				/>
+			</div>
+
+			<!-- List View -->
+			<div v-else class="grid grid-cols-1 xl:grid-cols-3 gap-4 sm:gap-6">
+				<!-- Left Column - Appointments List -->
+				<div class="xl:col-span-2 space-y-4 sm:space-y-6">
+					<!-- Loading State -->
+					<div v-if="appointmentsResourceList.loading" class="space-y-4">
+						<AppointmentCardSkeleton v-for="i in 3" :key="i" />
+					</div>
+
+					<!-- Empty State -->
+					<div
+						v-else-if="
+							!nextUp &&
+							upcomingAppointments.length === 0 &&
+							pastAppointments.length === 0
+						"
+						class="bg-white rounded-2xl shadow-sm p-8 sm:p-12 text-center"
+					>
+						<div class="max-w-md mx-auto">
+							<div
+								class="w-16 h-16 sm:w-20 sm:h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4"
+							>
+								<svg
+									class="w-8 h-8 sm:w-10 sm:h-10 text-gray-400"
+									fill="none"
+									stroke="currentColor"
+									viewBox="0 0 24 24"
+								>
+									<path
+										stroke-linecap="round"
+										stroke-linejoin="round"
+										stroke-width="2"
+										d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+									/>
+								</svg>
+							</div>
+							<h3 class="text-lg sm:text-xl font-bold text-gray-900 mb-2">
+								You have no bookings yet
+							</h3>
+							<p class="text-sm sm:text-base text-gray-500 mb-6">
+								Start by browsing our services and booking your first appointment.
+							</p>
+							<button
+								@click="router.push({ name: 'Services' })"
+								class="inline-flex items-center justify-center gap-2 bg-gray-900 text-white px-6 py-3 rounded-lg hover:bg-gray-800 transition-colors shadow-sm font-medium text-sm"
+							>
+								<svg
+									class="w-5 h-5"
+									fill="none"
+									stroke="currentColor"
+									viewBox="0 0 24 24"
+								>
+									<path
+										stroke-linecap="round"
+										stroke-linejoin="round"
+										stroke-width="2"
+										d="M12 4v16m8-8H4"
+									/>
+								</svg>
+								Browse Services
+							</button>
+						</div>
+					</div>
+
+					<!-- Next Up Section -->
+					<div v-if="nextUp">
+						<div class="flex justify-between items-center mb-3 sm:mb-4">
+							<h3
+								class="text-xs sm:text-sm font-semibold text-gray-400 tracking-wider"
+							>
+								NEXT UP
+							</h3>
+							<span
+								class="px-2 sm:px-3 py-0.5 sm:py-1 bg-green-50 text-green-600 text-[10px] sm:text-xs font-medium rounded-full"
+								>Confirmed</span
+							>
+						</div>
+						<AppointmentCard :appointment="nextUp" variant="next" />
+					</div>
+
+					<!-- Upcoming Section -->
+					<div v-if="upcomingAppointments.length > 0">
+						<h3
+							class="text-xs sm:text-sm font-semibold text-gray-400 tracking-wider mb-3 sm:mb-4"
+						>
+							UPCOMING
+						</h3>
+						<div class="space-y-3 sm:space-y-4">
+							<AppointmentCard
+								v-for="appointment in upcomingAppointments"
+								:appointment="appointment"
+								:key="appointment.name"
+							/>
+						</div>
+					</div>
+
+					<!-- Past Section -->
+					<div v-if="pastAppointments.length > 0">
+						<h3
+							class="text-xs sm:text-sm font-semibold text-gray-400 tracking-wider mb-3 sm:mb-4"
+						>
+							PAST
+						</h3>
+						<div class="space-y-3 sm:space-y-4">
+							<AppointmentCard
+								v-for="appointment in pastAppointments"
+								:appointment="appointment"
+								:key="appointment.name"
+								variant="past"
+							/>
+						</div>
+					</div>
 				</div>
 
-				<!-- Empty State -->
-				<div
-					v-else-if="
-						!nextUp &&
-						upcomingAppointments.length === 0 &&
-						pastAppointments.length === 0
-					"
-					class="bg-white rounded-2xl shadow-sm p-8 sm:p-12 text-center"
-				>
-					<div class="max-w-md mx-auto">
-						<div
-							class="w-16 h-16 sm:w-20 sm:h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4"
-						>
+				<!-- Right Column - Calendar & Rewards -->
+				<div class="hidden xl:flex flex-col gap-6">
+					<!-- Calendar Widget -->
+					<div class="bg-white rounded-2xl shadow-sm p-6">
+						<Calendar
+							:config="{
+								defaultMode: 'Month',
+								isEditMode: false,
+								eventIcons: {},
+								allowCustomClickEvents: true,
+								enableShortcuts: false,
+							}"
+						/>
+					</div>
+
+					<!-- Rewards Card -->
+					<div
+						class="bg-gradient-to-br from-teal-600 to-teal-700 rounded-2xl shadow-lg p-6 text-white"
+					>
+						<div class="flex items-center gap-2 mb-3">
 							<svg
-								class="w-8 h-8 sm:w-10 sm:h-10 text-gray-400"
+								class="w-6 h-6"
 								fill="none"
 								stroke="currentColor"
 								viewBox="0 0 24 24"
@@ -124,122 +252,20 @@
 									stroke-linecap="round"
 									stroke-linejoin="round"
 									stroke-width="2"
-									d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+									d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"
 								/>
 							</svg>
 						</div>
-						<h3 class="text-lg sm:text-xl font-bold text-gray-900 mb-2">
-							You have no bookings yet
+						<p class="text-xs font-medium opacity-90 mb-2">REWARDS</p>
+						<h3 class="text-xl font-semibold mb-4">
+							You have 2 free sessions pending
 						</h3>
-						<p class="text-sm sm:text-base text-gray-500 mb-6">
-							Start by browsing our services and booking your first appointment.
-						</p>
 						<button
-							@click="router.push({ name: 'Services' })"
-							class="inline-flex items-center justify-center gap-2 bg-gray-900 text-white px-6 py-3 rounded-lg hover:bg-gray-800 transition-colors shadow-sm font-medium text-sm"
+							class="w-full bg-white text-teal-600 font-medium py-3 rounded-lg hover:bg-gray-50 transition-colors"
 						>
-							<svg
-								class="w-5 h-5"
-								fill="none"
-								stroke="currentColor"
-								viewBox="0 0 24 24"
-							>
-								<path
-									stroke-linecap="round"
-									stroke-linejoin="round"
-									stroke-width="2"
-									d="M12 4v16m8-8H4"
-								/>
-							</svg>
-							Browse Services
+							Redeem Now
 						</button>
 					</div>
-				</div>
-
-				<!-- Next Up Section -->
-				<div v-if="nextUp">
-					<div class="flex justify-between items-center mb-3 sm:mb-4">
-						<h3 class="text-xs sm:text-sm font-semibold text-gray-400 tracking-wider">
-							NEXT UP
-						</h3>
-						<span
-							class="px-2 sm:px-3 py-0.5 sm:py-1 bg-green-50 text-green-600 text-[10px] sm:text-xs font-medium rounded-full"
-							>Confirmed</span
-						>
-					</div>
-					<AppointmentCard :appointment="nextUp" variant="next" />
-				</div>
-
-				<!-- Upcoming Section -->
-				<div v-if="upcomingAppointments.length > 0">
-					<h3
-						class="text-xs sm:text-sm font-semibold text-gray-400 tracking-wider mb-3 sm:mb-4"
-					>
-						UPCOMING
-					</h3>
-					<div class="space-y-3 sm:space-y-4">
-						<AppointmentCard
-							v-for="appointment in upcomingAppointments"
-							:appointment="appointment"
-							:key="appointment.name"
-						/>
-					</div>
-				</div>
-
-				<!-- Past Section -->
-				<div v-if="pastAppointments.length > 0">
-					<h3
-						class="text-xs sm:text-sm font-semibold text-gray-400 tracking-wider mb-3 sm:mb-4"
-					>
-						PAST
-					</h3>
-					<div class="space-y-3 sm:space-y-4">
-						<AppointmentCard
-							v-for="appointment in pastAppointments"
-							:appointment="appointment"
-							:key="appointment.name"
-							variant="past"
-						/>
-					</div>
-				</div>
-			</div>
-
-			<!-- Right Column - Calendar & Rewards -->
-			<div class="hidden xl:flex flex-col gap-6">
-				<!-- Calendar Widget -->
-				<div class="bg-white rounded-2xl shadow-sm p-6">
-					<Calendar
-						:config="{
-							defaultMode: 'Month',
-							isEditMode: false,
-							eventIcons: {},
-							allowCustomClickEvents: true,
-							enableShortcuts: false,
-						}"
-					/>
-				</div>
-
-				<!-- Rewards Card -->
-				<div
-					class="bg-gradient-to-br from-teal-600 to-teal-700 rounded-2xl shadow-lg p-6 text-white"
-				>
-					<div class="flex items-center gap-2 mb-3">
-						<svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-							<path
-								stroke-linecap="round"
-								stroke-linejoin="round"
-								stroke-width="2"
-								d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"
-							/>
-						</svg>
-					</div>
-					<p class="text-xs font-medium opacity-90 mb-2">REWARDS</p>
-					<h3 class="text-xl font-semibold mb-4">You have 2 free sessions pending</h3>
-					<button
-						class="w-full bg-white text-teal-600 font-medium py-3 rounded-lg hover:bg-gray-50 transition-colors"
-					>
-						Redeem Now
-					</button>
 				</div>
 			</div>
 		</div>
@@ -319,5 +345,30 @@ const pastAppointments = computed(() => {
 			const dateB = new Date(b.appointment_date);
 			return dateB - dateA;
 		});
+});
+
+// Transform appointments for Calendar component
+const calendarEvents = computed(() => {
+	return appointments.value.map((apt) => {
+		// Determine color based on status
+		let color = "blue";
+		if (apt.status === "Confirmed") color = "green";
+		else if (apt.status === "Pending") color = "amber";
+		else if (apt.status === "Completed") color = "gray";
+		else if (apt.status === "In Progress") color = "violet";
+
+		return {
+			id: apt.name,
+			title: apt.service_type || "Appointment",
+			participant: apt.service_provider_name || "",
+			fromDate: apt.appointment_date,
+			toDate: apt.appointment_date,
+			fromTime: apt.start_time || "00:00:00",
+			toTime: apt.end_time || "23:59:59",
+			venue: apt.service_unit || "",
+			color: color,
+			isFullDay: false,
+		};
+	});
 });
 </script>
