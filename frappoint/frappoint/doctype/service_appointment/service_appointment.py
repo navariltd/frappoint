@@ -875,11 +875,8 @@ class ServiceAppointment(Document):
 			return
 
 		item_code = frappe.db.get_value("Service Type", self.appointment_type, "item")
-		amount = frappe.db.get_value(
-			"Service Type Price",
-			{"price_name": self.appointment_price, "parent": self.appointment_type},
-			["amount"],
-		)
+		price_record = self.get_selected_price_record()
+		qty, rate = self.get_invoice_qty_and_rate(price_record)
 
 		try:
 			si = frappe.get_doc(
@@ -893,9 +890,8 @@ class ServiceAppointment(Document):
 					"items": [
 						{
 							"item_code": item_code,
-							"qty": 1,
-							"rate": amount,
-							"amount": amount,
+							"qty": qty,
+							"rate": rate,
 						}
 					],
 					"service_appointment": self.name,
@@ -908,6 +904,20 @@ class ServiceAppointment(Document):
 
 		except Exception as e:
 			self.log_and_throw_error("Sales Invoice", e)
+
+	def get_invoice_qty_and_rate(self, price_record):
+		pricing_model = price_record.pricing_model
+		guest_count = self.total_guests or 1
+		base_amount = flt(price_record.amount)
+
+		if pricing_model == "Per Guest":
+			return guest_count, base_amount
+
+		elif pricing_model == "Guest Tier":
+			return 1, base_amount
+
+		else:
+			return 1, base_amount
 
 	def handle_cancellation(self):
 		"""Handle appointment cancellation"""
