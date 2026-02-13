@@ -27,19 +27,7 @@
 								: 'text-gray-600 hover:text-gray-900',
 						]"
 					>
-						<svg
-							class="w-3.5 h-3.5 sm:w-4 sm:h-4"
-							fill="none"
-							stroke="currentColor"
-							viewBox="0 0 24 24"
-						>
-							<path
-								stroke-linecap="round"
-								stroke-linejoin="round"
-								stroke-width="2"
-								d="M4 6h16M4 12h16M4 18h16"
-							/>
-						</svg>
+						<ListIcon class="w-3.5 h-3.5 sm:w-4 sm:h-4" />
 						<span class="hidden xs:inline">List</span>
 					</button>
 					<button
@@ -51,19 +39,7 @@
 								: 'text-gray-600 hover:text-gray-900',
 						]"
 					>
-						<svg
-							class="w-3.5 h-3.5 sm:w-4 sm:h-4"
-							fill="none"
-							stroke="currentColor"
-							viewBox="0 0 24 24"
-						>
-							<path
-								stroke-linecap="round"
-								stroke-linejoin="round"
-								stroke-width="2"
-								d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
-							/>
-						</svg>
+						<CalendarIcon class="w-3.5 h-3.5 sm:w-4 sm:h-4" />
 						<span class="hidden xs:inline">Calendar</span>
 					</button>
 				</div>
@@ -73,19 +49,7 @@
 					@click="goToServices"
 					class="flex items-center justify-center gap-1.5 sm:gap-2 bg-gray-900 text-white px-3 sm:px-6 py-2 sm:py-2.5 rounded-lg hover:bg-gray-800 transition-colors shadow-sm font-medium text-xs sm:text-sm whitespace-nowrap flex-1 sm:flex-none"
 				>
-					<svg
-						class="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0"
-						fill="none"
-						stroke="currentColor"
-						viewBox="0 0 24 24"
-					>
-						<path
-							stroke-linecap="round"
-							stroke-linejoin="round"
-							stroke-width="2"
-							d="M12 4v16m8-8H4"
-						/>
-					</svg>
+					<PlusIcon class="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0" />
 					<span class="hidden xs:inline">New Booking</span>
 					<span class="xs:hidden">New</span>
 				</button>
@@ -110,19 +74,7 @@
 					<!-- Appointment Overview Card -->
 					<div class="bg-white rounded-2xl shadow-sm p-6">
 						<div class="flex items-center gap-2 mb-4">
-							<svg
-								class="w-5 h-5 text-gray-600"
-								fill="none"
-								stroke="currentColor"
-								viewBox="0 0 24 24"
-							>
-								<path
-									stroke-linecap="round"
-									stroke-linejoin="round"
-									stroke-width="2"
-									d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
-								/>
-							</svg>
+							<ClipboardIcon class="w-5 h-5 text-gray-600" />
 							<h3 class="text-sm font-semibold text-gray-900">QUICK OVERVIEW</h3>
 						</div>
 						<div class="space-y-4">
@@ -157,19 +109,7 @@
 						class="bg-gradient-to-br from-teal-600 to-teal-700 rounded-2xl shadow-lg p-6 text-white"
 					>
 						<div class="flex items-center gap-2 mb-3">
-							<svg
-								class="w-6 h-6"
-								fill="none"
-								stroke="currentColor"
-								viewBox="0 0 24 24"
-							>
-								<path
-									stroke-linecap="round"
-									stroke-linejoin="round"
-									stroke-width="2"
-									d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"
-								/>
-							</svg>
+							<TagIcon class="w-6 h-6" />
 						</div>
 						<p class="text-xs font-medium opacity-90 mb-2">REWARDS</p>
 						<h3 class="text-xl font-semibold mb-4">
@@ -206,19 +146,7 @@
 							<div
 								class="w-16 h-16 sm:w-20 sm:h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4"
 							>
-								<svg
-									class="w-8 h-8 sm:w-10 sm:h-10 text-gray-400"
-									fill="none"
-									stroke="currentColor"
-									viewBox="0 0 24 24"
-								>
-									<path
-										stroke-linecap="round"
-										stroke-linejoin="round"
-										stroke-width="2"
-										d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
-									/>
-								</svg>
+								<CalendarIcon class="w-8 h-8 sm:w-10 sm:h-10 text-gray-400" />
 							</div>
 							<h3 class="text-lg sm:text-xl font-bold text-gray-900 mb-2">
 								You have no bookings yet
@@ -230,26 +158,29 @@
 								@click="router.push({ name: 'Services' })"
 								class="inline-flex items-center justify-center gap-2 bg-gray-900 text-white px-6 py-3 rounded-lg hover:bg-gray-800 transition-colors shadow-sm font-medium text-sm"
 							>
-								<svg
-									class="w-5 h-5"
-									fill="none"
-									stroke="currentColor"
-									viewBox="0 0 24 24"
-								>
-									<path
-										stroke-linecap="round"
-										stroke-linejoin="round"
-										stroke-width="2"
-										d="M12 4v16m8-8H4"
-									/>
-								</svg>
-								Browse Services
+								<PlusIcon class="w-5 h-5" />
+								Book Your First Service
 							</button>
 						</div>
 					</div>
 
-					<!-- Next Up Section -->
-					<div v-if="nextUp">
+					<!-- Appointment Cards -->
+					<div v-else class="space-y-3 sm:space-y-4">
+						<AppointmentCard
+							v-for="appointment in appointments"
+							:key="appointment.name"
+							:appointment="appointment"
+							@update="appointments.reload()"
+						/>
+					</div>
+				</div>
+
+				<!-- Right Column - Sidebar -->
+				<div class="space-y-4 sm:space-y-6">
+					<!-- Quick Overview Card -->
+					<div
+						class="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden"
+					>
 						<div class="flex justify-between items-center mb-3 sm:mb-4">
 							<h3
 								class="text-xs sm:text-sm font-semibold text-gray-400 tracking-wider"
@@ -303,19 +234,7 @@
 					<!-- Appointment Overview Card -->
 					<div class="bg-white rounded-2xl shadow-sm p-6">
 						<div class="flex items-center gap-2 mb-4">
-							<svg
-								class="w-5 h-5 text-gray-600"
-								fill="none"
-								stroke="currentColor"
-								viewBox="0 0 24 24"
-							>
-								<path
-									stroke-linecap="round"
-									stroke-linejoin="round"
-									stroke-width="2"
-									d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
-								/>
-							</svg>
+							<ClipboardIcon class="w-5 h-5 text-gray-600" />
 							<h3 class="text-sm font-semibold text-gray-900">QUICK OVERVIEW</h3>
 						</div>
 						<div class="space-y-4">
@@ -350,19 +269,7 @@
 						class="bg-gradient-to-br from-teal-600 to-teal-700 rounded-2xl shadow-lg p-6 text-white"
 					>
 						<div class="flex items-center gap-2 mb-3">
-							<svg
-								class="w-6 h-6"
-								fill="none"
-								stroke="currentColor"
-								viewBox="0 0 24 24"
-							>
-								<path
-									stroke-linecap="round"
-									stroke-linejoin="round"
-									stroke-width="2"
-									d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"
-								/>
-							</svg>
+							<TagIcon class="w-6 h-6" />
 						</div>
 						<p class="text-xs font-medium opacity-90 mb-2">REWARDS</p>
 						<h3 class="text-xl font-semibold mb-4">
@@ -387,6 +294,11 @@ import { useRouter } from "vue-router";
 import { handleAppointmentCancel, handleAppointmentReschedule } from "@/utils";
 import AppointmentCard from "@/components/booking/AppointmentCard.vue";
 import AppointmentCardSkeleton from "@/components/booking/AppointmentCardSkeleton.vue";
+import ListIcon from "@/components/icons/ListIcon.vue";
+import CalendarIcon from "@/components/icons/CalendarIcon.vue";
+import PlusIcon from "@/components/icons/PlusIcon.vue";
+import ClipboardIcon from "@/components/icons/ClipboardIcon.vue";
+import TagIcon from "@/components/icons/TagIcon.vue";
 
 const router = useRouter();
 const viewMode = ref("list");
