@@ -105,8 +105,53 @@
 					</div>
 				</div>
 
-				<!-- Right Column - Rewards -->
+				<!-- Right Column - Stats & Rewards -->
 				<div class="hidden xl:flex flex-col gap-6">
+					<!-- Appointment Overview Card -->
+					<div class="bg-white rounded-2xl shadow-sm p-6">
+						<div class="flex items-center gap-2 mb-4">
+							<svg
+								class="w-5 h-5 text-gray-600"
+								fill="none"
+								stroke="currentColor"
+								viewBox="0 0 24 24"
+							>
+								<path
+									stroke-linecap="round"
+									stroke-linejoin="round"
+									stroke-width="2"
+									d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
+								/>
+							</svg>
+							<h3 class="text-sm font-semibold text-gray-900">QUICK OVERVIEW</h3>
+						</div>
+						<div class="space-y-4">
+							<!-- Upcoming Count -->
+							<div class="flex items-center justify-between">
+								<span class="text-sm text-gray-600">Upcoming</span>
+								<span class="text-2xl font-bold text-teal-600">{{
+									upcomingCount
+								}}</span>
+							</div>
+							<!-- This Month Count -->
+							<div
+								class="flex items-center justify-between pt-4 border-t border-gray-100"
+							>
+								<span class="text-sm text-gray-600">This Month</span>
+								<span class="text-xl font-semibold text-gray-900">{{
+									thisMonthCount
+								}}</span>
+							</div>
+							<!-- Completed This Month -->
+							<div class="flex items-center justify-between">
+								<span class="text-sm text-gray-600">Completed</span>
+								<span class="text-xl font-semibold text-green-600">{{
+									completedThisMonthCount
+								}}</span>
+							</div>
+						</div>
+					</div>
+
 					<!-- Rewards Card -->
 					<div
 						class="bg-gradient-to-br from-teal-600 to-teal-700 rounded-2xl shadow-lg p-6 text-white"
