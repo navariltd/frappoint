@@ -385,14 +385,6 @@ function calculate_guest_pricing(frm) {
 					// Calculate estimated total based on pricing model
 					if (pricing_model === "Per Guest") {
 						estimated_total = base_amount * guest_count;
-						frappe.show_alert({
-							message: __("Pricing: {0} × {1} guests = {2}", [
-								format_currency(base_amount, selected_price.currency),
-								guest_count,
-								format_currency(estimated_total, selected_price.currency),
-							]),
-							indicator: "blue",
-						});
 					} else if (pricing_model === "Guest Tier") {
 						let tier_msg = selected_price.guest_count
 							? __("Tier pricing: {0} for {1}+ guests", [
@@ -420,29 +412,6 @@ function calculate_guest_pricing(frm) {
 					frm.set_value("grand_total", estimated_total);
 					frm.set_value("total_amount", estimated_total);
 					frm.set_value("currency", selected_price.currency);
-				}
-
-				// Validate guest min/max
-				if (service_type.min_guests && guest_count < service_type.min_guests) {
-					frappe.msgprint({
-						title: __("Minimum Guests Required"),
-						message: __(
-							"This service requires a minimum of {0} guests. You currently have {1}.",
-							[service_type.min_guests, guest_count]
-						),
-						indicator: "orange",
-					});
-				}
-
-				if (service_type.max_guests && guest_count > service_type.max_guests) {
-					frappe.msgprint({
-						title: __("Maximum Guests Exceeded"),
-						message: __(
-							"This service allows a maximum of {0} guests. You currently have {1}.",
-							[service_type.max_guests, guest_count]
-						),
-						indicator: "red",
-					});
 				}
 			}
 		},
