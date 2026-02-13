@@ -8,13 +8,15 @@
  "field_order": [
   "price_name",
   "duration",
-  "column_break_kokw",
   "currency",
-  "amount"
+  "column_break_kokw",
+  "amount",
+  "pricing_model",
+  "guest_count"
  ],
  "fields": [
   {
-   "columns": 3,
+   "columns": 2,
    "fieldname": "price_name",
    "fieldtype": "Data",
    "in_list_view": 1,
@@ -36,7 +38,7 @@
    "reqd": 1
   },
   {
-   "columns": 3,
+   "columns": 2,
    "fieldname": "amount",
    "fieldtype": "Currency",
    "in_list_view": 1,
@@ -45,12 +47,34 @@
    "reqd": 1
   },
   {
-   "columns": 2,
+   "columns": 1,
    "fieldname": "duration",
    "fieldtype": "Int",
    "in_list_view": 1,
    "label": "Duration (Min)",
    "non_negative": 1,
+   "reqd": 1
+  },
+  {
+   "columns": 1,
+   "default": "1",
+   "depends_on": "eval: doc.pricing_model === \"Guest Tier\"",
+   "fieldname": "guest_count",
+   "fieldtype": "Int",
+   "in_list_view": 1,
+   "label": "Guest Count",
+   "mandatory_depends_on": "eval: doc.pricing_model === \"Guest Tier\"",
+   "non_negative": 1,
+   "read_only_depends_on": "eval: doc.pricing_model !== \"Guest Tier\""
+  },
+  {
+   "columns": 2,
+   "default": "Per Guest",
+   "fieldname": "pricing_model",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Pricing Model",
+   "options": "\nPer Booking\nPer Guest\nGuest Tier",
    "reqd": 1
   }
  ],
@@ -58,7 +82,7 @@
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2026-02-11 11:44:34.560463",
+ "modified": "2026-02-11 17:47:57.806669",
  "modified_by": "Administrator",
  "module": "Frappoint",
  "name": "Service Type Price",

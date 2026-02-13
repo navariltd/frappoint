@@ -40,6 +40,8 @@ class ServiceType(Document):
 		item_group: DF.Data | None
 		item_name: DF.Data | None
 		max_clients_per_slot: DF.Int
+		max_guests: DF.Int
+		min_guests: DF.Int
 		payment_gateways: DF.Table[ServiceTypePaymentGateway]
 		prices: DF.Table[ServiceTypePrice]
 		service_unit_types: DF.Table[ServiceTypeUnitType]

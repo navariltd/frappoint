@@ -32,6 +32,10 @@ frappe.ui.form.on("Service Appointment", {
 		}
 	},
 
+	validate(frm) {
+		calculate_guest_pricing(frm);
+	},
+
 	add_context_buttons(frm) {
 		// Clear any pending button update
 		if (frm._button_update_timeout) {
@@ -252,6 +256,7 @@ frappe.ui.form.on("Service Appointment", {
 								// Only one price, auto-select
 								frm.set_value("appointment_price", apt_type.prices[0].price_name);
 								frm.set_value("total_amount", apt_type.prices[0].amount);
+								frm.set_value("grand_total", apt_type.prices[0].amount);
 								frm.set_value("currency", apt_type.prices[0].currency);
 								frm.set_value("duration", apt_type.prices[0].duration);
 							} else {
@@ -317,6 +322,101 @@ frappe.ui.form.on("Service Appointment", {
 		}
 	},
 });
+
+frappe.ui.form.on("Service Appointment Guest", {
+	guests_add(frm, cdt, cdn) {
+		calculate_guest_pricing(frm);
+	},
+
+	guests_remove(frm, cdt, cdn) {
+		calculate_guest_pricing(frm);
+	},
+});
+
+function calculate_guest_pricing(frm) {
+	if (!frm.doc.appointment_type || !frm.doc.appointment_price) {
+		return;
+	}
+
+	// Count total guests
+	let guest_count = (frm.doc.guests || []).length || 1;
+	frm.set_value("total_guests", guest_count);
+
+	// Fetch the Service Type document to get price details
+	frappe.call({
+		method: "frappe.client.get",
+		args: {
+			doctype: "Service Type",
+			name: frm.doc.appointment_type,
+		},
+		callback: function (r) {
+			if (r.message) {
+				let service_type = r.message;
+
+				let selected_price = null;
+				if (service_type.prices) {
+					let matching_prices = service_type.prices.filter(
+						(p) => p.price_name === frm.doc.appointment_price
+					);
+
+					// Sort by guest_count descending to get highest applicable tier
+					matching_prices.sort((a, b) => (b.guest_count || 0) - (a.guest_count || 0));
+
+					for (let price of matching_prices) {
+						let pricing_model = price.pricing_model || "Per Booking";
+
+						if (pricing_model === "Guest Tier") {
+							if (!price.guest_count || price.guest_count <= guest_count) {
+								selected_price = price;
+								break;
+							}
+						} else {
+							selected_price = price;
+							break;
+						}
+					}
+				}
+
+				if (selected_price) {
+					let pricing_model = selected_price.pricing_model || "Per Booking";
+					let base_amount = selected_price.amount;
+					let estimated_total = base_amount;
+
+					// Calculate estimated total based on pricing model
+					if (pricing_model === "Per Guest") {
+						estimated_total = base_amount * guest_count;
+					} else if (pricing_model === "Guest Tier") {
+						let tier_msg = selected_price.guest_count
+							? __("Tier pricing: {0} for {1}+ guests", [
+									format_currency(base_amount, selected_price.currency),
+									selected_price.guest_count,
+							  ])
+							: __("Tier pricing: {0}", [
+									format_currency(base_amount, selected_price.currency),
+							  ]);
+
+						frappe.show_alert({
+							message: tier_msg,
+							indicator: "orange",
+						});
+					} else {
+						frappe.show_alert({
+							message: __("Flat rate: {0}", [
+								format_currency(base_amount, selected_price.currency),
+							]),
+							indicator: "green",
+						});
+					}
+
+					// Update total amount
+					frm.set_value("grand_total", estimated_total);
+					frm.set_value("total_amount", estimated_total);
+					frm.set_value("currency", selected_price.currency);
+				}
+			}
+		},
+	});
+}
 
 // Helper: Convert date + time strings into a JS Date object
 function parse_time_to_datetime(date_str, time_str) {
@@ -662,23 +762,56 @@ function show_price_selector(frm, prices) {
 			}
 
 			frm.set_value("appointment_price", selected_price.price_name);
-			frm.set_value("total_amount", selected_price.amount);
-			frm.set_value("currency", selected_price.currency);
 			frm.set_value("duration", selected_price.duration);
+
+			// The total_amount will be calculated in validate based on pricing_model
+			// But we can show an estimate here
+			let guest_count = (frm.doc.guests || []).length || 1;
+			let estimated_amount = selected_price.amount;
+
+			if (selected_price.pricing_model === "Per Guest") {
+				estimated_amount = selected_price.amount * guest_count;
+			}
+
+			frm.set_value("total_amount", estimated_amount);
+			frm.set_value("grand_total", estimated_amount);
+			frm.set_value("currency", selected_price.currency);
+
 			d.hide();
 		},
 	});
 
-	// Build price selection HTML
+	// Build price selection HTML with pricing model info
 	let html = '<div class="price-selector">';
 
 	prices.forEach((price) => {
+		let pricing_info = price.pricing_model || "Per Booking";
+		let price_label = `${format_currency(price.amount, price.currency)}`;
+
+		// Add pricing model badge
+		let badge_color =
+			{
+				"Per Booking": "blue",
+				"Per Guest": "green",
+				"Guest Tier": "orange",
+			}[pricing_info] || "blue";
+
+		// For Guest Tier, show the tier info
+		let tier_info = "";
+		if (pricing_info === "Guest Tier" && price.guest_count) {
+			tier_info = `<div class="tier-info"><small>For ${price.guest_count}+ guests</small></div>`;
+		}
+
 		html += `
 			<div class="price-card" data-price='${JSON.stringify(price)}' onclick="selectPrice(this)">
-				<div class="price-name">${price.price_name}</div>
-				<div class="price-amount">${format_currency(price.amount, price.currency)}</div>
+				<div class="price-header">
+					<div class="price-name">${price.price_name}</div>
+					<span class="badge badge-${badge_color}">${pricing_info}</span>
+				</div>
+				<div class="price-amount">${price_label}</div>
+				${tier_info}
 				<div class="price-details">
-					<small class="text-muted">Price List: ${price.price_list}</small>
+					<small class="text-muted">${price.duration} minutes</small>
 				</div>
 			</div>
 		`;
@@ -690,7 +823,7 @@ function show_price_selector(frm, prices) {
 		<style>
 			.price-selector {
 				display: grid;
-				grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+				grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
 				gap: 15px;
 				margin-top: 15px;
 			}
@@ -700,7 +833,6 @@ function show_price_selector(frm, prices) {
 				padding: 15px;
 				cursor: pointer;
 				transition: all 0.3s;
-				text-align: center;
 			}
 			.price-card:hover {
 				border-color: #5e64ff;
@@ -711,16 +843,36 @@ function show_price_selector(frm, prices) {
 				border-color: #5e64ff;
 				background-color: #f0f4ff;
 			}
+			.price-header {
+				display: flex;
+				justify-content: space-between;
+				align-items: center;
+				margin-bottom: 8px;
+			}
 			.price-name {
 				font-weight: bold;
 				font-size: 16px;
-				margin-bottom: 8px;
 			}
+			.badge {
+				padding: 2px 8px;
+				border-radius: 12px;
+				font-size: 11px;
+				font-weight: 600;
+			}
+			.badge-blue { background: #e8f4ff; color: #2490ef; }
+			.badge-green { background: #e8f7ed; color: #2e844a; }
+			.badge-orange { background: #fff4e6; color: #ff9d00; }
 			.price-amount {
 				font-size: 24px;
 				color: #5e64ff;
 				font-weight: bold;
-				margin-bottom: 8px;
+				margin: 8px 0;
+			}
+			.tier-info {
+				background: #f8f9fa;
+				padding: 4px 8px;
+				border-radius: 4px;
+				margin: 6px 0;
 			}
 			.price-details {
 				margin-top: 8px;
@@ -764,6 +916,7 @@ function reschedule_appointment(frm) {
 				service_unit: frm.doc.service_unit,
 				appointment_price: frm.doc.appointment_price,
 				total_amount: frm.doc.total_amount,
+				grand_total: frm.doc.grand_total,
 				currency: frm.doc.currency,
 				details: frm.doc.details,
 				rescheduled_from: frm.doc.name,
