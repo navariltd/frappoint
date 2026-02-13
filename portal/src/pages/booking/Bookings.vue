@@ -175,13 +175,14 @@
 					</div>
 				</div>
 
-				<!-- Right Column - Sidebar -->
-				<div class="space-y-4 sm:space-y-6">
+				<!-- Right Column - Sidebar (Mobile/Tablet only) -->
+				<div class="xl:hidden space-y-4 sm:space-y-6">
 					<!-- Quick Overview Card -->
 					<div
-						class="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden"
+						v-if="nextUp"
+						class="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden p-4"
 					>
-						<div class="flex justify-between items-center mb-3 sm:mb-4">
+						<div class="flex justify-between items-center mb-3 sm:mb-4 px-1">
 							<h3
 								class="text-xs sm:text-sm font-semibold text-gray-400 tracking-wider"
 							>
@@ -291,7 +292,6 @@
 import { Calendar, createListResource } from "frappe-ui";
 import { computed, onMounted, ref } from "vue";
 import { useRouter } from "vue-router";
-import { handleAppointmentCancel, handleAppointmentReschedule } from "@/utils";
 import AppointmentCard from "@/components/booking/AppointmentCard.vue";
 import AppointmentCardSkeleton from "@/components/booking/AppointmentCardSkeleton.vue";
 import ListIcon from "@/components/icons/ListIcon.vue";
