@@ -129,23 +129,26 @@
 
 		<!-- Actions -->
 		<div class="flex items-center flex-shrink-0">
-			<!-- Next Up Actions -->
-			<div v-if="variant === 'next'" class="flex flex-col gap-1.5 sm:gap-2">
+			<!-- Next Up & Upcoming Actions -->
+			<div
+				v-if="variant === 'next' || variant === 'upcoming'"
+				class="flex flex-col gap-1.5 sm:gap-2"
+			>
 				<button
-					@click="handleAppointmentReschedule"
+					@click.stop="handleReschedule"
 					class="px-2.5 sm:px-4 py-1.5 sm:py-2 bg-teal-600 text-white text-xs sm:text-sm font-medium rounded-md sm:rounded-lg hover:bg-teal-700 transition-colors whitespace-nowrap"
 				>
 					Reschedule
 				</button>
 				<button
-					@click="handleAppointmentCancel"
+					@click.stop="handleCancel"
 					class="px-2.5 sm:px-4 py-1.5 sm:py-2 text-gray-600 text-xs sm:text-sm font-medium hover:text-red-600 transition-colors whitespace-nowrap"
 				>
 					Cancel
 				</button>
 			</div>
 
-			<!-- Upcoming/Past Actions -->
+			<!-- Past Actions -->
 			<div v-else class="flex items-center gap-2 sm:gap-4">
 				<div
 					:class="[
@@ -230,6 +233,14 @@ const getInitials = (name) => {
 		return (parts[0][0] + parts[1][0]).toUpperCase();
 	}
 	return name[0].toUpperCase();
+};
+
+const handleReschedule = () => {
+	handleAppointmentReschedule(props.appointment.name);
+};
+
+const handleCancel = () => {
+	handleAppointmentCancel(props.appointment.name);
 };
 
 const appointmentDate = computed(() => {
