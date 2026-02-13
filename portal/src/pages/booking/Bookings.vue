@@ -97,14 +97,10 @@
 			<!-- Calendar View -->
 			<div v-if="viewMode === 'calendar'" class="bg-white rounded-2xl shadow-sm p-4 sm:p-6">
 				<Calendar
-					:config="{
-						defaultMode: 'Month',
-						isEditMode: false,
-						eventIcons: {},
-						allowCustomClickEvents: true,
-						enableShortcuts: false,
-					}"
+					:config="calendarConfig"
 					:events="calendarEvents"
+					@update="(event) => console.log(`Updateing event with id ${event.id}`)"
+					@cancel="(event) => console.log(`canceling event with id ${event.id}`)"
 				/>
 			</div>
 
@@ -273,19 +269,23 @@
 </template>
 
 <script setup>
-import AppointmentCard from "@/components/booking/AppointmentCard.vue";
-import AppointmentCardSkeleton from "@/components/booking/AppointmentCardSkeleton.vue";
-import { Calendar } from "frappe-ui";
-import { createListResource } from "frappe-ui";
+import { Calendar, createListResource } from "frappe-ui";
 import { computed, onMounted, ref } from "vue";
 import { useRouter } from "vue-router";
+import { handleAppointmentCancel, handleAppointmentReschedule } from "@/utils";
+import AppointmentCard from "@/components/booking/AppointmentCard.vue";
+import AppointmentCardSkeleton from "@/components/booking/AppointmentCardSkeleton.vue";
 
 const router = useRouter();
 const viewMode = ref("list");
 
-function goToServices() {
-	router.push({ name: "Services" });
-}
+const calendarConfig = {
+	defaultMode: "Month",
+	isEditMode: false,
+	eventIcons: {},
+	allowCustomClickEvents: true,
+	enableShortcuts: false,
+};
 
 const appointmentsResourceList = createListResource({
 	doctype: "Service Appointment",
@@ -347,28 +347,35 @@ const pastAppointments = computed(() => {
 		});
 });
 
+const statusColorMap = {
+	Confirmed: "green",
+	Open: "amber",
+	Completed: "gray",
+	Closed: "violet",
+};
+
 // Transform appointments for Calendar component
 const calendarEvents = computed(() => {
 	return appointments.value.map((apt) => {
 		// Determine color based on status
-		let color = "blue";
-		if (apt.status === "Confirmed") color = "green";
-		else if (apt.status === "Pending") color = "amber";
-		else if (apt.status === "Completed") color = "gray";
-		else if (apt.status === "In Progress") color = "violet";
+		const color = statusColorMap[apt.status] || "blue";
 
 		return {
 			id: apt.name,
-			title: apt.service_type || "Appointment",
-			participant: apt.service_provider_name || "",
+			title: apt.appointment_type || "Appointment",
+			participant: apt.appointment_provider || "Provider unknown",
 			fromDate: apt.appointment_date,
 			toDate: apt.appointment_date,
-			fromTime: apt.start_time || "00:00:00",
-			toTime: apt.end_time || "23:59:59",
-			venue: apt.service_unit || "",
+			fromTime: apt.start_time,
+			toTime: apt.end_time,
+			venue: apt.service_unit || apt.company,
 			color: color,
 			isFullDay: false,
 		};
 	});
 });
+
+function goToServices() {
+	router.push({ name: "Services" });
+}
 </script>
