@@ -95,13 +95,48 @@
 		<!-- Main Content -->
 		<div class="max-w-7xl mx-auto">
 			<!-- Calendar View -->
-			<div v-if="viewMode === 'calendar'" class="bg-white rounded-2xl shadow-sm p-4 sm:p-6">
-				<Calendar
-					:config="calendarConfig"
-					:events="calendarEvents"
-					@update="(event) => console.log(`Updateing event with id ${event.id}`)"
-					@cancel="(event) => console.log(`canceling event with id ${event.id}`)"
-				/>
+			<div
+				v-if="viewMode === 'calendar'"
+				class="grid grid-cols-1 xl:grid-cols-3 gap-4 sm:gap-6"
+			>
+				<div class="xl:col-span-2">
+					<div class="bg-white rounded-2xl shadow-sm p-4 sm:p-6">
+						<Calendar :config="calendarConfig" :events="calendarEvents" />
+					</div>
+				</div>
+
+				<!-- Right Column - Rewards -->
+				<div class="hidden xl:flex flex-col gap-6">
+					<!-- Rewards Card -->
+					<div
+						class="bg-gradient-to-br from-teal-600 to-teal-700 rounded-2xl shadow-lg p-6 text-white"
+					>
+						<div class="flex items-center gap-2 mb-3">
+							<svg
+								class="w-6 h-6"
+								fill="none"
+								stroke="currentColor"
+								viewBox="0 0 24 24"
+							>
+								<path
+									stroke-linecap="round"
+									stroke-linejoin="round"
+									stroke-width="2"
+									d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"
+								/>
+							</svg>
+						</div>
+						<p class="text-xs font-medium opacity-90 mb-2">REWARDS</p>
+						<h3 class="text-xl font-semibold mb-4">
+							You have 2 free sessions pending
+						</h3>
+						<button
+							class="w-full bg-white text-teal-600 font-medium py-3 rounded-lg hover:bg-gray-50 transition-colors"
+						>
+							Redeem Now
+						</button>
+					</div>
+				</div>
 			</div>
 
 			<!-- List View -->
@@ -218,14 +253,50 @@
 					</div>
 				</div>
 
-				<!-- Right Column - Calendar & Rewards -->
+				<!-- Right Column - Stats & Rewards -->
 				<div class="hidden xl:flex flex-col gap-6">
-					<!-- Simple Date Display -->
+					<!-- Appointment Overview Card -->
 					<div class="bg-white rounded-2xl shadow-sm p-6">
-						<div class="text-center">
-							<p class="text-sm font-medium text-gray-500 mb-2">TODAY</p>
-							<p class="text-4xl font-bold text-gray-900 mb-1">{{ currentDay }}</p>
-							<p class="text-lg text-gray-600">{{ currentMonthYear }}</p>
+						<div class="flex items-center gap-2 mb-4">
+							<svg
+								class="w-5 h-5 text-gray-600"
+								fill="none"
+								stroke="currentColor"
+								viewBox="0 0 24 24"
+							>
+								<path
+									stroke-linecap="round"
+									stroke-linejoin="round"
+									stroke-width="2"
+									d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
+								/>
+							</svg>
+							<h3 class="text-sm font-semibold text-gray-900">QUICK OVERVIEW</h3>
+						</div>
+						<div class="space-y-4">
+							<!-- Upcoming Count -->
+							<div class="flex items-center justify-between">
+								<span class="text-sm text-gray-600">Upcoming</span>
+								<span class="text-2xl font-bold text-teal-600">{{
+									upcomingCount
+								}}</span>
+							</div>
+							<!-- This Month Count -->
+							<div
+								class="flex items-center justify-between pt-4 border-t border-gray-100"
+							>
+								<span class="text-sm text-gray-600">This Month</span>
+								<span class="text-xl font-semibold text-gray-900">{{
+									thisMonthCount
+								}}</span>
+							</div>
+							<!-- Completed This Month -->
+							<div class="flex items-center justify-between">
+								<span class="text-sm text-gray-600">Completed</span>
+								<span class="text-xl font-semibold text-green-600">{{
+									completedThisMonthCount
+								}}</span>
+							</div>
 						</div>
 					</div>
 
@@ -275,29 +346,35 @@ import AppointmentCardSkeleton from "@/components/booking/AppointmentCardSkeleto
 const router = useRouter();
 const viewMode = ref("list");
 
-// Current date display
-const currentDay = computed(() => {
-	const today = new Date();
-	return today.getDate();
+// Appointment statistics
+const upcomingCount = computed(() => {
+	return upcomingAppointmentsAll.value.length;
 });
 
-const currentMonthYear = computed(() => {
+const thisMonthCount = computed(() => {
 	const today = new Date();
-	const months = [
-		"January",
-		"February",
-		"March",
-		"April",
-		"May",
-		"June",
-		"July",
-		"August",
-		"September",
-		"October",
-		"November",
-		"December",
-	];
-	return `${months[today.getMonth()]} ${today.getFullYear()}`;
+	const currentMonth = today.getMonth();
+	const currentYear = today.getFullYear();
+
+	return appointments.value.filter((apt) => {
+		const aptDate = new Date(apt.appointment_date);
+		return aptDate.getMonth() === currentMonth && aptDate.getFullYear() === currentYear;
+	}).length;
+});
+
+const completedThisMonthCount = computed(() => {
+	const today = new Date();
+	const currentMonth = today.getMonth();
+	const currentYear = today.getFullYear();
+
+	return appointments.value.filter((apt) => {
+		const aptDate = new Date(apt.appointment_date);
+		return (
+			apt.status === "Completed" &&
+			aptDate.getMonth() === currentMonth &&
+			aptDate.getFullYear() === currentYear
+		);
+	}).length;
 });
 
 const calendarConfig = {
