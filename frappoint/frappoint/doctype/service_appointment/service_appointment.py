@@ -1206,14 +1206,14 @@ def cancel_old_appointment(old_appointment_name, new_appointment_name):
 
 @frappe.whitelist()
 def reschedule_appointment(
-	appointment_name,
-	new_appointment_date,
-	new_start_time,
-	new_end_time,
-	new_provider=None,
-	new_slot_ids=None,
-	new_service_unit=None,
-):
+	appointment_name: str,
+	new_appointment_date: str,
+	new_start_time: str,
+	new_end_time: str,
+	new_provider: str | None = None,
+	new_slot_ids: str | None = None,
+	new_service_unit: str | None = None,
+) -> dict:
 	"""
 	Reschedule an existing appointment by creating a new one and cancelling the old one.
 
