@@ -220,17 +220,13 @@
 
 				<!-- Right Column - Calendar & Rewards -->
 				<div class="hidden xl:flex flex-col gap-6">
-					<!-- Calendar Widget -->
+					<!-- Simple Date Display -->
 					<div class="bg-white rounded-2xl shadow-sm p-6">
-						<Calendar
-							:config="{
-								defaultMode: 'Month',
-								isEditMode: false,
-								eventIcons: {},
-								allowCustomClickEvents: true,
-								enableShortcuts: false,
-							}"
-						/>
+						<div class="text-center">
+							<p class="text-sm font-medium text-gray-500 mb-2">TODAY</p>
+							<p class="text-4xl font-bold text-gray-900 mb-1">{{ currentDay }}</p>
+							<p class="text-lg text-gray-600">{{ currentMonthYear }}</p>
+						</div>
 					</div>
 
 					<!-- Rewards Card -->
@@ -278,6 +274,31 @@ import AppointmentCardSkeleton from "@/components/booking/AppointmentCardSkeleto
 
 const router = useRouter();
 const viewMode = ref("list");
+
+// Current date display
+const currentDay = computed(() => {
+	const today = new Date();
+	return today.getDate();
+});
+
+const currentMonthYear = computed(() => {
+	const today = new Date();
+	const months = [
+		"January",
+		"February",
+		"March",
+		"April",
+		"May",
+		"June",
+		"July",
+		"August",
+		"September",
+		"October",
+		"November",
+		"December",
+	];
+	return `${months[today.getMonth()]} ${today.getFullYear()}`;
+});
 
 const calendarConfig = {
 	defaultMode: "Month",
