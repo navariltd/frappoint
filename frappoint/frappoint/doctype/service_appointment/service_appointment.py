@@ -11,7 +11,15 @@ from frappe.core.doctype.sms_settings.sms_settings import send_sms
 from frappe.desk.calendar import get_event_conditions
 from frappe.desk.reportview import build_match_conditions
 from frappe.model.document import Document
-from frappe.utils import flt, get_datetime, get_link_to_form, get_time, getdate, now_datetime, today
+from frappe.utils import (
+	flt,
+	get_datetime,
+	get_link_to_form,
+	get_time,
+	getdate,
+	now_datetime,
+	today,
+)
 
 from ..service_provider_appointment_slot.service_provider_appointment_slot import (
 	check_provider_slot_capacity,
@@ -81,7 +89,15 @@ class ServiceAppointment(Document):
 		service_unit: DF.Link | None
 		source: DF.Literal["Desk", "Portal"]
 		start_time: DF.Time
-		status: DF.Literal["Open", "Confirmed", "Rescheduled", "Completed", "Cancelled", "Closed", "No Show"]
+		status: DF.Literal[
+			"Open",
+			"Confirmed",
+			"Rescheduled",
+			"Completed",
+			"Cancelled",
+			"Closed",
+			"No Show",
+		]
 		total_amount: DF.Currency
 		total_guests: DF.Int
 	# end: auto-generated types
@@ -436,7 +452,10 @@ class ServiceAppointment(Document):
 
 		# Get service unit from the first slot
 		first_slot = frappe.db.get_value(
-			"Service Provider Appointment Slot", slot_ids[0], ["service_unit", "provider"], as_dict=True
+			"Service Provider Appointment Slot",
+			slot_ids[0],
+			["service_unit", "provider"],
+			as_dict=True,
 		)
 
 		if first_slot:
@@ -500,14 +519,40 @@ class ServiceAppointment(Document):
 			self.currency = currency
 
 	def validate_guest_requirements(self):
-		"""Validate guest count against service type requirements"""
+		"""Validate guest count against selected price or service type requirements"""
 		if not self.appointment_type:
 			return
 
-		service_type = frappe.get_doc("Service Type", self.appointment_type, ignore_permissions=True)
-
 		guest_count = len(self.guests) if self.guests else 1
 		self.total_guests = guest_count
+
+		if self.appointment_price:
+			price_record = frappe.db.get_value(
+				"Service Type Price",
+				{"parent": self.appointment_type, "price_name": self.appointment_price},
+				["guest_count", "price_name"],
+				as_dict=True,
+			)
+
+			if price_record and price_record.guest_count:
+				required_guests = price_record.guest_count
+
+				if guest_count != required_guests:
+					frappe.throw(
+						title=_("Guest Count Mismatch"),
+						msg=_(
+							"The selected price '{0}' requires exactly {1} {2}. You have {3} guest(s)."
+						).format(
+							price_record.price_name,
+							required_guests,
+							"guest" if required_guests == 1 else "guests",
+							guest_count,
+						),
+					)
+				return
+
+		# Fall back to service type min/max validation if no specific price guest count
+		service_type = frappe.get_doc("Service Type", self.appointment_type, ignore_permissions=True)
 
 		if service_type.min_guests and guest_count < service_type.min_guests:
 			frappe.throw(
@@ -533,8 +578,18 @@ class ServiceAppointment(Document):
 
 		prices = frappe.get_all(
 			"Service Type Price",
-			filters={"parent": self.appointment_type, "price_name": self.appointment_price},
-			fields=["name", "price_name", "amount", "currency", "pricing_model", "guest_count"],
+			filters={
+				"parent": self.appointment_type,
+				"price_name": self.appointment_price,
+			},
+			fields=[
+				"name",
+				"price_name",
+				"amount",
+				"currency",
+				"pricing_model",
+				"guest_count",
+			],
 		)
 
 		if not prices:
@@ -614,7 +669,7 @@ class ServiceAppointment(Document):
 				"status": "Open",
 				"all_day": 0,
 				"sync_with_google_calendar": 1 if google_calendar else 0,
-				"add_video_conferencing": 1 if self.add_video_conferencing and google_calendar else 0,
+				"add_video_conferencing": (1 if self.add_video_conferencing and google_calendar else 0),
 				"google_calendar": google_calendar,
 				"description": f"{self.name} - {self.company}",
 				"pulled_from_google_calendar": 0,
@@ -625,7 +680,10 @@ class ServiceAppointment(Document):
 		participants = []
 
 		participants.append(
-			{"reference_doctype": "Service Provider", "reference_docname": self.appointment_provider}
+			{
+				"reference_doctype": "Service Provider",
+				"reference_docname": self.appointment_provider,
+			}
 		)
 
 		if self.customer:
@@ -655,7 +713,10 @@ class ServiceAppointment(Document):
 			try:
 				self.send_message(message)
 			except Exception:
-				frappe.log_error(_("Appointment Confirmation Message Not Sent"), frappe.get_traceback())
+				frappe.log_error(
+					_("Appointment Confirmation Message Not Sent"),
+					frappe.get_traceback(),
+				)
 				frappe.msgprint(_("Appointment Confirmation Message Not Sent"), indicator="orange")
 
 	@staticmethod
@@ -753,7 +814,10 @@ class ServiceAppointment(Document):
 			return None
 
 		docs = frappe.get_all(
-			doctype, filters={"service_appointment": self.name, "docstatus": 1}, fields=fields, limit=1
+			doctype,
+			filters={"service_appointment": self.name, "docstatus": 1},
+			fields=fields,
+			limit=1,
 		)
 		return docs[0] if docs else None
 
@@ -979,7 +1043,11 @@ class ServiceAppointment(Document):
 
 		except Exception as e:
 			self.log_error("issue consumables", e)
-			frappe.msgprint(_("Failed to issue consumables: {0}").format(str(e)), indicator="red", alert=True)
+			frappe.msgprint(
+				_("Failed to issue consumables: {0}").format(str(e)),
+				indicator="red",
+				alert=True,
+			)
 
 	def get_stock_entry_items(self, apt_type):
 		"""Get items for stock entry from appointment type consumables"""
@@ -1172,7 +1240,10 @@ def cancel_old_appointment(old_appointment_name, new_appointment_name):
 		old_appointment = frappe.get_doc("Service Appointment", old_appointment_name)
 
 		if old_appointment.status in ["Cancelled", "Closed", "Rescheduled"]:
-			return {"success": True, "message": _("Appointment is already cancelled or closed")}
+			return {
+				"success": True,
+				"message": _("Appointment is already cancelled or closed"),
+			}
 
 		# Validate that appointment can be cancelled
 		if old_appointment.docstatus != 1:
