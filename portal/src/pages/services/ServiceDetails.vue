@@ -73,25 +73,34 @@
 						</div>
 					</div>
 					<div>
-						<h3 class="font-medium text-lg mb-4">DURATION</h3>
+						<h3 class="font-medium text-lg mb-4">PRICES</h3>
 						<div class="grid grid-cols-2 gap-2">
 							<div
-								v-for="duration in serviceDetails.prices"
-								:key="duration.price_name"
-								@click="setSelectedPrice(duration)"
-								class="px-6 py-4 rounded-lg text-center max-w-40 cursor-pointer flex flex-col items-center justify-center border-2 transition-all"
+								v-for="price in serviceDetails.prices"
+								:key="price.price_name"
+								@click="setSelectedPrice(price)"
+								class="px-4 py-4 rounded-lg cursor-pointer flex flex-col gap-2 border-2 transition-all"
 								:class="
-									booking.draft.priceName === duration.price_name
+									booking.draft.priceName === price.price_name
 										? 'border-primary bg-primary/10'
 										: 'border-gray-300 hover:border-primary'
 								"
 							>
+								<span
+									class="font-bold text-sm text-gray-700 uppercase tracking-wide"
+								>
+									{{ price.price_name }}
+								</span>
 								<span class="font-semibold text-primary text-xl">
-									{{ duration.duration }} min</span
-								>
-								<span class="text-xs opacity-80">
-									{{ formatCurrency(duration.amount, duration.currency) }}</span
-								>
+									{{ price.duration }} min
+								</span>
+								<span class="text-sm font-semibold text-gray-900">
+									{{ formatCurrency(price.amount, price.currency) }}
+								</span>
+								<span class="text-xs text-gray-500" v-if="price.guest_count">
+									{{ price.guest_count }}
+									{{ price.guest_count === 1 ? "guest" : "guests" }}
+								</span>
 							</div>
 						</div>
 					</div>
