@@ -250,7 +250,20 @@ const stepSubtitle = computed(() => {
 
 const canProceed = computed(() => {
 	if (currentStep.value === 1) return booking.draft.date && booking.draft.slot;
-	if (currentStep.value === 2) return booking.draft.email && booking.draft.mobileNo;
+	if (currentStep.value === 2) {
+		// Check primary guest info
+		const hasBasicInfo =
+			booking.draft.email && booking.draft.mobileNo && booking.draft.fullName;
+
+		// Check all guests have required full_name
+		const allGuestsValid =
+			booking.draft.guests &&
+			Array.isArray(booking.draft.guests) &&
+			booking.draft.guests.length > 0 &&
+			booking.draft.guests.every((guest) => guest.full_name && guest.full_name.trim());
+
+		return hasBasicInfo && allGuestsValid;
+	}
 	return booking.isComplete;
 });
 
@@ -395,6 +408,9 @@ async function submitBooking() {
 		return;
 	}
 
+	// Ensure primary guest is synced with main form
+	booking.syncPrimaryGuest();
+
 	// create appointment
 	let service_appointment = await serviceAppointmentResource.insert.submit({
 		appointment_type: booking.draft.serviceType,
@@ -413,6 +429,7 @@ async function submitBooking() {
 		total_amount: booking.draft.price,
 		notes: booking.draft.notes,
 		source: booking.draft.source,
+		guests: booking.draft.guests,
 	});
 
 	if (service_appointment.name && booking.draft.price > 0) {

@@ -55,7 +55,6 @@ def create_service_appointment(
 		}
 	)
 
-	# If service type requires only one guest, add customer as primary guest
 	if service_type_doc.min_guests == 1:
 		appointment.append(
 			"guests",

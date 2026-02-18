@@ -202,6 +202,10 @@ watch(
 			booking.setPrice(first.amount);
 			booking.setCurrency(first.currency);
 			booking.setDuration(first.duration);
+
+			// Set number of guests from first price
+			const guestCount = first.guest_count || 1;
+			booking.setNumberOfGuests(guestCount);
 		}
 	},
 	{ immediate: true }
@@ -212,5 +216,9 @@ const setSelectedPrice = (price) => {
 	booking.setPrice(price.amount);
 	booking.setCurrency(price.currency);
 	booking.setDuration(price.duration);
+
+	// Set number of guests from price
+	const guestCount = price.guest_count || 1;
+	booking.setNumberOfGuests(guestCount);
 };
 </script>

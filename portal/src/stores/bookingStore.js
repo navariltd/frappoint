@@ -20,6 +20,8 @@ export const useBookingStore = defineStore("booking", {
 			paymentGateways: [],
 			selectedPaymentGateway: null,
 			source: "Portal",
+			numberOfGuests: 1,
+			guests: [],
 		},
 
 		currentStep: 1,
@@ -28,8 +30,8 @@ export const useBookingStore = defineStore("booking", {
 	}),
 
 	getters: {
-		isComplete: (state) =>
-			!!(
+		isComplete: (state) => {
+			const hasBasicInfo = !!(
 				state.draft.serviceType &&
 				state.draft.date &&
 				state.draft.slot &&
@@ -38,7 +40,17 @@ export const useBookingStore = defineStore("booking", {
 				state.draft.email &&
 				state.draft.priceName &&
 				state.draft.price
-			),
+			);
+
+			// Check all guests have required full_name
+			const allGuestsValid =
+				state.draft.guests &&
+				Array.isArray(state.draft.guests) &&
+				state.draft.guests.length > 0 &&
+				state.draft.guests.every((guest) => guest.full_name && guest.full_name.trim());
+
+			return hasBasicInfo && allGuestsValid;
+		},
 	},
 
 	actions: {
@@ -110,6 +122,71 @@ export const useBookingStore = defineStore("booking", {
 			this.draft.selectedPaymentGateway = gateway;
 		},
 
+		setNumberOfGuests(count) {
+			this.draft.numberOfGuests = count;
+			this.initializeGuests();
+		},
+
+		initializeGuests() {
+			const count = this.draft.numberOfGuests || 1;
+
+			// Keep existing guest data where possible
+			const existingGuests = [...this.draft.guests];
+			this.draft.guests = [];
+
+			for (let i = 0; i < count; i++) {
+				const existingGuest = existingGuests[i];
+
+				if (i === 0) {
+					// Primary guest (contact person) pre-filled from main form
+					this.draft.guests.push({
+						full_name: this.draft.fullName || existingGuest?.full_name || "",
+						email: this.draft.email || existingGuest?.email || "",
+						mobile_no: this.draft.mobileNo || existingGuest?.mobile_no || "",
+						is_primary: 1,
+						notes: existingGuest?.notes || "",
+					});
+				} else {
+					// Additional guests
+					this.draft.guests.push(
+						existingGuest || {
+							full_name: "",
+							email: "",
+							mobile_no: "",
+							is_primary: 0,
+							notes: "",
+						}
+					);
+				}
+			}
+		},
+
+		updateGuest(index, field, value) {
+			if (this.draft.guests[index]) {
+				this.draft.guests[index][field] = value;
+
+				// If updating primary guest, also update main form fields
+				if (index === 0) {
+					if (field === "full_name") this.draft.fullName = value;
+					if (field === "email") this.draft.email = value;
+					if (field === "mobile_no") this.draft.mobileNo = value;
+				}
+			}
+		},
+
+		syncPrimaryGuest() {
+			// Sync primary guest data from main form fields
+			if (this.draft.guests.length > 0) {
+				this.draft.guests[0] = {
+					...this.draft.guests[0],
+					full_name: this.draft.fullName,
+					email: this.draft.email,
+					mobile_no: this.draft.mobileNo,
+					is_primary: 1,
+				};
+			}
+		},
+
 		async hydrateServiceDetails() {
 			const resource = createResource({
 				url: "frappoint.frappoint.api.service_type.get_service_type_details",
@@ -159,6 +236,8 @@ export const useBookingStore = defineStore("booking", {
 				selectedPaymentGateway: null,
 				paymentGateways: [],
 				source: "Portal",
+				numberOfGuests: 1,
+				guests: [],
 			};
 			this.mode = "booking";
 		},
@@ -170,7 +249,17 @@ export const useBookingStore = defineStore("booking", {
 
 		loadFromStorage() {
 			const draft = localStorage.getItem("bookingDraft");
-			if (draft) this.draft = JSON.parse(draft);
+			if (draft) {
+				this.draft = JSON.parse(draft);
+
+				// Ensure new fields exist with defaults
+				if (!this.draft.numberOfGuests) {
+					this.draft.numberOfGuests = 1;
+				}
+				if (!this.draft.guests || !Array.isArray(this.draft.guests)) {
+					this.draft.guests = [];
+				}
+			}
 		},
 
 		clearStorage() {
