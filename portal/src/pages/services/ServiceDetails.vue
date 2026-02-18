@@ -6,12 +6,20 @@
 				<div class="space-y-6">
 					<div
 						class="relative w-full aspect-[16/9] lg:aspect-[21/9] rounded-xl overflow-hidden shadow-sm group"
+						style="
+							background: linear-gradient(
+								to bottom right,
+								#3a8a8b,
+								#2c7677,
+								#1f5a5b
+							);
+						"
 					>
-						<img
-							class="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-700"
-							:alt="serviceDetails.name"
-							:src="serviceDetails.image"
-						/>
+						<div
+							class="absolute inset-0 bg-cover bg-center transition-transform duration-700 group-hover:scale-105"
+							:data-alt="serviceDetails.name"
+							:style="{ backgroundImage: `url(${serviceDetails.image})` }"
+						></div>
 
 						<div class="absolute bottom-4 left-4 z-20 flex gap-2">
 							<ServiceTag v-for="tag in serviceDetails.tags" :tag="tag" :key="tag" />
