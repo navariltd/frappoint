@@ -247,7 +247,7 @@ def get_service_type_details(service_type: str) -> dict:
 		"prices": frappe.db.get_all(
 			"Service Type Price",
 			filters={"parent": service_type},
-			fields=["price_name", "amount", "duration", "currency", "guest_count"],
+			fields=["price_name", "amount", "duration", "currency", "guest_count", "pricing_model"],
 		),
 		"providers": get_providers_for_service(service_type),
 		"payment_gateways": get_payment_gateways_for_service_type(service_type),
