@@ -28,6 +28,9 @@ def create_service_appointment(
 	duration = get_service_type_duration(service_type)
 	end_time = calculate_end_time(start_time, duration)
 
+	# Get service type details to check guest requirements
+	service_type_doc = frappe.get_doc("Service Type", service_type)
+
 	appointment = frappe.get_doc(
 		{
 			"doctype": "Service Appointment",
@@ -51,6 +54,18 @@ def create_service_appointment(
 			"payment_status": "Unpaid",
 		}
 	)
+
+	# If service type requires only one guest, add customer as primary guest
+	if service_type_doc.min_guests == 1:
+		appointment.append(
+			"guests",
+			{
+				"full_name": customer_name,
+				"email": customer_email,
+				"mobile_no": customer_mobile,
+				"is_primary": 1,
+			},
+		)
 
 	appointment.insert()
 	frappe.db.commit()
@@ -108,7 +123,9 @@ def get_service_type_duration(service_type):
 def get_cancellation_reasons():
 	"""Get all active cancellation reasons"""
 	reasons = frappe.get_all(
-		"Service Appointment Lost Reason", fields=["lost_reason"], order_by="lost_reason asc"
+		"Service Appointment Lost Reason",
+		fields=["lost_reason"],
+		order_by="lost_reason asc",
 	)
 
 	return reasons
