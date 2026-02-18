@@ -95,7 +95,11 @@
 							</div>
 						</div>
 					</div>
-					<!-- <div>
+					<!-- <div><div
+							class="absolute inset-0 bg-cover bg-center transition-transform duration-700 group-hover:scale-105"
+							:data-alt="serviceDetails.name"
+							:style="{ backgroundImage: `url(${serviceDetails.image})` }"
+						></div>
 						<p class="text-gray-900 font-medium mb-4">DATE & TIME</p>
 						<FormControl type="text" size="lg" placeholder="Select a Slot">
 							<template #suffix>

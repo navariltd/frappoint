@@ -4,7 +4,7 @@
 	>
 		<img
 			class="size-16 object-cover rounded-full"
-			:src="provider.image"
+			:src="provider.image || profilePlaceholder"
 			:alt="provider.name"
 		/>
 		<div class="px-2">
@@ -15,6 +15,8 @@
 </template>
 
 <script setup>
+import profilePlaceholder from "@/assets/images/profile-circle.svg";
+
 defineProps({
 	provider: Object,
 });
