@@ -2,7 +2,10 @@
 	<div
 		class="group bg-surface-light rounded-2xl overflow-hidden border border-gray-100 shadow-[0_2px_12px_rgba(0,0,0,0.04)] flex-col justify-center"
 	>
-		<div class="relative h-48 overflow-hidden">
+		<div
+			class="relative h-48 overflow-hidden"
+			style="background: linear-gradient(to bottom right, #3a8a8b, #2c7677, #1f5a5b)"
+		>
 			<RouterLink :to="{ name: 'ServiceDetails', params: { name: serviceType.name } }">
 				<div
 					class="absolute inset-0 bg-cover bg-center transition-transform duration-700 group-hover:scale-110"
