@@ -2,129 +2,85 @@
 	<div class="flex flex-col lg:flex-row gap-6 lg:gap-8 w-full p-6 md:p-8">
 		<!-- Left Column - Your Information Form -->
 		<div class="w-full lg:w-2/3">
-			<div class="flex items-center justify-between mb-6">
-				<h2 class="text-xl font-bold text-gray-900 dark:text-white">Your Information</h2>
-				<div
-					class="flex items-center gap-2 px-3 py-1.5 bg-gray-100 dark:bg-gray-700 rounded-lg"
-				>
-					<svg
-						class="w-4 h-4 text-gray-600 dark:text-gray-300"
-						fill="none"
-						stroke="currentColor"
-						viewBox="0 0 24 24"
-					>
-						<path
-							stroke-linecap="round"
-							stroke-linejoin="round"
-							stroke-width="2"
-							d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
-						/>
-					</svg>
-					<span class="text-sm font-semibold text-gray-700 dark:text-gray-300">
-						{{ booking.draft.numberOfGuests }}
-						{{ booking.draft.numberOfGuests === 1 ? "Guest" : "Guests" }}
-					</span>
-				</div>
-			</div>
+			<!-- Customer Details Section -->
+			<div class="mb-6">
+				<h2 class="text-xl font-bold text-gray-900 dark:text-white mb-6">
+					Your Information
+				</h2>
 
-			<form class="space-y-6">
-				<!-- Primary Guest (Contact Person) -->
 				<div
 					class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-6"
 				>
-					<div class="flex items-center gap-2 mb-4">
-						<div
-							class="flex items-center justify-center w-6 h-6 bg-primary/10 dark:bg-primary/20 text-primary dark:text-teal-400 rounded-full text-xs font-bold"
-						>
-							1
-						</div>
-						<h3 class="text-base font-bold text-gray-900 dark:text-white">
-							Primary Guest (Contact Person)
-						</h3>
-					</div>
-
 					<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
 						<div class="space-y-2">
 							<label
 								class="text-sm font-semibold text-gray-700 dark:text-gray-300"
-								for="full-name"
+								for="customer-name"
 							>
 								Full Name
+								<span class="text-red-500">*</span>
 							</label>
 							<input
-								id="full-name"
-								v-model="primaryFullName"
+								id="customer-name"
+								v-model="booking.draft.fullName"
 								:disabled="isLoggedIn"
 								class="w-full px-4 py-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary/50 focus:border-primary text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 outline-none transition-all disabled:bg-gray-50 disabled:cursor-not-allowed"
 								type="text"
 								placeholder="John Doe"
+								required
 							/>
 						</div>
 						<div class="space-y-2">
 							<label
 								class="text-sm font-semibold text-gray-700 dark:text-gray-300"
-								for="email"
+								for="customer-email"
 							>
 								Email Address
+								<span class="text-red-500">*</span>
 							</label>
 							<input
-								id="email"
-								v-model="primaryEmail"
+								id="customer-email"
+								v-model="booking.draft.email"
 								:disabled="isLoggedIn"
-								class="w-full px-4 py-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary/50 focus:border-primary text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 outline-none transition-all disabled:bg-gray-50 disabled:cursor-not-allowed"
 								type="email"
+								class="w-full px-4 py-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary/50 focus:border-primary text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 outline-none transition-all disabled:bg-gray-50 disabled:cursor-not-allowed"
 								placeholder="john@example.com"
+								required
 							/>
 						</div>
 					</div>
 					<div class="space-y-2 mt-4">
 						<label
 							class="text-sm font-semibold text-gray-700 dark:text-gray-300"
-							for="phone"
+							for="customer-phone"
 						>
 							Phone Number
+							<span class="text-red-500">*</span>
 						</label>
 						<input
-							id="phone"
-							v-model="primaryMobileNo"
+							id="customer-phone"
+							v-model="booking.draft.mobileNo"
 							:disabled="isLoggedIn"
-							class="w-full px-4 py-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary/50 focus:border-primary text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 outline-none transition-all disabled:bg-gray-50 disabled:cursor-not-allowed"
 							type="tel"
+							class="w-full px-4 py-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary/50 focus:border-primary text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 outline-none transition-all disabled:bg-gray-50 disabled:cursor-not-allowed"
 							placeholder="+1 (555) 000-0000"
+							required
 						/>
 					</div>
 				</div>
+			</div>
 
-				<!-- Additional Guests -->
-				<div
-					v-for="(guest, index) in additionalGuests"
-					:key="index"
-					class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden"
-				>
-					<button
-						type="button"
-						@click="toggleGuest(index + 1)"
-						class="w-full flex items-center justify-between p-6 hover:bg-gray-50 dark:hover:bg-gray-750 transition-colors"
+			<!-- Guest Forms Section -->
+			<div class="mb-6">
+				<div class="flex items-center justify-between mb-6">
+					<h2 class="text-xl font-bold text-gray-900 dark:text-white">
+						Guest Information
+					</h2>
+					<div
+						class="flex items-center gap-2 px-3 py-1.5 bg-gray-100 dark:bg-gray-700 rounded-lg"
 					>
-						<div class="flex items-center gap-2">
-							<div
-								class="flex items-center justify-center w-6 h-6 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-full text-xs font-bold"
-							>
-								{{ index + 2 }}
-							</div>
-							<h3 class="text-base font-bold text-gray-900 dark:text-white">
-								Guest {{ index + 2 }}
-							</h3>
-							<span
-								v-if="guest.full_name"
-								class="text-sm text-gray-500 dark:text-gray-400"
-							>
-								- {{ guest.full_name }}
-							</span>
-						</div>
 						<svg
-							class="w-5 h-5 text-gray-400 transition-transform"
-							:class="{ 'rotate-180': expandedGuests[index + 1] }"
+							class="w-4 h-4 text-gray-600 dark:text-gray-300"
 							fill="none"
 							stroke="currentColor"
 							viewBox="0 0 24 24"
@@ -133,36 +89,53 @@
 								stroke-linecap="round"
 								stroke-linejoin="round"
 								stroke-width="2"
-								d="M19 9l-7 7-7-7"
+								d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
 							/>
 						</svg>
-					</button>
+						<span class="text-sm font-semibold text-gray-700 dark:text-gray-300">
+							{{ booking.draft.minGuests }}
+							{{ booking.draft.minGuests === 1 ? "Guest" : "Guests" }} Required
+						</span>
+					</div>
+				</div>
 
+				<div class="space-y-4">
+					<!-- Guest Forms -->
 					<div
-						v-show="expandedGuests[index + 1]"
-						class="px-6 pb-6 border-t border-gray-100 dark:border-gray-700"
+						v-for="(guest, index) in allGuests"
+						:key="index"
+						class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-6"
 					>
-						<div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+						<div class="flex items-center gap-2 mb-4">
+							<div
+								class="flex items-center justify-center w-6 h-6 bg-primary/10 dark:bg-primary/20 text-primary dark:text-teal-400 rounded-full text-xs font-bold"
+							>
+								{{ index + 1 }}
+							</div>
+							<h3 class="text-base font-bold text-gray-900 dark:text-white">
+								Guest {{ index + 1 }}
+							</h3>
+						</div>
+
+						<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
 							<div class="space-y-2">
 								<label
 									class="text-sm font-semibold text-gray-700 dark:text-gray-300"
 									:for="`guest-${index}-name`"
 								>
 									Full Name
+									<span class="text-red-500">*</span>
 								</label>
 								<input
 									:id="`guest-${index}-name`"
 									:value="guest.full_name"
 									@input="
-										updateGuestField(
-											index + 1,
-											'full_name',
-											$event.target.value
-										)
+										updateGuestField(index, 'full_name', $event.target.value)
 									"
 									class="w-full px-4 py-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary/50 focus:border-primary text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 outline-none transition-all"
 									type="text"
-									placeholder="Jane Smith"
+									placeholder="Guest Name"
+									required
 								/>
 							</div>
 							<div class="space-y-2">
@@ -178,12 +151,10 @@
 								<input
 									:id="`guest-${index}-email`"
 									:value="guest.email"
-									@input="
-										updateGuestField(index + 1, 'email', $event.target.value)
-									"
-									class="w-full px-4 py-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary/50 focus:border-primary text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 outline-none transition-all"
+									@input="updateGuestField(index, 'email', $event.target.value)"
 									type="email"
-									placeholder="jane@example.com"
+									class="w-full px-4 py-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary/50 focus:border-primary text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 outline-none transition-all"
+									placeholder="guest@example.com"
 								/>
 							</div>
 						</div>
@@ -193,21 +164,22 @@
 								:for="`guest-${index}-phone`"
 							>
 								Phone Number
+								<span class="text-gray-400 font-normal text-xs">(Optional)</span>
 							</label>
 							<input
 								:id="`guest-${index}-phone`"
 								:value="guest.mobile_no"
-								@input="
-									updateGuestField(index + 1, 'mobile_no', $event.target.value)
-								"
-								class="w-full px-4 py-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary/50 focus:border-primary text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 outline-none transition-all"
+								@input="updateGuestField(index, 'mobile_no', $event.target.value)"
 								type="tel"
+								class="w-full px-4 py-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary/50 focus:border-primary text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 outline-none transition-all"
 								placeholder="+1 (555) 000-0000"
 							/>
 						</div>
 					</div>
 				</div>
+			</div>
 
+			<form class="space-y-6">
 				<!-- Additional Notes -->
 				<div class="space-y-2">
 					<label
@@ -380,57 +352,54 @@ const props = defineProps({
 });
 
 const booking = useBookingStore();
-const expandedGuests = ref({});
 
 // Initialize guests when component mounts
 onMounted(() => {
+	// Ensure guests are initialized based on min_guests
+	const requiredGuests = booking.draft.minGuests || 1;
 	if (!booking.draft.guests || booking.draft.guests.length === 0) {
-		booking.initializeGuests();
-	}
-
-	// Auto-expand first additional guest if exists
-	if (booking.draft.numberOfGuests > 1) {
-		expandedGuests.value[1] = true;
+		booking.setNumberOfGuests(requiredGuests);
+	} else if (booking.draft.guests.length < requiredGuests) {
+		// Ensure we have at least the minimum number of guests
+		booking.setNumberOfGuests(requiredGuests);
 	}
 });
 
-// Primary guest computed properties with two-way sync
-const primaryFullName = computed({
-	get: () => booking.draft.fullName,
-	set: (value) => {
-		booking.setFullName(value);
-		booking.updateGuest(0, "full_name", value);
-	},
-});
-
-const primaryEmail = computed({
-	get: () => booking.draft.email,
-	set: (value) => {
-		booking.setEmail(value);
-		booking.updateGuest(0, "email", value);
-	},
-});
-
-const primaryMobileNo = computed({
-	get: () => booking.draft.mobileNo,
-	set: (value) => {
-		booking.setMobileNo(value);
-		booking.updateGuest(0, "mobile_no", value);
-	},
-});
-
-// Additional guests (excluding primary)
-const additionalGuests = computed(() => {
+// All guests to display (based on min_guests)
+const allGuests = computed(() => {
 	if (!booking.draft.guests || !Array.isArray(booking.draft.guests)) {
 		return [];
 	}
-	return booking.draft.guests.slice(1);
+	return booking.draft.guests;
 });
 
-// Toggle guest form expansion
-function toggleGuest(index) {
-	expandedGuests.value[index] = !expandedGuests.value[index];
-}
+// Watch customer details and sync to first guest (billing contact)
+watch(
+	() => booking.draft.fullName,
+	(newValue) => {
+		if (booking.draft.guests && booking.draft.guests[0]) {
+			booking.draft.guests[0].full_name = newValue;
+		}
+	}
+);
+
+watch(
+	() => booking.draft.email,
+	(newValue) => {
+		if (booking.draft.guests && booking.draft.guests[0]) {
+			booking.draft.guests[0].email = newValue;
+		}
+	}
+);
+
+watch(
+	() => booking.draft.mobileNo,
+	(newValue) => {
+		if (booking.draft.guests && booking.draft.guests[0]) {
+			booking.draft.guests[0].mobile_no = newValue;
+		}
+	}
+);
 
 // Update guest field
 function updateGuestField(index, field, value) {

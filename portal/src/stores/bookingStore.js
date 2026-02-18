@@ -131,7 +131,8 @@ export const useBookingStore = defineStore("booking", {
 		},
 
 		initializeGuests() {
-			const count = this.draft.numberOfGuests || 1;
+			// Use minGuests as the required count, not numberOfGuests
+			const count = this.draft.minGuests || this.draft.numberOfGuests || 1;
 
 			// Keep existing guest data where possible
 			const existingGuests = [...this.draft.guests];
@@ -141,7 +142,7 @@ export const useBookingStore = defineStore("booking", {
 				const existingGuest = existingGuests[i];
 
 				if (i === 0) {
-					// Primary guest (contact person) pre-filled from main form
+					// First guest (billing contact) pre-filled from main form
 					this.draft.guests.push({
 						full_name: this.draft.fullName || existingGuest?.full_name || "",
 						email: this.draft.email || existingGuest?.email || "",
@@ -167,13 +168,6 @@ export const useBookingStore = defineStore("booking", {
 		updateGuest(index, field, value) {
 			if (this.draft.guests[index]) {
 				this.draft.guests[index][field] = value;
-
-				// If updating primary guest, also update main form fields
-				if (index === 0) {
-					if (field === "full_name") this.draft.fullName = value;
-					if (field === "email") this.draft.email = value;
-					if (field === "mobile_no") this.draft.mobileNo = value;
-				}
 			}
 		},
 
