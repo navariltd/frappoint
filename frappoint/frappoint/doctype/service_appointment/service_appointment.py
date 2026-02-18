@@ -519,40 +519,14 @@ class ServiceAppointment(Document):
 			self.currency = currency
 
 	def validate_guest_requirements(self):
-		"""Validate guest count against selected price or service type requirements"""
+		"""Validate guest count against service type requirements"""
 		if not self.appointment_type:
 			return
 
+		service_type = frappe.get_doc("Service Type", self.appointment_type, ignore_permissions=True)
+
 		guest_count = len(self.guests) if self.guests else 1
 		self.total_guests = guest_count
-
-		if self.appointment_price:
-			price_record = frappe.db.get_value(
-				"Service Type Price",
-				{"parent": self.appointment_type, "price_name": self.appointment_price},
-				["guest_count", "price_name"],
-				as_dict=True,
-			)
-
-			if price_record and price_record.guest_count:
-				required_guests = price_record.guest_count
-
-				if guest_count != required_guests:
-					frappe.throw(
-						title=_("Guest Count Mismatch"),
-						msg=_(
-							"The selected price '{0}' requires exactly {1} {2}. You have {3} guest(s)."
-						).format(
-							price_record.price_name,
-							required_guests,
-							"guest" if required_guests == 1 else "guests",
-							guest_count,
-						),
-					)
-				return
-
-		# Fall back to service type min/max validation if no specific price guest count
-		service_type = frappe.get_doc("Service Type", self.appointment_type, ignore_permissions=True)
 
 		if service_type.min_guests and guest_count < service_type.min_guests:
 			frappe.throw(

@@ -104,18 +104,55 @@
 							</div>
 						</div>
 					</div>
-					<!-- <div><div
-							class="absolute inset-0 bg-cover bg-center transition-transform duration-700 group-hover:scale-105"
-							:data-alt="serviceDetails.name"
-							:style="{ backgroundImage: `url(${serviceDetails.image})` }"
-						></div>
-						<p class="text-gray-900 font-medium mb-4">DATE & TIME</p>
-						<FormControl type="text" size="lg" placeholder="Select a Slot">
-							<template #suffix>
-								<FeatherIcon class="w-4" name="calendar" />
-							</template>
-						</FormControl>
-					</div> -->
+
+					<!-- Guest Selector -->
+					<div v-if="serviceDetails.min_guests || serviceDetails.max_guests">
+						<h3 class="font-medium text-lg mb-4">NUMBER OF GUESTS</h3>
+						<div class="flex items-center gap-4">
+							<button
+								@click="decrementGuests"
+								:disabled="
+									booking.draft.numberOfGuests <=
+									(serviceDetails.min_guests || 1)
+								"
+								class="w-10 h-10 flex items-center justify-center rounded-lg border-2 border-gray-300 hover:border-primary hover:bg-primary/10 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:border-gray-300 disabled:hover:bg-transparent transition-all"
+							>
+								<FeatherIcon class="h-5" name="minus" />
+							</button>
+							<div class="flex-1 text-center">
+								<p class="text-3xl font-bold text-gray-900">
+									{{ booking.draft.numberOfGuests }}
+								</p>
+								<p class="text-xs text-gray-500 mt-1">
+									{{ booking.draft.numberOfGuests === 1 ? "Guest" : "Guests" }}
+								</p>
+							</div>
+							<button
+								@click="incrementGuests"
+								:disabled="
+									serviceDetails.max_guests &&
+									booking.draft.numberOfGuests >= serviceDetails.max_guests
+								"
+								class="w-10 h-10 flex items-center justify-center rounded-lg border-2 border-gray-300 hover:border-primary hover:bg-primary/10 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:border-gray-300 disabled:hover:bg-transparent transition-all"
+							>
+								<FeatherIcon class="h-5" name="plus" />
+							</button>
+						</div>
+						<p class="text-xs text-gray-500 text-center mt-2">
+							<span v-if="serviceDetails.min_guests && serviceDetails.max_guests">
+								Min: {{ serviceDetails.min_guests }}, Max:
+								{{ serviceDetails.max_guests }}
+							</span>
+							<span v-else-if="serviceDetails.min_guests">
+								Minimum {{ serviceDetails.min_guests }}
+								{{ serviceDetails.min_guests === 1 ? "guest" : "guests" }}
+							</span>
+							<span v-else-if="serviceDetails.max_guests">
+								Maximum {{ serviceDetails.max_guests }}
+								{{ serviceDetails.max_guests === 1 ? "guest" : "guests" }}
+							</span>
+						</p>
+					</div>
 
 					<div>
 						<Button
@@ -203,8 +240,8 @@ watch(
 			booking.setCurrency(first.currency);
 			booking.setDuration(first.duration);
 
-			// Set number of guests from first price
-			const guestCount = first.guest_count || 1;
+			// Set number of guests from service type min_guests
+			const guestCount = serviceDetails.value.min_guests || 1;
 			booking.setNumberOfGuests(guestCount);
 		}
 	},
@@ -216,9 +253,20 @@ const setSelectedPrice = (price) => {
 	booking.setPrice(price.amount);
 	booking.setCurrency(price.currency);
 	booking.setDuration(price.duration);
-
-	// Set number of guests from price
-	const guestCount = price.guest_count || 1;
-	booking.setNumberOfGuests(guestCount);
+	// Guest count is managed by user selection, not by price
 };
+
+function incrementGuests() {
+	const max = serviceDetails.value.max_guests;
+	if (!max || booking.draft.numberOfGuests < max) {
+		booking.setNumberOfGuests(booking.draft.numberOfGuests + 1);
+	}
+}
+
+function decrementGuests() {
+	const min = serviceDetails.value.min_guests || 1;
+	if (booking.draft.numberOfGuests > min) {
+		booking.setNumberOfGuests(booking.draft.numberOfGuests - 1);
+	}
+}
 </script>

@@ -232,6 +232,8 @@ def get_service_type_details(service_type: str) -> dict:
 			"tags",
 			"description",
 			"default_duration_in_minutes",
+			"min_guests",
+			"max_guests",
 		],
 		as_dict=True,
 	)

@@ -22,7 +22,10 @@ export const useBookingStore = defineStore("booking", {
 			source: "Portal",
 			numberOfGuests: 1,
 			guests: [],
+			minGuests: 1,
+			maxGuests: null,
 		},
+		serviceDetails: null,
 
 		currentStep: 1,
 		attemptedCheckout: false,
@@ -197,8 +200,11 @@ export const useBookingStore = defineStore("booking", {
 			});
 
 			const service = await resource.fetch();
+			this.serviceDetails = service;
 
 			this.draft.paymentGateways = service.payment_gateways || [];
+			this.draft.minGuests = service.min_guests || 1;
+			this.draft.maxGuests = service.max_guests || null;
 
 			if (!this.draft.selectedPaymentGateway && this.draft.paymentGateways.length === 1) {
 				this.draft.selectedPaymentGateway = this.draft.paymentGateways[0];
@@ -238,7 +244,10 @@ export const useBookingStore = defineStore("booking", {
 				source: "Portal",
 				numberOfGuests: 1,
 				guests: [],
+				minGuests: 1,
+				maxGuests: null,
 			};
+			this.serviceDetails = null;
 			this.mode = "booking";
 		},
 
@@ -258,6 +267,12 @@ export const useBookingStore = defineStore("booking", {
 				}
 				if (!this.draft.guests || !Array.isArray(this.draft.guests)) {
 					this.draft.guests = [];
+				}
+				if (!this.draft.minGuests) {
+					this.draft.minGuests = 1;
+				}
+				if (!this.draft.maxGuests) {
+					this.draft.maxGuests = null;
 				}
 			}
 		},
