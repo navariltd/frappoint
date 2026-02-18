@@ -2,58 +2,185 @@
 	<div class="flex flex-col lg:flex-row gap-6 lg:gap-8 w-full p-6 md:p-8">
 		<!-- Left Column - Your Information Form -->
 		<div class="w-full lg:w-2/3">
-			<h2 class="text-xl font-bold text-gray-900 dark:text-white mb-6">Your Information</h2>
-			<form class="space-y-6">
-				<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-					<div class="space-y-2">
-						<label
-							class="text-sm font-semibold text-gray-700 dark:text-gray-300"
-							for="full-name"
-						>
-							Full Name
-						</label>
-						<input
-							id="full-name"
-							v-model="booking.draft.fullName"
-							:disabled="isLoggedIn"
-							class="w-full px-4 py-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary/50 focus:border-primary text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 outline-none transition-all disabled:bg-gray-50 disabled:cursor-not-allowed"
-							type="text"
-							placeholder="John Doe"
-						/>
+			<!-- Customer Details Section -->
+			<div class="mb-6">
+				<h2 class="text-xl font-bold text-gray-900 dark:text-white mb-6">
+					Your Information
+				</h2>
+
+				<div
+					class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-6"
+				>
+					<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+						<div class="space-y-2">
+							<label
+								class="text-sm font-semibold text-gray-700 dark:text-gray-300"
+								for="customer-name"
+							>
+								Full Name
+								<span class="text-red-500">*</span>
+							</label>
+							<input
+								id="customer-name"
+								v-model="booking.draft.fullName"
+								:disabled="isLoggedIn"
+								class="w-full px-4 py-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary/50 focus:border-primary text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 outline-none transition-all disabled:bg-gray-50 disabled:cursor-not-allowed"
+								type="text"
+								placeholder="John Doe"
+								required
+							/>
+						</div>
+						<div class="space-y-2">
+							<label
+								class="text-sm font-semibold text-gray-700 dark:text-gray-300"
+								for="customer-email"
+							>
+								Email Address
+								<span class="text-red-500">*</span>
+							</label>
+							<input
+								id="customer-email"
+								v-model="booking.draft.email"
+								:disabled="isLoggedIn"
+								type="email"
+								class="w-full px-4 py-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary/50 focus:border-primary text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 outline-none transition-all disabled:bg-gray-50 disabled:cursor-not-allowed"
+								placeholder="john@example.com"
+								required
+							/>
+						</div>
 					</div>
-					<div class="space-y-2">
+					<div class="space-y-2 mt-4">
 						<label
 							class="text-sm font-semibold text-gray-700 dark:text-gray-300"
-							for="email"
+							for="customer-phone"
 						>
-							Email Address
+							Phone Number
+							<span class="text-red-500">*</span>
 						</label>
 						<input
-							id="email"
-							v-model="booking.draft.email"
+							id="customer-phone"
+							v-model="booking.draft.mobileNo"
 							:disabled="isLoggedIn"
+							type="tel"
 							class="w-full px-4 py-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary/50 focus:border-primary text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 outline-none transition-all disabled:bg-gray-50 disabled:cursor-not-allowed"
-							type="email"
-							placeholder="john@example.com"
+							placeholder="+1 (555) 000-0000"
+							required
 						/>
 					</div>
 				</div>
-				<div class="space-y-2">
-					<label
-						class="text-sm font-semibold text-gray-700 dark:text-gray-300"
-						for="phone"
+			</div>
+
+			<!-- Guest Forms Section -->
+			<div class="mb-6">
+				<div class="flex items-center justify-between mb-6">
+					<h2 class="text-xl font-bold text-gray-900 dark:text-white">
+						Guest Information
+					</h2>
+					<div
+						class="flex items-center gap-2 px-3 py-1.5 bg-gray-100 dark:bg-gray-700 rounded-lg"
 					>
-						Phone Number
-					</label>
-					<input
-						id="phone"
-						v-model="booking.draft.mobileNo"
-						:disabled="isLoggedIn"
-						class="w-full px-4 py-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary/50 focus:border-primary text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 outline-none transition-all disabled:bg-gray-50 disabled:cursor-not-allowed"
-						type="tel"
-						placeholder="+1 (555) 000-0000"
-					/>
+						<svg
+							class="w-4 h-4 text-gray-600 dark:text-gray-300"
+							fill="none"
+							stroke="currentColor"
+							viewBox="0 0 24 24"
+						>
+							<path
+								stroke-linecap="round"
+								stroke-linejoin="round"
+								stroke-width="2"
+								d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
+							/>
+						</svg>
+						<span class="text-sm font-semibold text-gray-700 dark:text-gray-300">
+							{{ booking.draft.minGuests }}
+							{{ booking.draft.minGuests === 1 ? "Guest" : "Guests" }} Required
+						</span>
+					</div>
 				</div>
+
+				<div class="space-y-4">
+					<!-- Guest Forms -->
+					<div
+						v-for="(guest, index) in allGuests"
+						:key="index"
+						class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-6"
+					>
+						<div class="flex items-center gap-2 mb-4">
+							<div
+								class="flex items-center justify-center w-6 h-6 bg-primary/10 dark:bg-primary/20 text-primary dark:text-teal-400 rounded-full text-xs font-bold"
+							>
+								{{ index + 1 }}
+							</div>
+							<h3 class="text-base font-bold text-gray-900 dark:text-white">
+								Guest {{ index + 1 }}
+							</h3>
+						</div>
+
+						<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+							<div class="space-y-2">
+								<label
+									class="text-sm font-semibold text-gray-700 dark:text-gray-300"
+									:for="`guest-${index}-name`"
+								>
+									Full Name
+									<span class="text-red-500">*</span>
+								</label>
+								<input
+									:id="`guest-${index}-name`"
+									:value="guest.full_name"
+									@input="
+										updateGuestField(index, 'full_name', $event.target.value)
+									"
+									class="w-full px-4 py-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary/50 focus:border-primary text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 outline-none transition-all"
+									type="text"
+									placeholder="Guest Name"
+									required
+								/>
+							</div>
+							<div class="space-y-2">
+								<label
+									class="text-sm font-semibold text-gray-700 dark:text-gray-300"
+									:for="`guest-${index}-email`"
+								>
+									Email Address
+									<span class="text-gray-400 font-normal text-xs"
+										>(Optional)</span
+									>
+								</label>
+								<input
+									:id="`guest-${index}-email`"
+									:value="guest.email"
+									@input="updateGuestField(index, 'email', $event.target.value)"
+									type="email"
+									class="w-full px-4 py-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary/50 focus:border-primary text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 outline-none transition-all"
+									placeholder="guest@example.com"
+								/>
+							</div>
+						</div>
+						<div class="space-y-2 mt-4">
+							<label
+								class="text-sm font-semibold text-gray-700 dark:text-gray-300"
+								:for="`guest-${index}-phone`"
+							>
+								Phone Number
+								<span class="text-gray-400 font-normal text-xs">(Optional)</span>
+							</label>
+							<input
+								:id="`guest-${index}-phone`"
+								:value="guest.mobile_no"
+								@input="updateGuestField(index, 'mobile_no', $event.target.value)"
+								type="tel"
+								class="w-full px-4 py-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary/50 focus:border-primary text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 outline-none transition-all"
+								placeholder="+1 (555) 000-0000"
+							/>
+						</div>
+					</div>
+				</div>
+			</div>
+
+			<form class="space-y-6">
+				<!-- Additional Notes -->
 				<div class="space-y-2">
 					<label
 						class="text-sm font-semibold text-gray-700 dark:text-gray-300"
@@ -66,7 +193,7 @@
 						id="notes"
 						v-model="booking.draft.notes"
 						class="w-full px-4 py-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary/50 focus:border-primary text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 outline-none transition-all resize-none"
-						placeholder="Anything we should know before your arrival?"
+						placeholder="Any special requests or allergies we should know about?"
 						rows="4"
 					></textarea>
 				</div>
@@ -215,7 +342,7 @@
 <script setup>
 import { useBookingStore } from "@/stores/bookingStore";
 import { formatCurrency } from "@/utils";
-import { computed } from "vue";
+import { computed, ref, watch, onMounted } from "vue";
 
 const props = defineProps({
 	isLoggedIn: {
@@ -225,6 +352,59 @@ const props = defineProps({
 });
 
 const booking = useBookingStore();
+
+// Initialize guests when component mounts
+onMounted(() => {
+	// Ensure guests are initialized based on min_guests
+	const requiredGuests = booking.draft.minGuests || 1;
+	if (!booking.draft.guests || booking.draft.guests.length === 0) {
+		booking.setNumberOfGuests(requiredGuests);
+	} else if (booking.draft.guests.length < requiredGuests) {
+		// Ensure we have at least the minimum number of guests
+		booking.setNumberOfGuests(requiredGuests);
+	}
+});
+
+// All guests to display (based on min_guests)
+const allGuests = computed(() => {
+	if (!booking.draft.guests || !Array.isArray(booking.draft.guests)) {
+		return [];
+	}
+	return booking.draft.guests;
+});
+
+// Watch customer details and sync to first guest (billing contact)
+watch(
+	() => booking.draft.fullName,
+	(newValue) => {
+		if (booking.draft.guests && booking.draft.guests[0]) {
+			booking.draft.guests[0].full_name = newValue;
+		}
+	}
+);
+
+watch(
+	() => booking.draft.email,
+	(newValue) => {
+		if (booking.draft.guests && booking.draft.guests[0]) {
+			booking.draft.guests[0].email = newValue;
+		}
+	}
+);
+
+watch(
+	() => booking.draft.mobileNo,
+	(newValue) => {
+		if (booking.draft.guests && booking.draft.guests[0]) {
+			booking.draft.guests[0].mobile_no = newValue;
+		}
+	}
+);
+
+// Update guest field
+function updateGuestField(index, field, value) {
+	booking.updateGuest(index, field, value);
+}
 
 // Computed properties for display
 const formattedDate = computed(() => {

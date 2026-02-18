@@ -73,40 +73,58 @@
 						</div>
 					</div>
 					<div>
-						<h3 class="font-medium text-lg mb-4">DURATION</h3>
+						<h3 class="font-medium text-lg mb-4">PRICES</h3>
 						<div class="grid grid-cols-2 gap-2">
 							<div
-								v-for="duration in serviceDetails.prices"
-								:key="duration.price_name"
-								@click="setSelectedPrice(duration)"
-								class="px-6 py-4 rounded-lg text-center max-w-40 cursor-pointer flex flex-col items-center justify-center border-2 transition-all"
+								v-for="price in serviceDetails.prices"
+								:key="price.price_name"
+								@click="setSelectedPrice(price)"
+								class="px-4 py-4 rounded-lg cursor-pointer flex flex-col gap-2 border-2 transition-all"
 								:class="
-									booking.draft.priceName === duration.price_name
+									booking.draft.priceName === price.price_name
 										? 'border-primary bg-primary/10'
 										: 'border-gray-300 hover:border-primary'
 								"
 							>
+								<span
+									class="font-bold text-sm text-gray-700 uppercase tracking-wide"
+								>
+									{{ price.price_name }}
+								</span>
 								<span class="font-semibold text-primary text-xl">
-									{{ duration.duration }} min</span
-								>
-								<span class="text-xs opacity-80">
-									{{ formatCurrency(duration.amount, duration.currency) }}</span
-								>
+									{{ price.duration }} min
+								</span>
+								<span class="text-sm font-semibold text-gray-900">
+									{{ formatCurrency(price.amount, price.currency) }}
+								</span>
+								<span class="text-xs text-gray-500" v-if="price.pricing_model">
+									{{ price.pricing_model }}
+								</span>
+								<span class="text-xs text-gray-500" v-if="price.guest_count">
+									{{ price.guest_count }}
+									{{ price.guest_count === 1 ? "guest" : "guests" }}
+								</span>
 							</div>
 						</div>
 					</div>
-					<!-- <div><div
-							class="absolute inset-0 bg-cover bg-center transition-transform duration-700 group-hover:scale-105"
-							:data-alt="serviceDetails.name"
-							:style="{ backgroundImage: `url(${serviceDetails.image})` }"
-						></div>
-						<p class="text-gray-900 font-medium mb-4">DATE & TIME</p>
-						<FormControl type="text" size="lg" placeholder="Select a Slot">
-							<template #suffix>
-								<FeatherIcon class="w-4" name="calendar" />
-							</template>
-						</FormControl>
-					</div> -->
+
+					<!-- Guest Requirements -->
+					<div v-if="serviceDetails.min_guests || serviceDetails.max_guests">
+						<h3 class="font-medium text-lg mb-2">NUMBER OF GUESTS</h3>
+						<div class="space-y-1">
+							<p v-if="serviceDetails.min_guests" class="text-sm text-gray-600">
+								Minimum {{ serviceDetails.min_guests }}
+								{{ serviceDetails.min_guests === 1 ? "guest" : "guests" }} required
+							</p>
+							<p
+								v-if="serviceDetails.max_guests && serviceDetails.max_guests > 0"
+								class="text-sm text-gray-600"
+							>
+								Maximum {{ serviceDetails.max_guests }}
+								{{ serviceDetails.max_guests === 1 ? "guest" : "guests" }}
+							</p>
+						</div>
+					</div>
 
 					<div>
 						<Button
@@ -193,6 +211,10 @@ watch(
 			booking.setPrice(first.amount);
 			booking.setCurrency(first.currency);
 			booking.setDuration(first.duration);
+
+			// Set number of guests from service type min_guests
+			const guestCount = serviceDetails.value.min_guests || 1;
+			booking.setNumberOfGuests(guestCount);
 		}
 	},
 	{ immediate: true }
@@ -203,5 +225,6 @@ const setSelectedPrice = (price) => {
 	booking.setPrice(price.amount);
 	booking.setCurrency(price.currency);
 	booking.setDuration(price.duration);
+	// Guest count is managed by user selection, not by price
 };
 </script>
