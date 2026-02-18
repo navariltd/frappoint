@@ -90,9 +90,11 @@ class ServiceAppointment(Document):
 		self.validate_appointment_date_and_times()
 		self.validate_guest_requirements()
 		self.validate_overlaps()
-		self.validate_customer_overlap()
 		self.validate_appointment_capacity()
 		self.validate_price_and_currency()
+
+		if self.appointment_type and not self.company:
+			self.company = self.set_company_from_type()
 
 		if self.appointment_type and not self.duration:
 			self.set_duration_from_type()
@@ -290,59 +292,6 @@ class ServiceAppointment(Document):
 					frappe.bold(self.appointment_provider),
 					frappe.bold(frappe.format(self.appointment_date, {"fieldtype": "Date"})),
 					overlap_details,
-				),
-				OverlapError,
-				title=_("Overlapping Appointment"),
-			)
-
-	def validate_customer_overlap(self):
-		"""
-		Validate that the customer doesn't have multiple appointments at the same time.
-		Called to prevent customers from double-booking.
-		"""
-		if not self.customer or not all([self.appointment_date, self.start_time, self.end_time]):
-			return
-
-		overlapping_customer_appointments = frappe.db.sql(
-			"""
-			SELECT
-				name, appointment_provider, start_time, end_time, status
-			FROM
-				`tabService Appointment`
-			WHERE
-				appointment_date = %(appointment_date)s
-				AND name != %(name)s
-				AND status NOT IN ('Cancelled', 'No Show', 'Closed')
-				AND docstatus != 2
-				AND customer = %(customer)s
-				AND start_time IS NOT NULL
-				AND end_time IS NOT NULL
-				AND (
-					(start_time < %(start_time)s AND end_time > %(start_time)s) OR
-					(start_time >= %(start_time)s AND start_time < %(end_time)s) OR
-					(start_time = %(start_time)s)
-				)
-			""",
-			{
-				"appointment_date": self.appointment_date,
-				"name": self.name or "new",
-				"customer": self.customer,
-				"start_time": self.start_time,
-				"end_time": self.end_time,
-			},
-			as_dict=True,
-		)
-
-		if overlapping_customer_appointments:
-			frappe.throw(
-				_("Customer {0} has another appointment at the same time: {1}").format(
-					frappe.bold(self.customer),
-					", ".join(
-						[
-							get_link_to_form(self.doctype, appt["name"])
-							for appt in overlapping_customer_appointments
-						]
-					),
 				),
 				OverlapError,
 				title=_("Overlapping Appointment"),
@@ -572,6 +521,9 @@ class ServiceAppointment(Document):
 		else:
 			# Per Booking: Flat rate regardless of guests
 			return flt(base_amount)
+
+	def set_company_from_type(self):
+		return frappe.db.get_value("Service Type", self.appointment_type, "company")
 
 	def set_duration_from_type(self):
 		"""Set duration from appointment type"""
