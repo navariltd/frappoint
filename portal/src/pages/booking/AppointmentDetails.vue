@@ -187,14 +187,14 @@
 						"
 					>
 						<button
-							@click="handleAppointmentReschedule"
+							@click="handleAppointmentReschedule(appointment.doc.name)"
 							class="flex-1 bg-teal-600 text-white font-medium py-2.5 px-4 rounded-lg hover:bg-teal-700 transition-colors flex items-center justify-center gap-2 shadow-sm"
 						>
 							<FeatherIcon name="calendar" class="w-4 h-4" />
 							Reschedule Appointment
 						</button>
 						<button
-							@click="handleAppointmentCancel"
+							@click="handleAppointmentCancel(appointment.doc.name)"
 							class="flex-1 bg-white text-red-600 border border-red-200 font-medium py-2.5 px-4 rounded-lg hover:bg-red-50 hover:border-red-300 transition-colors flex items-center justify-center gap-2 shadow-sm"
 						>
 							<FeatherIcon name="x-circle" class="w-4 h-4" />

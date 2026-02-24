@@ -180,7 +180,6 @@ const getAvailableDates = createResource({
 	},
 	auto: false,
 	async onSuccess(data) {
-		console.log("Available dates: ", data || []);
 		availableDates.value = data || [];
 		await nextTick();
 	},
