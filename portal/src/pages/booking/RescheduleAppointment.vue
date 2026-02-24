@@ -31,29 +31,26 @@
 								{{ formatDate(appointment.doc.appointment_date) }} at
 								{{ formatTime(appointment.doc.start_time) }}
 							</div>
-
-							<!-- <div class="mt-6">
-								<button class="bg-gray-100 text-gray-700 px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-200 transition-colors">
-									Cancel Current
-								</button>
-							</div> -->
 						</div>
 
 						<div
 							class="hidden md:block w-72 h-48 rounded-xl bg-gray-100 overflow-hidden relative"
 						>
-							<img
-								v-if="serviceTypeImage"
-								:src="serviceTypeImage"
-								class="w-full h-full object-cover"
-								alt="Service"
-							/>
 							<div
-								v-else
-								class="w-full h-full flex items-center justify-center bg-gray-200 text-gray-400"
-							>
-								<FeatherIcon name="image" class="w-12 h-12" />
-							</div>
+								class="w-full h-full"
+								:style="
+									serviceTypeImage
+										? {
+												backgroundImage: `url(${serviceTypeImage})`,
+												backgroundSize: 'cover',
+												backgroundPosition: 'center',
+										  }
+										: {
+												background:
+													'linear-gradient(to bottom right, #3a8a8b, #2c7677, #1f5a5b)',
+										  }
+								"
+							></div>
 						</div>
 					</div>
 				</div>
