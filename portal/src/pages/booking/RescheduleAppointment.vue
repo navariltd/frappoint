@@ -31,29 +31,26 @@
 								{{ formatDate(appointment.doc.appointment_date) }} at
 								{{ formatTime(appointment.doc.start_time) }}
 							</div>
-
-							<!-- <div class="mt-6">
-								<button class="bg-gray-100 text-gray-700 px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-200 transition-colors">
-									Cancel Current
-								</button>
-							</div> -->
 						</div>
 
 						<div
 							class="hidden md:block w-72 h-48 rounded-xl bg-gray-100 overflow-hidden relative"
 						>
-							<img
-								v-if="serviceTypeImage"
-								:src="serviceTypeImage"
-								class="w-full h-full object-cover"
-								alt="Service"
-							/>
 							<div
-								v-else
-								class="w-full h-full flex items-center justify-center bg-gray-200 text-gray-400"
-							>
-								<FeatherIcon name="image" class="w-12 h-12" />
-							</div>
+								class="w-full h-full"
+								:style="
+									serviceTypeImage
+										? {
+												backgroundImage: `url(${serviceTypeImage})`,
+												backgroundSize: 'cover',
+												backgroundPosition: 'center',
+										  }
+										: {
+												background:
+													'linear-gradient(to bottom right, #3a8a8b, #2c7677, #1f5a5b)',
+										  }
+								"
+							></div>
 						</div>
 					</div>
 				</div>
@@ -64,7 +61,14 @@
 					<div
 						class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden"
 					>
+						<!-- Show skeleton while initially loading dates -->
+						<SlotPickerSkeleton
+							v-if="getAvailableDates.loading && availableDates.length === 0"
+						/>
+
+						<!-- Show SlotPicker once dates are available or loaded -->
 						<SlotPicker
+							v-else
 							:date="reschedulingState.date"
 							:slot="reschedulingState.slot"
 							:provider="reschedulingState.provider"
@@ -138,6 +142,7 @@ import { FeatherIcon, createDocumentResource, createResource, Alert } from "frap
 import { useRoute, useRouter } from "vue-router";
 import { computed, watch, ref, nextTick } from "vue";
 import SlotPicker from "@/components/booking/steps/ChooseTime.vue";
+import SlotPickerSkeleton from "@/components/booking/SlotPickerSkeleton.vue";
 
 const route = useRoute();
 const router = useRouter();
@@ -187,6 +192,7 @@ watch(
 			reschedulingState.value.serviceType = doc.appointment_type;
 			reschedulingState.value.duration = doc.duration;
 			await getAvailableDates.fetch();
+			await serviceTypeResource.fetch();
 		}
 	},
 	{ immediate: true }
@@ -222,6 +228,7 @@ const serviceTypeResource = createResource({
 });
 
 const serviceTypeImage = computed(() => serviceTypeResource.data?.image);
+
 const rescheduleResource = createResource({
 	url: "frappoint.frappoint.doctype.service_appointment.service_appointment.reschedule_appointment",
 });
@@ -329,9 +336,27 @@ async function handleConfirmReschedule() {
 		}, 2000);
 	} catch (error) {
 		console.error(error);
+		// Extract error message from various possible error structures
+		let errorMessage = "Failed to reschedule. Please try again.";
+		if (error.messages && error.messages.length > 0) {
+			errorMessage = error.messages[0];
+		} else if (error.message) {
+			errorMessage = error.message;
+		} else if (error._server_messages) {
+			try {
+				const messages = JSON.parse(error._server_messages);
+				if (messages.length > 0) {
+					const parsed = JSON.parse(messages[0]);
+					errorMessage = parsed.message || errorMessage;
+				}
+			} catch (e) {
+				console.error(e.message);
+			}
+		}
+
 		alert.value = {
 			show: true,
-			message: error.messages?.[0] || "Failed to reschedule. Please try again.",
+			message: errorMessage,
 			variant: "error",
 		};
 	} finally {
