@@ -928,6 +928,7 @@ function reschedule_appointment(frm) {
 						frm.doc.start_time
 					})`,
 				source: frm.doc.source,
+				guests: frm.doc.guests,
 				add_video_conferencing: frm.doc.add_video_conferencing,
 			});
 		}
