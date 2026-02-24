@@ -49,109 +49,128 @@
 		</div>
 
 		<!-- RIGHT COLUMN: Time Slots  -->
-		<div
-			v-if="date"
-			class="w-full lg:w-7/12 p-6 md:p-8 flex flex-col bg-surface-light relative"
-		>
-			<!-- provider  -->
-			<div class="mb-8 border-collapse">
-				<!-- Loading skeleton for provider dropdown -->
-				<div v-if="slotsLoading" class="animate-pulse">
-					<div class="h-4 w-48 bg-slate-200 rounded mb-2"></div>
-					<div class="h-12 w-full bg-slate-100 rounded"></div>
+		<div class="w-full lg:w-7/12 p-6 md:p-8 flex flex-col bg-surface-light relative">
+			<!-- Empty state when no date selected -->
+			<div
+				v-if="!date"
+				class="flex-1 flex flex-col items-center justify-center text-center p-8"
+			>
+				<div class="mb-4 p-4 bg-white rounded-full shadow-sm">
+					<FeatherIcon name="calendar" class="w-12 h-12 text-teal-600" />
 				</div>
-
-				<!-- Actual dropdown -->
-				<FormControl
-					v-else
-					type="select"
-					:options="providerOptions"
-					:model-value="provider"
-					@update:model-value="$emit('update:provider', $event)"
-					size="xl"
-					variant="subtle"
-					placeholder="Any Available Staff"
-					:disabled="false"
-					label="Select Staff Member (Optional)"
-					class="w-full appearance-none bg-white text-slate-900 px-4 pr-10 focus:!outline-none focus:!ring-2 focus:!ring-primary/50 focus:!border-primary transition-shadow cursor-pointer"
-				/>
+				<h3 class="text-lg font-bold text-gray-900 mb-2">Select a Date</h3>
+				<p class="text-gray-600 text-sm max-w-xs">
+					Please select a date from the calendar to view available time slots for your
+					appointment.
+				</p>
 			</div>
 
-			<!-- Date and slots  -->
-			<div>
-				<div class="flex items-center justify-between mb-4">
-					<h1 class="text-lg font-bold text-slate-900">
-						{{ formatSelectedDate(date) }}
-					</h1>
-				</div>
-
-				<!-- Loading slots skeleton -->
-				<div v-if="slotsLoading">
-					<TimeSlotSkeleton :count="12" />
-				</div>
-
-				<!-- Time slots grid -->
-				<div v-else>
-					<!-- Slots available -->
-					<div
-						v-if="hasSlots"
-						class="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-8 overflow-y-auto max-h-[320px] time-slot-scroll pr-2"
-					>
-						<!-- Morning section -->
-						<template v-if="morningSlots.length">
-							<div class="col-span-full mt-2 mb-1">
-								<p>Morning</p>
-							</div>
-
-							<Button
-								v-for="slot in morningSlots"
-								:key="slot.start_time + slot.provider"
-								@click="$emit('update:slot', slot)"
-								:class="
-									isSlotSelected(slot)
-										? '!bg-primary !text-white'
-										: 'border hover-bg-primary/10'
-								"
-								class="py-4 px-4 rounded-lg border border-slate-200 text-slate-700 hover:border-primary hover:text-primary hover:bg-[#E2F0F9] transition-all text-sm font-medium"
-							>
-								{{ formatTime(slot.start_time) }}
-							</Button>
-						</template>
-
-						<!-- Afternoon section -->
-						<template v-if="afternoonSlots.length">
-							<div class="col-span-full mt-2 mb-1">
-								<p>Afternoon</p>
-							</div>
-
-							<Button
-								v-for="slot in afternoonSlots"
-								:key="slot.start_time + slot.provider"
-								@click="$emit('update:slot', slot)"
-								:class="
-									isSlotSelected(slot)
-										? '!bg-primary !text-white'
-										: 'broder hover-bg-primary/10'
-								"
-								class="py-4 px-4 rounded-lg border border-slate-200 text-slate-700 hover:border-primary hover:text-primary hover:bg-[#E2F0F9] transition-all text-sm font-medium"
-							>
-								{{ formatTime(slot.start_time) }}
-							</Button>
-						</template>
+			<!-- Time slots content when date is selected -->
+			<template v-else>
+				<!-- provider  -->
+				<div class="mb-8 border-collapse">
+					<!-- Loading skeleton for provider dropdown -->
+					<div v-if="slotsLoading" class="animate-pulse">
+						<div class="h-4 w-48 bg-slate-200 rounded mb-2"></div>
+						<div class="h-12 w-full bg-slate-100 rounded"></div>
 					</div>
 
-					<!-- Empty state when no slots -->
-					<div
+					<!-- Actual dropdown -->
+					<FormControl
 						v-else
-						class="flex flex-col items-center justify-center text-center bg-white rounded-lg border border-slate-200 p-8"
-						aria-live="polite"
-					>
-						<FeatherIcon name="clock" class="w-10 h-10 text-slate-400 mb-2" />
-						<p class="text-slate-800 font-medium">No available slots at the moment.</p>
-						<p class="text-slate-500 text-sm mt-1">Please choose another service.</p>
+						type="select"
+						:options="providerOptions"
+						:model-value="provider"
+						@update:model-value="$emit('update:provider', $event)"
+						size="xl"
+						variant="subtle"
+						placeholder="Any Available Staff"
+						:disabled="false"
+						label="Select Staff Member (Optional)"
+						class="w-full appearance-none bg-white text-slate-900 px-4 pr-10 focus:!outline-none focus:!ring-2 focus:!ring-primary/50 focus:!border-primary transition-shadow cursor-pointer"
+					/>
+				</div>
+
+				<!-- Date and slots  -->
+				<div>
+					<div class="flex items-center justify-between mb-4">
+						<h1 class="text-lg font-bold text-slate-900">
+							{{ formatSelectedDate(date) }}
+						</h1>
+					</div>
+
+					<!-- Loading slots skeleton -->
+					<div v-if="slotsLoading">
+						<TimeSlotSkeleton :count="12" />
+					</div>
+
+					<!-- Time slots grid -->
+					<div v-else>
+						<!-- Slots available -->
+						<div
+							v-if="hasSlots"
+							class="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-8 overflow-y-auto max-h-[320px] time-slot-scroll pr-2"
+						>
+							<!-- Morning section -->
+							<template v-if="morningSlots.length">
+								<div class="col-span-full mt-2 mb-1">
+									<p>Morning</p>
+								</div>
+
+								<Button
+									v-for="slot in morningSlots"
+									:key="slot.start_time + slot.provider"
+									@click="$emit('update:slot', slot)"
+									:class="
+										isSlotSelected(slot)
+											? '!bg-primary !text-white'
+											: 'border hover-bg-primary/10'
+									"
+									class="py-4 px-4 rounded-lg border border-slate-200 text-slate-700 hover:border-primary hover:text-primary hover:bg-[#E2F0F9] transition-all text-sm font-medium"
+								>
+									{{ formatTime(slot.start_time) }}
+								</Button>
+							</template>
+
+							<!-- Afternoon section -->
+							<template v-if="afternoonSlots.length">
+								<div class="col-span-full mt-2 mb-1">
+									<p>Afternoon</p>
+								</div>
+
+								<Button
+									v-for="slot in afternoonSlots"
+									:key="slot.start_time + slot.provider"
+									@click="$emit('update:slot', slot)"
+									:class="
+										isSlotSelected(slot)
+											? '!bg-primary !text-white'
+											: 'broder hover-bg-primary/10'
+									"
+									class="py-4 px-4 rounded-lg border border-slate-200 text-slate-700 hover:border-primary hover:text-primary hover:bg-[#E2F0F9] transition-all text-sm font-medium"
+								>
+									{{ formatTime(slot.start_time) }}
+								</Button>
+							</template>
+						</div>
+
+						<!-- Empty state when no slots -->
+						<div
+							v-else
+							class="flex flex-col items-center justify-center text-center bg-white rounded-lg border border-slate-200 p-8"
+							aria-live="polite"
+						>
+							<FeatherIcon name="clock" class="w-10 h-10 text-slate-400 mb-2" />
+							<p class="text-slate-800 font-medium">
+								No available slots at the moment.
+							</p>
+							<p class="text-slate-500 text-sm mt-1">
+								Please choose another service.
+							</p>
+						</div>
 					</div>
 				</div>
-			</div>
+			</template>
 		</div>
 	</div>
 </template>
