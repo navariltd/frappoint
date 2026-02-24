@@ -219,6 +219,7 @@ const serviceTypeResource = createResource({
 });
 
 const serviceTypeImage = computed(() => serviceTypeResource.data?.image);
+console.log(`Service Type Image: ${serviceTypeImage ? "Available " : "Not available"}`);
 const rescheduleResource = createResource({
 	url: "frappoint.frappoint.doctype.service_appointment.service_appointment.reschedule_appointment",
 });
@@ -326,9 +327,27 @@ async function handleConfirmReschedule() {
 		}, 2000);
 	} catch (error) {
 		console.error(error);
+		// Extract error message from various possible error structures
+		let errorMessage = "Failed to reschedule. Please try again.";
+		if (error.messages && error.messages.length > 0) {
+			errorMessage = error.messages[0];
+		} else if (error.message) {
+			errorMessage = error.message;
+		} else if (error._server_messages) {
+			try {
+				const messages = JSON.parse(error._server_messages);
+				if (messages.length > 0) {
+					const parsed = JSON.parse(messages[0]);
+					errorMessage = parsed.message || errorMessage;
+				}
+			} catch (e) {
+				// Keep default message if parsing fails
+			}
+		}
+
 		alert.value = {
 			show: true,
-			message: error.messages?.[0] || "Failed to reschedule. Please try again.",
+			message: errorMessage,
 			variant: "error",
 		};
 	} finally {
