@@ -164,68 +164,61 @@
 						</div>
 					</div>
 
-					<!-- Appointment Cards -->
-					<div v-else class="space-y-3 sm:space-y-4">
-						<AppointmentCard
-							v-for="appointment in appointments"
-							:key="appointment.name"
-							:appointment="appointment"
-							@update="appointments.reload()"
-						/>
-					</div>
-				</div>
+					<!-- Appointment Cards - Categorized -->
+					<div v-else class="space-y-6 sm:space-y-8">
+						<!-- Next Up Section -->
+						<div v-if="nextUp">
+							<div class="flex justify-between items-center mb-3 sm:mb-4">
+								<h3
+									class="text-xs sm:text-sm font-semibold text-gray-400 tracking-wider"
+								>
+									NEXT UP
+								</h3>
+								<span
+									class="px-2 sm:px-3 py-0.5 sm:py-1 bg-green-50 text-green-600 text-[10px] sm:text-xs font-medium rounded-full"
+									>Confirmed</span
+								>
+							</div>
+							<AppointmentCard
+								:appointment="nextUp"
+								variant="next"
+								@update="appointmentsResourceList.reload()"
+							/>
+						</div>
 
-				<!-- Right Column - Sidebar (Mobile/Tablet only) -->
-				<div class="xl:hidden space-y-4 sm:space-y-6">
-					<!-- Quick Overview Card -->
-					<div
-						v-if="nextUp"
-						class="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden p-4"
-					>
-						<div class="flex justify-between items-center mb-3 sm:mb-4 px-1">
+						<!-- Upcoming Section -->
+						<div v-if="upcomingAppointments.length > 0">
 							<h3
-								class="text-xs sm:text-sm font-semibold text-gray-400 tracking-wider"
+								class="text-xs sm:text-sm font-semibold text-gray-400 tracking-wider mb-3 sm:mb-4"
 							>
-								NEXT UP
+								UPCOMING
 							</h3>
-							<span
-								class="px-2 sm:px-3 py-0.5 sm:py-1 bg-green-50 text-green-600 text-[10px] sm:text-xs font-medium rounded-full"
-								>Confirmed</span
+							<div class="space-y-3 sm:space-y-4">
+								<AppointmentCard
+									v-for="appointment in upcomingAppointments"
+									:appointment="appointment"
+									:key="appointment.name"
+									@update="appointmentsResourceList.reload()"
+								/>
+							</div>
+						</div>
+
+						<!-- Past Section -->
+						<div v-if="pastAppointments.length > 0">
+							<h3
+								class="text-xs sm:text-sm font-semibold text-gray-400 tracking-wider mb-3 sm:mb-4"
 							>
-						</div>
-						<AppointmentCard :appointment="nextUp" variant="next" />
-					</div>
-
-					<!-- Upcoming Section -->
-					<div v-if="upcomingAppointments.length > 0">
-						<h3
-							class="text-xs sm:text-sm font-semibold text-gray-400 tracking-wider mb-3 sm:mb-4"
-						>
-							UPCOMING
-						</h3>
-						<div class="space-y-3 sm:space-y-4">
-							<AppointmentCard
-								v-for="appointment in upcomingAppointments"
-								:appointment="appointment"
-								:key="appointment.name"
-							/>
-						</div>
-					</div>
-
-					<!-- Past Section -->
-					<div v-if="pastAppointments.length > 0">
-						<h3
-							class="text-xs sm:text-sm font-semibold text-gray-400 tracking-wider mb-3 sm:mb-4"
-						>
-							PAST
-						</h3>
-						<div class="space-y-3 sm:space-y-4">
-							<AppointmentCard
-								v-for="appointment in pastAppointments"
-								:appointment="appointment"
-								:key="appointment.name"
-								variant="past"
-							/>
+								PAST
+							</h3>
+							<div class="space-y-3 sm:space-y-4">
+								<AppointmentCard
+									v-for="appointment in pastAppointments"
+									:appointment="appointment"
+									:key="appointment.name"
+									variant="past"
+									@update="appointmentsResourceList.reload()"
+								/>
+							</div>
 						</div>
 					</div>
 				</div>
