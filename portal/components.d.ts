@@ -34,6 +34,7 @@ declare module 'vue' {
     ServiceCard: typeof import('./src/components/services/ServiceCard.vue')['default']
     ServiceCardSkeleton: typeof import('./src/components/services/ServiceCardSkeleton.vue')['default']
     ServiceTag: typeof import('./src/components/common/ServiceTag.vue')['default']
+    SlotPickerSkeleton: typeof import('./src/components/booking/SlotPickerSkeleton.vue')['default']
     SortFilter: typeof import('./src/components/common/SortFilter.vue')['default']
     TagIcon: typeof import('./src/components/icons/TagIcon.vue')['default']
     TimeSlotSkeleton: typeof import('./src/components/booking/TimeSlotSkeleton.vue')['default']

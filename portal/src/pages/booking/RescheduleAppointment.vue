@@ -61,7 +61,14 @@
 					<div
 						class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden"
 					>
+						<!-- Show skeleton while initially loading dates -->
+						<SlotPickerSkeleton
+							v-if="getAvailableDates.loading && availableDates.length === 0"
+						/>
+
+						<!-- Show SlotPicker once dates are available or loaded -->
 						<SlotPicker
+							v-else
 							:date="reschedulingState.date"
 							:slot="reschedulingState.slot"
 							:provider="reschedulingState.provider"
@@ -135,6 +142,7 @@ import { FeatherIcon, createDocumentResource, createResource, Alert } from "frap
 import { useRoute, useRouter } from "vue-router";
 import { computed, watch, ref, nextTick } from "vue";
 import SlotPicker from "@/components/booking/steps/ChooseTime.vue";
+import SlotPickerSkeleton from "@/components/booking/SlotPickerSkeleton.vue";
 
 const route = useRoute();
 const router = useRouter();
@@ -172,6 +180,7 @@ const getAvailableDates = createResource({
 	},
 	auto: false,
 	async onSuccess(data) {
+		console.log("Available dates: ", data || []);
 		availableDates.value = data || [];
 		await nextTick();
 	},
@@ -341,7 +350,7 @@ async function handleConfirmReschedule() {
 					errorMessage = parsed.message || errorMessage;
 				}
 			} catch (e) {
-				// Keep default message if parsing fails
+				console.error(e.message);
 			}
 		}
 
