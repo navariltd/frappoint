@@ -192,6 +192,7 @@ watch(
 			reschedulingState.value.serviceType = doc.appointment_type;
 			reschedulingState.value.duration = doc.duration;
 			await getAvailableDates.fetch();
+			await serviceTypeResource.fetch();
 		}
 	},
 	{ immediate: true }
@@ -227,7 +228,7 @@ const serviceTypeResource = createResource({
 });
 
 const serviceTypeImage = computed(() => serviceTypeResource.data?.image);
-console.log(`Service Type Image: ${serviceTypeImage ? "Available " : "Not available"}`);
+
 const rescheduleResource = createResource({
 	url: "frappoint.frappoint.doctype.service_appointment.service_appointment.reschedule_appointment",
 });
