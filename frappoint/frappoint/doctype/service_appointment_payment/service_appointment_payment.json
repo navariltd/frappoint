@@ -8,6 +8,7 @@
   "user",
   "reference_docname",
   "reference_doctype",
+  "payment_gateway",
   "column_break_vktn",
   "amount",
   "currency",
@@ -77,12 +78,18 @@
   {
    "fieldname": "column_break_qhhd",
    "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "payment_gateway",
+   "fieldtype": "Link",
+   "label": "Payment Gateway",
+   "options": "Payment Gateway"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-02-11 06:05:10.516579",
+ "modified": "2026-02-25 08:45:42.588144",
  "modified_by": "Administrator",
  "module": "Frappoint",
  "name": "Service Appointment Payment",
