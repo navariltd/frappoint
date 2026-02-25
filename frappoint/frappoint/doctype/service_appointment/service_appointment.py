@@ -1277,6 +1277,7 @@ def reschedule_appointment(
 				"source": old_appointment.source,
 				"add_video_conferencing": old_appointment.add_video_conferencing,
 				"rescheduled_from": old_appointment.name,
+				"guests": old_appointment.guests,
 			}
 		)
 
