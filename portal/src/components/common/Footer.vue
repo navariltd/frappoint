@@ -95,7 +95,7 @@
 
 			<!-- Copyright -->
 			<div class="mt-12 pt-8 border-t border-gray-200 text-center text-sm text-gray-500">
-				© 2025 Navari Ltd. All rights reserved.
+				© 2025. All rights reserved.
 			</div>
 		</div>
 	</footer>

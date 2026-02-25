@@ -1289,9 +1289,21 @@ def reschedule_appointment(
 				"source": old_appointment.source,
 				"add_video_conferencing": old_appointment.add_video_conferencing,
 				"rescheduled_from": old_appointment.name,
-				"guests": old_appointment.guests,
+				# "guests": old_appointment.guests,
 			}
 		)
+
+		# Copy guests from old appointment
+		if old_appointment.guests:
+			for guest in old_appointment.guests:
+				new_appointment.append(
+					"guests",
+					{
+						"full_name": guest.full_name,
+						"email": guest.email,
+						"mobile_no": guest.mobile_no,
+					},
+				)
 
 		# Handle slot IDs if provided
 		if new_slot_ids:

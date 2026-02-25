@@ -128,8 +128,10 @@
 			<!-- Alert with enhanced visibility -->
 			<Alert
 				v-if="alert.show"
+				:title="alert.title"
+				:description="alert.message"
 				:variant="alert.variant"
-				:message="alert.message"
+				:theme="alert.theme"
 				class="fixed top-4 md:top-8 left-1/2 -translate-x-1/2 z-[101] w-[90%] md:w-auto md:min-w-[400px] md:max-w-[500px] shadow-2xl animate-slide-down"
 				@close="alert.show = false"
 			/>
@@ -149,7 +151,13 @@ const router = useRouter();
 
 const appointmentId = route.params.id;
 const rescheduling = ref(false);
-const alert = ref({ show: false, message: "", variant: "success" });
+const alert = ref({
+	show: false,
+	title: "",
+	message: "",
+	variant: "solid",
+	theme: "green",
+});
 
 // --- Available Dates/Slots logic (from BookingDialog.vue) ---
 const availableDates = ref([]);
@@ -326,8 +334,10 @@ async function handleConfirmReschedule() {
 
 		alert.value = {
 			show: true,
-			message: "Appointment Rescheduled Successfully!",
-			variant: "success",
+			title: "Success!",
+			message: "Your appointment has been rescheduled successfully.",
+			variant: "solid",
+			theme: "green",
 		};
 
 		// Delay redirect
@@ -356,8 +366,10 @@ async function handleConfirmReschedule() {
 
 		alert.value = {
 			show: true,
+			title: "Error",
 			message: errorMessage,
-			variant: "error",
+			variant: "solid",
+			theme: "red",
 		};
 	} finally {
 		rescheduling.value = false;
