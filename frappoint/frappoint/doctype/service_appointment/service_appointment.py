@@ -1280,6 +1280,18 @@ def reschedule_appointment(
 			}
 		)
 
+		# Copy guests from old appointment
+		if old_appointment.guests:
+			for guest in old_appointment.guests:
+				new_appointment.append(
+					"guests",
+					{
+						"full_name": guest.full_name,
+						"email": guest.email,
+						"mobile_no": guest.mobile_no,
+					},
+				)
+
 		# Handle slot IDs if provided
 		if new_slot_ids:
 			if isinstance(new_slot_ids, str):
