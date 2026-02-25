@@ -15,17 +15,25 @@
   "appointment_type",
   "appointment_provider",
   "service_unit",
-  "appointment_date",
   "appointment_price",
-  "column_break_bguz",
+  "column_break_qigo",
+  "appointment_date",
   "start_time",
   "duration",
   "end_time",
-  "column_break_nzyf",
-  "actual_start_time",
-  "actual_duration",
-  "actual_end_time",
   "selected_slot_ids",
+  "section_break_mwwh",
+  "actual_start_time",
+  "column_break_rqsf",
+  "actual_duration",
+  "column_break_texp",
+  "actual_end_time",
+  "section_break_ykh1",
+  "rescheduled_from",
+  "amended_from",
+  "column_break_efvt",
+  "rescheduled_to",
+  "guests_tab",
   "customer_details_section",
   "customer",
   "full_name",
@@ -33,12 +41,8 @@
   "mobile_no",
   "column_break_gsph",
   "details",
-  "section_break_ykh1",
-  "rescheduled_from",
-  "amended_from",
-  "column_break_efvt",
-  "rescheduled_to",
-  "guests_tab",
+  "is_guest",
+  "guests_section",
   "guests",
   "section_break_jpcd",
   "total_guests",
@@ -60,6 +64,12 @@
   "confirmation_token",
   "source",
   "notes",
+  "reasons_tab",
+  "reschedule_details_section",
+  "reschedule_reasons",
+  "reschedule_date",
+  "column_break_kvpw",
+  "reschedule_notes",
   "cancellation_section",
   "cancellation_reasons",
   "cancellation_date",
@@ -282,10 +292,6 @@
    "search_index": 1
   },
   {
-   "fieldname": "column_break_bguz",
-   "fieldtype": "Column Break"
-  },
-  {
    "fieldname": "naming_series",
    "fieldtype": "Select",
    "label": "Naming Series",
@@ -400,10 +406,6 @@
    "options": "Service Appointment Lost Reason Detail"
   },
   {
-   "fieldname": "column_break_nzyf",
-   "fieldtype": "Column Break"
-  },
-  {
    "allow_on_submit": 1,
    "fieldname": "actual_start_time",
    "fieldtype": "Time",
@@ -455,6 +457,66 @@
    "label": "Grand Total",
    "options": "currency",
    "read_only": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "is_guest",
+   "fieldtype": "Check",
+   "label": "Is Guest"
+  },
+  {
+   "fieldname": "guests_section",
+   "fieldtype": "Section Break",
+   "label": "Guests"
+  },
+  {
+   "fieldname": "column_break_qigo",
+   "fieldtype": "Column Break"
+  },
+  {
+   "depends_on": "eval: doc.status === \"Completed\"",
+   "fieldname": "section_break_mwwh",
+   "fieldtype": "Section Break",
+   "label": "Actual Duration"
+  },
+  {
+   "fieldname": "column_break_rqsf",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "column_break_texp",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "reasons_tab",
+   "fieldtype": "Tab Break",
+   "label": "Reasons"
+  },
+  {
+   "depends_on": "eval:doc.status === \"Rescheduled\"",
+   "fieldname": "reschedule_details_section",
+   "fieldtype": "Section Break",
+   "label": "Reschedule Details"
+  },
+  {
+   "fieldname": "reschedule_reasons",
+   "fieldtype": "Table MultiSelect",
+   "label": "Reschedule Reasons",
+   "options": "Service Appointment Lost Reason Detail"
+  },
+  {
+   "fieldname": "reschedule_date",
+   "fieldtype": "Datetime",
+   "label": "Reschedule Date"
+  },
+  {
+   "fieldname": "column_break_kvpw",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "reschedule_notes",
+   "fieldtype": "Text",
+   "label": "Reschedule Notes"
   }
  ],
  "grid_page_length": 50,
@@ -487,7 +549,7 @@
    "link_fieldname": "reference_docname"
   }
  ],
- "modified": "2026-02-11 16:34:58.272069",
+ "modified": "2026-02-25 07:01:23.553663",
  "modified_by": "Administrator",
  "module": "Frappoint",
  "name": "Service Appointment",
