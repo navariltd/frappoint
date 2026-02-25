@@ -77,11 +77,15 @@ class ServiceAppointment(Document):
 		google_meet_link: DF.Data | None
 		grand_total: DF.Currency
 		guests: DF.Table[ServiceAppointmentGuest]
+		is_guest: DF.Check
 		mobile_no: DF.Data
 		mode_of_payment: DF.Link | None
 		naming_series: DF.Literal["SVC-APP-.MM.-.YY.-.###."]
 		notes: DF.Text | None
 		payment_status: DF.Literal["Unpaid", "Paid", "Refunded", "Cancellation"]
+		reschedule_date: DF.Datetime | None
+		reschedule_notes: DF.Text | None
+		reschedule_reasons: DF.TableMultiSelect[ServiceAppointmentLostReasonDetail]
 		rescheduled_from: DF.Data | None
 		rescheduled_to: DF.Data | None
 		scheduled_time: DF.Datetime
@@ -144,7 +148,7 @@ class ServiceAppointment(Document):
 			frappe.throw("Please select a price for this appointment")
 
 		if self.status != "Confirmed":
-			self.status = "Confirmed"
+			self.db_set("status", "Confirmed")
 
 	def on_cancel(self):
 		"""Release slots when appointment is cancelled"""
@@ -224,6 +228,14 @@ class ServiceAppointment(Document):
 				self.submit()
 			except Exception:
 				frappe.log_error(_("Appointment Confirmation Failed"), frappe.get_traceback())
+
+	def update_mpesa_payment_record(self):
+		try:
+			self.db_set("payment_status", "Paid")
+			self.db_set("status", "Confirmed")
+			self.submit()
+		except Exception:
+			frappe.log_error(_("Appointment Confirmation Failed"), frappe.get_traceback())
 
 	def validate_appointment_date_and_times(self):
 		start_dt = get_datetime(f"{self.appointment_date} {self.start_time}")
