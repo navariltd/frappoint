@@ -185,11 +185,6 @@ after_install = "frappoint.setup.setup.execute"
 # ---------------
 # Hook on document methods and events
 
-doc_events = {
-	"Mpesa Express Request": {
-		"on_update": "frappoint.mpesa.hook_mpesa_express_request",
-	}
-}
 
 # Scheduled Tasks
 # ---------------
