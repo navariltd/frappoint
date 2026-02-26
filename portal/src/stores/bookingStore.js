@@ -192,6 +192,9 @@ export const useBookingStore = defineStore("booking", {
 			if (!this.draft.selectedPaymentGateway && this.draft.paymentGateways.length === 1) {
 				this.draft.selectedPaymentGateway = this.draft.paymentGateways[0];
 			}
+
+			// Initialize guests after setting minGuests from service
+			this.initializeGuests();
 		},
 
 		initializeForReschedule(serviceType) {
@@ -204,7 +207,6 @@ export const useBookingStore = defineStore("booking", {
 				provider: null,
 			};
 		},
-
 		initializeForBooking() {
 			this.mode = "booking";
 			this.loadFromStorage();
@@ -216,11 +218,6 @@ export const useBookingStore = defineStore("booking", {
 				date: null,
 				slot: null,
 				provider: null,
-				customer: null,
-				email: null,
-				mobileNo: null,
-				priceName: null,
-				price: null,
 				notes: null,
 				selectedPaymentGateway: null,
 				paymentGateways: [],
