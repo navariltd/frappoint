@@ -114,8 +114,18 @@
 			>
 				<!-- Step Components -->
 				<div class="flex-1 flex flex-col lg:flex-row">
+					<!-- Show skeleton while initially loading dates -->
+					<SlotPickerSkeleton
+						v-if="
+							currentStep === 1 &&
+							getAvailableDates.loading &&
+							availableDates.length === 0
+						"
+					/>
+
+					<!-- Show SlotPicker once dates are available or loaded -->
 					<SlotPicker
-						v-if="currentStep === 1"
+						v-else-if="currentStep === 1"
 						:date="booking.draft.date"
 						:slot="booking.draft.slot"
 						:provider="booking.draft.provider"
@@ -212,6 +222,7 @@ import { useBookingStore } from "@/stores/bookingStore";
 import { useAuthStore } from "@/stores/auth";
 import { useRouter, useRoute } from "vue-router";
 import SlotPicker from "./steps/ChooseTime.vue";
+import SlotPickerSkeleton from "./SlotPickerSkeleton.vue";
 import UserDetails from "./steps/CustomerDetails.vue";
 import PaymentStep from "./steps/PaymentAndConfirmation.vue";
 
