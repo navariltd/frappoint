@@ -24,7 +24,7 @@ class ServiceAppointmentCouponCode(Document):
 			"Service Type", "Service Appointment", "Customer", "Customer Group", "Booking Source"
 		]
 		booking_source: DF.Literal["", "Portal", "Desk"]
-		code: DF.Data
+		code: DF.Data | None
 		coupon_type: DF.Literal["Promotional", "Complimentary", "Campaign"]
 		customer: DF.Link | None
 		customer_group: DF.Link | None
@@ -94,9 +94,10 @@ class ServiceAppointmentCouponCode(Document):
 			return True, ""
 
 	def is_usage_available(self):
-		if self.max_usage_count > 0:
-			if self.times_used >= self.max_usage_count:
-				return False, _("Coupon usage limit reached")
+		usage = self.get_usage_count()
+
+		if self.max_usage_count and usage >= self.max_usage_count:
+			return False, _("Coupon usage limit reached")
 		return True, ""
 
 	def is_min_order_met(self, order_amount):
@@ -122,6 +123,5 @@ class ServiceAppointmentCouponCode(Document):
 
 		return True, ""
 
-	@property
-	def times_used(self):
+	def get_usage_count(self):
 		return frappe.db.count("Service Appointment", {"coupon_code": self.name, "docstatus": 1})

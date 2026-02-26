@@ -1,6 +1,7 @@
 {
  "actions": [],
  "allow_rename": 1,
+ "autoname": "field:code",
  "creation": "2026-02-26 18:55:57.128728",
  "doctype": "DocType",
  "engine": "InnoDB",
@@ -37,7 +38,6 @@
    "in_list_view": 1,
    "label": "Code",
    "no_copy": 1,
-   "reqd": 1,
    "unique": 1
   },
   {
@@ -169,10 +169,11 @@
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-02-26 19:55:41.543158",
+ "modified": "2026-02-26 22:07:36.942183",
  "modified_by": "Administrator",
  "module": "Frappoint",
  "name": "Service Appointment Coupon Code",
+ "naming_rule": "By fieldname",
  "owner": "Administrator",
  "permissions": [
   {
@@ -184,6 +185,18 @@
    "read": 1,
    "report": 1,
    "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Receptionist",
    "share": 1,
    "write": 1
   }
