@@ -2,6 +2,10 @@
 // For license information, please see license.txt
 
 frappe.ui.form.on("Service Appointment", {
+	onload(frm) {
+		frm._slot_selected = false;
+	},
+
 	refresh(frm) {
 		frm._button_state = null;
 
@@ -56,26 +60,11 @@ frappe.ui.form.on("Service Appointment", {
 			button_state = "completed";
 		} else if (frm.doc.status === "Confirmed") {
 			button_state = "confirmed";
-		} else if (
-			frm.doc.appointment_type &&
-			!frm.doc.start_time &&
-			!frm.doc.end_time &&
-			frm.doc.docstatus === 0
-		) {
+		} else if (frm.doc.appointment_type && !frm._slot_selected && frm.doc.docstatus === 0) {
 			button_state = "fetch_slots";
-		} else if (
-			frm.doc.start_time &&
-			frm.doc.end_time &&
-			frm.is_new() &&
-			frm.doc.docstatus === 0
-		) {
+		} else if (frm._slot_selected && frm.is_new() && frm.doc.docstatus === 0) {
 			button_state = "save";
-		} else if (
-			frm.doc.start_time &&
-			frm.doc.end_time &&
-			!frm.is_new() &&
-			frm.doc.docstatus === 0
-		) {
+		} else if (frm._slot_selected && !frm.is_new() && frm.doc.docstatus === 0) {
 			button_state = "confirm";
 		}
 
@@ -88,14 +77,17 @@ frappe.ui.form.on("Service Appointment", {
 		frm.page.clear_primary_action();
 		if (frm.custom_buttons) frm.clear_custom_buttons();
 
+		// Keep default Save behavior aligned with computed state
+		if (button_state === "fetch_slots") {
+			frm.disable_save();
+		} else {
+			frm.enable_save();
+		}
+
 		// Update button state
 		frm._button_state = button_state;
 
 		if (button_state === "completed") {
-			frm.add_custom_button(__("Cancel Appointment"), function () {
-				show_cancellation_dialog(frm);
-			}).addClass("btn-primary");
-
 			// Issue Consumables button (if not auto-issued)
 			if (frm.doc.docstatus === 1 && frm.doc.status === "Completed") {
 				frm.add_custom_button(
@@ -216,62 +208,67 @@ frappe.ui.form.on("Service Appointment", {
 	},
 
 	start_time(frm) {
-		calculate_end_time(frm);
-		validate_appointment_times(frm);
-		if (frm.doc.start_time && frm.doc.end_time) {
-			frm.events.add_context_buttons(frm);
+		if (frm.doc.start_time) {
+			frm._slot_selected = true;
+			calculate_end_time(frm);
+			validate_appointment_times(frm);
+			frm.events._update_buttons(frm);
 		}
 	},
 
 	end_time(frm) {
 		validate_appointment_times(frm);
-		if (frm.doc.start_time && frm.doc.end_time) {
-			frm.events.add_context_buttons(frm);
+		if (frm._slot_selected) {
+			calculate_end_time(frm);
 		}
 	},
 
 	appointment_date(frm) {
-		calculate_end_time(frm);
 		validate_appointment_times(frm);
+		if (frm._slot_selected) {
+			calculate_end_time(frm);
+		}
 	},
 
 	appointment_type(frm) {
-		calculate_end_time(frm);
+		frm.set_value({ start_time: null, end_time: null });
+		frm._slot_selected = false;
 
-		if (frm.doc.appointment_type) {
-			// Load appointment type details including prices
-			frappe.call({
-				method: "frappe.client.get",
-				args: {
-					doctype: "Service Type",
-					name: frm.doc.appointment_type,
-				},
-				callback: function (r) {
-					if (r.message) {
-						let apt_type = r.message;
-
-						// Handle price selection
-						if (apt_type.prices && apt_type.prices.length > 0) {
-							if (apt_type.prices.length === 1) {
-								// Only one price, auto-select
-								frm.set_value("appointment_price", apt_type.prices[0].price_name);
-								frm.set_value("total_amount", apt_type.prices[0].amount);
-								frm.set_value("grand_total", apt_type.prices[0].amount);
-								frm.set_value("currency", apt_type.prices[0].currency);
-								frm.set_value("duration", apt_type.prices[0].duration);
-							} else {
-								// Multiple prices, let user select
-								show_price_selector(frm, apt_type.prices);
-							}
-						}
-
-						frm.events.add_context_buttons(frm);
-					}
-				},
-			});
-		} else {
-			frm.events.add_context_buttons(frm);
+		if (!frm.doc.appointment_type) {
+			frm.events._update_buttons(frm);
+			return;
 		}
+
+		// Load appointment type details including prices
+		frappe.call({
+			method: "frappe.client.get",
+			args: {
+				doctype: "Service Type",
+				name: frm.doc.appointment_type,
+			},
+			callback: function (r) {
+				if (r.message) {
+					let apt_type = r.message;
+
+					// Handle price selection
+					if (apt_type.prices && apt_type.prices.length > 0) {
+						if (apt_type.prices.length === 1) {
+							// Only one price, auto-select
+							frm.set_value("appointment_price", apt_type.prices[0].price_name);
+							frm.set_value("total_amount", apt_type.prices[0].amount);
+							frm.set_value("grand_total", apt_type.prices[0].amount);
+							frm.set_value("currency", apt_type.prices[0].currency);
+							frm.set_value("duration", apt_type.prices[0].duration);
+						} else {
+							// Multiple prices, let user select
+							show_price_selector(frm, apt_type.prices);
+						}
+					}
+
+					frm.events._update_buttons(frm);
+				}
+			},
+		});
 	},
 
 	before_save(frm) {
