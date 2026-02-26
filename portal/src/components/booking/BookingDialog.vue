@@ -419,9 +419,6 @@ async function submitBooking() {
 		return;
 	}
 
-	// Ensure primary guest is synced with main form
-	booking.syncPrimaryGuest();
-
 	// create appointment
 	let service_appointment = await serviceAppointmentResource.insert.submit({
 		appointment_type: booking.draft.serviceType,

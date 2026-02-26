@@ -141,27 +141,16 @@ export const useBookingStore = defineStore("booking", {
 			for (let i = 0; i < count; i++) {
 				const existingGuest = existingGuests[i];
 
-				if (i === 0) {
-					// First guest (billing contact) pre-filled from main form
-					this.draft.guests.push({
-						full_name: this.draft.fullName || existingGuest?.full_name || "",
-						email: this.draft.email || existingGuest?.email || "",
-						mobile_no: this.draft.mobileNo || existingGuest?.mobile_no || "",
-						is_primary: 1,
-						notes: existingGuest?.notes || "",
-					});
-				} else {
-					// Additional guests
-					this.draft.guests.push(
-						existingGuest || {
-							full_name: "",
-							email: "",
-							mobile_no: "",
-							is_primary: 0,
-							notes: "",
-						}
-					);
-				}
+				// Keep existing guest data if available, otherwise create empty guest
+				this.draft.guests.push(
+					existingGuest || {
+						full_name: "",
+						email: "",
+						mobile_no: "",
+						is_primary: i === 0 ? 1 : 0,
+						notes: "",
+					}
+				);
 			}
 		},
 
