@@ -46,7 +46,6 @@ class ServiceAppointmentCouponCode(Document):
 
 	def validate(self):
 		self.validate_discount_value()
-		self.validate_scope()
 		self.validate_validity()
 
 	def validate_validity(self):
