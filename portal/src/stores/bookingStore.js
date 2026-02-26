@@ -54,6 +54,20 @@ export const useBookingStore = defineStore("booking", {
 
 			return hasBasicInfo && allGuestsValid;
 		},
+
+		canAddMoreGuests: (state) => {
+			// If maxGuests is null, allow unlimited guests
+			if (!state.draft.maxGuests) {
+				return true;
+			}
+			// Otherwise, check if current count is less than max
+			return state.draft.guests.length < state.draft.maxGuests;
+		},
+
+		canRemoveGuest: (state) => {
+			// Can only remove guests beyond the minimum required
+			return state.draft.guests.length > state.draft.minGuests;
+		},
 	},
 
 	actions: {
@@ -158,6 +172,29 @@ export const useBookingStore = defineStore("booking", {
 			if (this.draft.guests[index]) {
 				this.draft.guests[index][field] = value;
 			}
+		},
+
+		addGuest() {
+			// Check if we can add more guests
+			if (this.draft.maxGuests && this.draft.guests.length >= this.draft.maxGuests) {
+				return; // Cannot exceed max guests
+			}
+
+			this.draft.guests.push({
+				full_name: "",
+				email: "",
+				mobile_no: "",
+				is_primary: 0,
+				notes: "",
+			});
+		},
+
+		removeGuest(index) {
+			if (this.draft.guests.length <= this.draft.minGuests) {
+				return; // Cannot go below minimum
+			}
+
+			this.draft.guests.splice(index, 1);
 		},
 
 		syncPrimaryGuest() {
