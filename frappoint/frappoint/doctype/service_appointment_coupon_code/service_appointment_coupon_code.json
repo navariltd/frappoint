@@ -1,0 +1,196 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2026-02-26 18:55:57.128728",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "code",
+  "coupon_type",
+  "column_break_nisu",
+  "disable",
+  "section_break_wrve",
+  "applicable_for",
+  "column_break_xuhn",
+  "service_types",
+  "customer",
+  "customer_group",
+  "booking_source",
+  "section_break_iutm",
+  "discount_type",
+  "discount_value",
+  "column_break_fvwl",
+  "maximum_discount_amount",
+  "minimum_order_value",
+  "section_break_zrdn",
+  "valid_from",
+  "valid_till",
+  "column_break_hgmn",
+  "max_usage_count",
+  "section_break_fknb",
+  "times_used"
+ ],
+ "fields": [
+  {
+   "fieldname": "code",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Code",
+   "no_copy": 1,
+   "reqd": 1,
+   "unique": 1
+  },
+  {
+   "fieldname": "coupon_type",
+   "fieldtype": "Select",
+   "label": "Coupon Type",
+   "options": "Promotional\nComplimentary\nCampaign"
+  },
+  {
+   "fieldname": "column_break_nisu",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "0",
+   "fieldname": "disable",
+   "fieldtype": "Check",
+   "label": "Disable"
+  },
+  {
+   "fieldname": "section_break_iutm",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "discount_type",
+   "fieldtype": "Select",
+   "label": "Discount Type",
+   "options": "Percentage\nAmount"
+  },
+  {
+   "fieldname": "discount_value",
+   "fieldtype": "Float",
+   "label": "Discount Value"
+  },
+  {
+   "fieldname": "section_break_zrdn",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "valid_from",
+   "fieldtype": "Date",
+   "in_list_view": 1,
+   "label": "Valid From"
+  },
+  {
+   "fieldname": "valid_till",
+   "fieldtype": "Date",
+   "label": "Valid Till"
+  },
+  {
+   "fieldname": "column_break_hgmn",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "max_usage_count",
+   "fieldtype": "Int",
+   "label": "Max Usage Count"
+  },
+  {
+   "fieldname": "section_break_fknb",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "times_used",
+   "fieldtype": "Int",
+   "label": "Times Used"
+  },
+  {
+   "depends_on": "eval: doc.applicable_for === \"Service Type\"",
+   "fieldname": "service_types",
+   "fieldtype": "Table",
+   "label": "Service Types",
+   "mandatory_depends_on": "eval: doc.applicable_for === \"Service Type\"",
+   "options": "Service Appointment Coupon Code Detail"
+  },
+  {
+   "fieldname": "section_break_wrve",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "column_break_xuhn",
+   "fieldtype": "Column Break"
+  },
+  {
+   "depends_on": "eval: doc.applicable_for === \"Customer\"",
+   "fieldname": "customer",
+   "fieldtype": "Link",
+   "label": "Customer",
+   "mandatory_depends_on": "eval: doc.applicable_for === \"Customer\"",
+   "options": "Customer"
+  },
+  {
+   "depends_on": "eval: doc.applicable_for === \"Customer Group\"",
+   "fieldname": "customer_group",
+   "fieldtype": "Link",
+   "label": "Customer Group",
+   "mandatory_depends_on": "eval: doc.applicable_for === \"Customer Group\"",
+   "options": "Customer Group"
+  },
+  {
+   "depends_on": "eval: doc.applicable_for === \"Booking Source\"",
+   "fieldname": "booking_source",
+   "fieldtype": "Select",
+   "label": "Booking Source",
+   "mandatory_depends_on": "eval: doc.applicable_for === \"Booking Source\"",
+   "options": "\nPortal\nDesk"
+  },
+  {
+   "fieldname": "column_break_fvwl",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "applicable_for",
+   "fieldtype": "Select",
+   "label": "Applicable For",
+   "options": "Service Type\nService Appointment\nCustomer\nCustomer Group\nBooking Source"
+  },
+  {
+   "depends_on": "eval:doc.discount_type == 'Percentage'",
+   "fieldname": "maximum_discount_amount",
+   "fieldtype": "Float",
+   "label": "Maximum Discount Amount"
+  },
+  {
+   "fieldname": "minimum_order_value",
+   "fieldtype": "Float",
+   "label": "Minimum Order Value"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-02-26 19:55:41.543158",
+ "modified_by": "Administrator",
+ "module": "Frappoint",
+ "name": "Service Appointment Coupon Code",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "rows_threshold_for_grid_search": 20,
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}
