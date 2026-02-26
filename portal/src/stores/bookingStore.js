@@ -54,6 +54,20 @@ export const useBookingStore = defineStore("booking", {
 
 			return hasBasicInfo && allGuestsValid;
 		},
+
+		canAddMoreGuests: (state) => {
+			// If maxGuests is null, allow unlimited guests
+			if (!state.draft.maxGuests) {
+				return true;
+			}
+			// Otherwise, check if current count is less than max
+			return state.draft.guests.length < state.draft.maxGuests;
+		},
+
+		canRemoveGuest: (state) => {
+			// Can only remove guests beyond the minimum required
+			return state.draft.guests.length > state.draft.minGuests;
+		},
 	},
 
 	actions: {
@@ -141,27 +155,16 @@ export const useBookingStore = defineStore("booking", {
 			for (let i = 0; i < count; i++) {
 				const existingGuest = existingGuests[i];
 
-				if (i === 0) {
-					// First guest (billing contact) pre-filled from main form
-					this.draft.guests.push({
-						full_name: this.draft.fullName || existingGuest?.full_name || "",
-						email: this.draft.email || existingGuest?.email || "",
-						mobile_no: this.draft.mobileNo || existingGuest?.mobile_no || "",
-						is_primary: 1,
-						notes: existingGuest?.notes || "",
-					});
-				} else {
-					// Additional guests
-					this.draft.guests.push(
-						existingGuest || {
-							full_name: "",
-							email: "",
-							mobile_no: "",
-							is_primary: 0,
-							notes: "",
-						}
-					);
-				}
+				// Keep existing guest data if available, otherwise create empty guest
+				this.draft.guests.push(
+					existingGuest || {
+						full_name: "",
+						email: "",
+						mobile_no: "",
+						is_primary: i === 0 ? 1 : 0,
+						notes: "",
+					}
+				);
 			}
 		},
 
@@ -169,6 +172,29 @@ export const useBookingStore = defineStore("booking", {
 			if (this.draft.guests[index]) {
 				this.draft.guests[index][field] = value;
 			}
+		},
+
+		addGuest() {
+			// Check if we can add more guests
+			if (this.draft.maxGuests && this.draft.guests.length >= this.draft.maxGuests) {
+				return; // Cannot exceed max guests
+			}
+
+			this.draft.guests.push({
+				full_name: "",
+				email: "",
+				mobile_no: "",
+				is_primary: 0,
+				notes: "",
+			});
+		},
+
+		removeGuest(index) {
+			if (this.draft.guests.length <= this.draft.minGuests) {
+				return; // Cannot go below minimum
+			}
+
+			this.draft.guests.splice(index, 1);
 		},
 
 		syncPrimaryGuest() {
@@ -203,6 +229,9 @@ export const useBookingStore = defineStore("booking", {
 			if (!this.draft.selectedPaymentGateway && this.draft.paymentGateways.length === 1) {
 				this.draft.selectedPaymentGateway = this.draft.paymentGateways[0];
 			}
+
+			// Initialize guests after setting minGuests from service
+			this.initializeGuests();
 		},
 
 		initializeForReschedule(serviceType) {
@@ -215,7 +244,6 @@ export const useBookingStore = defineStore("booking", {
 				provider: null,
 			};
 		},
-
 		initializeForBooking() {
 			this.mode = "booking";
 			this.loadFromStorage();
@@ -227,11 +255,6 @@ export const useBookingStore = defineStore("booking", {
 				date: null,
 				slot: null,
 				provider: null,
-				customer: null,
-				email: null,
-				mobileNo: null,
-				priceName: null,
-				price: null,
 				notes: null,
 				selectedPaymentGateway: null,
 				paymentGateways: [],

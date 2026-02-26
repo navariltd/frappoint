@@ -106,15 +106,44 @@
 						:key="index"
 						class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-6"
 					>
-						<div class="flex items-center gap-2 mb-4">
-							<div
-								class="flex items-center justify-center w-6 h-6 bg-primary/10 dark:bg-primary/20 text-primary dark:text-teal-400 rounded-full text-xs font-bold"
-							>
-								{{ index + 1 }}
+						<div class="flex items-center justify-between mb-4">
+							<div class="flex items-center gap-2">
+								<div
+									class="flex items-center justify-center w-6 h-6 bg-primary/10 dark:bg-primary/20 text-primary dark:text-teal-400 rounded-full text-xs font-bold"
+								>
+									{{ index + 1 }}
+								</div>
+								<h3 class="text-base font-bold text-gray-900 dark:text-white">
+									Guest {{ index + 1 }}
+									<span
+										v-if="index < booking.draft.minGuests"
+										class="text-xs font-normal text-red-500 ml-1"
+										>*</span
+									>
+								</h3>
 							</div>
-							<h3 class="text-base font-bold text-gray-900 dark:text-white">
-								Guest {{ index + 1 }}
-							</h3>
+							<!-- Remove button for optional guests -->
+							<button
+								v-if="index >= booking.draft.minGuests && booking.canRemoveGuest"
+								@click="removeGuest(index)"
+								class="flex items-center gap-1 px-3 py-1.5 text-sm text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+								type="button"
+							>
+								<svg
+									class="w-4 h-4"
+									fill="none"
+									stroke="currentColor"
+									viewBox="0 0 24 24"
+								>
+									<path
+										stroke-linecap="round"
+										stroke-linejoin="round"
+										stroke-width="2"
+										d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+									/>
+								</svg>
+								Remove
+							</button>
 						</div>
 
 						<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -176,6 +205,36 @@
 							/>
 						</div>
 					</div>
+
+					<!-- Add Guest Button -->
+					<button
+						v-if="booking.canAddMoreGuests"
+						@click="addGuest"
+						class="w-full mt-4 flex items-center justify-center gap-2 px-6 py-4 bg-white dark:bg-gray-800 border-2 border-dashed border-gray-300 dark:border-gray-600 hover:border-primary dark:hover:border-primary rounded-xl transition-all hover:bg-primary/5 dark:hover:bg-primary/10 group"
+						type="button"
+					>
+						<svg
+							class="w-5 h-5 text-gray-400 group-hover:text-primary transition-colors"
+							fill="none"
+							stroke="currentColor"
+							viewBox="0 0 24 24"
+						>
+							<path
+								stroke-linecap="round"
+								stroke-linejoin="round"
+								stroke-width="2"
+								d="M12 6v6m0 0v6m0-6h6m-6 0H6"
+							/>
+						</svg>
+						<span
+							class="text-sm font-semibold text-gray-600 dark:text-gray-300 group-hover:text-primary transition-colors"
+						>
+							Add Guest
+							<span v-if="booking.draft.maxGuests" class="text-xs font-normal ml-1">
+								({{ booking.draft.guests.length }}/{{ booking.draft.maxGuests }})
+							</span>
+						</span>
+					</button>
 				</div>
 			</div>
 
@@ -404,6 +463,16 @@ watch(
 // Update guest field
 function updateGuestField(index, field, value) {
 	booking.updateGuest(index, field, value);
+}
+
+// Add a new guest
+function addGuest() {
+	booking.addGuest();
+}
+
+// Remove a guest
+function removeGuest(index) {
+	booking.removeGuest(index);
 }
 
 // Computed properties for display
