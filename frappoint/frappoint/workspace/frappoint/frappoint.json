@@ -16,8 +16,8 @@
   {
    "hidden": 0,
    "is_query_report": 0,
-   "label": "Masters",
-   "link_count": 3,
+   "label": "Operations",
+   "link_count": 2,
    "link_type": "DocType",
    "onboard": 0,
    "type": "Card Break"
@@ -25,9 +25,9 @@
   {
    "hidden": 0,
    "is_query_report": 0,
-   "label": "Service Providers",
+   "label": "Service Appointments",
    "link_count": 0,
-   "link_to": "Service Provider",
+   "link_to": "Service Appointment",
    "link_type": "DocType",
    "onboard": 0,
    "type": "Link"
@@ -35,19 +35,9 @@
   {
    "hidden": 0,
    "is_query_report": 0,
-   "label": "Service Types",
+   "label": "Service Appointment Payment",
    "link_count": 0,
-   "link_to": "Service Type",
-   "link_type": "DocType",
-   "onboard": 0,
-   "type": "Link"
-  },
-  {
-   "hidden": 0,
-   "is_query_report": 0,
-   "label": "Service Units",
-   "link_count": 0,
-   "link_to": "Service Unit",
+   "link_to": "Service Appointment Payment",
    "link_type": "DocType",
    "onboard": 0,
    "type": "Link"
@@ -56,7 +46,7 @@
    "hidden": 0,
    "is_query_report": 0,
    "label": "Setup",
-   "link_count": 3,
+   "link_count": 4,
    "link_type": "DocType",
    "onboard": 0,
    "type": "Card Break"
@@ -94,8 +84,18 @@
   {
    "hidden": 0,
    "is_query_report": 0,
-   "label": "Operations",
-   "link_count": 2,
+   "label": "Service Provider Shift Assignment",
+   "link_count": 0,
+   "link_to": "Service Provider Shift Assignment",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Masters",
+   "link_count": 4,
    "link_type": "DocType",
    "onboard": 0,
    "type": "Card Break"
@@ -103,9 +103,9 @@
   {
    "hidden": 0,
    "is_query_report": 0,
-   "label": "Service Appointments",
+   "label": "Service Providers",
    "link_count": 0,
-   "link_to": "Service Appointment",
+   "link_to": "Service Provider",
    "link_type": "DocType",
    "onboard": 0,
    "type": "Link"
@@ -113,15 +113,35 @@
   {
    "hidden": 0,
    "is_query_report": 0,
-   "label": "Service Appointment Payment",
+   "label": "Service Types",
    "link_count": 0,
-   "link_to": "Service Appointment Payment",
+   "link_to": "Service Type",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Service Units",
+   "link_count": 0,
+   "link_to": "Service Unit",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Item",
+   "link_count": 0,
+   "link_to": "Item",
    "link_type": "DocType",
    "onboard": 0,
    "type": "Link"
   }
  ],
- "modified": "2026-01-28 09:24:57.625547",
+ "modified": "2026-02-27 09:29:37.830909",
  "modified_by": "Administrator",
  "module": "Frappoint",
  "name": "Frappoint",
