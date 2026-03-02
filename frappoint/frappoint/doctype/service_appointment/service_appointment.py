@@ -66,9 +66,11 @@ class ServiceAppointment(Document):
 		cancellation_reasons: DF.TableMultiSelect[ServiceAppointmentLostReasonDetail]
 		company: DF.Link
 		confirmation_token: DF.Data | None
+		coupon_code: DF.Link | None
 		currency: DF.Link
 		customer: DF.Link
 		details: DF.SmallText | None
+		discount_amount: DF.Currency
 		duration: DF.Int
 		email: DF.Data | None
 		end_time: DF.Time
@@ -93,15 +95,7 @@ class ServiceAppointment(Document):
 		service_unit: DF.Link | None
 		source: DF.Literal["Desk", "Portal"]
 		start_time: DF.Time
-		status: DF.Literal[
-			"Open",
-			"Confirmed",
-			"Rescheduled",
-			"Completed",
-			"Cancelled",
-			"Closed",
-			"No Show",
-		]
+		status: DF.Literal["Open", "Confirmed", "Rescheduled", "Completed", "Cancelled", "Closed", "No Show"]
 		total_amount: DF.Currency
 		total_guests: DF.Int
 	# end: auto-generated types
@@ -142,6 +136,10 @@ class ServiceAppointment(Document):
 					self.release_slots()
 					self.book_selected_slots()
 
+		if self.coupon_code:
+			self.apply_coupon_if_any()
+			self.calculate_grand_total()
+
 	def on_submit(self):
 		"""Confirm appointment"""
 		if not self.appointment_price:
@@ -149,6 +147,10 @@ class ServiceAppointment(Document):
 
 		if self.status != "Confirmed":
 			self.db_set("status", "Confirmed")
+
+		if self.coupon_code:
+			coupon = frappe.get_doc("Service Appointment Coupon Code", self.coupon_code)
+			coupon.db_set("times_used", coupon.get_usage_count())
 
 	def on_cancel(self):
 		"""Release slots when appointment is cancelled"""
@@ -562,6 +564,45 @@ class ServiceAppointment(Document):
 		else:
 			# Per Booking: Flat rate regardless of guests
 			return flt(base_amount)
+
+	def apply_coupon_if_any(self):
+		if not self.coupon_code:
+			self.discount_amount = 0
+			return
+
+		coupon = frappe.get_doc("Service Appointment Coupon Code", self.coupon_code)
+
+		is_valid, msg = coupon.is_valid_for_appointment(appointment=self)
+
+		if not is_valid:
+			frappe.throw(msg)
+
+		is_available, msg = coupon.is_usage_available()
+		if not is_available:
+			frappe.throw(msg)
+
+		self.discount_amount = self.compute_coupon_discount(coupon)
+
+	def compute_coupon_discount(self, coupon):
+		total = flt(self.total_amount)
+
+		if coupon.discount_type == "Percentage":
+			discount = total * (coupon.discount_value / 100)
+		else:
+			discount = flt(coupon.discount_value)
+
+		if coupon.maximum_discount_amount:
+			discount = min(discount, coupon.maximum_discount_amount)
+
+		discount = min(discount, total)
+
+		return flt(discount)
+
+	def calculate_grand_total(self):
+		total = flt(self.total_amount)
+		discount = flt(self.discount_amount)
+
+		self.grand_total = max(total - discount, 0)
 
 	def set_company_from_type(self):
 		return frappe.db.get_value("Service Type", self.appointment_type, "company")
