@@ -939,6 +939,8 @@ class ServiceAppointment(Document):
 					],
 					"service_appointment": self.name,
 					"allocate_advances_automatically": True,
+					"apply_discount_on": "Grand Total",
+					"discount_amount": flt(self.discount_amount or 0),
 				}
 			)
 			si.insert(ignore_permissions=True, ignore_mandatory=True)
