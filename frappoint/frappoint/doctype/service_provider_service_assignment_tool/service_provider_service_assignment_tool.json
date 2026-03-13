@@ -133,7 +133,10 @@
    "options": "Service Provider Service Assignment Service Detail"
   }
  ],
+ "grid_page_length": 50,
  "hide_toolbar": 1,
+ "index_web_pages_for_search": 1,
+ "is_virtual": 1,
  "issingle": 1,
  "links": [],
  "modified": "2026-02-11 05:59:59.738690",
@@ -171,6 +174,7 @@
   }
  ],
  "row_format": "Dynamic",
+ "rows_threshold_for_grid_search": 20,
  "sort_field": "modified",
  "sort_order": "DESC",
  "states": []
