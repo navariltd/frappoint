@@ -1,0 +1,26 @@
+{
+ "content": null,
+ "creation": "2026-03-16 13:49:16.057051",
+ "docstatus": 0,
+ "doctype": "Page",
+ "idx": 0,
+ "modified": "2026-03-16 13:49:16.057051",
+ "modified_by": "Administrator",
+ "module": "Frappoint",
+ "name": "booking",
+ "owner": "Administrator",
+ "page_name": "booking",
+ "roles": [
+  {
+   "role": "System Manager"
+  },
+  {
+   "role": "Receptionist"
+  }
+ ],
+ "script": null,
+ "standard": "Yes",
+ "style": null,
+ "system_page": 0,
+ "title": "Booking Desk"
+}
