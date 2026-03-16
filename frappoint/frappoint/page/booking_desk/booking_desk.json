@@ -1,15 +1,15 @@
 {
  "content": null,
- "creation": "2026-03-16 13:49:16.057051",
+ "creation": "2026-03-16 16:55:43.617952",
  "docstatus": 0,
  "doctype": "Page",
  "idx": 0,
- "modified": "2026-03-16 13:49:16.057051",
+ "modified": "2026-03-16 16:55:43.617952",
  "modified_by": "Administrator",
  "module": "Frappoint",
- "name": "booking",
+ "name": "booking_desk",
  "owner": "Administrator",
- "page_name": "booking",
+ "page_name": "booking_desk",
  "roles": [
   {
    "role": "System Manager"
@@ -22,5 +22,5 @@
  "standard": "Yes",
  "style": null,
  "system_page": 0,
- "title": "Booking Desk"
+ "title": "Frappoint Booking Desk"
 }
