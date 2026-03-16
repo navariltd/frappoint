@@ -16,6 +16,8 @@
   "appointment_provider",
   "service_unit",
   "appointment_price",
+  "booking_id",
+  "is_group_booking",
   "column_break_qigo",
   "appointment_date",
   "start_time",
@@ -541,6 +543,19 @@
    "fieldname": "discount_amount",
    "fieldtype": "Currency",
    "label": "Discount Amount"
+  },
+  {
+   "default": "0",
+   "fieldname": "is_group_booking",
+   "fieldtype": "Check",
+   "label": "Is Group Booking",
+   "read_only": 1
+  },
+  {
+   "fieldname": "booking_id",
+   "fieldtype": "Data",
+   "label": "Booking ID",
+   "read_only": 1
   }
  ],
  "grid_page_length": 50,
@@ -573,7 +588,7 @@
    "link_fieldname": "reference_docname"
   }
  ],
- "modified": "2026-02-26 22:00:53.989293",
+ "modified": "2026-03-16 13:23:23.204767",
  "modified_by": "Administrator",
  "module": "Frappoint",
  "name": "Service Appointment",

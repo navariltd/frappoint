@@ -61,6 +61,7 @@ class ServiceAppointment(Document):
 		appointment_price: DF.Data
 		appointment_provider: DF.Link
 		appointment_type: DF.Link
+		booking_id: DF.Data | None
 		cancellation_date: DF.Datetime | None
 		cancellation_notes: DF.Text | None
 		cancellation_reasons: DF.TableMultiSelect[ServiceAppointmentLostReasonDetail]
@@ -79,6 +80,7 @@ class ServiceAppointment(Document):
 		google_meet_link: DF.Data | None
 		grand_total: DF.Currency
 		guests: DF.Table[ServiceAppointmentGuest]
+		is_group_booking: DF.Check
 		is_guest: DF.Check
 		mobile_no: DF.Data
 		mode_of_payment: DF.Link | None
