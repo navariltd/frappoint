@@ -1,9 +1,9 @@
-<script setup>
-import NavBar from "./NavBar.vue";
-</script>
-
 <template>
+	<Button size="2xl" variant="solid"> Hello </Button>
 	<NavBar />
 </template>
 
-<style scoped></style>
+<script setup>
+import { Button } from "frappe-ui";
+import NavBar from "./NavBar.vue";
+</script>
