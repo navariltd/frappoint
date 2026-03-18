@@ -1,11 +1,14 @@
-<script setup></script>
-
 <template>
-	<h1>You did it!</h1>
-	<p>
-		Visit <a href="https://vuejs.org/" target="_blank" rel="noopener">vuejs.org</a> to read the
-		documentation
-	</p>
+	<div class="min-h-screen bg-background-light flex flex-col">
+		<Navbar />
+		<main class="flex-1">
+			<router-view />
+		</main>
+		<Footer />
+	</div>
 </template>
 
-<style scoped></style>
+<script setup>
+import Navbar from "./components/common/Navbar.vue";
+import Footer from "./components/common/Footer.vue";
+</script>
