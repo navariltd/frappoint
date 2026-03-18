@@ -1,14 +1,14 @@
 <template>
-	<div class="min-h-screen bg-background-light flex flex-col">
+	<div class="min-h-screen bg-background-light flex">
 		<Navbar />
-		<main class="flex-1">
-			<router-view />
-		</main>
-		<Footer />
+		<div class="flex-1 flex flex-col min-w-0 md:ml-64">
+			<main class="flex-1">
+				<router-view />
+			</main>
+		</div>
 	</div>
 </template>
 
 <script setup>
 import Navbar from "./components/common/Navbar.vue";
-import Footer from "./components/common/Footer.vue";
 </script>
