@@ -94,7 +94,7 @@ const userMenuOptions = computed(() => [
 		label: "User Profile",
 		icon: "user",
 		onClick: () => {
-			router.push({ name: "User" });
+			console.log("User Profile Menu Option Clicked");
 		},
 	},
 	{
