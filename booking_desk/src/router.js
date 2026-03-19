@@ -6,7 +6,10 @@ const routes = [
 	{
 		name: "Bookings",
 		path: "/",
-		component: () => import("@/pages/booking/Bookings.vue"),
+		components: {
+			default: () => import("@/pages/booking/Bookings.vue"),
+			sidebar: () => import("@/pages/booking/BookingSummary.vue"),
+		},
 		meta: { requiresLogin: true },
 	},
 	{
