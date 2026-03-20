@@ -94,6 +94,7 @@ class ServiceAppointment(Document):
 		rescheduled_to: DF.Data | None
 		scheduled_time: DF.Datetime
 		selected_slot_ids: DF.SmallText | None
+		service_provider_name: DF.Data | None
 		service_unit: DF.Link | None
 		source: DF.Literal["Desk", "Portal"]
 		start_time: DF.Time

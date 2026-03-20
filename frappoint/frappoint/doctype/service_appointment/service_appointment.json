@@ -14,6 +14,7 @@
   "appointment_details_section",
   "appointment_type",
   "appointment_provider",
+  "service_provider_name",
   "service_unit",
   "appointment_price",
   "booking_id",
@@ -556,6 +557,14 @@
    "fieldtype": "Data",
    "label": "Booking ID",
    "read_only": 1
+  },
+  {
+   "fetch_from": "appointment_provider.provider_name",
+   "fieldname": "service_provider_name",
+   "fieldtype": "Data",
+   "hidden": 1,
+   "label": "Service Provider Name",
+   "read_only": 1
   }
  ],
  "grid_page_length": 50,
@@ -588,7 +597,7 @@
    "link_fieldname": "reference_docname"
   }
  ],
- "modified": "2026-03-16 13:23:23.204767",
+ "modified": "2026-03-19 20:26:21.777830",
  "modified_by": "Administrator",
  "module": "Frappoint",
  "name": "Service Appointment",
