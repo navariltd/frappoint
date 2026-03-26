@@ -23,6 +23,15 @@ const routes = [
 		path: "/login",
 		meta: { external: true },
 	},
+	{
+		name: "NewBooking",
+		path: "/new_booking",
+		components: {
+			default: () => import("@/pages/booking/NewBooking.vue"),
+			sidebar: () => import("@/pages/booking/NewBookingSummary.vue"),
+		},
+		meta: { requiresLogin: true },
+	},
 ];
 
 const router = createRouter({
