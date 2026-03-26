@@ -61,7 +61,7 @@
 
 				<!-- New Booking Button -->
 				<button
-					@click="goToServices"
+					@click="newBookingSession"
 					class="flex items-center justify-center gap-1.5 sm:gap-2 bg-gray-900 text-white px-3 sm:px-6 py-2 sm:py-2.5 rounded-lg hover:bg-gray-800 transition-colors shadow-sm font-medium text-xs sm:text-sm whitespace-nowrap flex-1 sm:flex-none"
 				>
 					<PlusIcon class="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0" />
@@ -160,6 +160,7 @@ import ListIcon from "@/components/icons/ListIcon.vue";
 import CalendarIcon from "@/components/icons/CalendarIcon.vue";
 import PlusIcon from "@/components/icons/PlusIcon.vue";
 import ListView from "@/components/bookings/ListView.vue";
+import AppointmentCardSkeleton from "@/components/bookings/AppointmentCardSkeleton.vue";
 
 const router = useRouter();
 const viewMode = ref("list");
@@ -292,7 +293,7 @@ const calendarEvents = computed(() => {
 	});
 });
 
-function goToServices() {
-	router.push({ name: "BookingSession" });
+function newBookingSession() {
+	router.push({ name: "NewBooking" });
 }
 </script>
