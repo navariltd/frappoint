@@ -39,7 +39,7 @@ def get_payment_link(service_appointment_id, payment_gateway):
 	if not payment_gateway:
 		gateways = get_payment_gateways_for_service_type(service_type)
 		if not gateways:
-			frappe.throw("No payment gateway configured for this event")
+			frappe.throw("No payment gateway configured for this service type")
 	validate_currency(payment_gateway, currency)
 
 	payment = record_payment(
