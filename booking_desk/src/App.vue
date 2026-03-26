@@ -18,7 +18,7 @@
 				>
 					<aside
 						v-if="Component"
-						class="w-80 bg-white border-l border-border-light dark:border-border-dark flex flex-col shrink-0 shadow-sm"
+						class="w-96 bg-white border-l border-border-light dark:border-border-dark flex flex-col shrink-0 shadow-sm"
 					>
 						<component :is="Component" />
 					</aside>
@@ -31,4 +31,19 @@
 <script setup>
 import Sidebar from "./components/common/Sidebar.vue";
 import Topbar from "./components/common/Topbar.vue";
+import { watch } from "vue";
+import { useBookingStore } from "./stores/bookingStore";
+
+const booking = useBookingStore();
+booking.loadFromStorage();
+
+watch(
+	// Pass sources as an array
+	[() => booking.customer, () => booking.bookingConfig, () => booking.guests],
+	() => {
+		console.log("Saving to storage..."); // Debugging
+		booking.saveToStorage();
+	},
+	{ deep: true }
+);
 </script>
