@@ -239,7 +239,7 @@
    "fieldname": "source",
    "fieldtype": "Select",
    "label": "Source",
-   "options": "Desk\nPortal"
+   "options": "Desk\nPortal\nBooking Desk"
   },
   {
    "allow_on_submit": 1,
@@ -308,14 +308,12 @@
    "fieldname": "full_name",
    "fieldtype": "Data",
    "in_list_view": 1,
-   "label": "Full Name",
-   "reqd": 1
+   "label": "Full Name"
   },
   {
    "fieldname": "mobile_no",
    "fieldtype": "Data",
-   "label": "Phone",
-   "reqd": 1
+   "label": "Phone"
   },
   {
    "fetch_from": "appointment_type.default_duration_in_minutes",
@@ -554,8 +552,9 @@
   },
   {
    "fieldname": "booking_id",
-   "fieldtype": "Data",
+   "fieldtype": "Link",
    "label": "Booking ID",
+   "options": "Service Booking",
    "read_only": 1
   },
   {
@@ -597,7 +596,7 @@
    "link_fieldname": "reference_docname"
   }
  ],
- "modified": "2026-03-19 20:26:21.777830",
+ "modified": "2026-03-27 16:25:35.724311",
  "modified_by": "Administrator",
  "module": "Frappoint",
  "name": "Service Appointment",

@@ -61,7 +61,7 @@ class ServiceAppointment(Document):
 		appointment_price: DF.Data
 		appointment_provider: DF.Link
 		appointment_type: DF.Link
-		booking_id: DF.Data | None
+		booking_id: DF.Link | None
 		cancellation_date: DF.Datetime | None
 		cancellation_notes: DF.Text | None
 		cancellation_reasons: DF.TableMultiSelect[ServiceAppointmentLostReasonDetail]
@@ -76,13 +76,13 @@ class ServiceAppointment(Document):
 		email: DF.Data | None
 		end_time: DF.Time
 		event: DF.Link | None
-		full_name: DF.Data
+		full_name: DF.Data | None
 		google_meet_link: DF.Data | None
 		grand_total: DF.Currency
 		guests: DF.Table[ServiceAppointmentGuest]
 		is_group_booking: DF.Check
 		is_guest: DF.Check
-		mobile_no: DF.Data
+		mobile_no: DF.Data | None
 		mode_of_payment: DF.Link | None
 		naming_series: DF.Literal["SVC-APP-.MM.-.YY.-.###."]
 		notes: DF.Text | None
@@ -96,7 +96,7 @@ class ServiceAppointment(Document):
 		selected_slot_ids: DF.SmallText | None
 		service_provider_name: DF.Data | None
 		service_unit: DF.Link | None
-		source: DF.Literal["Desk", "Portal"]
+		source: DF.Literal["Desk", "Portal", "Booking Desk"]
 		start_time: DF.Time
 		status: DF.Literal["Open", "Confirmed", "Rescheduled", "Completed", "Cancelled", "Closed", "No Show"]
 		total_amount: DF.Currency
