@@ -1,0 +1,78 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2026-03-27 15:55:35.701022",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "service_type",
+  "pricing_model",
+  "qty",
+  "column_break_amps",
+  "currency",
+  "rate",
+  "total_amount"
+ ],
+ "fields": [
+  {
+   "fieldname": "service_type",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Service Type",
+   "options": "Service Type"
+  },
+  {
+   "fieldname": "pricing_model",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Pricing Model",
+   "options": "\nPer Booking\nPer Guest\nGuest Tier"
+  },
+  {
+   "fieldname": "column_break_amps",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "qty",
+   "fieldtype": "Int",
+   "in_list_view": 1,
+   "label": "Qty (Guests)"
+  },
+  {
+   "fieldname": "rate",
+   "fieldtype": "Currency",
+   "in_list_view": 1,
+   "label": "Rate",
+   "options": "currency"
+  },
+  {
+   "fieldname": "total_amount",
+   "fieldtype": "Currency",
+   "in_list_view": 1,
+   "label": "Total Amount",
+   "options": "currency"
+  },
+  {
+   "fieldname": "currency",
+   "fieldtype": "Link",
+   "label": "Currency",
+   "options": "Currency"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "istable": 1,
+ "links": [],
+ "modified": "2026-03-27 16:01:54.511291",
+ "modified_by": "Administrator",
+ "module": "Frappoint",
+ "name": "Service Booking Item",
+ "owner": "Administrator",
+ "permissions": [],
+ "row_format": "Dynamic",
+ "rows_threshold_for_grid_search": 20,
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}
