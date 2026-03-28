@@ -37,13 +37,10 @@ import { useBookingStore } from "./stores/bookingStore";
 const booking = useBookingStore();
 booking.loadFromStorage();
 
-watch(
-	// Pass sources as an array
-	[() => booking.customer, () => booking.bookingConfig, () => booking.guests],
-	() => {
-		console.log("Saving to storage..."); // Debugging
+booking.$subscribe(
+	(mutation, state) => {
 		booking.saveToStorage();
 	},
-	{ deep: true }
+	{ detached: true }
 );
 </script>
