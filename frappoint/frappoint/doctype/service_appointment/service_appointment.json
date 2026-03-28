@@ -305,6 +305,8 @@
    "options": "SVC-APP-.MM.-.YY.-.###."
   },
   {
+   "fetch_from": "customer.customer_name",
+   "fetch_if_empty": 1,
    "fieldname": "full_name",
    "fieldtype": "Data",
    "in_list_view": 1,
@@ -596,7 +598,7 @@
    "link_fieldname": "reference_docname"
   }
  ],
- "modified": "2026-03-27 16:25:35.724311",
+ "modified": "2026-03-28 12:07:41.611115",
  "modified_by": "Administrator",
  "module": "Frappoint",
  "name": "Service Appointment",

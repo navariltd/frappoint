@@ -3,7 +3,11 @@
 
 frappe.ui.form.on("Service Appointment", {
 	onload(frm) {
-		frm._slot_selected = false;
+		if (frm.doc.start_time && frm.doc.end_time) {
+			frm._slot_selected = true;
+		} else {
+			frm._slot_selected = false;
+		}
 	},
 
 	refresh(frm) {
