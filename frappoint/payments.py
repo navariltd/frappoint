@@ -29,34 +29,45 @@ def validate_currency(payment_gateway, currency):
 
 
 @frappe.whitelist()
-def get_payment_link(service_appointment_id, payment_gateway):
-	service_appointment_doc = frappe.get_cached_doc("Service Appointment", service_appointment_id)
-	service_type = service_appointment_doc.appointment_type
-	user_full_name = service_appointment_doc.full_name
-	amount = service_appointment_doc.total_amount
-	currency = service_appointment_doc.currency
+def get_payment_link(reference_doctype, reference_docname, payment_gateway, redirect_to):
+	"""
+	Handles both Service Booking and Service Appointment
+	"""
+	doc = frappe.get_cached_doc(reference_doctype, reference_docname)
+
+	if reference_doctype == "Service Booking":
+		amount = doc.grand_total
+		currency = doc.currency
+		customer = doc.customer
+		mobile_no = doc.mobile_no
+
+	elif reference_doctype == "Service Appointment":
+		amount = doc.total_amount
+		currency = doc.currency
+		customer = doc.customer
+		service_type = doc.appointment_type
+		mobile_no = doc.mobile_no
 
 	if not payment_gateway:
 		gateways = get_payment_gateways_for_service_type(service_type)
 		if not gateways:
 			frappe.throw("No payment gateway configured for this service type")
+
 	validate_currency(payment_gateway, currency)
 
-	payment = record_payment(
-		service_appointment_id, service_appointment_doc.total_amount, service_appointment_doc.currency
-	)
+	payment = record_payment(reference_doctype, reference_docname, amount, currency)
 	controller = get_controller(payment_gateway)
 
-	redirect_to = f"/portal/booking/{service_appointment_id}"
+	redirect_to = redirect_to
 
 	payment_details = {
 		"amount": amount,
-		"title": f"Payment for: {service_type}",
-		"description": f"{user_full_name}'s payment for {service_appointment_id}",
-		"reference_doctype": "Service Appointment",
-		"reference_docname": service_appointment_id,
+		"title": f"Payment for: {reference_docname}",
+		"description": f"Payment for {reference_doctype} {reference_docname}",
+		"reference_doctype": reference_doctype,
+		"reference_docname": reference_docname,
 		"payer_email": frappe.session.user,
-		"payer_name": user_full_name,
+		"payer_name": customer,
 		"currency": currency,
 		"payment_gateway": payment_gateway,
 		"redirect_to": redirect_to,
@@ -64,22 +75,22 @@ def get_payment_link(service_appointment_id, payment_gateway):
 	}
 
 	if controller.doctype == "Mpesa Settings":
-		payment_details["phone_number"] = service_appointment_doc.mobile_no
+		payment_details["phone_number"] = mobile_no
 
 	url = controller.get_payment_url(**payment_details)
 
 	return url
 
 
-def record_payment(service_appointment, amount, currency):
+def record_payment(reference_doctype, reference_docname, amount, currency):
 	payment_doc = frappe.new_doc("Service Appointment Payment")
 	payment_doc.update(
 		{
 			"user": frappe.session.user,
 			"amount": amount,
 			"currency": currency,
-			"reference_doctype": "Service Appointment",
-			"reference_docname": service_appointment,
+			"reference_doctype": reference_doctype,
+			"reference_docname": reference_docname,
 		}
 	)
 
