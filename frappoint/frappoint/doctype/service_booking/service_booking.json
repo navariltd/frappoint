@@ -8,12 +8,15 @@
  "field_order": [
   "naming_series",
   "customer",
-  "total_guests",
+  "full_name",
+  "mobile_no",
+  "email",
   "column_break_mtmk",
   "booking_date",
   "status",
   "section_break_ucii",
   "items",
+  "total_guests",
   "section_break_hvcf",
   "service_appointments",
   "section_break_kkut",
@@ -35,8 +38,10 @@
   {
    "fieldname": "customer",
    "fieldtype": "Link",
+   "in_list_view": 1,
    "label": "Customer",
-   "options": "Customer"
+   "options": "Customer",
+   "reqd": 1
   },
   {
    "fieldname": "total_guests",
@@ -51,7 +56,9 @@
    "default": "Today",
    "fieldname": "booking_date",
    "fieldtype": "Date",
-   "label": "Booking Date"
+   "in_list_view": 1,
+   "label": "Booking Date",
+   "reqd": 1
   },
   {
    "fieldname": "status",
@@ -66,8 +73,10 @@
   {
    "fieldname": "currency",
    "fieldtype": "Link",
+   "in_list_view": 1,
    "label": "Currency",
-   "options": "Currency"
+   "options": "Currency",
+   "reqd": 1
   },
   {
    "fieldname": "column_break_fhal",
@@ -76,26 +85,31 @@
   {
    "fieldname": "subtotal",
    "fieldtype": "Currency",
+   "in_list_view": 1,
    "label": "Subtotal",
-   "options": "currency"
+   "options": "currency",
+   "reqd": 1
   },
   {
    "fieldname": "grand_total",
    "fieldtype": "Currency",
    "label": "Grand Total",
-   "options": "currency"
+   "options": "currency",
+   "reqd": 1
   },
   {
    "fieldname": "total_paid",
    "fieldtype": "Currency",
    "label": "Total Paid",
-   "options": "currency"
+   "options": "currency",
+   "read_only": 1
   },
   {
    "fieldname": "outstanding_amount",
    "fieldtype": "Currency",
    "label": "Outstanding Amount",
-   "options": "currency"
+   "options": "currency",
+   "read_only": 1
   },
   {
    "fieldname": "section_break_ucii",
@@ -122,6 +136,21 @@
    "fieldtype": "HTML",
    "label": "Service Appointments",
    "read_only": 1
+  },
+  {
+   "fieldname": "mobile_no",
+   "fieldtype": "Data",
+   "label": "Phone"
+  },
+  {
+   "fieldname": "email",
+   "fieldtype": "Data",
+   "label": "Email"
+  },
+  {
+   "fieldname": "full_name",
+   "fieldtype": "Data",
+   "label": "Full Name"
   }
  ],
  "grid_page_length": 50,
@@ -132,7 +161,7 @@
    "link_fieldname": "booking_id"
   }
  ],
- "modified": "2026-03-27 16:51:41.508927",
+ "modified": "2026-03-28 13:40:39.108489",
  "modified_by": "Administrator",
  "module": "Frappoint",
  "name": "Service Booking",

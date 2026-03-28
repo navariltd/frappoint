@@ -16,11 +16,14 @@ class ServiceBooking(Document):
 
 		from frappoint.frappoint.doctype.service_booking_item.service_booking_item import ServiceBookingItem
 
-		booking_date: DF.Date | None
-		currency: DF.Link | None
-		customer: DF.Link | None
+		booking_date: DF.Date
+		currency: DF.Link
+		customer: DF.Link
+		email: DF.Data | None
+		full_name: DF.Data | None
 		grand_total: DF.Currency
 		items: DF.Table[ServiceBookingItem]
+		mobile_no: DF.Data | None
 		naming_series: DF.Literal["BK-.DD./.MM./.YY.-.####"]
 		outstanding_amount: DF.Currency
 		status: DF.Literal["Draft", "Confirmed", "Partially Paid", "Paid", "Cancelled"]
