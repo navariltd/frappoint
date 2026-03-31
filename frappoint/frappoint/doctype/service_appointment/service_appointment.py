@@ -83,9 +83,9 @@ class ServiceAppointment(Document):
 		is_group_booking: DF.Check
 		is_guest: DF.Check
 		mobile_no: DF.Data | None
-		mode_of_payment: DF.Link | None
 		naming_series: DF.Literal["SVC-APP-.MM.-.YY.-.###."]
 		notes: DF.Text | None
+		outstanding_amount: DF.Currency
 		payment_status: DF.Literal["Unpaid", "Paid", "Refunded", "Cancellation"]
 		reschedule_date: DF.Datetime | None
 		reschedule_notes: DF.Text | None
@@ -118,6 +118,9 @@ class ServiceAppointment(Document):
 
 		if self.status == "Confirmed":
 			self.validate_required_for_billing()
+
+		if self.is_new() or flt(self.outstanding_amount) == 0:
+			self.outstanding_amount = self.grand_total
 
 	def after_insert(self):
 		self.insert_calendar_event()
@@ -768,6 +771,7 @@ class ServiceAppointment(Document):
 		self.auto_issue_consumables()
 		self.complete_linked_event()
 
+		# TODO: Move this to the service Booking
 		invoice_name = self.create_sales_invoice()
 
 		return invoice_name
