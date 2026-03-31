@@ -977,6 +977,26 @@ class ServiceAppointment(Document):
 		self.cancel_linked_event()
 		self.release_slots()
 
+		if self.booking_id:
+			self.sync_parent_booking()
+
+	def sync_parent_booking(self):
+		"""Adjust the Service Booking items based on the new operational state"""
+		booking = frappe.get_doc("Service Booking", self.booking_id)
+
+		updated = False
+		for item in booking.items:
+			if item.service_type == self.appointment_type and flt(item.rate) == flt(self.total_amount):
+				if item.qty > 0:
+					item.qty -= 1
+					item.cancelled_qty += 1
+					item.total_amount = item.qty * item.rate
+					updated = True
+					break
+
+		if updated:
+			booking.save(ignore_permissions=True)
+
 	def auto_issue_consumables(self):
 		"""Auto issue consumables if setting is enabled"""
 		if frappe.db.get_single_value("Service Appointment Settings", "auto_issue_consumables"):
