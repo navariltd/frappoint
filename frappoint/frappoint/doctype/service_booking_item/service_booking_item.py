@@ -14,6 +14,7 @@ class ServiceBookingItem(Document):
 	if TYPE_CHECKING:
 		from frappe.types import DF
 
+		cancelled_qty: DF.Int
 		currency: DF.Link | None
 		parent: DF.Data
 		parentfield: DF.Data

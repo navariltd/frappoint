@@ -9,6 +9,7 @@
   "service_type",
   "pricing_model",
   "qty",
+  "cancelled_qty",
   "column_break_amps",
   "currency",
   "rate",
@@ -37,7 +38,7 @@
    "fieldname": "qty",
    "fieldtype": "Int",
    "in_list_view": 1,
-   "label": "Qty (Guests)"
+   "label": "Qty"
   },
   {
    "fieldname": "rate",
@@ -58,13 +59,18 @@
    "fieldtype": "Link",
    "label": "Currency",
    "options": "Currency"
+  },
+  {
+   "fieldname": "cancelled_qty",
+   "fieldtype": "Int",
+   "label": "Cancelled Qty"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2026-03-27 16:01:54.511291",
+ "modified": "2026-03-31 19:32:23.938032",
  "modified_by": "Administrator",
  "module": "Frappoint",
  "name": "Service Booking Item",
