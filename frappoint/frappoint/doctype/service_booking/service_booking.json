@@ -21,10 +21,10 @@
   "service_appointments",
   "section_break_kkut",
   "currency",
+  "column_break_rbcv",
   "column_break_fhal",
   "subtotal",
   "grand_total",
-  "total_paid",
   "outstanding_amount",
   "dashboard_tab"
  ],
@@ -64,7 +64,7 @@
    "fieldname": "status",
    "fieldtype": "Select",
    "label": "Status",
-   "options": "Draft\nConfirmed\nPartially Paid\nPaid\nCancelled"
+   "options": "Draft\nConfirmed\nCancelled"
   },
   {
    "fieldname": "section_break_kkut",
@@ -93,13 +93,6 @@
    "fieldtype": "Currency",
    "label": "Grand Total",
    "options": "currency"
-  },
-  {
-   "fieldname": "total_paid",
-   "fieldtype": "Currency",
-   "label": "Total Paid",
-   "options": "currency",
-   "read_only": 1
   },
   {
    "fieldname": "outstanding_amount",
@@ -148,6 +141,10 @@
    "fieldname": "full_name",
    "fieldtype": "Data",
    "label": "Full Name"
+  },
+  {
+   "fieldname": "column_break_rbcv",
+   "fieldtype": "Column Break"
   }
  ],
  "grid_page_length": 50,
@@ -158,7 +155,7 @@
    "link_fieldname": "booking_id"
   }
  ],
- "modified": "2026-03-31 10:16:36.316984",
+ "modified": "2026-03-31 19:04:19.788510",
  "modified_by": "Administrator",
  "module": "Frappoint",
  "name": "Service Booking",

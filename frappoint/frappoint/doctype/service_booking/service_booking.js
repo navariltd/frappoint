@@ -268,17 +268,20 @@ class GuestBookingWizard {
 			notes: values.notes || "",
 		};
 
-		frappe.call({
-			method: "frappoint.frappoint.api.booking_desk.add_guest_to_booking",
+		this.frm.call({
+			doc: this.frm.doc,
+			method: "add_guest",
 			args: {
-				booking_id: this.frm.doc.name,
 				guest_data: guest_payload,
 			},
 			freeze: true,
 			callback: (r) => {
 				if (!r.exc) {
 					this.dialog.hide();
-					frappe.show_alert({ message: __("Appointment Added"), indicator: "green" });
+					frappe.show_alert({
+						message: __("Guest Added Successfully"),
+						indicator: "green",
+					});
 					this.frm.reload_doc();
 				}
 			},

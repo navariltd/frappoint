@@ -1,8 +1,11 @@
 # Copyright (c) 2026, Navari LTD and contributors
 # For license information, please see license.txt
 
+import json
+
 import frappe
 from frappe.model.document import Document
+from frappe.utils import flt
 
 
 class ServiceBooking(Document):
@@ -26,14 +29,122 @@ class ServiceBooking(Document):
 		mobile_no: DF.Data | None
 		naming_series: DF.Literal["BK-.DD./.MM./.YY.-.####"]
 		outstanding_amount: DF.Currency
-		status: DF.Literal["Draft", "Confirmed", "Partially Paid", "Paid", "Cancelled"]
+		status: DF.Literal["Draft", "Confirmed", "Cancelled"]
 		subtotal: DF.Currency
 		total_guests: DF.Int
-		total_paid: DF.Currency
 	# end: auto-generated types
 
 	def on_load(self):
 		self.set_onload("appointment_list_html", self.get_appointment_table())
+
+	def validate(self):
+		self.recalculate_totals()
+
+		if self.is_new() or flt(self.outstanding_amount) == 0:
+			self.outstanding_amount = self.grand_total
+
+	def recalculate_totals(self):
+		total = 0
+		for item in self.items:
+			total += flt(item.total_amount)
+
+		self.subtotal = total
+		self.total_guests = len(self.items)
+
+		self.grand_total = self.subtotal
+
+	def update_outstanding_amount(self):
+		total_paid = (
+			frappe.db.get_value(
+				"Service Appointment Payment Reference",
+				{"reference_doctype": "Service Booking", "reference_name": self.name, "docstatus": 1},
+				"sum(allocated_amount)",
+			)
+			or 0
+		)
+
+		self.outstanding_amount = flt(self.grand_total) - flt(total_paid)
+
+	@frappe.whitelist()
+	def add_guest(self, guest_data):
+		if isinstance(guest_data, str):
+			guest_data = frappe.parse_json(guest_data)
+
+		service_type = guest_data.get("service_type")
+		price_id = guest_data.get("price_id")
+
+		price_doc = frappe.db.get_value(
+			"Service Type Price",
+			{"price_name": price_id, "parent": service_type},
+			["pricing_model", "amount", "currency", "duration"],
+			as_dict=True,
+		)
+
+		if not price_doc:
+			frappe.throw(f"Price '{price_id}' not found for {service_type}")
+
+		# 1. Initialize the Service Appointment
+		appointment = frappe.get_doc(
+			{
+				"doctype": "Service Appointment",
+				"booking_id": self.name,
+				"appointment_type": service_type,
+				"appointment_date": guest_data.get("date"),
+				"appointment_provider": guest_data.get("provider"),
+				"duration": price_doc.duration,
+				"appointment_price": price_id,
+				"currency": price_doc.currency,
+				"start_time": guest_data.get("start_time"),
+				"end_time": guest_data.get("end_time"),
+				"selected_slot_ids": json.dumps(guest_data.get("slot_ids", [])),
+				"customer": self.customer,
+				# top-level fields
+				"total_amount": price_doc.amount,
+				"source": "Desk",
+				"status": "Open",
+			}
+		)
+
+		# 2. Add the Guest to the mandatory child table
+		appointment.append(
+			"guests",
+			{
+				"full_name": guest_data.get("guest_name"),
+				"email": guest_data.get("guest_email"),
+				"mobile_no": guest_data.get("guest_mobile"),
+				"is_primary": 1,
+				"notes": guest_data.get("notes"),
+			},
+		)
+
+		# 3. Now insert will pass validation
+		appointment.insert(ignore_permissions=True)
+
+		# 4. Update the parent Service Booking ledger
+		item_found = False
+		for row in self.items:
+			if row.service_type == service_type and row.rate == price_doc.amount:
+				row.qty += 1
+				row.total_amount = row.qty * row.rate
+				item_found = True
+				break
+
+		if not item_found:
+			self.append(
+				"items",
+				{
+					"service_type": service_type,
+					"qty": 1,
+					"pricing_model": price_doc.pricing_model,
+					"rate": price_doc.amount,
+					"total_amount": price_doc.amount,
+					"currency": price_doc.currency,
+				},
+			)
+
+		self.save(ignore_permissions=True)
+
+		return {"appointment": appointment.name, "grand_total": self.grand_total}
 
 	@frappe.whitelist()
 	def get_appointment_table(self):
@@ -58,7 +169,7 @@ class ServiceBooking(Document):
 		<table class="table table-bordered" style="cursor: pointer; background-color: #f8f9fa;">
 			<thead>
 				<tr style="background-color: #ebeff2;">
-					<th>ID</th>
+					<th>Appointment</th>
 					<th>Service</th>
 					<th>Provider</th>
 					<th>Time</th>
