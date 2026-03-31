@@ -4,6 +4,7 @@
 import json
 
 import frappe
+from frappe import _
 from frappe.model.document import Document
 from frappe.utils import cint, flt
 
@@ -152,29 +153,40 @@ class ServiceBooking(Document):
 	def get_appointment_table(self):
 		appointments = frappe.get_all(
 			"Service Appointment",
-			filters={"booking_id": self.name},
+			filters={"booking_id": self.name, "status": ["not in", ["Rescheduled"]]},
 			fields=[
 				"name",
+				"appointment_date",
 				"appointment_type",
 				"service_provider_name",
 				"start_time",
 				"status",
 				"total_amount",
+				"rescheduled_to",
+				"rescheduled_from",
 			],
-			order_by="start_time asc",
+			order_by="appointment_date asc, start_time asc",
 		)
 
 		if not appointments:
 			return "<div class='text-muted'>No appointments linked yet.</div>"
 
+		appt_names = [a.name for a in appointments]
+		guest_list = frappe.get_all(
+			"Service Appointment Guest",
+			filters={"parent": ["in", appt_names]},
+			fields=["parent", "full_name"],
+		)
+
+		guest_map = {g.parent: g.full_name for g in guest_list}
+
 		html = """
 		<table class="table table-bordered" style="cursor: pointer; background-color: #f8f9fa;">
 			<thead>
 				<tr style="background-color: #ebeff2;">
-					<th>Appointment</th>
-					<th>Service</th>
-					<th>Provider</th>
-					<th>Time</th>
+					<th>Guest Appointment</th>
+					<th>Service / Provider</th>
+					<th>Date & Time</th>
 					<th>Status</th>
 					<th class="text-right">Total</th>
 				</tr>
@@ -183,28 +195,61 @@ class ServiceBooking(Document):
 		"""
 
 		for appt in appointments:
-			status_color_map = {
-				"Open": "cyan",
-				"Confirmed": "blue",
-				"Rescheduled": "orange",
-				"Completed": "green",
-				"Cancelled": "red",
-				"No Show": "gray",
-				"Closed": "gray",
-			}
+			guest_name = guest_map.get(appt.name, "Unspecified Guest")
+			is_history = appt.status in ["Rescheduled", "Cancelled"]
+			row_style = "opacity: 0.6; background-color: #f1f1f1;" if is_history else ""
 
-			status_color = status_color_map.get(appt.status, "gray")
+			reschedule_info = ""
+			if appt.status == "Rescheduled" and appt.rescheduled_to:
+				reschedule_info = f"""
+					<div style="margin-top: 4px;">
+						<span class="label label-warning" style="font-size: 0.75em;">
+							{_("Moved to")} {appt.rescheduled_to}
+						</span>
+					</div>
+				"""
+
+			# Case 2: This is a NEW appointment that came from an old one
+			elif appt.rescheduled_from:
+				reschedule_info = f"""
+					<div style="margin-top: 4px;">
+						<span class="label label-default" style="font-size: 0.75em; background-color: #e2e2e2; color: #666;">
+							{_("From")} {appt.rescheduled_from}
+						</span>
+					</div>
+				"""
+
+			service_info = f"<b>{appt.appointment_type}</b><br><small class='text-muted'>{appt.service_provider_name or 'Unassigned'}</small>"
+
+			dt_info = f"{frappe.format(appt.appointment_date, 'Date')}<br><small>{appt.start_time}</small>"
 
 			html += f"""
-				<tr onclick="frappe.set_route('Form', 'Service Appointment', '{appt.name}')">
-					<td><a href="/app/service-appointment/{appt.name}">{appt.name}</a></td>
-					<td>{appt.appointment_type}</td>
-					<td>{appt.service_provider_name or 'Unassigned'}</td>
-					<td>{appt.start_time}</td>
-					<td><span class="indicator {status_color}">{appt.status}</span></td>
-					<td class="text-right font-weight-bold">{frappe.format(appt.total_amount, 'Currency')}</td>
+				<tr style="{row_style}" onclick="frappe.set_route('Form', 'Service Appointment', '{appt.name}')">
+					<td>
+						<div style="font-weight: bold; color: #1a1a1a;">{guest_name}</div>
+						<small class='text-muted'>{appt.name}</small>
+						{reschedule_info}
+					</td>
+					<td>{service_info}</td>
+					<td>{dt_info}</td>
+					<td><span class="indicator {self.get_status_color(appt.status)}">{appt.status}</span></td>
+					<td class="text-right">
+						<span style="text-decoration: {'line-through' if is_history else 'none'}">
+							{frappe.format(appt.total_amount, 'Currency')}
+						</span>
+					</td>
 				</tr>
 			"""
 
 		html += "</tbody></table>"
 		return html
+
+	def get_status_color(self, status):
+		colors = {
+			"Open": "cyan",
+			"Confirmed": "blue",
+			"Rescheduled": "orange",
+			"Completed": "green",
+			"Cancelled": "red",
+		}
+		return colors.get(status, "gray")
