@@ -5,18 +5,26 @@
  "doctype": "DocType",
  "engine": "InnoDB",
  "field_order": [
-  "user",
-  "reference_docname",
   "reference_doctype",
-  "payment_gateway",
+  "reference_docname",
+  "user",
   "column_break_vktn",
-  "amount",
-  "currency",
+  "mode_of_payment",
+  "payment_gateway",
+  "posting_date",
   "payment_received",
+  "section_break_qksj",
+  "currency",
+  "column_break_rxzo",
+  "amount",
+  "references_section",
+  "references",
   "section_break_ddck",
+  "payment_id",
   "order_id",
   "column_break_qhhd",
-  "payment_id"
+  "reference_date",
+  "amended_from"
  ],
  "fields": [
   {
@@ -30,13 +38,15 @@
    "fieldtype": "Link",
    "in_list_view": 1,
    "label": "Reference DocType",
-   "options": "DocType"
+   "options": "DocType",
+   "reqd": 1
   },
   {
    "fieldname": "reference_docname",
    "fieldtype": "Dynamic Link",
    "label": "Reference Name",
-   "options": "reference_doctype"
+   "options": "reference_doctype",
+   "reqd": 1
   },
   {
    "fieldname": "column_break_vktn",
@@ -57,14 +67,14 @@
   {
    "fieldname": "user",
    "fieldtype": "Link",
+   "hidden": 1,
    "label": "User",
-   "options": "User",
-   "reqd": 1
+   "options": "User"
   },
   {
    "fieldname": "payment_id",
    "fieldtype": "Data",
-   "label": "Payment Id"
+   "label": "Reference No"
   },
   {
    "fieldname": "order_id",
@@ -84,12 +94,61 @@
    "fieldtype": "Link",
    "label": "Payment Gateway",
    "options": "Payment Gateway"
+  },
+  {
+   "fieldname": "section_break_qksj",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "references_section",
+   "fieldtype": "Section Break",
+   "label": "References"
+  },
+  {
+   "fieldname": "mode_of_payment",
+   "fieldtype": "Link",
+   "label": "Mode of Payment",
+   "options": "Mode of Payment",
+   "reqd": 1
+  },
+  {
+   "fieldname": "column_break_rxzo",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "Today",
+   "fieldname": "reference_date",
+   "fieldtype": "Date",
+   "label": "Reference Date"
+  },
+  {
+   "default": "Today",
+   "fieldname": "posting_date",
+   "fieldtype": "Date",
+   "label": "Posting Date"
+  },
+  {
+   "fieldname": "references",
+   "fieldtype": "Table",
+   "label": "References",
+   "options": "Service Appointment Payment Reference"
+  },
+  {
+   "fieldname": "amended_from",
+   "fieldtype": "Link",
+   "label": "Amended From",
+   "no_copy": 1,
+   "options": "Service Appointment Payment",
+   "print_hide": 1,
+   "read_only": 1,
+   "search_index": 1
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
+ "is_submittable": 1,
  "links": [],
- "modified": "2026-02-25 08:45:42.588144",
+ "modified": "2026-03-31 17:56:37.378395",
  "modified_by": "Administrator",
  "module": "Frappoint",
  "name": "Service Appointment Payment",
