@@ -75,8 +75,7 @@
    "fieldtype": "Link",
    "in_list_view": 1,
    "label": "Currency",
-   "options": "Currency",
-   "reqd": 1
+   "options": "Currency"
   },
   {
    "fieldname": "column_break_fhal",
@@ -87,15 +86,13 @@
    "fieldtype": "Currency",
    "in_list_view": 1,
    "label": "Subtotal",
-   "options": "currency",
-   "reqd": 1
+   "options": "currency"
   },
   {
    "fieldname": "grand_total",
    "fieldtype": "Currency",
    "label": "Grand Total",
-   "options": "currency",
-   "reqd": 1
+   "options": "currency"
   },
   {
    "fieldname": "total_paid",
@@ -161,7 +158,7 @@
    "link_fieldname": "booking_id"
   }
  ],
- "modified": "2026-03-28 13:40:39.108489",
+ "modified": "2026-03-31 10:16:36.316984",
  "modified_by": "Administrator",
  "module": "Frappoint",
  "name": "Service Booking",

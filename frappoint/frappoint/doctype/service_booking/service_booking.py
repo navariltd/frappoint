@@ -17,7 +17,7 @@ class ServiceBooking(Document):
 		from frappoint.frappoint.doctype.service_booking_item.service_booking_item import ServiceBookingItem
 
 		booking_date: DF.Date
-		currency: DF.Link
+		currency: DF.Link | None
 		customer: DF.Link
 		email: DF.Data | None
 		full_name: DF.Data | None
@@ -70,9 +70,17 @@ class ServiceBooking(Document):
 		"""
 
 		for appt in appointments:
-			status_color = (
-				"green" if appt.status == "Open" else "orange" if appt.status == "Confirmed" else "gray"
-			)
+			status_color_map = {
+				"Open": "cyan",
+				"Confirmed": "blue",
+				"Rescheduled": "orange",
+				"Completed": "green",
+				"Cancelled": "red",
+				"No Show": "gray",
+				"Closed": "gray",
+			}
+
+			status_color = status_color_map.get(appt.status, "gray")
 
 			html += f"""
 				<tr onclick="frappe.set_route('Form', 'Service Appointment', '{appt.name}')">
