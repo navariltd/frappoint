@@ -5,6 +5,80 @@ import frappe
 
 
 @frappe.whitelist()
+def add_guest_to_booking(booking_id, guest_data):
+	if isinstance(guest_data, str):
+		guest_data = frappe.parse_json(guest_data)
+
+	booking = frappe.get_doc("Service Booking", booking_id)
+	service_type = guest_data.get("service_type")
+	price_id = guest_data.get("price_id")
+
+	price_doc = frappe.db.get_value(
+		"Service Type Price",
+		{"price_name": price_id, "parent": service_type},
+		["pricing_model", "amount", "currency", "duration"],
+		as_dict=True,
+	)
+
+	if not price_doc:
+		frappe.throw(f"Price '{price_id}' not found for {service_type}")
+
+	# 1. Initialize the Service Appointment
+	appointment = frappe.get_doc(
+		{
+			"doctype": "Service Appointment",
+			"booking_id": booking.name,
+			"appointment_type": service_type,
+			"appointment_date": guest_data.get("date"),
+			"appointment_provider": guest_data.get("provider"),
+			"duration": price_doc.duration,
+			"appointment_price": price_id,
+			"currency": price_doc.currency,
+			"start_time": guest_data.get("start_time"),
+			"end_time": guest_data.get("end_time"),
+			"selected_slot_ids": json.dumps(guest_data.get("slot_ids", [])),
+			"customer": booking.customer,
+			# top-level fields
+			"total_amount": price_doc.amount,
+			"source": "Booking Desk",
+			"status": "Open",
+		}
+	)
+
+	# 2. Add the Guest to the mandatory child table
+	appointment.append(
+		"guests",
+		{
+			"full_name": guest_data.get("guest_name"),
+			"email": guest_data.get("guest_email"),
+			"mobile_no": guest_data.get("guest_mobile"),
+			"is_primary": 1,
+			"notes": guest_data.get("notes"),
+		},
+	)
+
+	# 3. Now insert will pass validation
+	appointment.insert(ignore_permissions=True)
+
+	# 4. Update the parent Service Booking ledger
+	booking.append(
+		"items",
+		{
+			"service_type": service_type,
+			"qty": 1,
+			"pricing_model": price_doc.pricing_model,
+			"rate": price_doc.amount,
+			"total_amount": price_doc.amount,
+			"currency": price_doc.currency,
+		},
+	)
+
+	booking.save(ignore_permissions=True)
+
+	return {"appointment": appointment.name, "grand_total": booking.grand_total}
+
+
+@frappe.whitelist()
 def create_booking(customer, guests):
 	if isinstance(customer, str):
 		customer = json.loads(customer)
