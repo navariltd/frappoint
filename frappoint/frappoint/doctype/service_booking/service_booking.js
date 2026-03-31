@@ -49,7 +49,21 @@ class GuestBookingWizard {
 			title: __("Guest Appointment Wizard"),
 			fields: [
 				// STEP 1: GUEST INFO
-				{ label: __("Guest Name"), fieldtype: "Data", fieldname: "guest_name", reqd: 1 },
+				{
+					label: __("Guest Details"),
+					fieldtype: "Section Break",
+					fieldname: "guest_details_section",
+				},
+				{ label: __("Full Name"), fieldtype: "Data", fieldname: "guest_name", reqd: 1 },
+				{ fieldtype: "Column Break" },
+				{
+					label: __("Email"),
+					fieldtype: "Data",
+					fieldname: "guest_email",
+					options: "Email",
+				},
+				{ fieldtype: "Column Break" },
+				{ label: __("Phone"), fieldtype: "Data", fieldname: "guest_mobile" },
 
 				// STEP 2: SERVICE & PACKAGE
 				{ fieldtype: "Section Break", label: __("Service & Package") },
@@ -62,18 +76,19 @@ class GuestBookingWizard {
 					onchange: () => this.on_service_change(),
 				},
 				{
+					label: __("Duration (mins)"),
+					fieldtype: "Int",
+					fieldname: "duration",
+					read_only: 1,
+				},
+				{ fieldtype: "Column Break" },
+				{
 					label: __("Select Package/Price"),
 					fieldtype: "Select",
 					fieldname: "selected_price_id",
 					options: [],
 					reqd: 1,
 					onchange: () => this.on_price_change(),
-				},
-				{
-					label: __("Duration (mins)"),
-					fieldtype: "Int",
-					fieldname: "duration",
-					read_only: 1,
 				},
 				{ label: __("Amount"), fieldtype: "Currency", fieldname: "amount", read_only: 1 },
 
