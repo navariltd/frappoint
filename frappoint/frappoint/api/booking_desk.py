@@ -106,14 +106,12 @@ def create_booking(customer, guests):
 		count = len(guest_list)
 
 		price_id = guest_list[0].get("price_id")
-		print(price_id)
 		price_doc = frappe.get_value(
 			"Service Type Price",
 			{"price_name": price_id, "parent": service_type},
 			["pricing_model", "amount", "currency"],
 			as_dict=True,
 		)
-		print(price_doc)
 
 		if not price_doc:
 			frappe.throw(f"Price '{price_id}' not found for {service_type}")
