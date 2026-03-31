@@ -931,6 +931,8 @@ function reschedule_appointment(frm) {
 				source: frm.doc.source,
 				guests: frm.doc.guests,
 				add_video_conferencing: frm.doc.add_video_conferencing,
+				booking_id: frm.doc.booking_id,
+				is_rescheduling: 1,
 			});
 		}
 	);

@@ -977,8 +977,9 @@ class ServiceAppointment(Document):
 		self.cancel_linked_event()
 		self.release_slots()
 
-		if self.booking_id:
-			self.sync_parent_booking()
+		if not getattr(self.flags, "is_rescheduling", False):
+			if self.booking_id:
+				self.sync_parent_booking()
 
 	def sync_parent_booking(self):
 		"""Adjust the Service Booking items based on the new operational state"""
@@ -1262,6 +1263,7 @@ def cancel_old_appointment(old_appointment_name, new_appointment_name):
 		)
 
 		# Cancel the appointment
+		old_appointment.flags.is_rescheduling = True
 		old_appointment.flags.ignore_permissions = True
 		old_appointment.flags.ignore_links = True
 		old_appointment.cancel()
@@ -1398,6 +1400,7 @@ def reschedule_appointment(
 		old_appointment.flags.ignore_links = True
 		old_appointment.cancel()
 		old_appointment.db_set("status", "Rescheduled")
+		new_appointment.db_set("booking_id", old_appointment.booking_id)
 
 		frappe.db.commit()
 
