@@ -5,7 +5,7 @@ import json
 
 import frappe
 from frappe.model.document import Document
-from frappe.utils import flt
+from frappe.utils import cint, flt
 
 
 class ServiceBooking(Document):
@@ -40,18 +40,20 @@ class ServiceBooking(Document):
 	def validate(self):
 		self.recalculate_totals()
 
-		if self.is_new() or flt(self.outstanding_amount) == 0:
-			self.outstanding_amount = self.grand_total
-
 	def recalculate_totals(self):
 		total = 0
+		guests = 0
 		for item in self.items:
 			total += flt(item.total_amount)
+			guests += cint(item.qty)
 
 		self.subtotal = total
-		self.total_guests = len(self.items)
+		self.total_guests = guests
 
 		self.grand_total = self.subtotal
+
+		if flt(self.outstanding_amount) == 0 or self.is_new():
+			self.outstanding_amount = self.grand_total
 
 	def update_outstanding_amount(self):
 		total_paid = (
