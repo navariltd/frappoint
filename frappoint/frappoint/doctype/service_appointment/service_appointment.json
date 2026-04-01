@@ -25,6 +25,7 @@
   "duration",
   "end_time",
   "selected_slot_ids",
+  "all_available_providers",
   "section_break_mwwh",
   "actual_start_time",
   "column_break_rqsf",
@@ -568,6 +569,13 @@
    "label": "Outstanding Amount",
    "options": "currency",
    "read_only": 1
+  },
+  {
+   "fieldname": "all_available_providers",
+   "fieldtype": "JSON",
+   "hidden": 1,
+   "is_virtual": 1,
+   "label": "All Available Providers"
   }
  ],
  "grid_page_length": 50,
@@ -600,7 +608,7 @@
    "link_fieldname": "reference_docname"
   }
  ],
- "modified": "2026-03-31 17:47:20.702138",
+ "modified": "2026-04-02 01:30:58.318170",
  "modified_by": "Administrator",
  "module": "Frappoint",
  "name": "Service Appointment",

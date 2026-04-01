@@ -126,7 +126,10 @@ class ServiceAppointment(Document):
 		self.insert_calendar_event()
 
 	def before_save(self):
-		"""Book slots before saving if slot selection was made"""
+		"""Assign provider if multiple options exist then, book slots"""
+
+		if not self.appointment_provider and self.all_available_providers:
+			self._perform_provider_assignment()
 
 		self.assign_service_unit_to_appointment()
 		self.validate_service_unit_requirement()
@@ -760,6 +763,35 @@ class ServiceAppointment(Document):
 		)
 
 		release_appointment_slots(self.name)
+
+	def _perform_provider_assignment(self):
+		"""
+		Decides which provider gets the appointment based on the
+		list of available options sent from the booking wizard.
+		"""
+		try:
+			options = json.loads(self.all_available_providers)
+		except Exception:
+			frappe.throw(_("No providers available for the selected time."))
+
+		provider_loads = {}
+		for option in options:
+			count = frappe.db.count(
+				"Service Appointment",
+				{
+					"appointment_provider": option["provider"],
+					"appointment_date": self.appointment_date,
+					"status": ["not in", ["Cancelled", "No Show", "Rescheduled", "Closed"]],
+				},
+			)
+			provider_loads[option["provider"]] = count
+
+		best_provider_id = min(provider_loads, key=provider_loads.get)
+
+		winner_data = next(opt for opt in options if opt["provider"] == best_provider_id)
+		self.appointment_provider = winner_data["provider"]
+		self.service_provider_name = winner_data["provider_name"]
+		self.selected_slot_ids = json.dumps(winner_data["slot_ids"])
 
 	def handle_status_change(self):
 		"""Handle actions based on status change"""
