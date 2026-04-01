@@ -18,10 +18,7 @@ def get_available_dates(service_type, duration, provider=None, days_ahead=30):
 	)
 
 	# Extract unique dates
-	available_dates = set()
-	for provider_data in slots:
-		for date_data in provider_data.get("available_dates", []):
-			available_dates.add(date_data["date"])
+	available_dates = [d["date"] for d in slots]
 
 	return sorted(list(available_dates))
 
