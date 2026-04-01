@@ -99,7 +99,8 @@ class ServiceBooking(Document):
 				"currency": price_doc.currency,
 				"start_time": guest_data.get("start_time"),
 				"end_time": guest_data.get("end_time"),
-				"selected_slot_ids": json.dumps(guest_data.get("slot_ids", [])),
+				"selected_slot_ids": json.dumps(guest_data.get("slot_ids") or []),
+				"all_available_providers": json.dumps(guest_data.get("all_available_providers", [])),
 				"customer": self.customer,
 				# top-level fields
 				"total_amount": price_doc.amount,
