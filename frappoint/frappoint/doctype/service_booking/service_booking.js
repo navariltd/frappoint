@@ -247,49 +247,53 @@ class GuestBookingWizard {
 			)
 			.join("");
 
-		// FIX: map with the ORIGINAL index so selection works regardless of filtering
 		let slot_html = this.available_slots
 			.map((s, original_index) => {
 				// Check if this slot should be hidden based on provider filter
-				if (
-					this.filter_provider &&
-					!s.providers.some((p) => p.provider === this.filter_provider)
-				) {
+				const has_filtered_provider = s.providers.some(
+					(p) => p.provider === this.filter_provider
+				);
+
+				if (this.filter_provider && !has_filtered_provider) {
 					return "";
 				}
 
 				const active_class = this.selected_slot === s.start_time ? "active" : "";
+
+				const count = s.providers ? s.providers.length : 0;
+				const badge_text = this.filter_provider
+					? __("Available")
+					: `${count} ${__("available")}`;
+
 				return `
-                <div class="slot-item ${active_class}" data-index="${original_index}">
-                    <div class="slot-time">${s.start_time.substring(0, 5)}</div>
-                </div>
-            `;
+				<div class="slot-item ${active_class}" data-index="${original_index}">
+					<div class="slot-time">${s.start_time.substring(0, 5)}</div>
+					<div class="slot-badge" style="font-size: 10px; opacity: 0.8; margin-top: 4px;">
+						${badge_text}
+					</div>
+				</div>
+			`;
 			})
 			.join("");
 
 		this.dialog.fields_dict.slot_picker_html.$wrapper.html(`
-            <div class="wizard-picker-container">
-                <div class="picker-column border-right">
-                    <div class="picker-header">${__("Available Dates")}</div>
-                    ${
-						this.date_html_builder() ||
-						'<div class="text-muted p-3">Select package...</div>'
-					}
-                </div>
-                <div class="picker-column">
-                    <div class="picker-header" style="display:flex; justify-content:space-between; align-items:center;">
-                        <span>${__("Slots")}</span>
-                        <select class="form-control input-xs provider-filter" style="width:130px; height:24px; font-size:11px; padding: 2px 5px;">
-                            <option value="">${__("Any Provider")}</option>
-                            ${provider_options}
-                        </select>
-                    </div>
-                    <div class="slot-grid">${
-						slot_html || '<div class="text-muted p-3">No slots found...</div>'
-					}</div>
-                </div>
-            </div>
-        `);
+			<div class="wizard-picker-container">
+				<div class="picker-column border-right">
+					<div class="picker-header">${__("Available Dates")}</div>
+					${this.date_html_builder() || '<div class="text-muted p-3">Select package...</div>'}
+				</div>
+				<div class="picker-column">
+					<div class="picker-header" style="display:flex; justify-content:space-between; align-items:center;">
+						<span>${__("Slots")}</span>
+						<select class="form-control input-xs provider-filter" style="width:130px; height:24px; font-size:11px; padding: 2px 5px;">
+							<option value="">${__("Any Provider")}</option>
+							${provider_options}
+						</select>
+					</div>
+					<div class="slot-grid">${slot_html || '<div class="text-muted p-3">No slots found...</div>'}</div>
+				</div>
+			</div>
+		`);
 	}
 
 	select_date(date) {
