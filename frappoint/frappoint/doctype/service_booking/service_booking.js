@@ -164,37 +164,44 @@ class GuestBookingWizard {
 	}
 
 	async load_slots(date) {
+		const service = this.dialog.get_value("service_type");
+		const duration = this.dialog.get_value("duration");
+
+		if (!service || !duration) return;
+
 		const res = await frappe.call({
 			method: "frappoint.frappoint.api.slot_availability.get_available_time_slots",
 			args: {
-				service_type: this.dialog.get_value("service_type"),
+				service_type: service,
 				date: date,
-				duration: this.dialog.get_value("duration"),
+				duration: duration,
 			},
 		});
-		// Flattening your provider-based response structure
-		this.available_slots = res.message.flatMap((p) =>
-			p.available_dates[0].slots.map((s) => ({
-				...s,
-				provider: p.provider,
-				provider_name: p.provider_name,
-			}))
-		);
+		if (res.message && res.message.length > 0) {
+			const day_data = res.message.find((m) => m.date === date);
+			this.available_slots = day_data ? day_data.slots : [];
+		} else {
+			this.available_slots = [];
+		}
+
 		this.render_picker();
 	}
 
 	setup_event_handlers() {
 		const $wrapper = this.dialog.fields_dict.slot_picker_html.$wrapper;
 
-		$wrapper.on("click", ".picker-item", (e) => {
+		$wrapper.off("click", ".picker-item").on("click", ".picker-item", (e) => {
+			e.preventDefault();
+			e.stopPropagation();
 			const date = $(e.currentTarget).attr("data-date");
-			this.select_date(date);
+			if (date) this.select_date(date);
 		});
 
-		$wrapper.on("click", ".slot-item", (e) => {
+		$wrapper.off("click", ".slot-item").on("click", ".slot-item", (e) => {
+			e.preventDefault();
+			e.stopPropagation();
 			const index = $(e.currentTarget).attr("data-index");
-			const slot_obj = this.available_slots[index]; // Direct access!
-			this.select_slot(slot_obj);
+			this.select_slot(index);
 		});
 	}
 
@@ -202,22 +209,26 @@ class GuestBookingWizard {
 		let date_html = this.available_dates
 			.map(
 				(d) => `
-            <div class="picker-item ${this.selected_date === d ? "active" : ""}" data-date="${d}">
-                <span class="date-text">${frappe.datetime.global_date_format(d)}</span>
-                <i class="octicon octicon-chevron-right"></i>
-            </div>
-        `
+			<div class="picker-item ${this.selected_date === d ? "active" : ""}" data-date="${d}">
+				<span class="date-text">${frappe.datetime.global_date_format(d)}</span>
+				<i class="octicon octicon-chevron-right"></i>
+			</div>
+		`
 			)
 			.join("");
 
 		let slot_html = this.available_slots
-			.map(
-				(s, index) => `
-    <div class="slot-item ${this.selected_slot === s.start_time ? "active" : ""}"
-         data-index="${index}"> ${s.start_time.substring(0, 5)}
-    </div>
-`
-			)
+			.map((s, index) => {
+				const provider_count = s.providers ? s.providers.length : 0;
+				const active_class = this.selected_slot === s.start_time ? "active" : "";
+
+				return `
+                <div class="slot-item ${active_class}" data-index="${index}">
+                    <div class="slot-time">${s.start_time.substring(0, 5)}</div>
+                    <div class="slot-badge">${provider_count} ${__("available")}</div>
+                </div>
+            `;
+			})
 			.join("");
 
 		this.dialog.fields_dict.slot_picker_html.$wrapper.html(`
@@ -229,7 +240,10 @@ class GuestBookingWizard {
                 <div class="picker-column">
                     <div class="picker-header">${__("Available Slots")}</div>
                     <div class="slot-grid">${
-						slot_html || '<div class="text-muted p-3">Select date...</div>'
+						slot_html ||
+						(this.selected_date
+							? '<div class="text-muted p-3">Loading slots...</div>'
+							: '<div class="text-muted p-3">Select date...</div>')
 					}</div>
                 </div>
             </div>
@@ -239,13 +253,27 @@ class GuestBookingWizard {
 	select_date(date) {
 		this.selected_date = date;
 		this.selected_slot = null;
+		this.available_slots = [];
+		this.render_picker();
 		this.load_slots(date);
 	}
 
-	select_slot(slot_obj) {
+	select_slot(index) {
+		const slot_obj = this.available_slots[index];
+		if (!slot_obj) return;
+
 		this.current_slot_object = slot_obj;
 		this.selected_slot = slot_obj.start_time;
 		this.selected_end = slot_obj.end_time;
+
+		// Pick the first available provider by default
+		// Or you can open a secondary popup here if they want a specific person
+		if (slot_obj.providers && slot_obj.providers.length > 0) {
+			const primary_choice = slot_obj.providers[0];
+			this.selected_provider = primary_choice.provider;
+			this.selected_slot_ids = primary_choice.slot_ids;
+		}
+
 		this.render_picker();
 	}
 
@@ -263,8 +291,8 @@ class GuestBookingWizard {
 			start_time: this.selected_slot,
 			end_time: this.selected_end,
 			// Accessing provider and slot_ids from the selected slot object
-			provider: this.current_slot_object.provider,
-			slot_ids: this.current_slot_object.slot_ids,
+			provider: this.selected_provider,
+			slot_ids: this.selected_slot_ids,
 			notes: values.notes || "",
 		};
 
