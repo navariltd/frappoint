@@ -120,6 +120,7 @@ class GuestBookingWizard {
 		this.dialog.set_df_property("selected_price_id", "options", []);
 		this.available_dates = [];
 		this.available_slots = [];
+		this.filter_provider = null;
 		this.render_picker();
 
 		const res = await frappe.call({
@@ -203,29 +204,64 @@ class GuestBookingWizard {
 			const index = $(e.currentTarget).attr("data-index");
 			this.select_slot(index);
 		});
+
+		$wrapper.on("change", ".provider-filter", (e) => {
+			this.filter_provider = $(e.currentTarget).val();
+			this.render_picker();
+		});
+	}
+
+	date_html_builder() {
+		return this.available_dates
+			.map(
+				(d) => `
+            <div class="picker-item ${this.selected_date === d ? "active" : ""}" data-date="${d}">
+                <span class="date-text">${frappe.datetime.global_date_format(d)}</span>
+                <i class="octicon octicon-chevron-right"></i>
+            </div>
+        `
+			)
+			.join("");
 	}
 
 	render_picker() {
-		let date_html = this.available_dates
+		const all_providers = [];
+		const provider_set = new Set();
+
+		// Use available_slots to find all possible providers for this day
+		this.available_slots.forEach((s) => {
+			s.providers.forEach((p) => {
+				if (!provider_set.has(p.provider)) {
+					provider_set.add(p.provider);
+					all_providers.push(p);
+				}
+			});
+		});
+
+		const provider_options = all_providers
 			.map(
-				(d) => `
-			<div class="picker-item ${this.selected_date === d ? "active" : ""}" data-date="${d}">
-				<span class="date-text">${frappe.datetime.global_date_format(d)}</span>
-				<i class="octicon octicon-chevron-right"></i>
-			</div>
-		`
+				(p) =>
+					`<option value="${p.provider}" ${
+						this.filter_provider === p.provider ? "selected" : ""
+					}>${p.provider_name}</option>`
 			)
 			.join("");
 
+		// FIX: map with the ORIGINAL index so selection works regardless of filtering
 		let slot_html = this.available_slots
-			.map((s, index) => {
-				const provider_count = s.providers ? s.providers.length : 0;
-				const active_class = this.selected_slot === s.start_time ? "active" : "";
+			.map((s, original_index) => {
+				// Check if this slot should be hidden based on provider filter
+				if (
+					this.filter_provider &&
+					!s.providers.some((p) => p.provider === this.filter_provider)
+				) {
+					return "";
+				}
 
+				const active_class = this.selected_slot === s.start_time ? "active" : "";
 				return `
-                <div class="slot-item ${active_class}" data-index="${index}">
+                <div class="slot-item ${active_class}" data-index="${original_index}">
                     <div class="slot-time">${s.start_time.substring(0, 5)}</div>
-                    <div class="slot-badge">${provider_count} ${__("available")}</div>
                 </div>
             `;
 			})
@@ -235,15 +271,21 @@ class GuestBookingWizard {
             <div class="wizard-picker-container">
                 <div class="picker-column border-right">
                     <div class="picker-header">${__("Available Dates")}</div>
-                    ${date_html || '<div class="text-muted p-3">Select package...</div>'}
+                    ${
+						this.date_html_builder() ||
+						'<div class="text-muted p-3">Select package...</div>'
+					}
                 </div>
                 <div class="picker-column">
-                    <div class="picker-header">${__("Available Slots")}</div>
+                    <div class="picker-header" style="display:flex; justify-content:space-between; align-items:center;">
+                        <span>${__("Slots")}</span>
+                        <select class="form-control input-xs provider-filter" style="width:130px; height:24px; font-size:11px; padding: 2px 5px;">
+                            <option value="">${__("Any Provider")}</option>
+                            ${provider_options}
+                        </select>
+                    </div>
                     <div class="slot-grid">${
-						slot_html ||
-						(this.selected_date
-							? '<div class="text-muted p-3">Loading slots...</div>'
-							: '<div class="text-muted p-3">Select date...</div>')
+						slot_html || '<div class="text-muted p-3">No slots found...</div>'
 					}</div>
                 </div>
             </div>
@@ -253,26 +295,21 @@ class GuestBookingWizard {
 	select_date(date) {
 		this.selected_date = date;
 		this.selected_slot = null;
+		this.filter_provider = null;
 		this.available_slots = [];
 		this.render_picker();
 		this.load_slots(date);
 	}
 
 	select_slot(index) {
-		const slot_obj = this.available_slots[index];
+		const slot_obj = this.available_slots[parseInt(index)];
 		if (!slot_obj) return;
 
 		this.current_slot_object = slot_obj;
 		this.selected_slot = slot_obj.start_time;
 		this.selected_end = slot_obj.end_time;
 
-		// Pick the first available provider by default
-		// Or you can open a secondary popup here if they want a specific person
-		if (slot_obj.providers && slot_obj.providers.length > 0) {
-			const primary_choice = slot_obj.providers[0];
-			this.selected_provider = primary_choice.provider;
-			this.selected_slot_ids = primary_choice.slot_ids;
-		}
+		this.selected_provider = this.filter_provider || null;
 
 		this.render_picker();
 	}
@@ -292,7 +329,8 @@ class GuestBookingWizard {
 			end_time: this.selected_end,
 			// Accessing provider and slot_ids from the selected slot object
 			provider: this.selected_provider,
-			slot_ids: this.selected_slot_ids,
+			all_available_providers: this.current_slot_object.providers,
+			// slot_ids: this.selected_slot_ids,
 			notes: values.notes || "",
 		};
 
