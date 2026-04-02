@@ -213,7 +213,7 @@
    "fieldname": "payment_status",
    "fieldtype": "Select",
    "label": "Payment Status",
-   "options": "Unpaid\nPaid\nRefunded\nCancellation"
+   "options": "Unpaid\nPaid\nPartly Paid\nPartly Refunded\nRefunded\nCancellation"
   },
   {
    "fieldname": "total_amount",
@@ -609,7 +609,7 @@
    "link_fieldname": "reference_docname"
   }
  ],
- "modified": "2026-04-02 11:10:14.519924",
+ "modified": "2026-04-02 17:46:31.534821",
  "modified_by": "Administrator",
  "module": "Frappoint",
  "name": "Service Appointment",

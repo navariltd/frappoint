@@ -86,7 +86,9 @@ class ServiceAppointment(Document):
 		naming_series: DF.Literal["SVC-APP-.MM.-.YY.-.###."]
 		notes: DF.Text | None
 		outstanding_amount: DF.Currency
-		payment_status: DF.Literal["Unpaid", "Paid", "Refunded", "Cancellation"]
+		payment_status: DF.Literal[
+			"Unpaid", "Paid", "Partly Paid", "Partly Refunded", "Refunded", "Cancellation"
+		]
 		reschedule_date: DF.Datetime | None
 		reschedule_notes: DF.Text | None
 		reschedule_reasons: DF.TableMultiSelect[ServiceAppointmentLostReasonDetail]
@@ -119,9 +121,6 @@ class ServiceAppointment(Document):
 		if self.status == "Confirmed":
 			self.validate_required_for_billing()
 
-		if self.is_new() or flt(self.outstanding_amount) == 0:
-			self.outstanding_amount = self.grand_total
-
 	def after_insert(self):
 		self.insert_calendar_event()
 
@@ -149,6 +148,9 @@ class ServiceAppointment(Document):
 			self.apply_coupon_if_any()
 			self.calculate_grand_total()
 
+		self.set_outstanding_amount()
+		self.update_payment_and_workflow_status()
+
 	def on_submit(self):
 		"""Confirm appointment"""
 		if not self.appointment_price:
@@ -167,6 +169,8 @@ class ServiceAppointment(Document):
 
 	def on_update(self):
 		"""Handle appointment confirmations"""
+		self.update_payment_and_workflow_status()
+
 		if self.has_value_changed("status"):
 			self.handle_status_change()
 
@@ -612,6 +616,57 @@ class ServiceAppointment(Document):
 		discount = flt(self.discount_amount)
 
 		self.grand_total = max(total - discount, 0)
+
+	def update_payment_and_workflow_status(self):
+		"""
+		Updates Payment Status and Workflow Status based on current outstanding.
+		"""
+		outstanding = flt(self.outstanding_amount)
+		total = flt(self.grand_total)
+
+		new_payment_status = self.payment_status
+
+		if outstanding <= 0 and total > 0:
+			new_payment_status = "Paid"
+		elif outstanding < total and outstanding > 0:
+			new_payment_status = "Partly Paid"
+		elif outstanding >= total:
+			new_payment_status = "Unpaid"
+
+		if new_payment_status != self.payment_status:
+			self.db_set("payment_status", new_payment_status)
+
+		if self.status == "Open" and new_payment_status in ["Paid", "Partly Paid"]:
+			self.db_set("status", "Confirmed")
+
+	def set_outstanding_amount(self):
+		if self.is_new():
+			self.outstanding_amount = flt(self.grand_total)
+		else:
+			self.recaclculate_outstanding_from_payments()
+
+	def recaclculate_outstanding_from_payments(self):
+		reference_paid = (
+			frappe.db.get_value(
+				"Service Appointment Payment Reference",
+				{"reference_doctype": "Service Appointment", "reference_name": self.name, "docstatus": 1},
+				"sum(allocated_amount)",
+			)
+			or 0
+		)
+
+		direct_paid = (
+			frappe.db.get_value(
+				"Service Appointment Payment",
+				{"reference_doctype": "Service Appointment", "reference_docname": self.name, "docstatus": 1},
+				"sum(amount)",
+			)
+			or 0
+		)
+
+		total_paid = reference_paid + direct_paid
+
+		self.outstanding_amount = flt(self.grand_total) - flt(total_paid)
 
 	def set_company_from_type(self):
 		return frappe.db.get_value("Service Type", self.appointment_type, "company")
