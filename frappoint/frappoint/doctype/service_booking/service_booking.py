@@ -53,8 +53,16 @@ class ServiceBooking(Document):
 
 		self.grand_total = self.subtotal
 
-		if flt(self.outstanding_amount) == 0 or self.is_new():
-			self.outstanding_amount = self.grand_total
+		total_paid = (
+			frappe.db.get_value(
+				"Service Appointment Payment",
+				{"reference_doctype": self.doctype, "reference_docname": self.name, "docstatus": 1},
+				"sum(amount)",
+			)
+			or 0
+		)
+
+		self.outstanding_amount = flt(self.grand_total) - flt(total_paid)
 
 	def update_outstanding_amount(self):
 		total_paid = (

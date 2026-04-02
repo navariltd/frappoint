@@ -20,6 +20,16 @@ frappe.ui.form.on("Service Booking", {
 		} else {
 			frm.trigger("render_appointment_list");
 		}
+
+		if (!frm.is_new() && frm.doc.outstanding_amount > 0) {
+			frm.add_custom_button(
+				__("Payment"),
+				function () {
+					frm.trigger("make_payment");
+				},
+				__("Create")
+			);
+		}
 	},
 
 	render_appointment_list: function (frm) {
@@ -31,6 +41,20 @@ frappe.ui.form.on("Service Booking", {
 					frm.get_field("service_appointments").$wrapper.html(r.message);
 				}
 			},
+		});
+	},
+
+	make_payment: function (frm) {
+		frappe.model.with_doctype("Service Appointment Payment", () => {
+			let payment = frappe.model.get_new_doc("Service Appointment Payment");
+
+			payment.customer = frm.doc.customer;
+			payment.reference_doctype = frm.doc.doctype;
+			payment.reference_docname = frm.doc.name;
+			payment.amount = frm.doc.outstanding_amount;
+			payment.currency = frm.doc.currency;
+
+			frappe.set_route("Form", "Service Appointment Payment", payment.name);
 		});
 	},
 });
