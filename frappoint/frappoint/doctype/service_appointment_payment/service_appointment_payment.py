@@ -2,6 +2,7 @@
 # For license information, please see license.txt
 
 import frappe
+from frappe import _
 from frappe.model.document import Document
 from frappe.utils import flt
 
@@ -37,6 +38,8 @@ class ServiceAppointmentPayment(Document):
 	# end: auto-generated types
 
 	def validate(self):
+		self.validate_allocation_sum()
+
 		if self.reference_doctype not in ["Service Booking", "Service Appointment"]:
 			frappe.throw("Not Supported")
 
@@ -74,6 +77,27 @@ class ServiceAppointmentPayment(Document):
 
 		frappe.db.set_value(doctype, docname, "outstanding_amount", new_outstanding)
 
+	def validate_allocation_sum(self):
+		"""
+		Ensures the 'amount' (total paid) matches the sum of
+		individual allocations in the child table.
+		"""
+		if not self.references:
+			return
+
+		total_allocated = 0
+		for d in self.references:
+			total_allocated += flt(d.allocated_amount)
+
+		if abs(flt(self.amount) - total_allocated) > 0.01:
+			frappe.throw(
+				_("Total Allocated Amount ({0}) must be equal to the Payment Amount ({1})").format(
+					frappe.format(total_allocated, "Currency", self.currency),
+					frappe.format(self.amount, "Currency", self.currency),
+				),
+				title=_("Allocation Mismatch"),
+			)
+
 	@frappe.whitelist()
 	def get_reference_details(self):
 		"""Fetch amount and currency from the source document"""
@@ -93,7 +117,7 @@ class ServiceAppointmentPayment(Document):
 			"Service Appointment",
 			filters={
 				"booking_id": self.reference_docname,
-				"status": ["not in", ["Cancelled"]],
+				"status": ["not in", ["Cancelled", "Rescheduled", "Closed"]],
 				"outstanding_amount": [">", 0],
 			},
 			fields=["name", "grand_total", "outstanding_amount", "currency"],
