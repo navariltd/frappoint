@@ -51,18 +51,18 @@
   "section_break_jpcd",
   "total_guests",
   "column_break_pwmh",
-  "grand_total",
-  "payment_tab",
+  "discount_section",
+  "coupon_code",
+  "column_break_towk",
+  "discount_amount",
   "payment_details_section",
   "payment_status",
   "currency",
   "column_break_ahpd",
   "total_amount",
+  "grand_total",
   "outstanding_amount",
-  "discount_section",
-  "coupon_code",
-  "column_break_towk",
-  "discount_amount",
+  "payment_tab",
   "more_info_tab",
   "google_sync_section",
   "add_video_conferencing",
@@ -527,6 +527,7 @@
    "options": "Service Appointment Coupon Code"
   },
   {
+   "collapsible": 1,
    "fieldname": "discount_section",
    "fieldtype": "Section Break",
    "label": "Discount"
@@ -608,7 +609,7 @@
    "link_fieldname": "reference_docname"
   }
  ],
- "modified": "2026-04-02 01:30:58.318170",
+ "modified": "2026-04-02 11:10:14.519924",
  "modified_by": "Administrator",
  "module": "Frappoint",
  "name": "Service Appointment",
