@@ -637,7 +637,8 @@ class ServiceAppointment(Document):
 			self.db_set("payment_status", new_payment_status)
 
 		if self.status == "Open" and new_payment_status in ["Paid", "Partly Paid"]:
-			self.db_set("status", "Confirmed")
+			self.status = "Confirmed"
+			self.submit()
 
 	def set_outstanding_amount(self):
 		if self.is_new():

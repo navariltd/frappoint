@@ -65,6 +65,10 @@ class ServiceAppointmentPayment(Document):
 		self.adjust_doc_outstanding(self.reference_doctype, self.reference_docname, self.amount, cancel)
 
 		if self.reference_doctype == "Service Appointment":
+			appt_doc = frappe.get_doc("Service Appointment", self.reference_docname, ignore_permissions=True)
+
+			appt_doc.update_payment_and_workflow_status()
+
 			parent_booking = frappe.db.get_value("Service Appointment", self.reference_docname, "booking_id")
 			if parent_booking:
 				self.adjust_doc_outstanding("Service Booking", parent_booking, self.amount, cancel)
