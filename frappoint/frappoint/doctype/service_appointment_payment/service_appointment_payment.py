@@ -64,6 +64,11 @@ class ServiceAppointmentPayment(Document):
 	def update_outstanding_balances(self, cancel=False):
 		self.adjust_doc_outstanding(self.reference_doctype, self.reference_docname, self.amount, cancel)
 
+		if self.reference_doctype == "Service Appointment":
+			parent_booking = frappe.db.get_value("Service Appointment", self.reference_docname, "booking_id")
+			if parent_booking:
+				self.adjust_doc_outstanding("Service Booking", parent_booking, self.amount, cancel)
+
 		if self.reference_doctype == "Service Booking":
 			for ref in self.references:
 				self.adjust_doc_outstanding(
