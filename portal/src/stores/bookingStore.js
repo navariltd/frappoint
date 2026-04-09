@@ -164,7 +164,7 @@ export const useBookingStore = defineStore("booking", {
 						mobile_no: "",
 						is_primary: i === 0 ? 1 : 0,
 						notes: "",
-					},
+					}
 				);
 			}
 		},
