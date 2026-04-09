@@ -3,6 +3,25 @@
 		<div class="flex flex-col lg:flex-row gap-6 lg:gap-8 w-full p-6 md:p-8 flex-1">
 			<!-- Left Column - Payment Form -->
 			<div class="w-full lg:flex-1">
+				<div class="mb-8">
+					<label
+						class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2"
+						for="coupon-code"
+					>
+						Coupon Code
+					</label>
+					<input
+						id="coupon-code"
+						v-model="booking.draft.couponCode"
+						type="text"
+						placeholder="Enter coupon code"
+						class="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:border-[#2c7677] focus:ring-2 focus:ring-[#2c7677]/20 outline-none transition-all"
+					/>
+					<p class="mt-2 text-xs text-gray-500 dark:text-gray-400">
+						The discount will be validated when you submit the booking.
+					</p>
+				</div>
+
 				<h2 class="text-xl font-bold text-gray-900 dark:text-white mb-6">
 					Payment Method
 				</h2>
@@ -167,7 +186,7 @@ const formattedDate = computed(() => {
 const formattedTime = computed(() => {
 	if (!booking.draft.slot?.start_time || !booking.draft.slot?.end_time) return "Not selected";
 	return `${formatTime(booking.draft.slot.start_time)} — ${formatTime(
-		booking.draft.slot.end_time
+		booking.draft.slot.end_time,
 	)}`;
 });
 

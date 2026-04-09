@@ -17,6 +17,7 @@ export const useBookingStore = defineStore("booking", {
 			price: null,
 			currency: null,
 			notes: null,
+			couponCode: null,
 			paymentGateways: [],
 			selectedPaymentGateway: null,
 			source: "Portal",
@@ -163,7 +164,7 @@ export const useBookingStore = defineStore("booking", {
 						mobile_no: "",
 						is_primary: i === 0 ? 1 : 0,
 						notes: "",
-					}
+					},
 				);
 			}
 		},
@@ -256,6 +257,7 @@ export const useBookingStore = defineStore("booking", {
 				slot: null,
 				provider: null,
 				notes: null,
+				couponCode: null,
 				selectedPaymentGateway: null,
 				paymentGateways: [],
 				source: "Portal",
@@ -290,6 +292,9 @@ export const useBookingStore = defineStore("booking", {
 				}
 				if (!this.draft.maxGuests) {
 					this.draft.maxGuests = null;
+				}
+				if (this.draft.couponCode === undefined) {
+					this.draft.couponCode = null;
 				}
 			}
 		},
