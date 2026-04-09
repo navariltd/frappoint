@@ -186,7 +186,7 @@ const formattedDate = computed(() => {
 const formattedTime = computed(() => {
 	if (!booking.draft.slot?.start_time || !booking.draft.slot?.end_time) return "Not selected";
 	return `${formatTime(booking.draft.slot.start_time)} — ${formatTime(
-		booking.draft.slot.end_time,
+		booking.draft.slot.end_time
 	)}`;
 });
 

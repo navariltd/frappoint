@@ -343,7 +343,7 @@ watch(
 		if (!date || !booking.draft.serviceType) return;
 
 		loadSlotsForDate(date);
-	},
+	}
 );
 
 async function loadSlotsForDate(date) {
@@ -360,8 +360,8 @@ async function loadSlotsForDate(date) {
 					provider: provider.provider,
 					provider_name: provider.provider_name,
 					date: d.date,
-				})),
-			),
+				}))
+			)
 	);
 }
 
@@ -388,7 +388,7 @@ watch(
 			}
 		}
 	},
-	{ immediate: true },
+	{ immediate: true }
 );
 
 // TODO: Check validate customer appointment for same date and time
@@ -414,7 +414,7 @@ async function submitBooking() {
 		showAlert(
 			"Slot Timeout",
 			"The selected time slot is no longer available. Please pick another.",
-			"red",
+			"red"
 		);
 		return;
 	}
