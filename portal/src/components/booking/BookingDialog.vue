@@ -419,26 +419,34 @@ async function submitBooking() {
 		return;
 	}
 
-	// create appointment
-	let service_appointment = await serviceAppointmentResource.insert.submit({
-		appointment_type: booking.draft.serviceType,
-		appointment_date: booking.draft.date,
-		appointment_provider: booking.draft.slot.provider,
-		duration: booking.draft.duration,
-		currency: booking.draft.currency,
-		appointment_price: booking.draft.priceName,
-		start_time: booking.draft.slot.start_time,
-		end_time: booking.draft.slot.end_time,
-		selected_slot_ids: JSON.stringify([booking.draft.slot.slot_ids]),
-		customer: booking.draft.customer,
-		full_name: booking.draft.fullName,
-		email: booking.draft.email,
-		mobile_no: booking.draft.mobileNo,
-		total_amount: booking.draft.price,
-		notes: booking.draft.notes,
-		source: booking.draft.source,
-		guests: booking.draft.guests,
-	});
+	let service_appointment;
+
+	try {
+		// create appointment
+		service_appointment = await serviceAppointmentResource.insert.submit({
+			appointment_type: booking.draft.serviceType,
+			appointment_date: booking.draft.date,
+			appointment_provider: booking.draft.slot.provider,
+			duration: booking.draft.duration,
+			currency: booking.draft.currency,
+			appointment_price: booking.draft.priceName,
+			start_time: booking.draft.slot.start_time,
+			end_time: booking.draft.slot.end_time,
+			selected_slot_ids: JSON.stringify([booking.draft.slot.slot_ids]),
+			customer: booking.draft.customer,
+			full_name: booking.draft.fullName,
+			email: booking.draft.email,
+			mobile_no: booking.draft.mobileNo,
+			total_amount: booking.draft.price,
+			coupon_code: booking.draft.couponCode,
+			notes: booking.draft.notes,
+			source: booking.draft.source,
+			guests: booking.draft.guests,
+		});
+	} catch (error) {
+		console.error("Failed to submit booking:", error);
+		showAlert("Error", getErrorMessage(error), "red");
+	}
 
 	if (service_appointment.name && booking.draft.price > 0) {
 		const response = await paymentLinkResource.submit({
@@ -447,14 +455,38 @@ async function submitBooking() {
 		});
 
 		if (response) {
-			booking.isResetting = true;
+			// booking.isResetting = true;
 			booking.clearStorage();
-			booking.isResetting = false;
+			// booking.isResetting = false;
 
-			window.location.href = response;
+			// window.location.href = response;
 			return;
 		}
 	}
+}
+
+function getErrorMessage(error) {
+	if (error?.messages?.length) {
+		return error.messages[0];
+	}
+
+	if (error?.message) {
+		return error.message;
+	}
+
+	if (error?._server_messages) {
+		try {
+			const messages = JSON.parse(error._server_messages);
+			if (messages.length > 0) {
+				const parsed = JSON.parse(messages[0]);
+				return parsed.message || "Failed to submit booking. Please try again.";
+			}
+		} catch (parseError) {
+			console.error("Failed to parse server error message:", parseError);
+		}
+	}
+
+	return "Failed to submit booking. Please try again.";
 }
 </script>
 
