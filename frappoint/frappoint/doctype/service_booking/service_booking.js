@@ -315,14 +315,16 @@ class GuestBookingWizard {
 			<div class="wizard-picker-container">
 				<div class="picker-column border-right">
 					<div class="picker-header">${__("Date")}</div>
-					${dates_html}
+					<div class="picker-body">${dates_html}</div>
 				</div>
 				<div class="picker-column">
 					<div class="picker-header">
 						<span>${__("Time")}</span>
 						${provider_select}
 					</div>
-					<div class="slot-grid">${slot_html || slots_empty}</div>
+					<div class="picker-body">
+						<div class="slot-grid">${slot_html || slots_empty}</div>
+					</div>
 				</div>
 			</div>
 		`);
@@ -334,7 +336,22 @@ class GuestBookingWizard {
 		this.current_slot_object = null;
 		this.filter_provider = null;
 		this.available_slots = [];
-		this.render_picker();
+
+		// Update active state in place instead of full re-render
+		this.dialog.fields_dict.slot_picker_html.$wrapper
+			.find(".picker-item")
+			.removeClass("active")
+			.filter(`[data-date="${date}"]`)
+			.addClass("active");
+
+		// Clear slot grid while loading
+		this.dialog.fields_dict.slot_picker_html.$wrapper
+			.find(".slot-grid")
+			.html(`<div class="picker-empty">${__("Loading...")}</div>`);
+
+		// Clear provider filter dropdown
+		this.dialog.fields_dict.slot_picker_html.$wrapper.find(".provider-filter").val("");
+
 		this.load_slots(date);
 	}
 
@@ -347,7 +364,12 @@ class GuestBookingWizard {
 		this.selected_end = slot_obj.end_time;
 		this.selected_provider = this.filter_provider || null;
 
-		this.render_picker();
+		// Update active state in place — no full re-render, no scroll jump
+		this.dialog.fields_dict.slot_picker_html.$wrapper
+			.find(".slot-item")
+			.removeClass("active")
+			.filter(`[data-index="${index}"]`)
+			.addClass("active");
 	}
 
 	submit_to_parent(values) {
@@ -409,8 +431,8 @@ class GuestBookingWizard {
 
 				.picker-column {
 					flex: 1;
-					max-height: 380px;
-					overflow-y: auto;
+					display: flex;
+					flex-direction: column;
 				}
 
 				.picker-column.border-right {
@@ -419,7 +441,9 @@ class GuestBookingWizard {
 				}
 
 				.picker-header {
-					padding: 10px 14px;
+					height: 40px;
+					min-height: 40px;
+					padding: 0 14px;
 					background: var(--control-bg);
 					font-weight: 500;
 					font-size: 11px;
@@ -433,6 +457,13 @@ class GuestBookingWizard {
 					display: flex;
 					justify-content: space-between;
 					align-items: center;
+					box-sizing: border-box;
+				}
+
+				.picker-body {
+					flex: 1;
+					overflow-y: auto;
+					max-height: 340px;
 				}
 
 				.picker-item {
@@ -477,13 +508,13 @@ class GuestBookingWizard {
 
 				.slot-grid {
 					display: grid;
-					grid-template-columns: repeat(auto-fill, minmax(75px, 1fr));
-					gap: 7px;
-					padding: 12px;
+					grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+					gap: 8px;
+					padding: 14px;
 				}
 
 				.slot-item {
-					padding: 9px 4px 7px;
+					padding: 12px 6px 10px;
 					border: 0.5px solid var(--border-color);
 					border-radius: 7px;
 					text-align: center;
@@ -503,7 +534,7 @@ class GuestBookingWizard {
 				}
 
 				.slot-time {
-					font-size: 12px;
+					font-size: 13px;
 					font-weight: 500;
 					color: var(--text-color);
 					display: block;
@@ -513,9 +544,9 @@ class GuestBookingWizard {
 
 				.slot-badge {
 					display: block;
-					font-size: 10px;
+					font-size: 11px;
 					color: var(--text-muted);
-					margin-top: 3px;
+					margin-top: 4px;
 				}
 
 				.slot-item.active .slot-badge { color: rgba(255,255,255,0.75); }
