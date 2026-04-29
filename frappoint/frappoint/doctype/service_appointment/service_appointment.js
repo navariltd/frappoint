@@ -531,13 +531,19 @@ function show_slot_picker(frm) {
 					{
 						fieldname: "provider_filter",
 						fieldtype: "Link",
-						label: __("Provider"),
+						label: __("Provider (optional)"),
 						options: "Service Provider",
 						get_query: function () {
+							let all_providers = new Set();
+							(frm.available_slots || []).forEach((date_data) => {
+								date_data.slots.forEach((time_slot) => {
+									time_slot.providers.forEach((p) =>
+										all_providers.add(p.provider)
+									);
+								});
+							});
 							return {
-								filters: {
-									name: ["in", frm.available_slots.map((s) => s.provider)],
-								},
+								filters: { name: ["in", [...all_providers]] },
 							};
 						},
 						onchange: function () {
@@ -551,7 +557,7 @@ function show_slot_picker(frm) {
 				],
 				size: "extra-large",
 				primary_action_label: __("Book Selected Slot"),
-				primary_action: function (values) {
+				primary_action: function () {
 					let selected_slot = d.selected_slot;
 					if (!selected_slot) {
 						frappe.msgprint(__("Please select a slot"));
@@ -576,143 +582,176 @@ function show_slot_picker(frm) {
 		});
 }
 
-function select_slot(frm, slot_data, dialog) {
-	frm.set_value("appointment_provider", slot_data.provider);
-	frm.set_value("appointment_date", slot_data.date);
-	frm.set_value("start_time", slot_data.start_time);
-	frm.set_value("end_time", slot_data.end_time);
-
-	frm.set_value("selected_slot_ids", JSON.stringify(slot_data.slot_ids));
-
-	frappe.show_alert({
-		message: __("Slot selected. Please save the appointment to confirm booking."),
-		indicator: "green",
-	});
-
-	dialog.hide();
-}
-
 function update_slot_display(dialog, frm) {
-	let provider_filter = dialog.get_value("provider_filter");
-	let slots = frm.available_slots;
+	const provider_filter = dialog.get_value("provider_filter");
+	const slots = frm.available_slots;
 
-	if (provider_filter) {
-		slots = slots.filter((s) => s.provider === provider_filter);
-	}
+	let html = `
+	<style>
+		.slot-picker { padding: 16px; }
+		.date-block {
+			border: 0.5px solid var(--border-color);
+			border-radius: 10px;
+			margin-bottom: 16px;
+			overflow: hidden;
+		}
+		.date-label {
+			font-size: 12px;
+			font-weight: 500;
+			color: var(--text-muted);
+			text-transform: uppercase;
+			letter-spacing: 0.04em;
+			padding: 10px 14px;
+			background: var(--control-bg);
+			border-bottom: 0.5px solid var(--border-color);
+		}
+		.slot-grid {
+			display: grid;
+			grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+			gap: 8px;
+			padding: 12px;
+		}
+		.slot-btn {
+			border: 0.5px solid var(--border-color);
+			border-radius: 8px;
+			padding: 10px 8px;
+			background: var(--card-bg);
+			cursor: pointer;
+			transition: all 0.15s ease;
+			text-align: center;
+			display: flex;
+			flex-direction: column;
+			align-items: center;
+			gap: 4px;
+			width: 100%;
+		}
+		.slot-btn:hover { border-color: var(--primary); background: var(--primary-extra-light); }
+		.slot-btn.selected { background: var(--primary); border-color: var(--primary); }
+		.slot-time { font-size: 13px; font-weight: 500; color: var(--text-color); }
+		.slot-btn.selected .slot-time { color: white; }
+		.slot-badge {
+			font-size: 10px;
+			color: var(--text-muted);
+			background: var(--control-bg);
+			border-radius: 20px;
+			padding: 1px 7px;
+			line-height: 1.6;
+		}
+		.slot-btn.selected .slot-badge { background: rgba(255,255,255,0.25); color: white; }
+		.slot-provider-name {
+			font-size: 11px;
+			color: var(--text-muted);
+		}
+		.slot-btn.selected .slot-provider-name { color: rgba(255,255,255,0.85); }
+	</style>
+	<div class="slot-picker">`;
 
-	let html = `<div class="slot-picker">`;
+	slots.forEach((date_data) => {
+		// When filtering, only keep time slots that have the selected provider
+		let time_slots = date_data.slots;
+		if (provider_filter) {
+			time_slots = time_slots.filter((ts) =>
+				ts.providers.some((p) => p.provider === provider_filter)
+			);
+		}
 
-	slots.forEach((provider_data) => {
+		if (!time_slots.length) return;
+
 		html += `
-		<div class="provider-card">
-			<div class="provider-header">
-				<span class="provider-name">${provider_data.provider_name}</span>
-			</div>
-		`;
+		<div class="date-block">
+			<div class="date-label">${frappe.datetime.str_to_user(date_data.date)}</div>
+			<div class="slot-grid">`;
 
-		provider_data.available_dates.forEach((date_data) => {
+		time_slots.forEach((time_slot) => {
+			const start_display = time_slot.start_time.substring(0, 5);
+			const end_display = time_slot.end_time.substring(0, 5);
+
+			// When a specific provider is chosen, store only that provider in the payload
+			// so the backend knows the explicit preference; otherwise pass all providers
+			// for auto-assignment
+			const providers_payload = provider_filter
+				? time_slot.providers.filter((p) => p.provider === provider_filter)
+				: time_slot.providers;
+
+			const slot_data = JSON.stringify({
+				date: date_data.date,
+				start_time: time_slot.start_time,
+				end_time: time_slot.end_time,
+				// null means "auto-assign"; a value means "use this provider"
+				preferred_provider: provider_filter || null,
+				providers: providers_payload,
+			}).replace(/'/g, "&#39;");
+
+			// Badge changes meaning depending on filter state
+			let badge_html = "";
+			if (provider_filter) {
+				// Show the provider name so it's clear who you're booking
+				const match = time_slot.providers.find((p) => p.provider === provider_filter);
+				badge_html = `<span class="slot-provider-name">${
+					match ? match.provider_name : ""
+				}</span>`;
+			} else {
+				const count = time_slot.providers.length;
+				const label = count === 1 ? __("1 provider") : `${count} ${__("providers")}`;
+				badge_html = `<span class="slot-badge">${label}</span>`;
+			}
+
 			html += `
-			<div class="date-block">
-				<div class="date-label">
-					${frappe.datetime.str_to_user(date_data.date)}
-				</div>
-				<div class="slot-grid">
-			`;
-
-			date_data.slots.forEach((slot) => {
-				html += `
-				<button
-					type="button"
-					class="slot-btn"
-					data-provider="${provider_data.provider}"
-					data-provider-name="${provider_data.provider_name}"
-					data-date="${date_data.date}"
-					data-start="${slot.start_time}"
-					data-end="${slot.end_time}"
-					data-slots='${JSON.stringify(slot.slot_ids)}'
-					onclick="selectSlot(this)"
-				>
-					<span class="slot-time">
-						${slot.start_time} – ${slot.end_time}
-					</span>
-				</button>
-				`;
-			});
-
-			html += `</div></div>`;
+			<button
+				type="button"
+				class="slot-btn"
+				data-slot='${slot_data}'
+				onclick="(function(btn){
+					document.querySelectorAll('.slot-btn').forEach(b => b.classList.remove('selected'));
+					btn.classList.add('selected');
+					cur_dialog.selected_slot = JSON.parse(btn.dataset.slot);
+				})(this)"
+			>
+				<span class="slot-time">${start_display} – ${end_display}</span>
+				${badge_html}
+			</button>`;
 		});
 
-		html += `</div>`;
+		html += `</div></div>`;
 	});
 
 	html += `</div>`;
 
-	html += `
-	<style>
-		.slot-picker {
-			padding: 16px;
-		}
-
-		.provider-card {
-			border: 1px solid var(--border-color);
-			border-radius: 10px;
-			padding: 14px;
-			margin-bottom: 18px;
-			background: var(--card-bg);
-		}
-
-		.provider-header {
-			font-weight: 600;
-			font-size: 15px;
-			margin-bottom: 10px;
-		}
-
-		.date-block {
-			margin-bottom: 14px;
-		}
-
-		.date-label {
-			font-size: 13px;
-			font-weight: 500;
-			color: var(--text-muted);
-			margin-bottom: 8px;
-		}
-
-		.slot-grid {
-			display: grid;
-			grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-			gap: 8px;
-		}
-
-		.slot-btn {
-			border: 1px solid var(--border-color);
-			border-radius: 8px;
-			padding: 8px 6px;
-			background: white;
-			cursor: pointer;
-			transition: all 0.15s ease;
-			text-align: center;
-		}
-
-		.slot-btn:hover {
-			border-color: var(--primary);
-			background: var(--primary-extra-light);
-		}
-
-		.slot-btn.selected {
-			background: var(--primary);
-			color: white;
-			border-color: var(--primary);
-		}
-
-		.slot-time {
-			font-size: 13px;
-			font-weight: 500;
-		}
-	</style>
-	`;
-
 	dialog.fields_dict.slot_display.$wrapper.html(html);
+}
+
+function select_slot(frm, selected_slot, dialog) {
+	frm.set_value("appointment_date", selected_slot.date);
+	frm.set_value("start_time", selected_slot.start_time);
+	frm.set_value("end_time", selected_slot.end_time);
+
+	// If user explicitly picked a provider, set it so before_save skips auto-assign;
+	// otherwise leave blank and let _perform_provider_assignment decide
+	if (selected_slot.preferred_provider) {
+		frm.set_value("appointment_provider", selected_slot.preferred_provider);
+
+		// Resolve slot_ids immediately from the chosen provider's data
+		const winner = selected_slot.providers.find(
+			(p) => p.provider === selected_slot.preferred_provider
+		);
+		frm.set_value("selected_slot_ids", JSON.stringify(winner ? winner.slot_ids : []));
+	} else {
+		frm.set_value("appointment_provider", null);
+		// Leave selected_slot_ids empty — before_save will populate it after assignment
+		frm.set_value("selected_slot_ids", "[]");
+	}
+
+	// Always pass the full provider list so before_save has everything it needs
+	frm.set_value("all_available_providers", JSON.stringify(selected_slot.providers));
+
+	frappe.show_alert({
+		message: selected_slot.preferred_provider
+			? __("Slot selected with specific provider. Save to confirm.")
+			: __("Slot selected. Provider will be auto-assigned on save."),
+		indicator: "green",
+	});
+
+	dialog.hide();
 }
 
 // Global function to handle slot selection
