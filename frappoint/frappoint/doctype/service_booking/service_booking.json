@@ -13,6 +13,7 @@
   "email",
   "column_break_mtmk",
   "booking_date",
+  "booking_time",
   "status",
   "section_break_ucii",
   "items",
@@ -25,8 +26,10 @@
   "column_break_fhal",
   "subtotal",
   "grand_total",
+  "confirmation_required_amount",
   "outstanding_amount",
-  "dashboard_tab"
+  "dashboard_tab",
+  "amended_from"
  ],
  "fields": [
   {
@@ -95,6 +98,13 @@
    "options": "currency"
   },
   {
+   "fieldname": "confirmation_required_amount",
+   "fieldtype": "Currency",
+   "label": "Confirmation Required Amount",
+   "options": "currency",
+   "read_only": 1
+  },
+  {
    "fieldname": "outstanding_amount",
    "fieldtype": "Currency",
    "label": "Outstanding Amount",
@@ -145,17 +155,35 @@
   {
    "fieldname": "column_break_rbcv",
    "fieldtype": "Column Break"
+  },
+  {
+   "default": "Now",
+   "fieldname": "booking_time",
+   "fieldtype": "Time",
+   "label": "Booking Time",
+   "reqd": 1
+  },
+  {
+   "fieldname": "amended_from",
+   "fieldtype": "Link",
+   "label": "Amended From",
+   "no_copy": 1,
+   "options": "Service Booking",
+   "print_hide": 1,
+   "read_only": 1,
+   "search_index": 1
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
+ "is_submittable": 1,
  "links": [
   {
    "link_doctype": "Service Appointment",
    "link_fieldname": "booking_id"
   }
  ],
- "modified": "2026-03-31 19:04:19.788510",
+ "modified": "2026-04-29 14:44:37.583499",
  "modified_by": "Administrator",
  "module": "Frappoint",
  "name": "Service Booking",
@@ -163,6 +191,8 @@
  "owner": "Administrator",
  "permissions": [
   {
+   "amend": 1,
+   "cancel": 1,
    "create": 1,
    "delete": 1,
    "email": 1,
@@ -172,6 +202,45 @@
    "report": 1,
    "role": "System Manager",
    "share": 1,
+   "submit": 1,
+   "write": 1
+  },
+  {
+   "cancel": 1,
+   "create": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Customer",
+   "share": 1,
+   "submit": 1,
+   "write": 1
+  },
+  {
+   "amend": 1,
+   "cancel": 1,
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Receptionist",
+   "share": 1,
+   "submit": 1,
+   "write": 1
+  },
+  {
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Service Provider",
+   "share": 1,
    "write": 1
   }
  ],
@@ -179,5 +248,7 @@
  "rows_threshold_for_grid_search": 20,
  "sort_field": "modified",
  "sort_order": "DESC",
- "states": []
+ "states": [],
+ "track_changes": 1,
+ "track_seen": 1
 }

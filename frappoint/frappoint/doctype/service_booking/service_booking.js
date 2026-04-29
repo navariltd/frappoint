@@ -5,13 +5,15 @@ frappe.ui.form.on("Service Booking", {
 	refresh(frm) {
 		if (!frm.doc.customer) return;
 
-		frm.add_custom_button(
-			__("Add Guest Appointment"),
-			() => {
-				new GuestBookingWizard(frm);
-			},
-			__("Actions")
-		);
+		if (frm.doc.docstatus === 0) {
+			frm.add_custom_button(
+				__("Add Guest Appointment"),
+				() => {
+					new GuestBookingWizard(frm);
+				},
+				__("Actions")
+			);
+		}
 
 		if (frm.doc.__onload && frm.doc.__onload.appointment_list_html) {
 			frm.get_field("service_appointments").$wrapper.html(

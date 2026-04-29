@@ -8,6 +8,8 @@ from frappe import _
 from frappe.model.document import Document
 from frappe.utils import cint, flt
 
+from frappoint.payments import get_confirmation_deposit_percent
+
 
 class ServiceBooking(Document):
 	# begin: auto-generated types
@@ -20,7 +22,10 @@ class ServiceBooking(Document):
 
 		from frappoint.frappoint.doctype.service_booking_item.service_booking_item import ServiceBookingItem
 
+		amended_from: DF.Link | None
 		booking_date: DF.Date
+		booking_time: DF.Time
+		confirmation_required_amount: DF.Currency
 		currency: DF.Link | None
 		customer: DF.Link
 		email: DF.Data | None
@@ -40,6 +45,41 @@ class ServiceBooking(Document):
 
 	def validate(self):
 		self.recalculate_totals()
+
+	def before_submit(self):
+		self.validate_submission_readiness()
+		self.validate_confirmation_before_submit()
+
+	def on_submit(self):
+		self.sync_financial_snapshot()
+
+	def on_cancel(self):
+		self.db_set("status", "Cancelled", update_modified=False)
+
+	def validate_submission_readiness(self):
+		if not self.items:
+			frappe.throw(_("Add at least one booking item before submitting."))
+
+		appointment_count = frappe.db.count("Service Appointment", {"booking_id": self.name})
+		if appointment_count <= 0:
+			frappe.throw(_("Add at least one Service Appointment before submitting the booking."))
+
+	def validate_confirmation_before_submit(self):
+		total_amount = flt(self.grand_total)
+		if total_amount <= 0:
+			return
+
+		self.set_confirmation_targets()
+		required_amount = flt(self.confirmation_required_amount)
+		paid_amount = max(0, total_amount - flt(self.outstanding_amount))
+
+		if paid_amount < required_amount:
+			frappe.throw(
+				_("A minimum payment of {0} is required before this booking can be confirmed.").format(
+					frappe.format(required_amount, "Currency", self.currency),
+				),
+				title=_("Payment Required"),
+			)
 
 	def recalculate_totals(self):
 		total = 0
@@ -84,7 +124,57 @@ class ServiceBooking(Document):
 		total_paid = flt(booking_paid) + flt(appointments_paid)
 
 		self.outstanding_amount = flt(self.grand_total) - flt(total_paid)
+		self.set_confirmation_targets()
 		self.set_status_from_payments(total_paid)
+
+	def set_confirmation_targets(self):
+		total_amount = flt(self.grand_total)
+		if total_amount <= 0:
+			self.confirmation_required_amount = 0
+			return
+
+		deposit_percent = flt(get_confirmation_deposit_percent("Service Booking", self.name, doc=self))
+		required_amount = (total_amount * deposit_percent) / 100
+		self.confirmation_required_amount = min(total_amount, flt(required_amount))
+
+	def get_paid_amount(self):
+		return max(0, flt(self.grand_total) - flt(self.outstanding_amount))
+
+	def submit_linked_appointments_if_ready(self):
+		appointment_names = frappe.get_all(
+			"Service Appointment",
+			filters={
+				"booking_id": self.name,
+				"docstatus": 0,
+				"status": ["in", ["Open", "Pending Payment"]],
+			},
+			pluck="name",
+		)
+
+		for appointment_name in appointment_names:
+			try:
+				appointment = frappe.get_doc("Service Appointment", appointment_name)
+				appointment.recalculate_outstanding_from_payments()
+				appointment.update_payment_and_workflow_status()
+			except Exception:
+				frappe.log_error(
+					frappe.get_traceback(),
+					_("Failed to auto-submit linked appointment {0}").format(appointment_name),
+				)
+
+	def maybe_auto_submit_after_payment(self):
+		if self.docstatus != 0 or self.status in ["Cancelled", "Closed"]:
+			return
+
+		self.sync_financial_snapshot()
+		self.submit_linked_appointments_if_ready()
+		self.sync_financial_snapshot()
+
+		if self.get_paid_amount() < flt(self.confirmation_required_amount):
+			return
+
+		self.flags.ignore_permissions = True
+		self.submit()
 
 	def set_status_from_payments(self, total_paid):
 		if self.status == "Cancelled":
@@ -110,11 +200,30 @@ class ServiceBooking(Document):
 			self.status = "Payment Pending"
 			return
 
+		if "Open" in appointment_statuses:
+			self.status = "Payment Pending"
+			return
+
 		if flt(total_paid) > 0:
 			self.status = "Partly Paid"
 			return
 
 		self.status = "Draft"
+
+	def sync_financial_snapshot(self):
+		"""Persist computed financial/status fields without requiring a full save."""
+		self.recalculate_totals()
+		self.db_set(
+			{
+				"subtotal": self.subtotal,
+				"total_guests": self.total_guests,
+				"grand_total": self.grand_total,
+				"confirmation_required_amount": self.confirmation_required_amount,
+				"outstanding_amount": self.outstanding_amount,
+				"status": self.status,
+			},
+			update_modified=False,
+		)
 
 	def update_outstanding_amount(self):
 		total_paid = (
@@ -130,6 +239,9 @@ class ServiceBooking(Document):
 
 	@frappe.whitelist()
 	def add_guest(self, guest_data):
+		if self.docstatus != 0:
+			frappe.throw(_("Cannot add guest appointments to a submitted booking."))
+
 		if isinstance(guest_data, str):
 			guest_data = frappe.parse_json(guest_data)
 
