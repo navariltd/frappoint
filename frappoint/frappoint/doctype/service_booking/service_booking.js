@@ -131,9 +131,9 @@ class GuestBookingWizard {
 
 		this.dialog.wizard = this;
 
-		this.init_styles();
 		this.setup_event_handlers();
 		this.dialog.show();
+		this.init_styles();
 	}
 
 	async on_service_change() {
@@ -145,6 +145,9 @@ class GuestBookingWizard {
 		this.available_dates = [];
 		this.available_slots = [];
 		this.filter_provider = null;
+		this.selected_date = null;
+		this.selected_slot = null;
+		this.current_slot_object = null;
 		this.render_picker();
 
 		const res = await frappe.call({
@@ -166,7 +169,7 @@ class GuestBookingWizard {
 	on_price_change() {
 		const selected_name = this.dialog.get_value("selected_price_id");
 		const service = this.dialog.get_value("service_type");
-		const price_obj = this.service_details.prices.find((p) => p.price_name === selected_name);
+		const price_obj = this.service_details?.prices.find((p) => p.price_name === selected_name);
 
 		if (price_obj) {
 			this.dialog.set_values({
@@ -184,6 +187,8 @@ class GuestBookingWizard {
 		});
 		this.available_dates = res.message || [];
 		this.selected_date = null;
+		this.selected_slot = null;
+		this.current_slot_object = null;
 		this.available_slots = [];
 		this.render_picker();
 	}
@@ -202,13 +207,9 @@ class GuestBookingWizard {
 				duration: duration,
 			},
 		});
-		if (res.message && res.message.length > 0) {
-			const day_data = res.message.find((m) => m.date === date);
-			this.available_slots = day_data ? day_data.slots : [];
-		} else {
-			this.available_slots = [];
-		}
 
+		const day_data = (res.message || []).find((m) => m.date === date);
+		this.available_slots = day_data ? day_data.slots : [];
 		this.render_picker();
 	}
 
@@ -230,20 +231,21 @@ class GuestBookingWizard {
 		});
 
 		$wrapper.on("change", ".provider-filter", (e) => {
-			this.filter_provider = $(e.currentTarget).val();
+			this.filter_provider = $(e.currentTarget).val() || null;
 			this.render_picker();
 		});
 	}
 
 	date_html_builder() {
+		if (!this.available_dates?.length) return "";
+
 		return this.available_dates
 			.map(
 				(d) => `
-            <div class="picker-item ${this.selected_date === d ? "active" : ""}" data-date="${d}">
-                <span class="date-text">${frappe.datetime.global_date_format(d)}</span>
-                <i class="octicon octicon-chevron-right"></i>
-            </div>
-        `
+				<div class="picker-item ${this.selected_date === d ? "active" : ""}" data-date="${d}">
+					<span class="date-text">${frappe.datetime.global_date_format(d)}</span>
+					<i class="octicon octicon-chevron-right"></i>
+				</div>`
 			)
 			.join("");
 	}
@@ -271,6 +273,13 @@ class GuestBookingWizard {
 			)
 			.join("");
 
+		const provider_select = all_providers.length
+			? `<select class="provider-filter">
+					<option value="">${__("Any Provider")}</option>
+					${provider_options}
+			   </select>`
+			: "";
+
 		let slot_html = this.available_slots
 			.map((s, original_index) => {
 				// Check if this slot should be hidden based on provider filter
@@ -278,43 +287,42 @@ class GuestBookingWizard {
 					(p) => p.provider === this.filter_provider
 				);
 
-				if (this.filter_provider && !has_filtered_provider) {
-					return "";
-				}
+				if (this.filter_provider && !has_filtered_provider) return "";
 
 				const active_class = this.selected_slot === s.start_time ? "active" : "";
-
-				const count = s.providers ? s.providers.length : 0;
+				const count = s.providers?.length || 0;
 				const badge_text = this.filter_provider
-					? __("Available")
-					: `${count} ${__("available")}`;
+					? __("available")
+					: `${count} ${count === 1 ? __("provider") : __("providers")}`;
 
 				return `
 				<div class="slot-item ${active_class}" data-index="${original_index}">
-					<div class="slot-time">${s.start_time.substring(0, 5)}</div>
-					<div class="slot-badge" style="font-size: 10px; opacity: 0.8; margin-top: 4px;">
-						${badge_text}
-					</div>
-				</div>
-			`;
+					<span class="slot-time">${s.start_time.substring(0, 5)}</span>
+					<span class="slot-badge">${badge_text}</span>
+				</div>`;
 			})
 			.join("");
+
+		const dates_html =
+			this.date_html_builder() ||
+			`<div class="picker-empty">${__("Select a package to see dates")}</div>`;
+
+		const slots_empty = this.selected_date
+			? `<div class="picker-empty">${__("No slots available for this date")}</div>`
+			: `<div class="picker-empty">${__("Select a date to see slots")}</div>`;
 
 		this.dialog.fields_dict.slot_picker_html.$wrapper.html(`
 			<div class="wizard-picker-container">
 				<div class="picker-column border-right">
-					<div class="picker-header">${__("Available Dates")}</div>
-					${this.date_html_builder() || '<div class="text-muted p-3">Select package...</div>'}
+					<div class="picker-header">${__("Date")}</div>
+					${dates_html}
 				</div>
 				<div class="picker-column">
-					<div class="picker-header" style="display:flex; justify-content:space-between; align-items:center;">
-						<span>${__("Slots")}</span>
-						<select class="form-control input-xs provider-filter" style="width:130px; height:24px; font-size:11px; padding: 2px 5px;">
-							<option value="">${__("Any Provider")}</option>
-							${provider_options}
-						</select>
+					<div class="picker-header">
+						<span>${__("Time")}</span>
+						${provider_select}
 					</div>
-					<div class="slot-grid">${slot_html || '<div class="text-muted p-3">No slots found...</div>'}</div>
+					<div class="slot-grid">${slot_html || slots_empty}</div>
 				</div>
 			</div>
 		`);
@@ -323,6 +331,7 @@ class GuestBookingWizard {
 	select_date(date) {
 		this.selected_date = date;
 		this.selected_slot = null;
+		this.current_slot_object = null;
 		this.filter_provider = null;
 		this.available_slots = [];
 		this.render_picker();
@@ -336,16 +345,17 @@ class GuestBookingWizard {
 		this.current_slot_object = slot_obj;
 		this.selected_slot = slot_obj.start_time;
 		this.selected_end = slot_obj.end_time;
-
 		this.selected_provider = this.filter_provider || null;
 
 		this.render_picker();
 	}
 
 	submit_to_parent(values) {
-		if (!this.selected_slot) return frappe.msgprint(__("Please select a time slot"));
+		if (!this.selected_slot) {
+			frappe.msgprint(__("Please select a time slot"));
+			return;
+		}
 
-		// Prepare the payload for the Python API
 		const guest_payload = {
 			guest_name: values.guest_name,
 			guest_email: values.guest_email || "",
@@ -355,25 +365,22 @@ class GuestBookingWizard {
 			date: this.selected_date,
 			start_time: this.selected_slot,
 			end_time: this.selected_end,
-			// Accessing provider and slot_ids from the selected slot object
+			// null = auto-assign; a value = user explicitly chose this provider
 			provider: this.selected_provider,
 			all_available_providers: this.current_slot_object.providers,
-			// slot_ids: this.selected_slot_ids,
 			notes: values.notes || "",
 		};
 
 		this.frm.call({
 			doc: this.frm.doc,
 			method: "add_guest",
-			args: {
-				guest_data: guest_payload,
-			},
+			args: { guest_data: guest_payload },
 			freeze: true,
 			callback: (r) => {
 				if (!r.exc) {
 					this.dialog.hide();
 					frappe.show_alert({
-						message: __("Guest Added Successfully"),
+						message: __("Guest added successfully"),
 						indicator: "green",
 					});
 					this.frm.reload_doc();
@@ -386,20 +393,145 @@ class GuestBookingWizard {
 	}
 
 	init_styles() {
-		const css = `
-            .wizard-picker-container { display: flex; border: 1px solid #d1d8dd; border-radius: 8px; overflow: hidden; background: #fff; }
-            .picker-column { flex: 1; max-height: 350px; overflow-y: auto; }
-            .picker-header { padding: 10px; background: #f8fafc; font-weight: bold; font-size: 11px; text-transform: uppercase; border-bottom: 1px solid #d1d8dd; color: #64748b; position: sticky; top: 0; }
-            .picker-item { padding: 12px 15px; border-bottom: 1px solid #f1f5f9; cursor: pointer; display: flex; justify-content: space-between; align-items: center; transition: all 0.2s; }
-            .picker-item:hover { background: #f1f5f9; }
-            .picker-item.active { background: #e0f2fe; border-left: 4px solid #0ea5e9; color: #0369a1; font-weight: bold; }
-            .slot-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(80px, 1fr)); gap: 8px; padding: 12px; }
-            .slot-item { padding: 10px 5px; border: 1px solid #e2e8f0; border-radius: 6px; text-align: center; cursor: pointer; font-size: 13px; font-weight: 500; transition: all 0.2s; }
-            .slot-item:hover { border-color: #0ea5e9; color: #0ea5e9; }
-            .slot-item.active { background: #0ea5e9; color: white; border-color: #0ea5e9; box-shadow: 0 4px 6px -1px rgba(14, 165, 233, 0.2); }
-        `;
-		if (!$("#wizard-styles").length) {
-			$('<style id="wizard-styles">').prop("type", "text/css").html(css).appendTo("head");
-		}
+		const $dialog_wrapper = this.dialog.$wrapper;
+
+		if ($dialog_wrapper.find("#wizard-styles").length) return;
+
+		$dialog_wrapper.find(".modal-content").prepend(`
+			<style id="wizard-styles">
+				.wizard-picker-container {
+					display: flex;
+					border: 0.5px solid var(--border-color);
+					border-radius: 10px;
+					overflow: hidden;
+					background: var(--card-bg);
+				}
+
+				.picker-column {
+					flex: 1;
+					max-height: 380px;
+					overflow-y: auto;
+				}
+
+				.picker-column.border-right {
+					border-right: 0.5px solid var(--border-color);
+					flex: 0 0 220px;
+				}
+
+				.picker-header {
+					padding: 10px 14px;
+					background: var(--control-bg);
+					font-weight: 500;
+					font-size: 11px;
+					text-transform: uppercase;
+					letter-spacing: 0.05em;
+					border-bottom: 0.5px solid var(--border-color);
+					color: var(--text-muted);
+					position: sticky;
+					top: 0;
+					z-index: 1;
+					display: flex;
+					justify-content: space-between;
+					align-items: center;
+				}
+
+				.picker-item {
+					padding: 11px 14px;
+					border-bottom: 0.5px solid var(--border-color);
+					cursor: pointer;
+					display: flex;
+					justify-content: space-between;
+					align-items: center;
+					transition: background 0.15s;
+					font-size: 13px;
+					color: var(--text-color);
+				}
+
+				.picker-item:last-child { border-bottom: none; }
+				.picker-item:hover { background: var(--control-bg); }
+
+				.picker-item.active {
+					background: var(--primary-extra-light);
+					border-left: 3px solid var(--primary);
+					padding-left: 11px;
+					color: var(--primary);
+					font-weight: 500;
+				}
+
+				.picker-item .date-text { flex: 1; }
+
+				.picker-item .octicon {
+					font-size: 10px;
+					color: var(--text-muted);
+					opacity: 0.5;
+				}
+
+				.picker-item.active .octicon { opacity: 1; color: var(--primary); }
+
+				.picker-empty {
+					padding: 24px 14px;
+					font-size: 12px;
+					color: var(--text-muted);
+					text-align: center;
+				}
+
+				.slot-grid {
+					display: grid;
+					grid-template-columns: repeat(auto-fill, minmax(75px, 1fr));
+					gap: 7px;
+					padding: 12px;
+				}
+
+				.slot-item {
+					padding: 9px 4px 7px;
+					border: 0.5px solid var(--border-color);
+					border-radius: 7px;
+					text-align: center;
+					cursor: pointer;
+					transition: all 0.15s ease;
+					background: var(--card-bg);
+				}
+
+				.slot-item:hover {
+					border-color: var(--primary);
+					background: var(--primary-extra-light);
+				}
+
+				.slot-item.active {
+					background: var(--primary);
+					border-color: var(--primary);
+				}
+
+				.slot-time {
+					font-size: 12px;
+					font-weight: 500;
+					color: var(--text-color);
+					display: block;
+				}
+
+				.slot-item.active .slot-time { color: white; }
+
+				.slot-badge {
+					display: block;
+					font-size: 10px;
+					color: var(--text-muted);
+					margin-top: 3px;
+				}
+
+				.slot-item.active .slot-badge { color: rgba(255,255,255,0.75); }
+
+				.provider-filter {
+					font-size: 11px;
+					height: 22px;
+					padding: 0 6px;
+					border: 0.5px solid var(--border-color);
+					border-radius: 5px;
+					background: var(--card-bg);
+					color: var(--text-color);
+					max-width: 120px;
+					cursor: pointer;
+				}
+			</style>
+		`);
 	}
 }
