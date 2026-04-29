@@ -740,8 +740,15 @@ function confirm_appointment(frm) {
 		return;
 	}
 
-	frm.set_value("status", "Confirmed").then(() => {
-		frm.save("Submit");
+	frappe.call({
+		method: "confirm_appointment",
+		doc: frm.doc,
+		args: {},
+		freeze: true,
+		freeze_message: __("Confirming appointment..."),
+		callback: function () {
+			frm.reload_doc();
+		},
 	});
 }
 

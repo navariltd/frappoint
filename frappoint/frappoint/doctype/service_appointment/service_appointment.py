@@ -12,6 +12,7 @@ from frappe.desk.calendar import get_event_conditions
 from frappe.desk.reportview import build_match_conditions
 from frappe.model.document import Document
 from frappe.utils import (
+	add_to_date,
 	flt,
 	get_datetime,
 	get_link_to_form,
@@ -67,6 +68,7 @@ class ServiceAppointment(Document):
 		cancellation_reasons: DF.TableMultiSelect[ServiceAppointmentLostReasonDetail]
 		company: DF.Link
 		confirmation_token: DF.Data | None
+		confirmation_required_amount: DF.Currency
 		coupon_code: DF.Link | None
 		currency: DF.Link
 		customer: DF.Link
@@ -89,6 +91,7 @@ class ServiceAppointment(Document):
 		payment_status: DF.Literal[
 			"Unpaid", "Paid", "Partly Paid", "Partly Refunded", "Refunded", "Cancellation"
 		]
+		payment_expires_at: DF.Datetime | None
 		reschedule_date: DF.Datetime | None
 		reschedule_notes: DF.Text | None
 		reschedule_reasons: DF.TableMultiSelect[ServiceAppointmentLostReasonDetail]
@@ -100,7 +103,16 @@ class ServiceAppointment(Document):
 		service_unit: DF.Link | None
 		source: DF.Literal["Desk", "Portal", "Booking Desk"]
 		start_time: DF.Time
-		status: DF.Literal["Open", "Confirmed", "Rescheduled", "Completed", "Cancelled", "Closed", "No Show"]
+		status: DF.Literal[
+			"Open",
+			"Pending Payment",
+			"Confirmed",
+			"Rescheduled",
+			"Completed",
+			"Cancelled",
+			"Closed",
+			"No Show",
+		]
 		total_amount: DF.Currency
 		total_guests: DF.Int
 	# end: auto-generated types
@@ -148,7 +160,10 @@ class ServiceAppointment(Document):
 			self.apply_coupon_if_any()
 			self.calculate_grand_total()
 
+		self.set_confirmation_targets()
+
 		self.set_outstanding_amount()
+		self.initialize_payment_hold()
 		self.update_payment_and_workflow_status()
 
 	def on_submit(self):
@@ -156,12 +171,41 @@ class ServiceAppointment(Document):
 		if not self.appointment_price:
 			frappe.throw("Please select a price for this appointment")
 
+		self.validate_confirmation_before_submit()
+
 		if self.status != "Confirmed":
 			self.db_set("status", "Confirmed")
+
+		self.db_set("payment_expires_at", None)
 
 		if self.coupon_code:
 			coupon = frappe.get_doc("Service Appointment Coupon Code", self.coupon_code)
 			coupon.db_set("times_used", coupon.get_usage_count())
+
+	def validate_confirmation_before_submit(self):
+		if self.status in ["Closed", "Cancelled"]:
+			frappe.throw(_("This appointment is closed and cannot be confirmed."))
+
+		if not self.confirmation_required_amount and flt(self.grand_total) > 0:
+			self.set_confirmation_targets()
+
+		paid_amount = self.get_paid_amount()
+		required_amount = flt(self.confirmation_required_amount)
+
+		if paid_amount < required_amount:
+			expiry_text = ""
+			if self.payment_expires_at:
+				expiry_text = _(" Payment hold expires at {0}.").format(
+					frappe.format(self.payment_expires_at, {"fieldtype": "Datetime"})
+				)
+
+			frappe.throw(
+				_("A minimum payment of {0} is required before this appointment can be confirmed.{1}").format(
+					frappe.format(required_amount, "Currency", self.currency),
+					expiry_text,
+				),
+				title=_("Payment Required"),
+			)
 
 	def on_cancel(self):
 		"""Release slots when appointment is cancelled"""
@@ -617,12 +661,85 @@ class ServiceAppointment(Document):
 
 		self.grand_total = max(total - discount, 0)
 
+	@frappe.whitelist()
+	def confirm_appointment(self):
+		"""Submit a service appointment after running the standard validations."""
+
+		if self.docstatus != 0:
+			frappe.throw(_("Only draft appointments can be confirmed."), title=_("Invalid State"))
+
+		self.status = "Confirmed"
+		self.submit()
+
+		return {
+			"name": self.name,
+			"status": self.status,
+			"docstatus": self.docstatus,
+		}
+
+	def set_confirmation_targets(self):
+		deposit_percent = self.get_confirmation_deposit_percent()
+		required_amount = (flt(self.grand_total) * flt(deposit_percent)) / 100
+		self.confirmation_required_amount = min(flt(self.grand_total), flt(required_amount))
+
+	def initialize_payment_hold(self):
+		"""Start payment hold window for draft appointments that still need payment."""
+		if self.docstatus != 0:
+			return
+
+		if self.status in ["Confirmed", "Completed", "Cancelled", "Closed", "Rescheduled", "No Show"]:
+			return
+
+		required_amount = flt(self.confirmation_required_amount)
+		if required_amount <= 0:
+			self.payment_expires_at = None
+			if self.status == "Pending Payment":
+				self.status = "Open"
+			return
+
+		if self.get_paid_amount() >= required_amount:
+			self.payment_expires_at = None
+			return
+
+		if not self.payment_expires_at:
+			hold_minutes = flt(
+				frappe.db.get_single_value("Service Appointment Settings", "payment_hold_minutes")
+			)
+			hold_minutes = hold_minutes if hold_minutes > 0 else 10
+			self.payment_expires_at = add_to_date(now_datetime(), minutes=hold_minutes)
+
+	def get_confirmation_deposit_percent(self):
+		settings = frappe.get_cached_doc("Service Appointment Settings")
+
+		if not settings.enable_partial_confirmation:
+			return 100
+
+		service_type_percent = 0
+		if self.appointment_type:
+			service_type_percent = flt(
+				frappe.db.get_value("Service Type", self.appointment_type, "confirmation_deposit_percent")
+			)
+
+		if service_type_percent > 0:
+			return service_type_percent
+
+		default_percent = flt(settings.default_confirmation_deposit_percent)
+		return default_percent if default_percent > 0 else 100
+
+	def get_paid_amount(self):
+		return max(0, flt(self.grand_total) - flt(self.outstanding_amount))
+
 	def update_payment_and_workflow_status(self):
 		"""
 		Updates Payment Status and Workflow Status based on current outstanding.
 		"""
+		if not self.confirmation_required_amount and flt(self.grand_total) > 0:
+			self.set_confirmation_targets()
+
 		outstanding = flt(self.outstanding_amount)
 		total = flt(self.grand_total)
+		required_amount = flt(self.confirmation_required_amount)
+		paid_amount = self.get_paid_amount()
 
 		new_payment_status = self.payment_status
 
@@ -636,17 +753,26 @@ class ServiceAppointment(Document):
 		if new_payment_status != self.payment_status:
 			self.db_set("payment_status", new_payment_status)
 
-		if self.status == "Open" and new_payment_status in ["Paid", "Partly Paid"]:
+		should_confirm = total > 0 and paid_amount >= required_amount
+		if (
+			should_confirm
+			and self.status in ["Open", "Pending Payment"]
+			and self.docstatus == 0
+			and not self.is_new()
+		):
 			self.status = "Confirmed"
 			self.submit()
+
+		if not should_confirm and self.status == "Pending Payment" and not self.payment_expires_at:
+			self.status = "Open"
 
 	def set_outstanding_amount(self):
 		if self.is_new():
 			self.outstanding_amount = flt(self.grand_total)
 		else:
-			self.recaclculate_outstanding_from_payments()
+			self.recalculate_outstanding_from_payments()
 
-	def recaclculate_outstanding_from_payments(self):
+	def recalculate_outstanding_from_payments(self):
 		reference_paid = (
 			frappe.db.get_value(
 				"Service Appointment Payment Reference",

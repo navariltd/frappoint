@@ -57,6 +57,8 @@
   "discount_amount",
   "payment_details_section",
   "payment_status",
+  "confirmation_required_amount",
+  "payment_expires_at",
   "currency",
   "column_break_ahpd",
   "total_amount",
@@ -115,7 +117,7 @@
    "fieldtype": "Select",
    "in_standard_filter": 1,
    "label": "Status",
-   "options": "Open\nConfirmed\nRescheduled\nCompleted\nCancelled\nClosed\nNo Show"
+   "options": "Open\nPending Payment\nConfirmed\nRescheduled\nCompleted\nCancelled\nClosed\nNo Show"
   },
   {
    "fieldname": "customer_details_section",
@@ -214,6 +216,20 @@
    "fieldtype": "Select",
    "label": "Payment Status",
    "options": "Unpaid\nPaid\nPartly Paid\nPartly Refunded\nRefunded\nCancellation"
+  },
+  {
+   "fieldname": "confirmation_required_amount",
+   "fieldtype": "Currency",
+   "label": "Confirmation Required Amount",
+   "options": "currency",
+   "read_only": 1
+  },
+  {
+   "allow_on_submit": 1,
+   "fieldname": "payment_expires_at",
+   "fieldtype": "Datetime",
+   "label": "Payment Expires At",
+   "read_only": 1
   },
   {
    "fieldname": "total_amount",
@@ -609,7 +625,7 @@
    "link_fieldname": "reference_docname"
   }
  ],
- "modified": "2026-04-02 17:46:31.534821",
+ "modified": "2026-04-21 19:52:15.807478",
  "modified_by": "Administrator",
  "module": "Frappoint",
  "name": "Service Appointment",
