@@ -40,6 +40,7 @@ class ServiceType(Document):
 		item_group: DF.Data | None
 		item_name: DF.Data | None
 		max_clients_per_slot: DF.Int
+		confirmation_deposit_percent: DF.Percent
 		max_guests: DF.Int
 		min_guests: DF.Int
 		payment_gateways: DF.Table[ServiceTypePaymentGateway]
@@ -53,6 +54,7 @@ class ServiceType(Document):
 	def validate(self):
 		self.validate_default_duration()
 		self.validate_max_clients()
+		self.validate_confirmation_deposit_percent()
 		self.validate_item_link()
 		self.validate_service_unit_types()
 		self.validate_prices()
@@ -68,6 +70,13 @@ class ServiceType(Document):
 	def validate_max_clients(self):
 		if self.max_clients_per_slot < 1:
 			frappe.throw("Clients per slot must be at least 1")
+
+	def validate_confirmation_deposit_percent(self):
+		if self.confirmation_deposit_percent is None:
+			return
+
+		if self.confirmation_deposit_percent < 0 or self.confirmation_deposit_percent > 100:
+			frappe.throw(_("Confirmation Deposit (%) must be between 0 and 100"))
 
 	def validate_item_link(self):
 		if self.item:
