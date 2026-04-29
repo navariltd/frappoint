@@ -306,7 +306,6 @@
    "in_standard_filter": 1,
    "label": "Service Provider",
    "options": "Service Provider",
-   "reqd": 1,
    "search_index": 1
   },
   {
@@ -570,7 +569,8 @@
    "fieldtype": "Link",
    "label": "Booking ID",
    "options": "Service Booking",
-   "read_only": 1
+   "read_only": 1,
+   "search_index": 1
   },
   {
    "fetch_from": "appointment_provider.provider_name",
@@ -625,7 +625,7 @@
    "link_fieldname": "reference_docname"
   }
  ],
- "modified": "2026-04-21 19:52:15.807478",
+ "modified": "2026-04-29 13:21:55.594761",
  "modified_by": "Administrator",
  "module": "Frappoint",
  "name": "Service Appointment",

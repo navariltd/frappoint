@@ -60,15 +60,15 @@ class ServiceAppointment(Document):
 		amended_from: DF.Link | None
 		appointment_date: DF.Date
 		appointment_price: DF.Data
-		appointment_provider: DF.Link
+		appointment_provider: DF.Link | None
 		appointment_type: DF.Link
 		booking_id: DF.Link | None
 		cancellation_date: DF.Datetime | None
 		cancellation_notes: DF.Text | None
 		cancellation_reasons: DF.TableMultiSelect[ServiceAppointmentLostReasonDetail]
 		company: DF.Link
-		confirmation_token: DF.Data | None
 		confirmation_required_amount: DF.Currency
+		confirmation_token: DF.Data | None
 		coupon_code: DF.Link | None
 		currency: DF.Link
 		customer: DF.Link
@@ -88,10 +88,10 @@ class ServiceAppointment(Document):
 		naming_series: DF.Literal["SVC-APP-.MM.-.YY.-.###."]
 		notes: DF.Text | None
 		outstanding_amount: DF.Currency
+		payment_expires_at: DF.Datetime | None
 		payment_status: DF.Literal[
 			"Unpaid", "Paid", "Partly Paid", "Partly Refunded", "Refunded", "Cancellation"
 		]
-		payment_expires_at: DF.Datetime | None
 		reschedule_date: DF.Datetime | None
 		reschedule_notes: DF.Text | None
 		reschedule_reasons: DF.TableMultiSelect[ServiceAppointmentLostReasonDetail]
@@ -139,8 +139,11 @@ class ServiceAppointment(Document):
 	def before_save(self):
 		"""Assign provider if multiple options exist then, book slots"""
 
-		if not self.appointment_provider and self.all_available_providers:
-			self._perform_provider_assignment()
+		if not self.appointment_provider:
+			if self.all_available_providers:
+				self._perform_provider_assignment()
+			else:
+				frappe.throw(_("Please select a time slot before saving."))
 
 		self.assign_service_unit_to_appointment()
 		self.validate_service_unit_requirement()
