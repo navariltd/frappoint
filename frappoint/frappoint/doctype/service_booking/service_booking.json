@@ -64,7 +64,7 @@
    "fieldname": "status",
    "fieldtype": "Select",
    "label": "Status",
-   "options": "Draft\nConfirmed\nCancelled"
+   "options": "Draft\nPayment Pending\nPartly Paid\nConfirmed\nClosed\nCancelled"
   },
   {
    "fieldname": "section_break_kkut",

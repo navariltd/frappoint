@@ -30,7 +30,7 @@ class ServiceBooking(Document):
 		mobile_no: DF.Data | None
 		naming_series: DF.Literal["BK-.DD./.MM./.YY.-.####"]
 		outstanding_amount: DF.Currency
-		status: DF.Literal["Draft", "Confirmed", "Cancelled"]
+		status: DF.Literal["Draft", "Payment Pending", "Partly Paid", "Confirmed", "Closed", "Cancelled"]
 		subtotal: DF.Currency
 		total_guests: DF.Int
 	# end: auto-generated types
@@ -53,7 +53,11 @@ class ServiceBooking(Document):
 
 		self.grand_total = self.subtotal
 
-		total_paid = (
+		appointment_names = frappe.get_all(
+			"Service Appointment", filters={"booking_id": self.name}, pluck="name"
+		)
+
+		booking_paid = (
 			frappe.db.get_value(
 				"Service Appointment Payment",
 				{"reference_doctype": self.doctype, "reference_docname": self.name, "docstatus": 1},
@@ -62,7 +66,55 @@ class ServiceBooking(Document):
 			or 0
 		)
 
+		appointments_paid = 0
+		if appointment_names:
+			appointments_paid = (
+				frappe.db.get_value(
+					"Service Appointment Payment",
+					{
+						"reference_doctype": "Service Appointment",
+						"reference_docname": ["in", appointment_names],
+						"docstatus": 1,
+					},
+					"sum(amount)",
+				)
+				or 0
+			)
+
+		total_paid = flt(booking_paid) + flt(appointments_paid)
+
 		self.outstanding_amount = flt(self.grand_total) - flt(total_paid)
+		self.set_status_from_payments(total_paid)
+
+	def set_status_from_payments(self, total_paid):
+		if self.status == "Cancelled":
+			return
+
+		appointment_statuses = set(
+			frappe.get_all("Service Appointment", filters={"booking_id": self.name}, pluck="status")
+		)
+
+		if not appointment_statuses:
+			self.status = "Draft"
+			return
+
+		if appointment_statuses.issubset({"Cancelled", "Closed", "No Show"}):
+			self.status = "Closed"
+			return
+
+		if flt(self.outstanding_amount) <= 0 and flt(self.grand_total) > 0:
+			self.status = "Confirmed"
+			return
+
+		if "Pending Payment" in appointment_statuses:
+			self.status = "Payment Pending"
+			return
+
+		if flt(total_paid) > 0:
+			self.status = "Partly Paid"
+			return
+
+		self.status = "Draft"
 
 	def update_outstanding_amount(self):
 		total_paid = (
