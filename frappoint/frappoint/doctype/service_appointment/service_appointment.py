@@ -1202,6 +1202,10 @@ class ServiceAppointment(Document):
 		"""Adjust the Service Booking items based on the new operational state"""
 		booking = frappe.get_doc("Service Booking", self.booking_id)
 
+		if booking.docstatus != 0:
+			booking.sync_financial_snapshot()
+			return
+
 		updated = False
 		for item in booking.items:
 			if item.service_type == self.appointment_type and flt(item.rate) == flt(self.total_amount):
@@ -1214,6 +1218,8 @@ class ServiceAppointment(Document):
 
 		if updated:
 			booking.save(ignore_permissions=True)
+
+		booking.sync_financial_snapshot()
 
 	def auto_issue_consumables(self):
 		"""Auto issue consumables if setting is enabled"""

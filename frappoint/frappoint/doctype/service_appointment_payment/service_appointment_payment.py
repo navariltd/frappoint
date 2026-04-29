@@ -64,6 +64,8 @@ class ServiceAppointmentPayment(Document):
 	def update_outstanding_balances(self, cancel=False):
 		self.adjust_doc_outstanding(self.reference_doctype, self.reference_docname, self.amount, cancel)
 
+		booking_to_attempt_submit = None
+
 		if self.reference_doctype == "Service Appointment":
 			appt_doc = frappe.get_doc("Service Appointment", self.reference_docname, ignore_permissions=True)
 
@@ -72,8 +74,15 @@ class ServiceAppointmentPayment(Document):
 			parent_booking = frappe.db.get_value("Service Appointment", self.reference_docname, "booking_id")
 			if parent_booking:
 				self.adjust_doc_outstanding("Service Booking", parent_booking, self.amount, cancel)
+				booking_doc = frappe.get_doc("Service Booking", parent_booking, ignore_permissions=True)
+				booking_doc.sync_financial_snapshot()
+				booking_to_attempt_submit = parent_booking
 
 		if self.reference_doctype == "Service Booking":
+			booking_doc = frappe.get_doc("Service Booking", self.reference_docname, ignore_permissions=True)
+			booking_doc.sync_financial_snapshot()
+			booking_to_attempt_submit = self.reference_docname
+
 			for ref in self.references:
 				self.adjust_doc_outstanding(
 					ref.reference_doctype, ref.reference_name, ref.allocated_amount, cancel
@@ -85,6 +94,18 @@ class ServiceAppointmentPayment(Document):
 					)
 					appt_doc.recalculate_outstanding_from_payments()
 					appt_doc.update_payment_and_workflow_status()
+
+		if booking_to_attempt_submit and not cancel:
+			try:
+				booking_doc = frappe.get_doc(
+					"Service Booking", booking_to_attempt_submit, ignore_permissions=True
+				)
+				booking_doc.maybe_auto_submit_after_payment()
+			except Exception:
+				frappe.log_error(
+					frappe.get_traceback(),
+					_("Failed to auto-submit booking {0}").format(booking_to_attempt_submit),
+				)
 
 	def adjust_doc_outstanding(self, doctype, docname, amount, cancel):
 		change = flt(amount) if cancel else -flt(amount)
