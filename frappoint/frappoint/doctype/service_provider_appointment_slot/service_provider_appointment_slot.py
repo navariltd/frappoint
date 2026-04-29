@@ -671,7 +671,7 @@ def check_service_unit_capacity(
 	filters = {
 		"service_unit": service_unit,
 		"appointment_date": date,
-		"status": ["not in", ["Cancelled", "No Show"]],
+		"status": ["not in", ["Cancelled", "No Show", "Closed"]],
 		"docstatus": ["!=", 2],  # Not cancelled
 		# Check for time overlap
 		"start_time": ["<=", end_time],
@@ -699,7 +699,7 @@ def check_provider_slot_capacity(
 	filters = {
 		"appointment_provider": provider,
 		"appointment_date": date,
-		"status": ["not in", ["Cancelled", "No Show"]],
+		"status": ["not in", ["Cancelled", "No Show", "Closed"]],
 		"docstatus": ["!=", 2],
 		# Check for time overlap
 		"start_time": ["<", end_time],
