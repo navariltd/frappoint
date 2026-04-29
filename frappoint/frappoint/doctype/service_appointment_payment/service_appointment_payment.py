@@ -79,6 +79,13 @@ class ServiceAppointmentPayment(Document):
 					ref.reference_doctype, ref.reference_name, ref.allocated_amount, cancel
 				)
 
+				if ref.reference_doctype == "Service Appointment":
+					appt_doc = frappe.get_doc(
+						"Service Appointment", ref.reference_name, ignore_permissions=True
+					)
+					appt_doc.recalculate_outstanding_from_payments()
+					appt_doc.update_payment_and_workflow_status()
+
 	def adjust_doc_outstanding(self, doctype, docname, amount, cancel):
 		change = flt(amount) if cancel else -flt(amount)
 
@@ -132,7 +139,15 @@ class ServiceAppointmentPayment(Document):
 			fields=["name", "grand_total", "outstanding_amount", "currency"],
 		)
 
+		remaining_amount = flt(self.amount)
+
 		for appt in appointments:
+			if remaining_amount <= 0:
+				break
+
+			allocated_amount = min(flt(appt.outstanding_amount), remaining_amount)
+			remaining_amount -= allocated_amount
+
 			self.append(
 				"references",
 				{
@@ -141,6 +156,6 @@ class ServiceAppointmentPayment(Document):
 					"currency": appt.currency,
 					"grand_total": appt.grand_total,
 					"outstanding_amount": appt.outstanding_amount,
-					"allocated_amount": appt.outstanding_amount,
+					"allocated_amount": allocated_amount,
 				},
 			)
