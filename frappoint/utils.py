@@ -1,18 +1,17 @@
 import frappe
-from frappe.utils import add_days, date_diff, getdate
+from frappe.utils import add_days, date_diff, getdate, now_datetime
 
 from .frappoint.doctype.service_provider_appointment_slot.service_provider_appointment_slot import (
 	generate_slots_for_specific_days,
 )
 
-SETTINGS = frappe.get_single("Service Appointment Settings")
-
 
 def purge_old_slots():
+	settings = frappe.get_cached_doc("Service Appointment Settings")
 	today = getdate()
 
-	if SETTINGS.allow_past_booking:
-		purge_date = date_diff(today, SETTINGS.max_past_days)
+	if settings.allow_past_booking:
+		purge_date = date_diff(today, settings.max_past_days)
 	else:
 		purge_date = today
 
@@ -23,8 +22,9 @@ def purge_old_slots():
 
 
 def replenish_slot_window():
+	settings = frappe.get_cached_doc("Service Appointment Settings")
 	today = getdate()
-	window_end = add_days(today, SETTINGS.max_advance_days)
+	window_end = add_days(today, settings.max_advance_days)
 
 	active_shifts = frappe.get_all(
 		"Service Provider Shift Assignment",
@@ -52,6 +52,60 @@ def replenish_slot_window():
 		generate_slots_for_specific_days(
 			shift_assignment=shift.name, weekdays=weekdays, start_date=gen_start, end_date=shift_end
 		)
+
+
+def expire_pending_payment_holds():
+	"""Close unpaid draft appointments whose payment hold has expired and release slots."""
+	from .frappoint.doctype.service_provider_appointment_slot.service_provider_appointment_slot import (
+		release_appointment_slots,
+	)
+
+	now = now_datetime()
+	expired_appointments = frappe.get_all(
+		"Service Appointment",
+		filters={
+			"status": ["in", ["Open", "Pending Payment"]],
+			"payment_expires_at": ["<=", now],
+			"docstatus": 0,
+		},
+		pluck="name",
+	)
+
+	bookings_to_update = set()
+
+	for appointment_name in expired_appointments:
+		try:
+			appointment = frappe.get_doc("Service Appointment", appointment_name)
+			appointment.recalculate_outstanding_from_payments()
+			appointment.set_confirmation_targets()
+
+			if appointment.get_paid_amount() >= appointment.confirmation_required_amount:
+				appointment.update_payment_and_workflow_status()
+				continue
+
+			release_appointment_slots(appointment.name)
+			appointment.db_set(
+				{
+					"status": "Closed",
+					"payment_expires_at": None,
+				},
+				update_modified=False,
+			)
+
+			if appointment.booking_id:
+				bookings_to_update.add(appointment.booking_id)
+		except Exception:
+			frappe.log_error(frappe.get_traceback(), f"Failed to expire payment hold for {appointment_name}")
+
+	for booking_name in bookings_to_update:
+		try:
+			booking = frappe.get_doc("Service Booking", booking_name)
+			booking.recalculate_totals()
+			booking.save(ignore_permissions=True)
+		except Exception:
+			frappe.log_error(frappe.get_traceback(), f"Failed to recalculate booking {booking_name}")
+
+	return f"Expired {len(expired_appointments)} unpaid appointments"
 
 
 def get_shift_weekdays(shift_assignment):

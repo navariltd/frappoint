@@ -190,9 +190,9 @@ after_install = "frappoint.setup.setup.execute"
 # ---------------
 
 scheduler_events = {
-	# "all": [
-	# 	"frappoint.tasks.all"
-	# ],
+	"all": [
+		"frappoint.utils.expire_pending_payment_holds",
+	],
 	"daily": [
 		"frappoint.utils.purge_old_slots",
 		"frappoint.utils.replenish_slot_window",
