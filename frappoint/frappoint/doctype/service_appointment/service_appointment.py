@@ -198,7 +198,7 @@ class ServiceAppointment(Document):
 		if paid_amount < required_amount:
 			expiry_text = ""
 			if self.payment_expires_at:
-				expiry_text = _(" Payment hold expires at {0}.").format(
+				expiry_text = _("Payment hold expires at {0}.").format(
 					frappe.format(self.payment_expires_at, {"fieldtype": "Datetime"})
 				)
 
@@ -1458,7 +1458,7 @@ def get_events(start, end, filters=None):
 
 
 @frappe.whitelist()
-def cancel_old_appointment(old_appointment_name, new_appointment_name):
+def cancel_old_appointment(old_appointment_name: str, new_appointment_name: str):
 	"""
 	Cancel the old appointment after a successful reschedule.
 	Called from the frontend after the new appointment is created.

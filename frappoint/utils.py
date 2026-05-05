@@ -100,8 +100,7 @@ def expire_pending_payment_holds():
 	for booking_name in bookings_to_update:
 		try:
 			booking = frappe.get_doc("Service Booking", booking_name)
-			booking.recalculate_totals()
-			booking.save(ignore_permissions=True)
+			booking.sync_financial_snapshot()
 		except Exception:
 			frappe.log_error(frappe.get_traceback(), f"Failed to recalculate booking {booking_name}")
 

@@ -41,12 +41,12 @@ class ServiceAppointmentPayment(Document):
 		self.validate_allocation_sum()
 
 		if self.reference_doctype not in ["Service Booking", "Service Appointment"]:
-			frappe.throw("Not Supported")
+			frappe.throw(_("Not Supported"))
 
 		if self.references:
 			for reference in self.references:
 				if reference.reference_doctype not in ["Service Appointment"]:
-					frappe.throw("Not Supported")
+					frappe.throw(_("Not Supported"))
 
 		if self.reference_doctype and self.reference_docname and not self.amount:
 			self.get_reference_details()

@@ -2,6 +2,7 @@
 # For license information, please see license.txt
 
 import frappe
+from frappe import _
 from frappe.model.document import Document
 
 
@@ -41,8 +42,8 @@ class ServiceAppointmentSettings(Document):
 
 	def validate(self):
 		if self.payment_hold_minutes is not None and self.payment_hold_minutes < 0:
-			frappe.throw("Payment Hold Minutes cannot be negative")
+			frappe.throw(_("Payment Hold Minutes cannot be negative"))
 
 		deposit_percent = self.default_confirmation_deposit_percent or 0
 		if deposit_percent < 0 or deposit_percent > 100:
-			frappe.throw("Default Confirmation Deposit (%) must be between 0 and 100")
+			frappe.throw(_("Default Confirmation Deposit (%) must be between 0 and 100"))

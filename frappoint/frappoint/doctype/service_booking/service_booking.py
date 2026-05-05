@@ -238,7 +238,7 @@ class ServiceBooking(Document):
 		self.outstanding_amount = flt(self.grand_total) - flt(total_paid)
 
 	@frappe.whitelist()
-	def add_guest(self, guest_data):
+	def add_guest(self, guest_data: dict):
 		if self.docstatus != 0:
 			frappe.throw(_("Cannot add guest appointments to a submitted booking."))
 

@@ -1,5 +1,6 @@
 import frappe
-from frappe.utils import add_to_date, flt, now_datetime
+from frappe import _
+from frappe.utils import flt
 from payments.utils import get_payment_gateway_controller
 
 
@@ -92,7 +93,7 @@ def get_payment_amount(reference_doctype, reference_docname, total_amount, doc=N
 
 
 @frappe.whitelist()
-def get_payment_link(reference_doctype, reference_docname, payment_gateway, redirect_to):
+def get_payment_link(reference_doctype: str, reference_docname: str, payment_gateway: str, redirect_to: str):
 	"""
 	Handles both Service Booking and Service Appointment
 	"""
@@ -123,7 +124,7 @@ def get_payment_link(reference_doctype, reference_docname, payment_gateway, redi
 			)
 
 		if not gateways:
-			frappe.throw("No payment gateway configured for this service type")
+			frappe.throw(_("No payment gateway configured for this service type"))
 
 		payment_gateway = gateways[0]
 

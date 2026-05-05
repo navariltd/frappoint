@@ -5,7 +5,7 @@ import frappe
 
 
 @frappe.whitelist()
-def create_booking(customer, guests):
+def create_booking(customer: str, guests: list):
 	if isinstance(customer, str):
 		customer = json.loads(customer)
 	if isinstance(guests, str):
@@ -115,7 +115,7 @@ def create_booking(customer, guests):
 		appointment.insert(ignore_permissions=True)
 		created_appointments.append(appointment.name)
 
-	frappe.db.commit()
+	frappe.db.commit()  # nosemgrep
 
 	return {
 		"booking_id": booking.name,

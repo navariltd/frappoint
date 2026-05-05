@@ -7,7 +7,7 @@ from ..doctype.service_provider_appointment_slot.service_provider_appointment_sl
 
 
 @frappe.whitelist(allow_guest=True)
-def get_available_dates(service_type, duration, provider=None, days_ahead=30):
+def get_available_dates(service_type: str, duration: int, provider: str | None = None, days_ahead: int = 30):
 	"""
 	Get dates that have availability
 	Use case: Calendar view, date picker
