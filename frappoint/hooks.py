@@ -74,7 +74,7 @@ fixtures = [
 
 # include js, css files in header of desk.html
 # app_include_css = "/assets/frappoint/css/frappoint.css"
-# app_include_js = "/assets/frappoint/js/frappoint.js"
+app_include_js = ["/assets/frappoint/booking_desk/booking_desk.bundle.js"]
 
 # include js, css files in header of web template
 # web_include_css = "/assets/frappoint/css/frappoint.css"
@@ -190,9 +190,9 @@ after_install = "frappoint.setup.setup.execute"
 # ---------------
 
 scheduler_events = {
-	# "all": [
-	# 	"frappoint.tasks.all"
-	# ],
+	"all": [
+		"frappoint.utils.expire_pending_payment_holds",
+	],
 	"daily": [
 		"frappoint.utils.purge_old_slots",
 		"frappoint.utils.replenish_slot_window",

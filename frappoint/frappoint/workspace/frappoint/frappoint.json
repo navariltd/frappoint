@@ -16,45 +16,6 @@
   {
    "hidden": 0,
    "is_query_report": 0,
-   "label": "Masters",
-   "link_count": 3,
-   "link_type": "DocType",
-   "onboard": 0,
-   "type": "Card Break"
-  },
-  {
-   "hidden": 0,
-   "is_query_report": 0,
-   "label": "Service Providers",
-   "link_count": 0,
-   "link_to": "Service Provider",
-   "link_type": "DocType",
-   "onboard": 0,
-   "type": "Link"
-  },
-  {
-   "hidden": 0,
-   "is_query_report": 0,
-   "label": "Service Types",
-   "link_count": 0,
-   "link_to": "Service Type",
-   "link_type": "DocType",
-   "onboard": 0,
-   "type": "Link"
-  },
-  {
-   "hidden": 0,
-   "is_query_report": 0,
-   "label": "Service Units",
-   "link_count": 0,
-   "link_to": "Service Unit",
-   "link_type": "DocType",
-   "onboard": 0,
-   "type": "Link"
-  },
-  {
-   "hidden": 0,
-   "is_query_report": 0,
    "label": "Setup",
    "link_count": 3,
    "link_type": "DocType",
@@ -94,11 +55,60 @@
   {
    "hidden": 0,
    "is_query_report": 0,
-   "label": "Operations",
-   "link_count": 2,
+   "label": "Masters",
+   "link_count": 3,
    "link_type": "DocType",
    "onboard": 0,
    "type": "Card Break"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Service Providers",
+   "link_count": 0,
+   "link_to": "Service Provider",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Service Types",
+   "link_count": 0,
+   "link_to": "Service Type",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Service Units",
+   "link_count": 0,
+   "link_to": "Service Unit",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Operations",
+   "link_count": 3,
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Card Break"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Service Booking",
+   "link_count": 0,
+   "link_to": "Service Booking",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
   },
   {
    "hidden": 0,
@@ -121,7 +131,7 @@
    "type": "Link"
   }
  ],
- "modified": "2026-01-28 09:24:57.625547",
+ "modified": "2026-04-21 00:47:14.614909",
  "modified_by": "Administrator",
  "module": "Frappoint",
  "name": "Frappoint",

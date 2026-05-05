@@ -22,6 +22,7 @@
   "column_break_mniu",
   "min_guests",
   "max_guests",
+  "confirmation_deposit_percent",
   "column_break_dygq",
   "buffer_before",
   "buffer_after",
@@ -245,6 +246,11 @@
    "fieldname": "max_guests",
    "fieldtype": "Int",
    "label": "Max Guests Allowed"
+  },
+  {
+   "fieldname": "confirmation_deposit_percent",
+   "fieldtype": "Percent",
+   "label": "Confirmation Deposit (%)"
   }
  ],
  "grid_page_length": 50,

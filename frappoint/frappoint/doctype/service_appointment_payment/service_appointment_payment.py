@@ -1,8 +1,10 @@
 # Copyright (c) 2026, Navari LTD and contributors
 # For license information, please see license.txt
 
-# import frappe
+import frappe
+from frappe import _
 from frappe.model.document import Document
+from frappe.utils import flt
 
 
 class ServiceAppointmentPayment(Document):
@@ -14,15 +16,167 @@ class ServiceAppointmentPayment(Document):
 	if TYPE_CHECKING:
 		from frappe.types import DF
 
+		from frappoint.frappoint.doctype.service_appointment_payment_reference.service_appointment_payment_reference import (
+			ServiceAppointmentPaymentReference,
+		)
+
+		amended_from: DF.Link | None
 		amount: DF.Currency
 		currency: DF.Link | None
+		mode_of_payment: DF.Link
 		name: DF.Int | None
 		order_id: DF.Data | None
 		payment_gateway: DF.Link | None
 		payment_id: DF.Data | None
 		payment_received: DF.Check
-		reference_docname: DF.DynamicLink | None
-		reference_doctype: DF.Link | None
-		user: DF.Link
+		posting_date: DF.Date | None
+		reference_date: DF.Date | None
+		reference_docname: DF.DynamicLink
+		reference_doctype: DF.Link
+		references: DF.Table[ServiceAppointmentPaymentReference]
+		user: DF.Link | None
 	# end: auto-generated types
-	pass
+
+	def validate(self):
+		self.validate_allocation_sum()
+
+		if self.reference_doctype not in ["Service Booking", "Service Appointment"]:
+			frappe.throw(_("Not Supported"))
+
+		if self.references:
+			for reference in self.references:
+				if reference.reference_doctype not in ["Service Appointment"]:
+					frappe.throw(_("Not Supported"))
+
+		if self.reference_doctype and self.reference_docname and not self.amount:
+			self.get_reference_details()
+
+		# If paying for a Booking but references table is empty, populate it
+		if self.reference_doctype == "Service Booking" and not self.references:
+			self.get_references()
+
+	def on_submit(self):
+		self.update_outstanding_balances(cancel=False)
+
+	def on_cancel(self):
+		self.update_outstanding_balances(cancel=True)
+
+	def update_outstanding_balances(self, cancel=False):
+		self.adjust_doc_outstanding(self.reference_doctype, self.reference_docname, self.amount, cancel)
+
+		booking_to_attempt_submit = None
+
+		if self.reference_doctype == "Service Appointment":
+			appt_doc = frappe.get_doc("Service Appointment", self.reference_docname, ignore_permissions=True)
+
+			appt_doc.update_payment_and_workflow_status()
+
+			parent_booking = frappe.db.get_value("Service Appointment", self.reference_docname, "booking_id")
+			if parent_booking:
+				self.adjust_doc_outstanding("Service Booking", parent_booking, self.amount, cancel)
+				booking_doc = frappe.get_doc("Service Booking", parent_booking, ignore_permissions=True)
+				booking_doc.sync_financial_snapshot()
+				booking_to_attempt_submit = parent_booking
+
+		if self.reference_doctype == "Service Booking":
+			booking_doc = frappe.get_doc("Service Booking", self.reference_docname, ignore_permissions=True)
+			booking_doc.sync_financial_snapshot()
+			booking_to_attempt_submit = self.reference_docname
+
+			for ref in self.references:
+				self.adjust_doc_outstanding(
+					ref.reference_doctype, ref.reference_name, ref.allocated_amount, cancel
+				)
+
+				if ref.reference_doctype == "Service Appointment":
+					appt_doc = frappe.get_doc(
+						"Service Appointment", ref.reference_name, ignore_permissions=True
+					)
+					appt_doc.recalculate_outstanding_from_payments()
+					appt_doc.update_payment_and_workflow_status()
+
+		if booking_to_attempt_submit and not cancel:
+			try:
+				booking_doc = frappe.get_doc(
+					"Service Booking", booking_to_attempt_submit, ignore_permissions=True
+				)
+				booking_doc.maybe_auto_submit_after_payment()
+			except Exception:
+				frappe.log_error(
+					frappe.get_traceback(),
+					_("Failed to auto-submit booking {0}").format(booking_to_attempt_submit),
+				)
+
+	def adjust_doc_outstanding(self, doctype, docname, amount, cancel):
+		change = flt(amount) if cancel else -flt(amount)
+
+		new_outstanding = flt(frappe.db.get_value(doctype, docname, "outstanding_amount")) + change
+
+		frappe.db.set_value(doctype, docname, "outstanding_amount", new_outstanding)
+
+	def validate_allocation_sum(self):
+		"""
+		Ensures the 'amount' (total paid) matches the sum of
+		individual allocations in the child table.
+		"""
+		if not self.references:
+			return
+
+		total_allocated = 0
+		for d in self.references:
+			total_allocated += flt(d.allocated_amount)
+
+		if abs(flt(self.amount) - total_allocated) > 0.01:
+			frappe.throw(
+				_("Total Allocated Amount ({0}) must be equal to the Payment Amount ({1})").format(
+					frappe.format(total_allocated, "Currency", self.currency),
+					frappe.format(self.amount, "Currency", self.currency),
+				),
+				title=_("Allocation Mismatch"),
+			)
+
+	@frappe.whitelist()
+	def get_reference_details(self):
+		"""Fetch amount and currency from the source document"""
+		ref_doc = frappe.get_doc(self.reference_doctype, self.reference_docname)
+		self.currency = ref_doc.currency
+		self.amount = ref_doc.outstanding_amount
+
+	@frappe.whitelist()
+	def get_references(self):
+		"""Populate the child table with linked appointments"""
+		if self.reference_doctype != "Service Booking":
+			return
+
+		self.set("references", [])
+
+		appointments = frappe.get_all(
+			"Service Appointment",
+			filters={
+				"booking_id": self.reference_docname,
+				"status": ["not in", ["Cancelled", "Rescheduled", "Closed"]],
+				"outstanding_amount": [">", 0],
+			},
+			fields=["name", "grand_total", "outstanding_amount", "currency"],
+		)
+
+		remaining_amount = flt(self.amount)
+
+		for appt in appointments:
+			if remaining_amount <= 0:
+				break
+
+			allocated_amount = min(flt(appt.outstanding_amount), remaining_amount)
+			remaining_amount -= allocated_amount
+
+			self.append(
+				"references",
+				{
+					"reference_doctype": "Service Appointment",
+					"reference_name": appt.name,
+					"currency": appt.currency,
+					"grand_total": appt.grand_total,
+					"outstanding_amount": appt.outstanding_amount,
+					"allocated_amount": allocated_amount,
+				},
+			)

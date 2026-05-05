@@ -16,6 +16,9 @@ def execute():
 		if not doc.max_advance_days:
 			doc.max_advance_days = 30
 
+		if not doc.payment_hold_minutes:
+			doc.payment_hold_minutes = 10
+
 		if is_app_installed("erpnext"):
 			if doc.use_erpnext_pricing is None:
 				doc.use_erpnext_pricing = 1

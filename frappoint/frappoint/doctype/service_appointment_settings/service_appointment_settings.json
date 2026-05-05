@@ -8,6 +8,9 @@
   "max_advance_days",
   "lead_time_hours",
   "default_slot_size",
+  "payment_hold_minutes",
+  "enable_partial_confirmation",
+  "default_confirmation_deposit_percent",
   "column_break_qpdv",
   "allow_past_booking",
   "max_past_days",
@@ -116,6 +119,28 @@
    "fieldtype": "Int",
    "label": "Default Slot Size",
    "non_negative": 1,
+   "reqd": 1
+  },
+  {
+   "default": "10",
+   "fieldname": "payment_hold_minutes",
+   "fieldtype": "Int",
+   "label": "Payment Hold Minutes",
+   "non_negative": 1,
+   "reqd": 1
+  },
+  {
+   "default": "1",
+   "fieldname": "enable_partial_confirmation",
+   "fieldtype": "Check",
+   "label": "Enable Partial Confirmation"
+  },
+  {
+   "default": "10",
+   "depends_on": "eval:doc.enable_partial_confirmation",
+   "fieldname": "default_confirmation_deposit_percent",
+   "fieldtype": "Percent",
+   "label": "Default Confirmation Deposit (%)",
    "reqd": 1
   },
   {

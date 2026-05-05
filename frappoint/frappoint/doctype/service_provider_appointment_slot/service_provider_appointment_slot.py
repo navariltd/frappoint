@@ -671,7 +671,7 @@ def check_service_unit_capacity(
 	filters = {
 		"service_unit": service_unit,
 		"appointment_date": date,
-		"status": ["not in", ["Cancelled", "No Show"]],
+		"status": ["not in", ["Cancelled", "No Show", "Closed"]],
 		"docstatus": ["!=", 2],  # Not cancelled
 		# Check for time overlap
 		"start_time": ["<=", end_time],
@@ -699,7 +699,7 @@ def check_provider_slot_capacity(
 	filters = {
 		"appointment_provider": provider,
 		"appointment_date": date,
-		"status": ["not in", ["Cancelled", "No Show"]],
+		"status": ["not in", ["Cancelled", "No Show", "Closed"]],
 		"docstatus": ["!=", 2],
 		# Check for time overlap
 		"start_time": ["<", end_time],
@@ -728,50 +728,86 @@ def get_end_time_for_duration(start_time, duration_minutes):
 
 def format_available_slots(slots):
 	"""Format slots for frontend consumption"""
-	# Group by provider
-	by_provider = {}
+	# # Group by provider
+	# by_provider = {}
+	# for slot in slots:
+	# 	provider = slot["provider"]
+	# 	if provider not in by_provider:
+	# 		by_provider[provider] = {
+	# 			"provider": provider,
+	# 			"provider_name": slot["provider_name"],
+	# 			"dates": {},
+	# 		}
+
+	# 	date = str(slot["date"])
+	# 	if date not in by_provider[provider]["dates"]:
+	# 		by_provider[provider]["dates"][date] = []
+
+	# 	by_provider[provider]["dates"][date].append(
+	# 		{
+	# 			"start_time": str(slot["start_time"]),
+	# 			"end_time": str(slot["end_time"]),
+	# 			"duration": slot["duration"],
+	# 			"buffer_before": slot.get("buffer_before", 0),
+	# 			"buffer_after": slot.get("buffer_after", 0),
+	# 			"slot_ids": slot["slot_ids"],
+	# 			"shift_assignment": slot["shift_assignment"],
+	# 		}
+	# 	)
+
+	# # Convert to list
+	# result = []
+	# for provider_data in by_provider.values():
+	# 	# Convert dates dict to sorted list
+	# 	dates_list = []
+	# 	for date, times in sorted(provider_data["dates"].items()):
+	# 		dates_list.append({"date": date, "slots": times})
+
+	# 	result.append(
+	# 		{
+	# 			"provider": provider_data["provider"],
+	# 			"provider_name": provider_data["provider_name"],
+	# 			"available_dates": dates_list,
+	# 		}
+	# 	)
+
+	# Group by date
+	by_date = {}
+
 	for slot in slots:
-		provider = slot["provider"]
-		if provider not in by_provider:
-			by_provider[provider] = {
-				"provider": provider,
-				"provider_name": slot["provider_name"],
-				"dates": {},
-			}
+		date_str = str(slot["date"])
+		time_key = f"{slot['start_time']}-{slot['end_time']}"
 
-		date = str(slot["date"])
-		if date not in by_provider[provider]["dates"]:
-			by_provider[provider]["dates"][date] = []
+		if date_str not in by_date:
+			by_date[date_str] = {}
 
-		by_provider[provider]["dates"][date].append(
-			{
+		if time_key not in by_date[date_str]:
+			by_date[date_str][time_key] = {
 				"start_time": str(slot["start_time"]),
 				"end_time": str(slot["end_time"]),
 				"duration": slot["duration"],
 				"buffer_before": slot.get("buffer_before", 0),
 				"buffer_after": slot.get("buffer_after", 0),
-				"slot_ids": slot["slot_ids"],
-				"shift_assignment": slot["shift_assignment"],
+				"providers": [],
 			}
-		)
 
-	# Convert to list
-	result = []
-	for provider_data in by_provider.values():
-		# Convert dates dict to sorted list
-		dates_list = []
-		for date, times in sorted(provider_data["dates"].items()):
-			dates_list.append({"date": date, "slots": times})
-
-		result.append(
+		by_date[date_str][time_key]["providers"].append(
 			{
-				"provider": provider_data["provider"],
-				"provider_name": provider_data["provider_name"],
-				"available_dates": dates_list,
+				"provider": slot["provider"],
+				"provider_name": slot["provider_name"],
+				"service_unit": slot.get("service_unit"),
+				"service_unit_name": slot.get("service_unit_name"),
+				"slot_ids": slot["slot_ids"],
+				"shift_assignment": slot.get("shift_assignment"),
 			}
 		)
 
-	return result
+		formatted_result = []
+		for date in sorted(by_date.keys()):
+			time_slots = sorted(by_date[date].values(), key=lambda x: x["start_time"])
+			formatted_result.append({"date": date, "slots": time_slots})
+
+	return formatted_result
 
 
 @frappe.whitelist()

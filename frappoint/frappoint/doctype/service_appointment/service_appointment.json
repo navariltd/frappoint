@@ -14,6 +14,7 @@
   "appointment_details_section",
   "appointment_type",
   "appointment_provider",
+  "service_provider_name",
   "service_unit",
   "appointment_price",
   "booking_id",
@@ -24,6 +25,7 @@
   "duration",
   "end_time",
   "selected_slot_ids",
+  "all_available_providers",
   "section_break_mwwh",
   "actual_start_time",
   "column_break_rqsf",
@@ -49,18 +51,20 @@
   "section_break_jpcd",
   "total_guests",
   "column_break_pwmh",
-  "grand_total",
-  "payment_tab",
-  "payment_details_section",
-  "payment_status",
-  "mode_of_payment",
-  "column_break_ahpd",
-  "total_amount",
-  "currency",
   "discount_section",
   "coupon_code",
   "column_break_towk",
   "discount_amount",
+  "payment_details_section",
+  "payment_status",
+  "confirmation_required_amount",
+  "payment_expires_at",
+  "currency",
+  "column_break_ahpd",
+  "total_amount",
+  "grand_total",
+  "outstanding_amount",
+  "payment_tab",
   "more_info_tab",
   "google_sync_section",
   "add_video_conferencing",
@@ -113,7 +117,7 @@
    "fieldtype": "Select",
    "in_standard_filter": 1,
    "label": "Status",
-   "options": "Open\nConfirmed\nRescheduled\nCompleted\nCancelled\nClosed\nNo Show"
+   "options": "Open\nPending Payment\nConfirmed\nRescheduled\nCompleted\nCancelled\nClosed\nNo Show"
   },
   {
    "fieldname": "customer_details_section",
@@ -211,7 +215,21 @@
    "fieldname": "payment_status",
    "fieldtype": "Select",
    "label": "Payment Status",
-   "options": "Unpaid\nPaid\nRefunded\nCancellation"
+   "options": "Unpaid\nPaid\nPartly Paid\nPartly Refunded\nRefunded\nCancellation"
+  },
+  {
+   "fieldname": "confirmation_required_amount",
+   "fieldtype": "Currency",
+   "label": "Confirmation Required Amount",
+   "options": "currency",
+   "read_only": 1
+  },
+  {
+   "allow_on_submit": 1,
+   "fieldname": "payment_expires_at",
+   "fieldtype": "Datetime",
+   "label": "Payment Expires At",
+   "read_only": 1
   },
   {
    "fieldname": "total_amount",
@@ -238,7 +256,7 @@
    "fieldname": "source",
    "fieldtype": "Select",
    "label": "Source",
-   "options": "Desk\nPortal"
+   "options": "Desk\nPortal\nBooking Desk"
   },
   {
    "allow_on_submit": 1,
@@ -272,12 +290,6 @@
    "fieldtype": "Column Break"
   },
   {
-   "fieldname": "mode_of_payment",
-   "fieldtype": "Link",
-   "label": "Mode of Payment",
-   "options": "Mode of Payment"
-  },
-  {
    "fieldname": "column_break_pzli",
    "fieldtype": "Column Break"
   },
@@ -294,7 +306,6 @@
    "in_standard_filter": 1,
    "label": "Service Provider",
    "options": "Service Provider",
-   "reqd": 1,
    "search_index": 1
   },
   {
@@ -304,17 +315,17 @@
    "options": "SVC-APP-.MM.-.YY.-.###."
   },
   {
+   "fetch_from": "customer.customer_name",
+   "fetch_if_empty": 1,
    "fieldname": "full_name",
    "fieldtype": "Data",
    "in_list_view": 1,
-   "label": "Full Name",
-   "reqd": 1
+   "label": "Full Name"
   },
   {
    "fieldname": "mobile_no",
    "fieldtype": "Data",
-   "label": "Phone",
-   "reqd": 1
+   "label": "Phone"
   },
   {
    "fetch_from": "appointment_type.default_duration_in_minutes",
@@ -531,6 +542,7 @@
    "options": "Service Appointment Coupon Code"
   },
   {
+   "collapsible": 1,
    "fieldname": "discount_section",
    "fieldtype": "Section Break",
    "label": "Discount"
@@ -542,7 +554,8 @@
   {
    "fieldname": "discount_amount",
    "fieldtype": "Currency",
-   "label": "Discount Amount"
+   "label": "Discount Amount",
+   "options": "currency"
   },
   {
    "default": "0",
@@ -553,9 +566,33 @@
   },
   {
    "fieldname": "booking_id",
-   "fieldtype": "Data",
+   "fieldtype": "Link",
    "label": "Booking ID",
+   "options": "Service Booking",
+   "read_only": 1,
+   "search_index": 1
+  },
+  {
+   "fetch_from": "appointment_provider.provider_name",
+   "fieldname": "service_provider_name",
+   "fieldtype": "Data",
+   "hidden": 1,
+   "label": "Service Provider Name",
    "read_only": 1
+  },
+  {
+   "fieldname": "outstanding_amount",
+   "fieldtype": "Currency",
+   "label": "Outstanding Amount",
+   "options": "currency",
+   "read_only": 1
+  },
+  {
+   "fieldname": "all_available_providers",
+   "fieldtype": "JSON",
+   "hidden": 1,
+   "is_virtual": 1,
+   "label": "All Available Providers"
   }
  ],
  "grid_page_length": 50,
@@ -588,7 +625,7 @@
    "link_fieldname": "reference_docname"
   }
  ],
- "modified": "2026-03-16 13:23:23.204767",
+ "modified": "2026-04-29 13:21:55.594761",
  "modified_by": "Administrator",
  "module": "Frappoint",
  "name": "Service Appointment",
