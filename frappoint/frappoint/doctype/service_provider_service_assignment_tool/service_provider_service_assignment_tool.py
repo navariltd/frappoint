@@ -217,8 +217,8 @@ class ServiceProviderServiceAssignmentTool(Document):
 			except Exception as e:
 				frappe.db.rollback(save_point="before_service_assignment")
 				frappe.log_error(
-					f"Service assignment failed for provider {row.get("service_provider")}",
-					f"Service assignment failed for provider {row.get("service_provider")}: {e}",
+					f"Service assignment failed for provider {row.get('service_provider')}",
+					f"Service assignment failed for provider {row.get('service_provider')}: {e}",
 					reference_doctype="Service Provider Service",
 				)
 				failure.append({"provider": row.get("service_provider"), "error": str(e)})
