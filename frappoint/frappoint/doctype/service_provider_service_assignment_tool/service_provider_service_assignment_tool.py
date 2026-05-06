@@ -77,7 +77,13 @@ class ServiceProviderServiceAssignmentTool(Document):
 		if not self.company:
 			frappe.throw(_("Please select a Company to fetch providers."))
 
-		quick_filter_fields = ["company", "branch", "department", "designation", "grade"]
+		quick_filter_fields = [
+			"company",
+			"branch",
+			"department",
+			"designation",
+			"grade",
+		]
 		filters = [[d, "=", self.get(d)] for d in quick_filter_fields if self.get(d)]
 
 		ServiceProvider = frappe.qb.DocType("Service Provider")
@@ -185,29 +191,35 @@ class ServiceProviderServiceAssignmentTool(Document):
 		for row in self.providers:
 			try:
 				# Check if provider is active
-				provider_active = frappe.db.get_value("Service Provider", row.service_provider, "active")
+				provider_active = frappe.db.get_value("Service Provider", row["service_provider"], "active")
 				if not provider_active:
 					raise frappe.ValidationError(
-						_("Service Provider {0} is not active").format(row.service_provider)
+						_("Service Provider {0} is not active").format(row["service_provider"])
 					)
 
 				frappe.db.savepoint("before_service_assignment")
 
 				if self.status == "Active":
-					self._add_service_to_provider(row.service_provider, self.service_type)
-					success.append({"provider": row.service_provider, "action": "assigned"})
+					if not self.service_type:
+						raise frappe.ValidationError(_("Service Type is required"))
+
+					self._add_service_to_provider(row.get("service_provider"), self.service_type)
+					success.append({"provider": row.get("service_provider"), "action": "assigned"})
 				elif self.status == "Inactive":
-					self._remove_service_from_provider(row.service_provider, self.service_type)
-					success.append({"provider": row.service_provider, "action": "removed"})
+					if not self.service_type:
+						raise frappe.ValidationError(_("Service Type is required"))
+
+					self._remove_service_from_provider(row.get("service_provider"), self.service_type)
+					success.append({"provider": row.get("service_provider"), "action": "removed"})
 
 			except Exception as e:
 				frappe.db.rollback(save_point="before_service_assignment")
 				frappe.log_error(
-					f"Service assignment failed for provider {row.service_provider}",
-					f"Service assignment failed for provider {row.service_provider}: {e}",
+					f"Service assignment failed for provider {row.get("service_provider")}",
+					f"Service assignment failed for provider {row.get("service_provider")}: {e}",
 					reference_doctype="Service Provider Service",
 				)
-				failure.append({"provider": row.service_provider, "error": str(e)})
+				failure.append({"provider": row.get("service_provider"), "error": str(e)})
 
 		frappe.clear_messages()
 		if success:
