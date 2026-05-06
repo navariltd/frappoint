@@ -138,16 +138,19 @@
    "read_only": 1
   },
   {
+   "fetch_from": "customer.mobile_no",
    "fieldname": "mobile_no",
    "fieldtype": "Data",
    "label": "Phone"
   },
   {
+   "fetch_from": "customer.email_id",
    "fieldname": "email",
    "fieldtype": "Data",
    "label": "Email"
   },
   {
+   "fetch_from": "customer.customer_name",
    "fieldname": "full_name",
    "fieldtype": "Data",
    "label": "Full Name"
@@ -183,7 +186,7 @@
    "link_fieldname": "booking_id"
   }
  ],
- "modified": "2026-04-29 14:44:37.583499",
+ "modified": "2026-05-05 13:41:50.824405",
  "modified_by": "Administrator",
  "module": "Frappoint",
  "name": "Service Booking",
