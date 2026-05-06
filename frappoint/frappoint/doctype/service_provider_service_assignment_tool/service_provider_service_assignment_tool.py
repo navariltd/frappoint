@@ -191,10 +191,12 @@ class ServiceProviderServiceAssignmentTool(Document):
 		for row in self.providers:
 			try:
 				# Check if provider is active
-				provider_active = frappe.db.get_value("Service Provider", row["service_provider"], "active")
+				provider_active = frappe.db.get_value(
+					"Service Provider", row.get("service_provider"), "active"
+				)
 				if not provider_active:
 					raise frappe.ValidationError(
-						_("Service Provider {0} is not active").format(row["service_provider"])
+						_("Service Provider {0} is not active").format(row.get("service_provider"))
 					)
 
 				frappe.db.savepoint("before_service_assignment")
