@@ -19,6 +19,7 @@ class ServiceBooking(Document):
 
 	if TYPE_CHECKING:
 		from frappe.types import DF
+
 		from frappoint.frappoint.doctype.service_booking_item.service_booking_item import ServiceBookingItem
 
 		amended_from: DF.Link | None
