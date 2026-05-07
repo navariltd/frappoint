@@ -1,12 +1,11 @@
 # Copyright (c) 2025, Navari LTD and contributors
 # For license information, please see license.txt
-
 from datetime import timedelta
 
 import frappe
 from frappe import _
 from frappe.model.document import Document
-from frappe.utils import cint, get_link_to_form, nowdate
+from frappe.utils import get_link_to_form, nowdate
 
 from ..service_provider_appointment_slot.service_provider_appointment_slot import (
 	generate_for_shift,
@@ -38,12 +37,12 @@ class ServiceProviderShiftAssignment(Document):
 		monday: DF.Check
 		provider: DF.Link
 		provider_name: DF.Data | None
-		repeat_type: DF.Literal["Daily", "Weekly"]
+		repeat_type: DF.Literal["Daily", "Weekly"]  # type: ignore[assignment]
 		saturday: DF.Check
 		service_unit: DF.Link | None
 		shift_type: DF.Link
 		start_date: DF.Date
-		status: DF.Literal["Active", "Inactive"]
+		status: DF.Literal["Active", "Inactive"]  # type: ignore[assignment]
 		sunday: DF.Check
 		thursday: DF.Check
 		tuesday: DF.Check

@@ -23,19 +23,19 @@ class ServiceProviderShiftAssignmentTool(Document):
 			ServiceProviderShiftAssignmentToolDetail,
 		)
 
-		action: DF.Literal["Assign Shift"]
+		action: DF.Literal["Assign Shift"]  # type: ignore[assignment]
 		branch: DF.Link | None
 		company: DF.Link
 		department: DF.Link | None
 		designation: DF.Link | None
 		end_date: DF.Date | None
 		grade: DF.Link | None
-		service_provider_shift_type: DF.Link | None
+		service_provider_shift_type: DF.Link
 		service_providers: DF.Table[ServiceProviderShiftAssignmentToolDetail]
 		service_unit: DF.Link | None
 		service_unit_type: DF.Link | None
 		start_date: DF.Date | None
-		status: DF.Literal["Active", "Inactive"]
+		status: DF.Literal["Active", "Inactive"]  # type: ignore[assignment]
 	# end: auto-generated types
 
 	_table_fieldnames: ClassVar[list] = []
@@ -158,32 +158,32 @@ class ServiceProviderShiftAssignmentTool(Document):
 				if self.status == "Active":
 					# Create a new shift assignment
 					assignment = self._create_shift_assignment(
-						row.service_provider,
+						row.get("service_provider"),
 						self.company,
 						self.service_provider_shift_type,
 						self.start_date,
 						self.end_date,
 						self.status,
-						row.service_unit,
+						row.get("service_unit"),
 					)
 					success.append(
 						{
 							"doc": get_link_to_form("Service Provider Shift Assignment", assignment.name),
-							"provider": row.service_provider,
+							"provider": row.get("service_provider"),
 						}
 					)
 				elif self.status == "Inactive":
 					# Deactivate existing shift assignments
 					self._deactivate_shift_assignment(
-						row.service_provider,
+						row.get("service_provider"),
 						self.service_provider_shift_type,
 						self.start_date,
 						self.end_date,
 					)
 					success.append(
 						{
-							"doc": row.service_provider,
-							"provider": row.service_provider_name,
+							"doc": row.get("service_provider"),
+							"provider": row.get("service_provider_name"),
 							"action": "deactivated",
 						}
 					)
@@ -191,13 +191,13 @@ class ServiceProviderShiftAssignmentTool(Document):
 			except Exception as e:
 				frappe.db.rollback(save_point="before_shift_assignment")
 				frappe.log_error(
-					f"Shift Assignment failed for provider {row.service_provider}",
-					f"Shift Assignment failed for provider {row.service_provider}: {e}",
+					f"Shift Assignment failed for provider {row.get('service_provider')}",
+					f"Shift Assignment failed for provider {row.get('service_provider')}: {e}",
 					reference_doctype="Service Provider Shift Assignment",
 				)
 				failure.append(
 					{
-						"provider": row.service_provider_name,
+						"provider": row.get("service_provider_name"),
 						"error": str(e),
 					}
 				)
