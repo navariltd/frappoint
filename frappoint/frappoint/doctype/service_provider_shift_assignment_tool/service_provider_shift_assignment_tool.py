@@ -34,7 +34,7 @@ class ServiceProviderShiftAssignmentTool(Document):
 		service_providers: DF.Table[ServiceProviderShiftAssignmentToolDetail]
 		service_unit: DF.Link | None
 		service_unit_type: DF.Link | None
-		start_date: DF.Date | None
+		start_date: DF.Date
 		status: DF.Literal["Active", "Inactive"]  # type: ignore[assignment]
 	# end: auto-generated types
 
