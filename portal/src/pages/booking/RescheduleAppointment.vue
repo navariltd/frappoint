@@ -145,6 +145,7 @@ import { useRoute, useRouter } from "vue-router";
 import { computed, watch, ref, nextTick } from "vue";
 import SlotPicker from "@/components/booking/steps/ChooseTime.vue";
 import SlotPickerSkeleton from "@/components/booking/SlotPickerSkeleton.vue";
+import { flattenSlotsByProviderForDate } from "@/utils/slotTransformation";
 
 const route = useRoute();
 const router = useRouter();
@@ -245,19 +246,7 @@ async function loadSlotsForDate(date) {
 	if (!date || !reschedulingState.value.serviceType) return;
 
 	const response = await getAvailableTimeSlots.fetch();
-
-	availableSlots.value = response.flatMap((provider) =>
-		(provider.available_dates || [])
-			.filter((d) => d.date === date)
-			.flatMap((d) =>
-				(d.slots || []).map((slot) => ({
-					...slot,
-					provider: provider.provider,
-					provider_name: provider.provider_name,
-					date: d.date,
-				}))
-			)
-	);
+	availableSlots.value = flattenSlotsByProviderForDate(response, date);
 }
 
 const isValidSelection = computed(() => {

@@ -225,6 +225,7 @@ import SlotPicker from "./steps/ChooseTime.vue";
 import SlotPickerSkeleton from "./SlotPickerSkeleton.vue";
 import UserDetails from "./steps/CustomerDetails.vue";
 import PaymentStep from "./steps/PaymentAndConfirmation.vue";
+import { flattenSlotsByProviderForDate } from "@/utils/slotTransformation";
 
 const booking = useBookingStore();
 const auth = useAuthStore();
@@ -350,19 +351,7 @@ async function loadSlotsForDate(date) {
 	if (!date || !booking.draft.serviceType) return;
 
 	const response = await getAvailableTimeSlots.fetch();
-
-	availableSlots.value = response.flatMap((provider) =>
-		(provider.available_dates || [])
-			.filter((d) => d.date === date)
-			.flatMap((d) =>
-				(d.slots || []).map((slot) => ({
-					...slot,
-					provider: provider.provider,
-					provider_name: provider.provider_name,
-					date: d.date,
-				}))
-			)
-	);
+	availableSlots.value = flattenSlotsByProviderForDate(response, date);
 }
 
 const customerResource = createResource({
