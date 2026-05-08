@@ -225,6 +225,7 @@ import SlotPicker from "./steps/ChooseTime.vue";
 import SlotPickerSkeleton from "./SlotPickerSkeleton.vue";
 import UserDetails from "./steps/CustomerDetails.vue";
 import PaymentStep from "./steps/PaymentAndConfirmation.vue";
+import { flattenSlotsByProviderForDate } from "@/utils/slotTransformation";
 
 const booking = useBookingStore();
 const auth = useAuthStore();
@@ -350,32 +351,7 @@ async function loadSlotsForDate(date) {
 	if (!date || !booking.draft.serviceType) return;
 
 	const response = await getAvailableTimeSlots.fetch();
-
-	// Find the date group matching the requested date
-	// Response structure: [{ date: "2026-05-10", slots: [...] }, ...]
-	const dateGroup = response.find((group) => group.date === date);
-
-	if (!dateGroup || !dateGroup.slots) {
-		availableSlots.value = [];
-		return;
-	}
-
-	// Flatten providers within each time slot into individual selectable slots
-	availableSlots.value = dateGroup.slots.flatMap((slot) =>
-		(slot.providers || []).map((provider) => ({
-			start_time: slot.start_time,
-			end_time: slot.end_time,
-			duration: slot.duration,
-			buffer_before: slot.buffer_before,
-			buffer_after: slot.buffer_after,
-			provider: provider.provider,
-			provider_name: provider.provider_name,
-			service_unit: provider.service_unit,
-			service_unit_name: provider.service_unit_name,
-			slot_ids: provider.slot_ids,
-			shift_assignment: provider.shift_assignment,
-		}))
-	);
+	availableSlots.value = flattenSlotsByProviderForDate(response, date);
 }
 
 const customerResource = createResource({
