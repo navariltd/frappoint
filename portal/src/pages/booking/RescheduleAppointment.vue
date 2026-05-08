@@ -246,17 +246,30 @@ async function loadSlotsForDate(date) {
 
 	const response = await getAvailableTimeSlots.fetch();
 
-	availableSlots.value = response.flatMap((provider) =>
-		(provider.available_dates || [])
-			.filter((d) => d.date === date)
-			.flatMap((d) =>
-				(d.slots || []).map((slot) => ({
-					...slot,
-					provider: provider.provider,
-					provider_name: provider.provider_name,
-					date: d.date,
-				}))
-			)
+	// Find the date group matching the requested date
+	// Response structure: [{ date: "2026-05-10", slots: [...] }, ...]
+	const dateGroup = response.find((group) => group.date === date);
+
+	if (!dateGroup || !dateGroup.slots) {
+		availableSlots.value = [];
+		return;
+	}
+
+	// Flatten providers within each time slot into individual selectable slots
+	availableSlots.value = dateGroup.slots.flatMap((slot) =>
+		(slot.providers || []).map((provider) => ({
+			start_time: slot.start_time,
+			end_time: slot.end_time,
+			duration: slot.duration,
+			buffer_before: slot.buffer_before,
+			buffer_after: slot.buffer_after,
+			provider: provider.provider,
+			provider_name: provider.provider_name,
+			service_unit: provider.service_unit,
+			service_unit_name: provider.service_unit_name,
+			slot_ids: provider.slot_ids,
+			shift_assignment: provider.shift_assignment,
+		}))
 	);
 }
 

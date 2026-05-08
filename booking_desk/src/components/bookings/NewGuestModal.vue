@@ -133,16 +133,25 @@ const availableSlots = createResource({
 	url: "frappoint.frappoint.api.slot_availability.get_available_time_slots",
 	auto: false,
 	transform: (data) => {
-		if (!data) return [];
-		// Flatten the provider-based structure from backend
+		if (!data || !Array.isArray(data)) return [];
+		// Response structure: [{ date: "2026-05-10", slots: [...] }, ...]
+		// Flatten to individual slot offerings by provider
 		let flatSlots = [];
-		data.forEach((providerData) => {
-			providerData.available_dates.forEach((dateData) => {
-				dateData.slots.forEach((slot) => {
+		data.forEach((dateGroup) => {
+			(dateGroup.slots || []).forEach((slot) => {
+				(slot.providers || []).forEach((provider) => {
 					flatSlots.push({
-						...slot,
-						provider: providerData.provider,
-						provider_name: providerData.provider_name,
+						start_time: slot.start_time,
+						end_time: slot.end_time,
+						duration: slot.duration,
+						buffer_before: slot.buffer_before,
+						buffer_after: slot.buffer_after,
+						provider: provider.provider,
+						provider_name: provider.provider_name,
+						service_unit: provider.service_unit,
+						service_unit_name: provider.service_unit_name,
+						slot_ids: provider.slot_ids,
+						shift_assignment: provider.shift_assignment,
 					});
 				});
 			});
