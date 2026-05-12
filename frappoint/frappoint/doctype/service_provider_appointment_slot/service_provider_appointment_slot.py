@@ -1,12 +1,18 @@
 # Copyright (c) 2025, Navari LTD and contributors
 # For license information, please see license.txt
 
+import json
 from datetime import datetime, timedelta
 
 import frappe
 from frappe import _
 from frappe.model.document import Document
-from frappe.utils import add_days, date_diff, get_datetime, get_time, getdate, now_datetime, nowdate
+from frappe.utils import (
+	add_days,
+	get_time,
+	getdate,
+	nowdate,
+)
 
 
 class ServiceProviderAppointmentSlot(Document):
@@ -50,7 +56,12 @@ def get_global_max_advance_days():
 def insert_slot(provider, slot_date, start_time, end_time, shift_assignment):
 	exists = frappe.db.exists(
 		"Service Provider Appointment Slot",
-		{"provider": provider, "posting_date": slot_date, "start_time": start_time, "end_time": end_time},
+		{
+			"provider": provider,
+			"posting_date": slot_date,
+			"start_time": start_time,
+			"end_time": end_time,
+		},
 	)
 	if exists:
 		return
@@ -74,7 +85,10 @@ def generate_for_shift(shift_assignment):
 
 	if sa.status == "Inactive":
 		frappe.db.set_value(
-			"Service Provider Appointment Slot", {"shift_assignment": shift_assignment}, "is_available", 0
+			"Service Provider Appointment Slot",
+			{"shift_assignment": shift_assignment},
+			"is_available",
+			0,
 		)
 		frappe.db.commit()
 		return "Slots marked as unavailable"
@@ -101,7 +115,10 @@ def generate_for_shift(shift_assignment):
 	if holiday_list:
 		holiday_records = frappe.db.get_all(
 			"Holiday",
-			filters={"parent": holiday_list, "holiday_date": ["between", [start_date, end_date]]},
+			filters={
+				"parent": holiday_list,
+				"holiday_date": ["between", [start_date, end_date]],
+			},
 			pluck="holiday_date",
 		)
 		holidays = set(holiday_records)
@@ -109,7 +126,15 @@ def generate_for_shift(shift_assignment):
 	# allowed weekdays for weekly repeat
 	allowed_weekdays = set()
 	if sa.repeat_type == "Weekly":
-		day_fields = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"]
+		day_fields = [
+			"monday",
+			"tuesday",
+			"wednesday",
+			"thursday",
+			"friday",
+			"saturday",
+			"sunday",
+		]
 		for idx, day_field in enumerate(day_fields):
 			if sa.get(day_field):
 				allowed_weekdays.add(idx)
@@ -212,7 +237,10 @@ def generate_slots_for_specific_days(shift_assignment, weekdays, start_date, end
 	if holiday_list:
 		holiday_records = frappe.db.get_all(
 			"Holiday",
-			filters={"parent": holiday_list, "holiday_date": ["between", [start_date, end_date]]},
+			filters={
+				"parent": holiday_list,
+				"holiday_date": ["between", [start_date, end_date]],
+			},
 			pluck="holiday_date",
 		)
 		holidays = set(holiday_records)
@@ -251,7 +279,12 @@ def generate_slots_for_specific_days(shift_assignment, weekdays, start_date, end
 			# Check if slot already exists
 			exists = frappe.db.exists(
 				"Service Provider Appointment Slot",
-				{"provider": provider, "posting_date": dt, "start_time": start_t, "end_time": end_t},
+				{
+					"provider": provider,
+					"posting_date": dt,
+					"start_time": start_t,
+					"end_time": end_t,
+				},
 			)
 
 			if not exists:
@@ -335,14 +368,14 @@ def get_available_slots(appointment_type, duration, provider=None, date=None, da
 	Get available slots for an appointment type
 
 	Args:
-		appointment_type: Name of the Appointment Type
-		duration: Duration of the appointment
-		provider: Optional - Filter by specific provider
-		date: Optional - Filter by specific date (YYYY-MM-DD)
-		days_ahead: Number of days to look ahead if no date specified
+			appointment_type: Name of the Appointment Type
+			duration: Duration of the appointment
+			provider: Optional - Filter by specific provider
+			date: Optional - Filter by specific date (YYYY-MM-DD)
+			days_ahead: Number of days to look ahead if no date specified
 
 	Returns:
-		List of available slots grouped by provider and date
+			List of available slots grouped by provider and date
 	"""
 
 	apt_type = frappe.db.get_value(
@@ -363,7 +396,8 @@ def get_available_slots(appointment_type, duration, provider=None, date=None, da
 
 	if provider:
 		can_provide = frappe.db.exists(
-			"Service Provider Service", {"parent": provider, "service_type": appointment_type, "disabled": 0}
+			"Service Provider Service",
+			{"parent": provider, "service_type": appointment_type, "disabled": 0},
 		)
 		if not can_provide:
 			frappe.throw(_("Provider {0} cannot provide service type {1}").format(provider, appointment_type))
@@ -480,22 +514,27 @@ def get_available_slots(appointment_type, duration, provider=None, date=None, da
 
 
 def group_slots_by_duration_and_capacity(
-	slots, required_duration, buffer_before, buffer_after, appointment_type, requires_unit
+	slots,
+	required_duration,
+	buffer_before,
+	buffer_after,
+	appointment_type,
+	requires_unit,
 ):
 	"""
 	Group consecutive slots that can accommodate the required duration plus buffers and capacity constraints
 
 	Args:
-		slots: List of slot dictionaries
-		required_duration: Required duration in minutes
-		buffer_before: Buffer time before appointment in minutes
-		buffer_after: Buffer time after appointment in minutes
-		appointment_type: Service being rendered
-		requires_unit: Does service require a physical/logical resource
+			slots: List of slot dictionaries
+			required_duration: Required duration in minutes
+			buffer_before: Buffer time before appointment in minutes
+			buffer_after: Buffer time after appointment in minutes
+			appointment_type: Service being rendered
+			requires_unit: Does service require a physical/logical resource
 
 
 	Returns:
-		List of available time slots with their component slots
+			List of available time slots with their component slots
 	"""
 
 	available_slots = []
@@ -591,7 +630,11 @@ def group_slots_by_duration_and_capacity(
 							break
 
 						provider_available = check_provider_slot_capacity(
-							provider, date, reserved_start_time, reserved_end_time, max_clients
+							provider,
+							date,
+							reserved_start_time,
+							reserved_end_time,
+							max_clients,
 						)
 
 						if not provider_available:
@@ -599,7 +642,11 @@ def group_slots_by_duration_and_capacity(
 
 					else:
 						capacity_available = check_provider_slot_capacity(
-							provider, date, reserved_start_time, reserved_end_time, max_clients
+							provider,
+							date,
+							reserved_start_time,
+							reserved_end_time,
+							max_clients,
 						)
 
 						if not capacity_available:
@@ -631,7 +678,13 @@ def group_slots_by_duration_and_capacity(
 
 
 def check_service_unit_capacity(
-	service_unit, date, start_time, end_time, appointment_type, max_clients_per_slot, exclude_appointment=None
+	service_unit,
+	date,
+	start_time,
+	end_time,
+	appointment_type,
+	max_clients_per_slot,
+	exclude_appointment=None,
 ):
 	"""
 	Check if service unit has capacity for this time slot
@@ -802,10 +855,10 @@ def format_available_slots(slots):
 			}
 		)
 
-		formatted_result = []
-		for date in sorted(by_date.keys()):
-			time_slots = sorted(by_date[date].values(), key=lambda x: x["start_time"])
-			formatted_result.append({"date": date, "slots": time_slots})
+	formatted_result = []
+	for date in sorted(by_date.keys()):
+		time_slots = sorted(by_date[date].values(), key=lambda x: x["start_time"])
+		formatted_result.append({"date": date, "slots": time_slots})
 
 	return formatted_result
 
@@ -816,13 +869,12 @@ def book_appointment_slot(appointment, provider, date, start_time, slot_ids):
 	Book slots for an appointment
 
 	Args:
-		appointment: Service Appointment name
-		provider: Provider ID
-		date: Appointment date
-		start_time: Start time
-		slot_ids: JSON array of slot IDs to book
+			appointment: Service Appointment name
+			provider: Provider ID
+			date: Appointment date
+			start_time: Start time
+			slot_ids: JSON array of slot IDs to book
 	"""
-	import json
 
 	if isinstance(slot_ids, str):
 		slot_ids = json.loads(slot_ids)
@@ -860,7 +912,7 @@ def release_appointment_slots(appointment):
 	Release slots when appointment is cancelled
 
 	Args:
-		appointment: Service Appointment name
+			appointment: Service Appointment name
 	"""
 	frappe.db.sql(
 		"""
