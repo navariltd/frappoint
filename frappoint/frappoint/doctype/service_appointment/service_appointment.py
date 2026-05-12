@@ -90,7 +90,12 @@ class ServiceAppointment(Document):
 		outstanding_amount: DF.Currency
 		payment_expires_at: DF.Datetime | None
 		payment_status: DF.Literal[
-			"Unpaid", "Paid", "Partly Paid", "Partly Refunded", "Refunded", "Cancellation"
+			"Unpaid",
+			"Paid",
+			"Partly Paid",
+			"Partly Refunded",
+			"Refunded",
+			"Cancellation",
 		]
 		reschedule_date: DF.Datetime | None
 		reschedule_notes: DF.Text | None
@@ -139,6 +144,9 @@ class ServiceAppointment(Document):
 	def before_save(self):
 		"""Assign provider if multiple options exist then, book slots"""
 
+		if self.is_new() and self.source == "Portal" and not self.booking_id:
+			self.booking_id = self.create_portal_booking()
+
 		if not self.appointment_provider:
 			if self.all_available_providers:
 				self._perform_provider_assignment()
@@ -168,6 +176,57 @@ class ServiceAppointment(Document):
 		self.set_outstanding_amount()
 		self.initialize_payment_hold()
 		self.update_payment_and_workflow_status()
+
+	def create_portal_booking(self):
+		"""Create the parent booking record for a portal-created appointment."""
+
+		if not self.customer:
+			frappe.throw(_("Customer is required to create a booking for a portal appointment."))
+
+		price_record = self.get_selected_price_record()
+		guest_count = len(self.guests) if self.guests else 1
+		pricing_model = price_record.pricing_model if price_record else "Per Booking"
+		base_rate = flt(price_record.amount) if price_record else flt(self.total_amount)
+		currency = price_record.currency if price_record else self.currency
+
+		if pricing_model == "Per Guest":
+			qty = guest_count
+			line_total = base_rate * guest_count
+		else:
+			qty = 1
+			line_total = base_rate
+
+		booking = frappe.get_doc(
+			{
+				"doctype": "Service Booking",
+				"customer": self.customer,
+				"full_name": self.full_name,
+				"email": self.email,
+				"mobile_no": self.mobile_no,
+				"booking_date": self.appointment_date or getdate(),
+				"booking_time": now_datetime(),
+				"status": "Draft",
+				"currency": currency,
+			}
+		)
+
+		booking.append(
+			"items",
+			{
+				"service_type": self.appointment_type,
+				"pricing_model": pricing_model,
+				"qty": qty,
+				"currency": currency,
+				"rate": base_rate,
+				"total_amount": line_total,
+			},
+		)
+		booking.total_guests = guest_count
+		booking.subtotal = line_total
+		booking.grand_total = line_total
+		booking.insert(ignore_permissions=True)
+
+		return booking.name
 
 	def on_submit(self):
 		"""Confirm appointment"""
@@ -690,7 +749,14 @@ class ServiceAppointment(Document):
 		if self.docstatus != 0:
 			return
 
-		if self.status in ["Confirmed", "Completed", "Cancelled", "Closed", "Rescheduled", "No Show"]:
+		if self.status in [
+			"Confirmed",
+			"Completed",
+			"Cancelled",
+			"Closed",
+			"Rescheduled",
+			"No Show",
+		]:
 			return
 
 		required_amount = flt(self.confirmation_required_amount)
@@ -720,7 +786,11 @@ class ServiceAppointment(Document):
 		service_type_percent = 0
 		if self.appointment_type:
 			service_type_percent = flt(
-				frappe.db.get_value("Service Type", self.appointment_type, "confirmation_deposit_percent")
+				frappe.db.get_value(
+					"Service Type",
+					self.appointment_type,
+					"confirmation_deposit_percent",
+				)
 			)
 
 		if service_type_percent > 0:
@@ -779,7 +849,11 @@ class ServiceAppointment(Document):
 		reference_paid = (
 			frappe.db.get_value(
 				"Service Appointment Payment Reference",
-				{"reference_doctype": "Service Appointment", "reference_name": self.name, "docstatus": 1},
+				{
+					"reference_doctype": "Service Appointment",
+					"reference_name": self.name,
+					"docstatus": 1,
+				},
 				"sum(allocated_amount)",
 			)
 			or 0
@@ -788,7 +862,11 @@ class ServiceAppointment(Document):
 		direct_paid = (
 			frappe.db.get_value(
 				"Service Appointment Payment",
-				{"reference_doctype": "Service Appointment", "reference_docname": self.name, "docstatus": 1},
+				{
+					"reference_doctype": "Service Appointment",
+					"reference_docname": self.name,
+					"docstatus": 1,
+				},
 				"sum(amount)",
 			)
 			or 0
@@ -966,7 +1044,10 @@ class ServiceAppointment(Document):
 				{
 					"appointment_provider": option["provider"],
 					"appointment_date": self.appointment_date,
-					"status": ["not in", ["Cancelled", "No Show", "Rescheduled", "Closed"]],
+					"status": [
+						"not in",
+						["Cancelled", "No Show", "Rescheduled", "Closed"],
+					],
 				},
 			)
 			provider_loads[option["provider"]] = count

@@ -6,6 +6,7 @@ import json
 import frappe
 from frappe import _
 from frappe.model.document import Document
+from frappe.query_builder.functions import Sum
 from frappe.utils import cint, flt
 
 from frappoint.payments import get_confirmation_deposit_percent
@@ -101,7 +102,7 @@ class ServiceBooking(Document):
 			frappe.db.get_value(
 				"Service Appointment Payment",
 				{"reference_doctype": self.doctype, "reference_docname": self.name, "docstatus": 1},
-				"sum(amount)",
+				Sum("amount"),
 			)
 			or 0
 		)

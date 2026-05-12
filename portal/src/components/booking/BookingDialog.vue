@@ -438,9 +438,13 @@ async function submitBooking() {
 	}
 
 	if (service_appointment.name && booking.draft.price > 0) {
+		const redirectTo = `${window.location.origin}/portal/appointments/${service_appointment.name}`;
+
 		const response = await paymentLinkResource.submit({
-			service_appointment_id: service_appointment.name,
+			reference_doctype: "Service Appointment",
+			reference_docname: service_appointment.name,
 			payment_gateway: booking.draft.selectedPaymentGateway,
+			redirect_to: redirectTo,
 		});
 
 		if (response) {
