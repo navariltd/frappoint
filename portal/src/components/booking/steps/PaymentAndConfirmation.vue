@@ -45,24 +45,59 @@
 					</h2>
 
 					<div class="space-y-4 pb-6 border-b border-gray-100 dark:border-gray-800">
-						<!-- Service Info -->
 						<div>
 							<h3 class="font-bold text-gray-900 dark:text-white text-lg mb-1">
-								{{ booking.draft.serviceType || "Service" }}
+								{{ summaryTitle }}
 							</h3>
 							<p class="text-sm text-gray-500 dark:text-gray-400">
-								{{ formattedDate }} • {{ formattedTime }}
+								{{ summarySubtitle }}
 							</p>
 						</div>
 
-						<!-- Price Breakdown -->
+						<div class="space-y-3 max-h-72 overflow-auto pr-1">
+							<div
+								v-for="(item, index) in appointmentItems"
+								:key="`${item.appointment_type}-${index}`"
+								class="rounded-xl border border-gray-200 dark:border-gray-700 p-4 bg-gray-50/70 dark:bg-gray-900/40"
+							>
+								<div class="flex items-start justify-between gap-3">
+									<div>
+										<p class="font-semibold text-gray-900 dark:text-white">
+											{{ item.appointment_type || "Service" }}
+										</p>
+										<p class="text-sm text-gray-500 dark:text-gray-400">
+											{{
+												item.guest_full_name ||
+												item.full_name ||
+												item.fullName ||
+												"Guest"
+											}}
+										</p>
+										<p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+											{{ item.date }} • {{ formatSlotLabel(item.slot) }}
+										</p>
+									</div>
+									<div class="text-right">
+										<p
+											class="text-sm font-semibold text-gray-900 dark:text-white"
+										>
+											{{
+												formatCurrency(
+													item.price,
+													item.currency || booking.draft.currency
+												)
+											}}
+										</p>
+									</div>
+								</div>
+							</div>
+						</div>
+
 						<div class="space-y-2.5 pt-2">
 							<div class="flex justify-between text-sm">
-								<span class="text-gray-600 dark:text-gray-400">Service Fee</span>
+								<span class="text-gray-600 dark:text-gray-400">Subtotal</span>
 								<span class="font-medium text-gray-900 dark:text-white">
-									{{
-										formatCurrency(booking.draft.price, booking.draft.currency)
-									}}
+									{{ formatCurrency(subtotalAmount, booking.draft.currency) }}
 								</span>
 							</div>
 							<div class="flex justify-between text-sm">
@@ -157,62 +192,63 @@ const selectedPaymentGateway = computed({
 	set: (v) => booking.selectPaymentGateway(v),
 });
 
-// Fee calculations
+const appointmentItems = computed(() => {
+	if (booking.draft.appointments?.length) {
+		return booking.draft.appointments;
+	}
+
+	if (
+		booking.draft.serviceType &&
+		booking.draft.date &&
+		booking.draft.slot &&
+		booking.draft.price
+	) {
+		return [booking.createAppointmentSnapshot()];
+	}
+
+	return [];
+});
+
+const subtotalAmount = computed(() =>
+	appointmentItems.value.reduce((total, item) => total + (Number(item.price) || 0), 0)
+);
+
+const paymentError = computed(() => {
+	if (!paymentGateways.value.length) {
+		return "No payment methods are configured for this service.";
+	}
+	return "";
+});
+
 const platformFee = ref(0.0);
 const taxRate = ref(0);
 
 const taxAmount = computed(() => {
-	const price = parseFloat(booking.draft.price) || 0;
-	return (price * taxRate.value) / 100;
+	return (subtotalAmount.value * taxRate.value) / 100;
 });
 
 const totalAmount = computed(() => {
-	const price = parseFloat(booking.draft.price) || 0;
-	return price + platformFee.value + taxAmount.value;
+	return subtotalAmount.value + platformFee.value + taxAmount.value;
 });
 
-// Computed properties for display
-const formattedDate = computed(() => {
-	if (!booking.draft.date) return "Not selected";
-	const date = new Date(booking.draft.date);
-	return date.toLocaleDateString("en-US", {
-		weekday: "long",
-		year: "numeric",
-		month: "short",
-		day: "numeric",
-	});
+const summaryTitle = computed(() => {
+	if (appointmentItems.value.length <= 1) {
+		return booking.draft.serviceType || "Service";
+	}
+	return `Booking with ${appointmentItems.value.length} appointments`;
 });
 
-const formattedTime = computed(() => {
-	if (!booking.draft.slot?.start_time || !booking.draft.slot?.end_time) return "Not selected";
-	return `${formatTime(booking.draft.slot.start_time)} — ${formatTime(
-		booking.draft.slot.end_time
-	)}`;
+const summarySubtitle = computed(() => {
+	if (!appointmentItems.value.length) {
+		return "No appointment selected";
+	}
+
+	const first = appointmentItems.value[0];
+	return `${first.date || "Date not selected"} • ${formatSlotLabel(first.slot)}`;
 });
 
-const providerName = computed(() => {
-	return booking.draft.slot?.provider_name || "Not assigned";
-});
-
-const serviceDuration = computed(() => {
-	if (!booking.draft.slot) return "";
-	const start = booking.draft.slot.start_time;
-	const end = booking.draft.slot.end_time;
-	if (!start || !end) return "";
-
-	const startDate = new Date(`2000-01-01T${start}`);
-	const endDate = new Date(`2000-01-01T${end}`);
-	const diffMs = endDate - startDate;
-	const diffMins = Math.round(diffMs / 60000);
-	return `${diffMins} Minutes Session`;
-});
-
-function formatTime(time) {
-	if (!time) return "";
-	const [hours, minutes] = time.split(":");
-	const hour = parseInt(hours);
-	const ampm = hour >= 12 ? "PM" : "AM";
-	const displayHour = hour % 12 || 12;
-	return `${displayHour}:${minutes} ${ampm}`;
+function formatSlotLabel(slot) {
+	if (!slot?.start_time || !slot?.end_time) return "Time not selected";
+	return `${slot.start_time} - ${slot.end_time}`;
 }
 </script>

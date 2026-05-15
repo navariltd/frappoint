@@ -254,19 +254,6 @@
 							/>
 						</svg>
 					</button>
-					<button
-						:disabled="!canProceed"
-						@click="
-							() => {
-								booking.addAppointmentToBasket();
-								showAlert('Added', 'Appointment added to booking basket', 'green');
-							}
-						"
-						class="ml-3 px-6 py-3 rounded-lg border border-gray-300 text-gray-700 font-semibold hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-						type="button"
-					>
-						Add to Booking Basket
-					</button>
 				</div>
 
 				<!-- Buttons for step 2 (integrated in form) -->
@@ -282,20 +269,31 @@
 						Back
 					</button>
 					<button
-						:disabled="!canProceed || availableDates.length === 0"
-						@click="currentStep++"
+						:disabled="!canProceed"
+						@click="
+							() => {
+								booking.addAppointmentToBasket({ resetCurrent: true });
+								showAlert('Added', 'Appointment added to booking basket', 'green');
+								currentStep = 1;
+							}
+						"
+						class="px-8 py-3 rounded-lg border border-gray-300 text-gray-700 font-semibold hover:bg-gray-50 transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+						type="button"
+					>
+						Add to Booking
+					</button>
+					<button
+						:disabled="!canProceed"
+						@click="
+							() => {
+								booking.addAppointmentToBasket({ resetCurrent: true });
+								currentStep = 3;
+							}
+						"
 						class="px-8 py-3 rounded-lg bg-primary hover:bg-primary-dark text-white font-semibold shadow-lg shadow-primary/30 transition-all flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
 						type="button"
 					>
-						Continue to Payment
-						<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-							<path
-								stroke-linecap="round"
-								stroke-linejoin="round"
-								stroke-width="2"
-								d="M9 5l7 7-7 7"
-							/>
-						</svg>
+						Pay Now
 					</button>
 				</div>
 			</div>
@@ -304,7 +302,7 @@
 </template>
 
 <script setup>
-import { createListResource, createResource, ErrorMessage, Alert } from "frappe-ui";
+import { createResource, ErrorMessage, Alert } from "frappe-ui";
 import { ref, watch, computed, onMounted } from "vue";
 import { useAlert } from "@/composables/useAlert";
 import { useBookingStore } from "@/stores/bookingStore";
@@ -366,7 +364,7 @@ const canProceed = computed(() => {
 
 		return hasBasicInfo && allGuestsValid;
 	}
-	return booking.isComplete;
+	return appointmentBasket.value.length > 0;
 });
 
 const appointmentBasket = computed(() => booking.draft.appointments || []);
@@ -374,10 +372,6 @@ const appointmentBasket = computed(() => booking.draft.appointments || []);
 const basketTotal = computed(() =>
 	appointmentBasket.value.reduce((total, item) => total + (Number(item.price) || 0), 0)
 );
-
-const serviceAppointmentResource = createListResource({
-	doctype: "Service Appointment",
-});
 
 const getAvailableDates = createResource({
 	url: "frappoint.frappoint.api.slot_availability.get_available_dates",
@@ -489,7 +483,14 @@ watch(
 // TODO: Check validate customer appointment for same date and time
 
 async function submitBooking() {
-	if (!booking.isComplete) return;
+	const appointmentItems =
+		booking.draft.appointments && booking.draft.appointments.length
+			? [...booking.draft.appointments]
+			: booking.isComplete
+			? [booking.createAppointmentSnapshot()]
+			: [];
+
+	if (!appointmentItems.length) return;
 
 	if (!auth.isLoggedIn) {
 		booking.currentStep = currentStep.value;
@@ -504,91 +505,48 @@ async function submitBooking() {
 		return;
 	}
 
-	// If there are multiple appointments in the basket, create a Service Booking
-	if (booking.draft.appointments && booking.draft.appointments.length > 0) {
-		try {
-			const payload = {
-				customer: {
-					customer: booking.draft.customer,
-					fullName: booking.draft.fullName,
-					email: booking.draft.email,
-					mobileNo: booking.draft.mobileNo,
-				},
-				guests: booking.draft.appointments,
-			};
+	try {
+		const payload = {
+			customer: {
+				customer: booking.draft.customer,
+				fullName: booking.draft.fullName,
+				email: booking.draft.email,
+				mobileNo: booking.draft.mobileNo,
+			},
+			guests: appointmentItems,
+		};
 
-			const resp = await bookingDeskResource.submit(payload);
+		const resp = await bookingDeskResource.submit(payload);
 
-			if (resp && resp.booking_id) {
-				booking.clearStorage();
-				router.push({
-					name: "BookingConfirmation",
-					params: { bookingId: resp.booking_id },
-				});
-				return;
-			}
-		} catch (error) {
-			console.error("Failed to create booking:", error);
-			showAlert("Error", getErrorMessage(error), "red");
+		if (!resp || !resp.booking_id) {
+			return;
 		}
 
-		return;
-	}
+		const bookingTotal = Number(resp.grand_total || 0);
+		if (bookingTotal > 0) {
+			const redirectTo = `${window.location.origin}/portal/booking/${resp.booking_id}`;
+			const response = await paymentLinkResource.submit({
+				reference_doctype: "Service Booking",
+				reference_docname: resp.booking_id,
+				payment_gateway: booking.draft.selectedPaymentGateway,
+				redirect_to: redirectTo,
+			});
 
-	// Fallback: single appointment flow (existing behaviour)
-	const validation = await checkSlotAvailability.fetch();
-	if (!validation.available) {
-		showAlert(
-			"Slot Timeout",
-			"The selected time slot is no longer available. Please pick another.",
-			"red"
-		);
-		return;
-	}
-
-	let service_appointment;
-
-	try {
-		// create appointment
-		service_appointment = await serviceAppointmentResource.insert.submit({
-			appointment_type: booking.draft.serviceType,
-			appointment_date: booking.draft.date,
-			appointment_provider: booking.draft.slot.provider,
-			duration: booking.draft.duration,
-			currency: booking.draft.currency,
-			appointment_price: booking.draft.priceName,
-			start_time: booking.draft.slot.start_time,
-			end_time: booking.draft.slot.end_time,
-			selected_slot_ids: JSON.stringify([booking.draft.slot.slot_ids]),
-			customer: booking.draft.customer,
-			full_name: booking.draft.fullName,
-			email: booking.draft.email,
-			mobile_no: booking.draft.mobileNo,
-			total_amount: booking.draft.price,
-			coupon_code: booking.draft.couponCode,
-			notes: booking.draft.notes,
-			source: booking.draft.source,
-			guests: booking.draft.guests,
-		});
+			if (typeof response === "string" && response) {
+				booking.clearStorage();
+				window.location.href = response;
+				return;
+			}
+		} else {
+			booking.clearStorage();
+			router.push({
+				name: "BookingConfirmation",
+				params: { bookingId: resp.booking_id },
+			});
+		}
 	} catch (error) {
 		console.error("Failed to submit booking:", error);
 		showAlert("Error", getErrorMessage(error), "red");
-	}
-
-	if (service_appointment.name && booking.draft.price > 0) {
-		const redirectTo = `${window.location.origin}/portal/appointments/${service_appointment.name}`;
-
-		const response = await paymentLinkResource.submit({
-			reference_doctype: "Service Appointment",
-			reference_docname: service_appointment.name,
-			payment_gateway: booking.draft.selectedPaymentGateway,
-			redirect_to: redirectTo,
-		});
-
-		if (response) {
-			booking.clearStorage();
-			return;
-		}
 	}
 }
 

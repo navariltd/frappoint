@@ -191,27 +191,56 @@ export const useBookingStore = defineStore("booking", {
 			});
 		},
 
-		// Appointment basket helpers for multi-appointment booking
-		addAppointmentToBasket() {
-			// Build an appointment object from current draft
-			const appt = {
+		createAppointmentSnapshot() {
+			return {
 				appointment_type: this.draft.serviceType,
 				price_id: this.draft.priceName,
 				date: this.draft.date,
 				duration: this.draft.duration,
-				slot: this.draft.slot || {},
+				slot: this.draft.slot ? { ...this.draft.slot } : {},
 				currency: this.draft.currency,
+				price: this.draft.price,
+				customer: this.draft.customer,
+				full_name: this.draft.fullName,
+				email: this.draft.email,
+				mobile_no: this.draft.mobileNo,
 				guest_full_name: this.draft.fullName,
 				guest_email: this.draft.email,
 				guest_mobile_no: this.draft.mobileNo,
-				price: this.draft.price,
+				selected_payment_gateway: this.draft.selectedPaymentGateway,
 				notes: this.draft.notes,
+				coupon_code: this.draft.couponCode,
+				source: this.draft.source,
 				is_primary: 1,
+				guests: (this.draft.guests || []).map((guest) => ({ ...guest })),
 			};
+		},
 
+		resetCurrentAppointmentDraft() {
+			this.draft.date = null;
+			this.draft.slot = null;
+			this.draft.provider = null;
+			this.draft.customer = null;
+			this.draft.fullName = null;
+			this.draft.email = null;
+			this.draft.mobileNo = null;
+			this.draft.notes = null;
+			this.draft.couponCode = null;
+			this.draft.numberOfGuests = this.draft.minGuests || 1;
+			this.draft.guests = [];
+			this.initializeGuests();
+		},
+
+		// Appointment basket helpers for multi-appointment booking
+		addAppointmentToBasket({ resetCurrent = false } = {}) {
+			const appt = this.createAppointmentSnapshot();
 			this.draft.appointments = this.draft.appointments || [];
 			this.draft.appointments.push(appt);
+			if (resetCurrent) {
+				this.resetCurrentAppointmentDraft();
+			}
 			this.saveToStorage();
+			return appt;
 		},
 
 		removeAppointmentFromBasket(index) {

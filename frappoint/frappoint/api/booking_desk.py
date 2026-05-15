@@ -13,6 +13,9 @@ def create_booking(customer: str, guests: list):
 
 	booking = frappe.new_doc("Service Booking")
 	booking.customer = customer.get("customer")
+	booking.full_name = customer.get("fullName")
+	booking.email = customer.get("email")
+	booking.mobile_no = customer.get("mobileNo")
 	booking.booking_date = frappe.utils.today()
 	booking.status = "Draft"
 	booking.currency = guests[0].get("currency")
@@ -77,13 +80,14 @@ def create_booking(customer: str, guests: list):
 
 	for guest in guests:
 		slot = guest.get("slot") or {}
-		calculated_amount = service_price_map.get(service_type, 0)
+		guest_service_type = guest.get("appointment_type")
+		calculated_amount = service_price_map.get(guest_service_type, 0)
 
 		appointment = frappe.get_doc(
 			{
 				"doctype": "Service Appointment",
 				"booking_id": booking.name,
-				"appointment_type": guest.get("appointment_type"),
+				"appointment_type": guest_service_type,
 				"appointment_date": guest.get("date"),
 				"appointment_provider": slot.get("provider"),
 				"duration": guest.get("duration"),
@@ -93,9 +97,13 @@ def create_booking(customer: str, guests: list):
 				"end_time": slot.get("end_time"),
 				"selected_slot_ids": json.dumps(slot.get("slot_ids", [])),
 				"customer": customer.get("customer"),
-				"customer_name": customer.get("fullName"),
-				"customer_email": customer.get("email"),
-				"customer_mobile": customer.get("mobileNo"),
+				"full_name": guest.get("guest_full_name")
+				or guest.get("full_name")
+				or customer.get("fullName"),
+				"email": guest.get("guest_email") or guest.get("email") or customer.get("email"),
+				"mobile_no": guest.get("guest_mobile_no")
+				or guest.get("mobile_no")
+				or customer.get("mobileNo"),
 				"total_amount": calculated_amount,
 				"notes": guest.get("notes"),
 				"source": "Booking Desk",
@@ -105,10 +113,14 @@ def create_booking(customer: str, guests: list):
 		appointment.append(
 			"guests",
 			{
-				"full_name": guest.get("guest_full_name"),
-				"email": guest.get("guest_email"),
-				"mobile_no": guest.get("guest_mobile_no"),
-				"is_primary": guest.get("is_primary"),
+				"full_name": guest.get("guest_full_name")
+				or guest.get("full_name")
+				or customer.get("fullName"),
+				"email": guest.get("guest_email") or guest.get("email") or customer.get("email"),
+				"mobile_no": guest.get("guest_mobile_no")
+				or guest.get("mobile_no")
+				or customer.get("mobileNo"),
+				"is_primary": guest.get("is_primary", 1),
 			},
 		)
 
