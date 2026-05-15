@@ -178,6 +178,19 @@
 							/>
 						</svg>
 					</button>
+					<button
+						:disabled="!canProceed"
+						@click="
+							() => {
+								booking.addAppointmentToBasket();
+								showAlert('Added', 'Appointment added to booking basket', 'green');
+							}
+						"
+						class="ml-3 px-6 py-3 rounded-lg border border-gray-300 text-gray-700 font-semibold hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+						type="button"
+					>
+						Add to Booking
+					</button>
 				</div>
 
 				<!-- Buttons for step 2 (integrated in form) -->
@@ -321,6 +334,11 @@ const paymentLinkResource = createResource({
 	auto: false,
 });
 
+const bookingDeskResource = createResource({
+	url: "frappoint.frappoint.api.booking_desk.create_booking",
+	auto: false,
+});
+
 onMounted(async () => {
 	booking.loadFromStorage();
 
@@ -398,6 +416,55 @@ async function submitBooking() {
 		return;
 	}
 
+	// If there are multiple appointments in the basket, create a Service Booking
+	if (booking.draft.appointments && booking.draft.appointments.length > 0) {
+		try {
+			const payload = {
+				customer: {
+					customer: booking.draft.customer,
+					fullName: booking.draft.fullName,
+					email: booking.draft.email,
+					mobileNo: booking.draft.mobileNo,
+				},
+				guests: booking.draft.appointments,
+			};
+
+			const resp = await bookingDeskResource.submit(payload);
+
+			if (resp && resp.booking_id) {
+				// If payment required, request a payment link for the booking
+				if (resp.grand_total && resp.grand_total > 0) {
+					const redirectTo = `${window.location.origin}/portal/bookings/${resp.booking_id}`;
+					const response = await paymentLinkResource.submit({
+						reference_doctype: "Service Booking",
+						reference_docname: resp.booking_id,
+						payment_gateway: booking.draft.selectedPaymentGateway,
+						redirect_to: redirectTo,
+					});
+
+					if (response) {
+						booking.clearStorage();
+						return;
+					}
+				} else {
+					// No payment required; clear and navigate to booking
+					booking.clearStorage();
+					router.push({
+						name: "BookingConfirmation",
+						params: { bookingId: resp.booking_id },
+					});
+					return;
+				}
+			}
+		} catch (error) {
+			console.error("Failed to create booking:", error);
+			showAlert("Error", getErrorMessage(error), "red");
+		}
+
+		return;
+	}
+
+	// Fallback: single appointment flow (existing behaviour)
 	const validation = await checkSlotAvailability.fetch();
 	if (!validation.available) {
 		showAlert(
@@ -448,11 +515,7 @@ async function submitBooking() {
 		});
 
 		if (response) {
-			// booking.isResetting = true;
 			booking.clearStorage();
-			// booking.isResetting = false;
-
-			// window.location.href = response;
 			return;
 		}
 	}

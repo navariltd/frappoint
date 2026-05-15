@@ -23,6 +23,7 @@ export const useBookingStore = defineStore("booking", {
 			source: "Portal",
 			numberOfGuests: 1,
 			guests: [],
+			appointments: [],
 			minGuests: 1,
 			maxGuests: null,
 		},
@@ -188,6 +189,40 @@ export const useBookingStore = defineStore("booking", {
 				is_primary: 0,
 				notes: "",
 			});
+		},
+
+		// Appointment basket helpers for multi-appointment booking
+		addAppointmentToBasket() {
+			// Build an appointment object from current draft
+			const appt = {
+				appointment_type: this.draft.serviceType,
+				price_id: this.draft.priceName,
+				date: this.draft.date,
+				duration: this.draft.duration,
+				slot: this.draft.slot || {},
+				currency: this.draft.currency,
+				guest_full_name: this.draft.fullName,
+				guest_email: this.draft.email,
+				guest_mobile_no: this.draft.mobileNo,
+				price: this.draft.price,
+				notes: this.draft.notes,
+				is_primary: 1,
+			};
+
+			this.draft.appointments = this.draft.appointments || [];
+			this.draft.appointments.push(appt);
+			this.saveToStorage();
+		},
+
+		removeAppointmentFromBasket(index) {
+			if (!this.draft.appointments) return;
+			this.draft.appointments.splice(index, 1);
+			this.saveToStorage();
+		},
+
+		clearAppointmentBasket() {
+			this.draft.appointments = [];
+			this.saveToStorage();
 		},
 
 		removeGuest(index) {
