@@ -288,9 +288,17 @@ export const useBookingStore = defineStore("booking", {
 		resetBooking() {
 			this.draft = {
 				serviceType: null,
+				duration: null,
 				date: null,
 				slot: null,
 				provider: null,
+				customer: null,
+				fullName: null,
+				email: null,
+				mobileNo: null,
+				priceName: null,
+				price: null,
+				currency: null,
 				notes: null,
 				couponCode: null,
 				selectedPaymentGateway: null,
@@ -298,6 +306,7 @@ export const useBookingStore = defineStore("booking", {
 				source: "Portal",
 				numberOfGuests: 1,
 				guests: [],
+				appointments: [],
 				minGuests: 1,
 				maxGuests: null,
 			};
@@ -321,6 +330,9 @@ export const useBookingStore = defineStore("booking", {
 				}
 				if (!this.draft.guests || !Array.isArray(this.draft.guests)) {
 					this.draft.guests = [];
+				}
+				if (!this.draft.appointments || !Array.isArray(this.draft.appointments)) {
+					this.draft.appointments = [];
 				}
 				if (!this.draft.minGuests) {
 					this.draft.minGuests = 1;

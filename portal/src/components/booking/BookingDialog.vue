@@ -150,6 +150,82 @@
 					/>
 				</div>
 
+				<div
+					v-if="appointmentBasket.length"
+					class="border-t border-gray-100 bg-gray-50/70 px-6 md:px-8 py-5"
+				>
+					<div class="flex flex-col gap-4">
+						<div class="flex items-center justify-between gap-4">
+							<div>
+								<h3 class="text-sm font-semibold text-gray-900">Booking Basket</h3>
+								<p class="text-xs text-gray-500">
+									{{ appointmentBasket.length }} appointment{{
+										appointmentBasket.length === 1 ? "" : "s"
+									}}
+									added
+								</p>
+							</div>
+							<div class="text-right">
+								<p class="text-xs text-gray-500">Estimated total</p>
+								<p class="text-lg font-bold text-primary">
+									{{ formatCurrency(basketTotal, booking.draft.currency) }}
+								</p>
+							</div>
+						</div>
+
+						<div class="space-y-3 max-h-56 overflow-auto pr-1">
+							<div
+								v-for="(appointment, index) in appointmentBasket"
+								:key="`${appointment.appointment_type}-${index}`"
+								class="rounded-xl border border-gray-200 bg-white p-4 flex items-start justify-between gap-4"
+							>
+								<div class="space-y-1">
+									<p class="font-semibold text-gray-900">
+										{{ appointment.appointment_type }}
+									</p>
+									<p class="text-sm text-gray-600">
+										{{ appointment.guest_full_name }}
+									</p>
+									<p class="text-xs text-gray-500">
+										{{ appointment.date }} •
+										{{ formatSlotLabel(appointment.slot) }}
+									</p>
+								</div>
+								<div class="text-right space-y-2">
+									<p class="text-sm font-semibold text-gray-900">
+										{{
+											formatCurrency(
+												appointment.price,
+												appointment.currency || booking.draft.currency
+											)
+										}}
+									</p>
+									<button
+										type="button"
+										class="text-xs text-red-600 hover:underline"
+										@click="booking.removeAppointmentFromBasket(index)"
+									>
+										Remove
+									</button>
+								</div>
+							</div>
+						</div>
+
+						<div class="flex items-center justify-between gap-3">
+							<button
+								type="button"
+								class="text-sm text-gray-500 hover:text-gray-800"
+								@click="booking.clearAppointmentBasket()"
+							>
+								Clear basket
+							</button>
+							<p class="text-xs text-gray-500">
+								You can keep adding services before payment.
+							</p>
+						</div>
+					</div>
+				</div>
+
 				<!-- Buttons for step 1 (Choose Time) -->
 				<div
 					v-if="currentStep === 1"
@@ -189,7 +265,7 @@
 						class="ml-3 px-6 py-3 rounded-lg border border-gray-300 text-gray-700 font-semibold hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
 						type="button"
 					>
-						Add to Booking
+						Add to Booking Basket
 					</button>
 				</div>
 
@@ -239,6 +315,7 @@ import SlotPickerSkeleton from "./SlotPickerSkeleton.vue";
 import UserDetails from "./steps/CustomerDetails.vue";
 import PaymentStep from "./steps/PaymentAndConfirmation.vue";
 import { flattenSlotsByProviderForDate } from "@/utils/slotTransformation";
+import { formatCurrency } from "@/utils";
 
 const booking = useBookingStore();
 const auth = useAuthStore();
@@ -292,6 +369,12 @@ const canProceed = computed(() => {
 	return booking.isComplete;
 });
 
+const appointmentBasket = computed(() => booking.draft.appointments || []);
+
+const basketTotal = computed(() =>
+	appointmentBasket.value.reduce((total, item) => total + (Number(item.price) || 0), 0)
+);
+
 const serviceAppointmentResource = createListResource({
 	doctype: "Service Appointment",
 });
@@ -338,6 +421,11 @@ const bookingDeskResource = createResource({
 	url: "frappoint.frappoint.api.booking_desk.create_booking",
 	auto: false,
 });
+
+function formatSlotLabel(slot) {
+	if (!slot?.start_time || !slot?.end_time) return "Time not set";
+	return `${slot.start_time} - ${slot.end_time}`;
+}
 
 onMounted(async () => {
 	booking.loadFromStorage();
@@ -432,29 +520,12 @@ async function submitBooking() {
 			const resp = await bookingDeskResource.submit(payload);
 
 			if (resp && resp.booking_id) {
-				// If payment required, request a payment link for the booking
-				if (resp.grand_total && resp.grand_total > 0) {
-					const redirectTo = `${window.location.origin}/portal/bookings/${resp.booking_id}`;
-					const response = await paymentLinkResource.submit({
-						reference_doctype: "Service Booking",
-						reference_docname: resp.booking_id,
-						payment_gateway: booking.draft.selectedPaymentGateway,
-						redirect_to: redirectTo,
-					});
-
-					if (response) {
-						booking.clearStorage();
-						return;
-					}
-				} else {
-					// No payment required; clear and navigate to booking
-					booking.clearStorage();
-					router.push({
-						name: "BookingConfirmation",
-						params: { bookingId: resp.booking_id },
-					});
-					return;
-				}
+				booking.clearStorage();
+				router.push({
+					name: "BookingConfirmation",
+					params: { bookingId: resp.booking_id },
+				});
+				return;
 			}
 		} catch (error) {
 			console.error("Failed to create booking:", error);

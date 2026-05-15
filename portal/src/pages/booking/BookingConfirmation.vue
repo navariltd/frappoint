@@ -1,353 +1,283 @@
 <template>
-	<!-- Loading / Guard state  -->
-	<div v-if="!isReady" class="flex-grow flex items-center justify-center p-4 sm:p-6 lg:p-8">
-		<div class="text-slate-500 text-sm animate-pulse">Preparing your booking…</div>
+	<ErrorMessage v-if="bookingError" :message="bookingError" class="m-4" />
+
+	<div v-else-if="!isReady" class="flex-grow flex items-center justify-center p-4 sm:p-6 lg:p-8">
+		<div class="text-slate-500 text-sm animate-pulse">Preparing your booking summary…</div>
 	</div>
-	<div v-else class="flex-grow flex items-center justify-center p-4 sm:p-6 lg:p-8">
-		<div class="max-w-3xl w-full flex flex-col gap-6">
-			<!-- Success status  -->
-			<div class="text-center space-y-4 py-6">
+
+	<div v-else class="flex-grow p-4 sm:p-6 lg:p-8">
+		<div class="mx-auto w-full max-w-5xl space-y-6">
+			<div class="text-center space-y-4 py-4 sm:py-6">
 				<div
-					class="inline-flex items-center justify-center size-20 rounded-full bg-primary text-white shadow-glow mb-2 animate-bounce-slow"
+					class="inline-flex items-center justify-center size-20 rounded-full bg-primary text-white shadow-glow mb-2"
 				>
-					<FeatherIcon class="h-16 font-medium" name="check" color="white" />
+					<FeatherIcon class="h-10 font-medium" name="check" color="white" />
 				</div>
 				<div class="space-y-1">
 					<h1 class="font-extrabold text-3xl sm:text-4xl text-slate-900 tracking-tight">
-						Booking Confirmed!
+						Booking Summary
 					</h1>
 					<p class="text-lg text-slate-500">
-						We've sent a confirmation email to
-						<span class="text-slate-800 font-medium">{{ bookingResource.email }}</span>
+						Review the appointments in this booking and complete payment when ready.
 					</p>
 				</div>
 			</div>
 
-			<!-- Booking Details Card -->
-			<div
-				class="bg-white dark:bg-slate-800 rounded-xl shadow-soft overflow-hidden border border-slate-100 dark:border-slate-700"
-			>
-				<!-- Ticket Top: Service & Image -->
-				<div
-					class="flex flex-col md:flex-row border-b border-slate-100 dark:border-slate-700"
-				>
+			<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+				<div class="lg:col-span-2 space-y-6">
 					<div
-						class="w-full md:w-1/3 h-48 md:h-auto bg-slate-100 relative group overflow-hidden"
+						class="bg-white rounded-2xl shadow-soft border border-slate-100 p-6 sm:p-8 space-y-6"
 					>
 						<div
-							class="absolute inset-0 bg-cover bg-center transition-transform duration-700 group-hover:scale-105"
-							data-alt="Relaxing spa massage therapy session"
-							:style="{ backgroundImage: `url(${serviceTypeDetails.image})` }"
-						></div>
-						<div class="absolute inset-0 bg-primary/10 mix-blend-overlay"></div>
-					</div>
-					<div class="p-6 md:p-8 flex-1 flex flex-col justify-center">
-						<div class="flex justify-between items-start mb-2">
-							<span
-								class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary/10 text-primary uppercase tracking-wider"
-							>
-								Upcoming
-							</span>
-							<span class="text-slate-400 text-sm font-medium">{{
-								bookingResource.name
-							}}</span>
-						</div>
-						<h2 class="text-2xl font-bold text-slate-900 dark:text-white mb-2">
-							{{ bookingResource.appointment_type }}
-						</h2>
-						<div
-							class="flex items-center gap-2 text-slate-500 dark:text-slate-400 mb-4"
+							class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4"
 						>
-							<FeatherIcon class="h-4" name="clock" />
-							<span class="text-sm font-medium"
-								>{{ bookingResource.duration }} Minutes</span
-							>
-						</div>
-						<div
-							class="flex items-center gap-3 mt-auto pt-4 border-t border-slate-100 dark:border-slate-700"
-						>
-							<div class="size-10 rounded-full overflow-hidden bg-slate-200">
-								<img
-									class="w-full h-full object-cover"
-									data-alt="Portrait of Dr. Sarah Mitchell therapist"
-									src="https://lh3.googleusercontent.com/aida-public/AB6AXuBWo7iiTXJd1vaStPAc8abnmLCLYJz39ztLXNelQW7jqwxaR0iZPb2MXMI5oaGu-CpZqwiBPUt1_pDuKh4KN1mKCoutFfmDfTgVa5oIdbADpGurEG4HEpkLS55MaLUNzH_E_Pp0JRXMT-dXpBzm_2HfkmJtjyD791FtDkdE21t2fsGPYRNRqyoSRip6kjtjq2nAwZUHupf1G8h8TQje2RW9-86EujN1xxqlO2C1fohTdc4bC0veMr6gN536x08helvrwtsYYWk83QpT"
-								/>
-							</div>
 							<div>
 								<p
-									class="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wide font-semibold"
+									class="text-xs uppercase tracking-widest text-slate-500 font-semibold mb-2"
 								>
-									Provider
+									Service Booking
 								</p>
-								<p class="text-sm font-bold text-slate-800 dark:text-slate-200">
-									{{ bookingResource.appointment_provider }}
+								<h2 class="text-2xl font-bold text-slate-900">
+									{{ bookingResource.name }}
+								</h2>
+								<p class="text-sm text-slate-500 mt-1">
+									{{ bookingResource.full_name || bookingResource.customer }}
+									<span v-if="bookingResource.email"
+										>• {{ bookingResource.email }}</span
+									>
 								</p>
+							</div>
+							<div class="text-right">
+								<p
+									class="text-xs uppercase tracking-widest text-slate-500 font-semibold"
+								>
+									Status
+								</p>
+								<p class="text-lg font-bold text-slate-900">
+									{{ bookingResource.status }}
+								</p>
+							</div>
+						</div>
+
+						<div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+							<div class="rounded-xl bg-slate-50 p-4">
+								<p
+									class="text-xs uppercase tracking-widest text-slate-500 font-semibold"
+								>
+									Booking Date
+								</p>
+								<p class="mt-2 text-sm font-semibold text-slate-900">
+									{{ formattedBookingDate }}
+								</p>
+							</div>
+							<div class="rounded-xl bg-slate-50 p-4">
+								<p
+									class="text-xs uppercase tracking-widest text-slate-500 font-semibold"
+								>
+									Total Amount
+								</p>
+								<p class="mt-2 text-sm font-semibold text-slate-900">
+									{{ formatCurrency(totalAmount, bookingResource.currency) }}
+								</p>
+							</div>
+							<div class="rounded-xl bg-slate-50 p-4">
+								<p
+									class="text-xs uppercase tracking-widest text-slate-500 font-semibold"
+								>
+									Outstanding
+								</p>
+								<p class="mt-2 text-sm font-semibold text-primary">
+									{{ formatCurrency(totalDue, bookingResource.currency) }}
+								</p>
+							</div>
+						</div>
+
+						<div>
+							<div class="flex items-center justify-between gap-3 mb-3">
+								<h3 class="text-lg font-bold text-slate-900">
+									Appointments in this booking
+								</h3>
+								<p class="text-sm text-slate-500">
+									{{ bookingItems.length }} item{{
+										bookingItems.length === 1 ? "" : "s"
+									}}
+								</p>
+							</div>
+							<div class="space-y-3">
+								<div
+									v-for="item in bookingItems"
+									:key="`${item.service_type}-${
+										item.idx || item.name || item.rate
+									}`"
+									class="rounded-xl border border-slate-200 p-4 flex items-start justify-between gap-4"
+								>
+									<div class="space-y-1">
+										<p class="font-semibold text-slate-900">
+											{{ item.service_type || "Service" }}
+										</p>
+										<p class="text-sm text-slate-500">
+											{{ item.pricing_model || "Booking" }} • Qty
+											{{ item.qty }}
+										</p>
+									</div>
+									<p class="text-sm font-semibold text-slate-900">
+										{{
+											formatCurrency(
+												item.total_amount,
+												bookingResource.currency
+											)
+										}}
+									</p>
+								</div>
+							</div>
+						</div>
+
+						<div>
+							<div class="flex items-center justify-between gap-3 mb-3">
+								<h3 class="text-lg font-bold text-slate-900">
+									Linked appointments
+								</h3>
+							</div>
+							<div
+								class="overflow-hidden rounded-xl border border-slate-200 bg-slate-50/70"
+							>
+								<div
+									v-if="bookingResource.appointment_list_html"
+									v-html="bookingResource.appointment_list_html"
+								></div>
+								<div v-else class="p-4 text-sm text-slate-500">
+									No linked appointments found yet.
+								</div>
 							</div>
 						</div>
 					</div>
 				</div>
-				<!-- Ticket Bottom: Grid Details -->
-				<div
-					class="grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-slate-100 dark:divide-slate-700 bg-slate-50/50 dark:bg-slate-800/50"
-				>
-					<!-- Date & Time -->
-					<div
-						class="p-6 flex items-start gap-4 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors"
-					>
-						<div
-							class="p-3 bg-white dark:bg-slate-700 rounded-lg shadow-sm text-primary border border-slate-100 dark:border-slate-600"
-						>
-							<FeatherIcon class="h-4" name="calendar" />
-						</div>
-						<div>
-							<p
-								class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1"
-							>
-								Date &amp; Time
-							</p>
-							<p class="text-base font-bold text-slate-900 dark:text-white">
-								{{ formattedDate }}
-							</p>
-							<p class="text-sm text-slate-600 dark:text-slate-300">
-								{{ formattedStartTime }} - {{ formattedEndTime }}
-							</p>
-							<button
-								@click="downloadCalendarEvent"
-								class="mt-2 text-xs text-primary font-medium cursor-pointer hover:underline inline-flex items-center gap-1"
-							>
-								<FeatherIcon class="h-3" name="download" />
-								Add to Calendar
-							</button>
-						</div>
-					</div>
-					<!-- Location -->
-					<div
-						class="p-6 flex items-start gap-4 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors relative group"
-					>
-						<div
-							class="p-3 bg-white dark:bg-slate-700 rounded-lg shadow-sm text-primary border border-slate-100 dark:border-slate-600"
-						>
-							<FeatherIcon class="h-4" name="map-pin" />
-						</div>
-						<div class="flex-1">
-							<p
-								class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1"
-							>
-								Location
-							</p>
-							<p class="text-base font-bold text-slate-900 dark:text-white">
-								Coming Soon
-							</p>
-							<p class="text-sm text-slate-600 dark:text-slate-300">
-								Street Coming Soon
-							</p>
-							<a
-								class="mt-2 text-xs text-primary font-medium inline-flex items-center gap-1 hover:underline"
-								href="#"
-							>
-								Get Directions <FeatherIcon class="h-4" name="arrow-right" />
-							</a>
-						</div>
-					</div>
-				</div>
-			</div>
 
-			<!-- Action Buttons -->
-			<div class="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
-				<button
-					@click="downloadCalendarEvent"
-					class="flex items-center justify-center gap-2 h-14 rounded-xl bg-primary hover:bg-primary/90 text-white font-bold text-base shadow-lg shadow-primary/20 transition-all hover:scale-[1.01] active:scale-[0.98]"
-				>
-					<FeatherIcon class="h-4" name="download" />
-					Add to Calendar
-				</button>
-				<button
-					@click="navigateToAppointmentDetails"
-					class="flex items-center justify-center gap-2 h-14 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 hover:border-primary/50 text-slate-700 dark:text-slate-200 font-bold text-base transition-all hover:bg-slate-50 dark:hover:bg-slate-700"
-				>
-					<FeatherIcon class="h-4" name="edit" />
-					Manage Booking
-				</button>
-			</div>
-			<div class="text-center pt-4">
-				<router-link
-					to="/"
-					class="text-slate-500 dark:text-slate-400 hover:text-primary font-medium text-sm transition-colors inline-flex items-center gap-1 group"
-				>
-					<FeatherIcon class="h-4" name="arrow-left" />
-					Back to Home
-				</router-link>
+				<aside class="space-y-6">
+					<div
+						class="bg-white rounded-2xl shadow-soft border border-slate-100 p-6 sticky top-6"
+					>
+						<h2 class="text-lg font-bold text-slate-900 mb-4">Payment</h2>
+						<div class="space-y-3 pb-4 border-b border-slate-100">
+							<div class="flex justify-between text-sm">
+								<span class="text-slate-500">Grand Total</span>
+								<span class="font-semibold text-slate-900">{{
+									formatCurrency(totalAmount, bookingResource.currency)
+								}}</span>
+							</div>
+							<div class="flex justify-between text-sm">
+								<span class="text-slate-500">Outstanding</span>
+								<span class="font-semibold text-primary">{{
+									formatCurrency(totalDue, bookingResource.currency)
+								}}</span>
+							</div>
+						</div>
+
+						<button
+							v-if="canPay"
+							@click="payNow"
+							:disabled="paying"
+							class="mt-5 w-full flex items-center justify-center gap-2 rounded-xl bg-primary hover:bg-primary/90 text-white font-bold py-3 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+							type="button"
+						>
+							<span
+								v-if="paying"
+								class="h-4 w-4 rounded-full border-2 border-white/40 border-t-white animate-spin"
+							></span>
+							<span>Pay Now</span>
+						</button>
+
+						<p
+							v-else
+							class="mt-5 text-sm text-emerald-700 font-medium bg-emerald-50 rounded-xl p-4"
+						>
+							This booking has been fully paid.
+						</p>
+
+						<div class="mt-4 flex flex-col gap-3">
+							<router-link
+								to="/bookings"
+								class="text-sm text-slate-500 hover:text-primary font-medium transition-colors"
+							>
+								Back to Bookings
+							</router-link>
+							<router-link
+								to="/"
+								class="text-sm text-slate-500 hover:text-primary font-medium transition-colors"
+							>
+								Back to Home
+							</router-link>
+						</div>
+					</div>
+				</aside>
 			</div>
 		</div>
 	</div>
 </template>
 
 <script setup>
-import { buildDate } from "@/utils";
-import { FeatherIcon, createResource, createDocumentResource } from "frappe-ui";
-import { computed } from "vue";
-import { useRoute, useRouter } from "vue-router";
-import { createEvent } from "ics";
+import { FeatherIcon, createDocumentResource, createResource, ErrorMessage } from "frappe-ui";
+import { computed, ref } from "vue";
+import { useRoute } from "vue-router";
+import { formatCurrency } from "@/utils";
 
 const route = useRoute();
-const router = useRouter();
 const bookingId = route.params.bookingId;
-
-const serviceTypeDetailsResource = createResource({
-	url: "frappoint.frappoint.api.service_type.get_service_type_details",
-	cache: bookingId,
-});
+const paying = ref(false);
 
 const bookingDocument = createDocumentResource({
-	doctype: "Service Appointment",
+	doctype: "Service Booking",
 	name: bookingId,
-	onSuccess(doc) {
-		serviceTypeDetailsResource.fetch({
-			service_type: doc.appointment_type,
-		});
-	},
+	auto: true,
 });
 
-const serviceTypeDetails = computed(() => {
-	return serviceTypeDetailsResource.data || null;
+const paymentLinkResource = createResource({
+	url: "frappoint.payments.get_payment_link",
+	auto: false,
 });
 
 const bookingResource = computed(() => bookingDocument.doc || null);
+const bookingError = computed(
+	() => bookingDocument.error?.message || bookingDocument.error || null
+);
 
-const isReady = computed(() => {
-	return !!(
-		bookingResource.value &&
-		serviceTypeDetails.value &&
-		startDateTime.value &&
-		endDateTime.value
-	);
-});
+const bookingItems = computed(() => bookingResource.value?.items || []);
+const totalAmount = computed(() => Number(bookingResource.value?.grand_total || 0));
+const totalDue = computed(() => Number(bookingResource.value?.outstanding_amount || 0));
+const canPay = computed(() => totalDue.value > 0);
 
-/**
- * Build Date objects from separate date + time fields
- */
-const startDateTime = computed(() => {
-	if (!bookingResource.value) return null;
+const isReady = computed(() => !!bookingResource.value);
 
-	const { appointment_date, start_time } = bookingResource.value;
-	if (!appointment_date || !start_time) return null;
-
-	return buildDate(appointment_date, start_time);
-});
-
-const endDateTime = computed(() => {
-	if (!bookingResource.value) return null;
-
-	const { appointment_date, end_time } = bookingResource.value;
-	if (!appointment_date || !end_time) return null;
-
-	return buildDate(appointment_date, end_time);
-});
-
-/**
- * Formatted date: Friday, Oct 24
- */
-const formattedDate = computed(() => {
-	if (!startDateTime.value) return "";
-
+const formattedBookingDate = computed(() => {
+	if (!bookingResource.value?.booking_date) return "Not available";
 	return new Intl.DateTimeFormat("en-US", {
 		weekday: "long",
+		year: "numeric",
 		month: "short",
 		day: "numeric",
-	}).format(startDateTime.value);
+	}).format(new Date(`${bookingResource.value.booking_date}T00:00:00`));
 });
 
-/**
- * Formatted start time: 12:00 PM
- */
-const formattedStartTime = computed(() => {
-	if (!startDateTime.value) return "";
+async function payNow() {
+	if (!bookingResource.value || !canPay.value) return;
 
-	return new Intl.DateTimeFormat("en-US", {
-		hour: "numeric",
-		minute: "2-digit",
-		hour12: true,
-	}).format(startDateTime.value);
-});
+	paying.value = true;
+	try {
+		const redirectTo = window.location.href;
+		const response = await paymentLinkResource.submit({
+			reference_doctype: "Service Booking",
+			reference_docname: bookingResource.value.name,
+			payment_gateway: "",
+			redirect_to: redirectTo,
+		});
 
-/**
- * Formatted end time: 12:30 PM
- */
-const formattedEndTime = computed(() => {
-	if (!endDateTime.value) return "";
-
-	return new Intl.DateTimeFormat("en-US", {
-		hour: "numeric",
-		minute: "2-digit",
-		hour12: true,
-	}).format(endDateTime.value);
-});
-
-/**
- * Generate and download ICS calendar file
- */
-function downloadCalendarEvent() {
-	if (!startDateTime.value || !endDateTime.value || !bookingResource.value) return;
-
-	const start = startDateTime.value;
-	const end = endDateTime.value;
-
-	const event = {
-		start: [
-			start.getFullYear(),
-			start.getMonth() + 1,
-			start.getDate(),
-			start.getHours(),
-			start.getMinutes(),
-		],
-		end: [
-			end.getFullYear(),
-			end.getMonth() + 1,
-			end.getDate(),
-			end.getHours(),
-			end.getMinutes(),
-		],
-		title: bookingResource.value.appointment_type,
-		description: `Appointment with ${bookingResource.value.appointment_provider}. Duration: ${bookingResource.value.duration} minutes. Booking ID: ${bookingResource.value.name}`,
-		location: "Coming Soon",
-		status: "CONFIRMED",
-		url: window.location.href,
-		organizer: {
-			name: bookingResource.value.appointment_provider,
-		},
-		attendees: [
-			{
-				name: bookingResource.value.email,
-				email: bookingResource.value.email,
-			},
-		],
-	};
-
-	createEvent(event, (error, value) => {
-		if (error) {
-			console.error("Error creating calendar event:", error);
-			return;
+		if (typeof response === "string" && response) {
+			window.location.href = response;
 		}
-
-		// Create blob and download
-		const blob = new Blob([value], { type: "text/calendar;charset=utf-8" });
-		const link = document.createElement("a");
-		link.href = URL.createObjectURL(blob);
-		link.download = `appointment-${bookingResource.value.name}.ics`;
-		document.body.appendChild(link);
-		link.click();
-		document.body.removeChild(link);
-		URL.revokeObjectURL(link.href);
-	});
-}
-
-/**
- * Navigate to appointment details page
- */
-function navigateToAppointmentDetails() {
-	router.push({
-		name: "AppointmentDetails",
-		params: { id: bookingId },
-	});
+	} catch (error) {
+		console.error("Failed to create payment link:", error);
+	} finally {
+		paying.value = false;
+	}
 }
 </script>
