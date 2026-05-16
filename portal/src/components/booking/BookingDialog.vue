@@ -412,7 +412,7 @@ const paymentLinkResource = createResource({
 });
 
 const bookingDeskResource = createResource({
-	url: "frappoint.frappoint.api.booking_desk.create_booking",
+	url: "frappoint.frappoint.api.service_booking.create_booking_with_appointments",
 	auto: false,
 });
 
@@ -481,7 +481,6 @@ watch(
 );
 
 // TODO: Check validate customer appointment for same date and time
-
 async function submitBooking() {
 	const appointmentItems =
 		booking.draft.appointments && booking.draft.appointments.length
