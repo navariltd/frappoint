@@ -45,6 +45,12 @@ const routes = [
 		meta: { requiresLogin: true },
 	},
 	{
+		name: "BookingWizard",
+		path: "/bookings/new/:serviceType",
+		component: () => import("@/components/booking/BookingDialog.vue"),
+		meta: { requiresLogin: false },
+	},
+	{
 		name: "AppointmentDetails",
 		path: "/appointments/:id",
 		component: () => import("@/pages/booking/AppointmentDetails.vue"),

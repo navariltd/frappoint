@@ -8,7 +8,7 @@
 					>My Bookings</router-link
 				>
 				<span class="mx-2">/</span>
-				<span class="text-gray-900 font-medium">Booking #{{ booking.name }}</span>
+				<span class="text-gray-900 font-medium">Booking #{{ booking.doc.name }}</span>
 			</nav>
 
 			<div v-if="booking.loading" class="flex justify-center items-center py-20">

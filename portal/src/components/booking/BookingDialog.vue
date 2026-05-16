@@ -321,7 +321,7 @@ const router = useRouter();
 const route = useRoute();
 const { alertOptions, showAlert } = useAlert();
 
-const serviceType = computed(() => booking.draft.serviceType);
+const serviceType = computed(() => booking.draft.serviceType || route.params.serviceType);
 
 function closeDialog() {
 	router.back();
@@ -425,8 +425,12 @@ onMounted(async () => {
 	booking.loadFromStorage();
 
 	if (!booking.draft.serviceType) {
-		router.replace({ name: "Services" });
-		return;
+		const routeServiceType = route.params.serviceType;
+		if (!routeServiceType) {
+			router.replace({ name: "Services" });
+			return;
+		}
+		booking.setServiceType(routeServiceType);
 	}
 
 	await booking.hydrateServiceDetails();
