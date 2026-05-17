@@ -23,6 +23,7 @@ export const useBookingStore = defineStore("booking", {
 			source: "Portal",
 			numberOfGuests: 1,
 			guests: [],
+			appointments: [],
 			minGuests: 1,
 			maxGuests: null,
 		},
@@ -190,6 +191,69 @@ export const useBookingStore = defineStore("booking", {
 			});
 		},
 
+		createAppointmentSnapshot() {
+			return {
+				appointment_type: this.draft.serviceType,
+				price_id: this.draft.priceName,
+				date: this.draft.date,
+				duration: this.draft.duration,
+				slot: this.draft.slot ? { ...this.draft.slot } : {},
+				currency: this.draft.currency,
+				price: this.draft.price,
+				customer: this.draft.customer,
+				full_name: this.draft.fullName,
+				email: this.draft.email,
+				mobile_no: this.draft.mobileNo,
+				guest_full_name: this.draft.fullName,
+				guest_email: this.draft.email,
+				guest_mobile_no: this.draft.mobileNo,
+				selected_payment_gateway: this.draft.selectedPaymentGateway,
+				notes: this.draft.notes,
+				coupon_code: this.draft.couponCode,
+				source: this.draft.source,
+				is_primary: 1,
+				guests: (this.draft.guests || []).map((guest) => ({ ...guest })),
+			};
+		},
+
+		resetCurrentAppointmentDraft() {
+			this.draft.date = null;
+			this.draft.slot = null;
+			this.draft.provider = null;
+			this.draft.customer = null;
+			this.draft.fullName = null;
+			this.draft.email = null;
+			this.draft.mobileNo = null;
+			this.draft.notes = null;
+			this.draft.couponCode = null;
+			this.draft.numberOfGuests = this.draft.minGuests || 1;
+			this.draft.guests = [];
+			this.initializeGuests();
+		},
+
+		// Appointment basket helpers for multi-appointment booking
+		addAppointmentToBasket({ resetCurrent = false } = {}) {
+			const appt = this.createAppointmentSnapshot();
+			this.draft.appointments = this.draft.appointments || [];
+			this.draft.appointments.push(appt);
+			if (resetCurrent) {
+				this.resetCurrentAppointmentDraft();
+			}
+			this.saveToStorage();
+			return appt;
+		},
+
+		removeAppointmentFromBasket(index) {
+			if (!this.draft.appointments) return;
+			this.draft.appointments.splice(index, 1);
+			this.saveToStorage();
+		},
+
+		clearAppointmentBasket() {
+			this.draft.appointments = [];
+			this.saveToStorage();
+		},
+
 		removeGuest(index) {
 			if (this.draft.guests.length <= this.draft.minGuests) {
 				return; // Cannot go below minimum
@@ -253,9 +317,17 @@ export const useBookingStore = defineStore("booking", {
 		resetBooking() {
 			this.draft = {
 				serviceType: null,
+				duration: null,
 				date: null,
 				slot: null,
 				provider: null,
+				customer: null,
+				fullName: null,
+				email: null,
+				mobileNo: null,
+				priceName: null,
+				price: null,
+				currency: null,
 				notes: null,
 				couponCode: null,
 				selectedPaymentGateway: null,
@@ -263,6 +335,7 @@ export const useBookingStore = defineStore("booking", {
 				source: "Portal",
 				numberOfGuests: 1,
 				guests: [],
+				appointments: [],
 				minGuests: 1,
 				maxGuests: null,
 			};
@@ -286,6 +359,9 @@ export const useBookingStore = defineStore("booking", {
 				}
 				if (!this.draft.guests || !Array.isArray(this.draft.guests)) {
 					this.draft.guests = [];
+				}
+				if (!this.draft.appointments || !Array.isArray(this.draft.appointments)) {
+					this.draft.appointments = [];
 				}
 				if (!this.draft.minGuests) {
 					this.draft.minGuests = 1;

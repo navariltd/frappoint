@@ -129,7 +129,7 @@
 				<!-- Left Column - Appointments List -->
 				<div class="xl:col-span-2 space-y-4 sm:space-y-6">
 					<!-- Loading State -->
-					<div v-if="appointmentsResourceList.loading" class="space-y-4">
+					<div v-if="bookingsResourceList.loading" class="space-y-4">
 						<AppointmentCardSkeleton v-for="i in 3" :key="i" />
 					</div>
 
@@ -179,10 +179,10 @@
 									>Confirmed</span
 								>
 							</div>
-							<AppointmentCard
-								:appointment="nextUp"
+							<BookingCard
+								:booking="nextUp"
 								variant="next"
-								@update="appointmentsResourceList.reload()"
+								@update="bookingsResourceList.reload()"
 							/>
 						</div>
 
@@ -194,11 +194,11 @@
 								UPCOMING
 							</h3>
 							<div class="space-y-3 sm:space-y-4">
-								<AppointmentCard
-									v-for="appointment in upcomingAppointments"
-									:appointment="appointment"
-									:key="appointment.name"
-									@update="appointmentsResourceList.reload()"
+								<BookingCard
+									v-for="booking in upcomingAppointments"
+									:booking="booking"
+									:key="booking.name"
+									@update="bookingsResourceList.reload()"
 								/>
 							</div>
 						</div>
@@ -211,12 +211,12 @@
 								PAST
 							</h3>
 							<div class="space-y-3 sm:space-y-4">
-								<AppointmentCard
-									v-for="appointment in pastAppointments"
-									:appointment="appointment"
-									:key="appointment.name"
+								<BookingCard
+									v-for="booking in pastAppointments"
+									:booking="booking"
+									:key="booking.name"
 									variant="past"
-									@update="appointmentsResourceList.reload()"
+									@update="bookingsResourceList.reload()"
 								/>
 							</div>
 						</div>
@@ -285,7 +285,7 @@
 import { Calendar, createListResource } from "frappe-ui";
 import { computed, onMounted, ref } from "vue";
 import { useRouter } from "vue-router";
-import AppointmentCard from "@/components/booking/AppointmentCard.vue";
+import BookingCard from "@/components/booking/BookingCard.vue";
 import AppointmentCardSkeleton from "@/components/booking/AppointmentCardSkeleton.vue";
 import ListIcon from "@/components/icons/ListIcon.vue";
 import CalendarIcon from "@/components/icons/CalendarIcon.vue";
@@ -306,9 +306,9 @@ const thisMonthCount = computed(() => {
 	const currentMonth = today.getMonth();
 	const currentYear = today.getFullYear();
 
-	return appointments.value.filter((apt) => {
-		const aptDate = new Date(apt.appointment_date);
-		return aptDate.getMonth() === currentMonth && aptDate.getFullYear() === currentYear;
+	return bookings.value.filter((b) => {
+		const date = new Date(b.booking_date || b.creation);
+		return date.getMonth() === currentMonth && date.getFullYear() === currentYear;
 	}).length;
 });
 
@@ -317,12 +317,12 @@ const completedThisMonthCount = computed(() => {
 	const currentMonth = today.getMonth();
 	const currentYear = today.getFullYear();
 
-	return appointments.value.filter((apt) => {
-		const aptDate = new Date(apt.appointment_date);
+	return bookings.value.filter((b) => {
+		const date = new Date(b.booking_date || b.creation);
 		return (
-			apt.status === "Completed" &&
-			aptDate.getMonth() === currentMonth &&
-			aptDate.getFullYear() === currentYear
+			b.status === "Completed" &&
+			date.getMonth() === currentMonth &&
+			date.getFullYear() === currentYear
 		);
 	}).length;
 });
@@ -335,22 +335,21 @@ const calendarConfig = {
 	enableShortcuts: false,
 };
 
-const appointmentsResourceList = createListResource({
-	doctype: "Service Appointment",
+const bookingsResourceList = createListResource({
+	doctype: "Service Booking",
 	fields: ["*"],
 	filters: {
-		status: ["not in", ["Cancelled", "Rescheduled", "No Show"]],
 		docstatus: ["=", "1"],
 	},
-	orderBy: "appointment_date asc, start_time asc",
+	orderBy: "booking_date desc, creation desc",
 });
 
 onMounted(() => {
-	appointmentsResourceList.reload();
+	bookingsResourceList.reload();
 });
 
-const appointments = computed(() => {
-	return appointmentsResourceList.data || [];
+const bookings = computed(() => {
+	return bookingsResourceList.data || [];
 });
 
 // Helper function to check if an appointment is in the past
@@ -373,7 +372,9 @@ const isAppointmentUpcoming = (appointment) => {
 
 // Filter upcoming appointments (today and future)
 const upcomingAppointmentsAll = computed(() => {
-	return appointments.value.filter((apt) => isAppointmentUpcoming(apt));
+	return bookings.value.filter((b) =>
+		isAppointmentUpcoming({ appointment_date: b.booking_date || b.creation })
+	);
 });
 
 const nextUp = computed(() => {
@@ -386,12 +387,11 @@ const upcomingAppointments = computed(() => {
 
 // Filter past appointments
 const pastAppointments = computed(() => {
-	return appointments.value
-		.filter((apt) => isAppointmentPast(apt))
+	return bookings.value
+		.filter((b) => isAppointmentPast({ appointment_date: b.booking_date || b.creation }))
 		.sort((a, b) => {
-			// Sort by date descending (most recent first)
-			const dateA = new Date(a.appointment_date);
-			const dateB = new Date(b.appointment_date);
+			const dateA = new Date(a.booking_date || a.creation);
+			const dateB = new Date(b.booking_date || b.creation);
 			return dateB - dateA;
 		});
 });
@@ -405,21 +405,19 @@ const statusColorMap = {
 
 // Transform appointments for Calendar component
 const calendarEvents = computed(() => {
-	return appointments.value.map((apt) => {
-		// Determine color based on status
-		const color = statusColorMap[apt.status] || "blue";
-
+	return bookings.value.map((b) => {
+		const color = statusColorMap[b.status] || "blue";
 		return {
-			id: apt.name,
-			title: apt.appointment_type || "Appointment",
-			participant: apt.appointment_provider || "Provider unknown",
-			fromDate: apt.appointment_date,
-			toDate: apt.appointment_date,
-			fromTime: apt.start_time,
-			toTime: apt.end_time,
-			venue: apt.service_unit || apt.company,
+			id: b.name,
+			title: (b.items && b.items[0] && b.items[0].service_type) || `Booking ${b.name}`,
+			participant: b.customer || b.full_name || "Customer",
+			fromDate: b.booking_date || b.creation,
+			toDate: b.booking_date || b.creation,
+			fromTime: null,
+			toTime: null,
+			venue: b.service_unit || b.company,
 			color: color,
-			isFullDay: false,
+			isFullDay: true,
 		};
 	});
 });

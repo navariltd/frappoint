@@ -168,7 +168,7 @@ function showBookingDialog() {
 		return;
 	}
 	router.push({
-		name: "BookingDetails",
+		name: "BookingWizard",
 		params: { serviceType: serviceDetails.value.name },
 	});
 	booking.setServiceType(serviceDetails.value.name);
