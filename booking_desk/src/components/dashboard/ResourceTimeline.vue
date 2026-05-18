@@ -123,6 +123,13 @@
 				<!-- Provider Rows -->
 				<div class="divide-y divide-outline-variant">
 					<div
+						v-if="!hasAppointmentsForSelectedDate"
+						class="h-48 flex items-center justify-center text-[13px] text-on-surface-variant"
+					>
+						{{ emptyDayMessage }}
+					</div>
+					<div
+						v-else
 						v-for="provider in providers"
 						:key="provider.id"
 						:class="['flex', providerRowClass(provider)]"
@@ -464,9 +471,9 @@ const props = defineProps({
 	statuses: {
 		type: Array,
 		default: () => [
-			{ key: "active", label: "Active", color: "bg-primary-container" },
-			{ key: "arrived", label: "Arrived", color: "bg-secondary-fixed" },
-			{ key: "delayed", label: "Delayed", color: "bg-error-container" },
+			{ key: "Open", label: "Open", color: "bg-primary-container" },
+			{ key: "Checked-In", label: "Checked-In", color: "bg-secondary-fixed" },
+			{ key: "Ongoing", label: "Ongoing", color: "bg-primary" },
 		],
 	},
 });
@@ -566,6 +573,20 @@ const getProviderAppointmentsForSelectedDate = (providerId) => {
 	return getProviderAppointmentsByDate(providerId, selectedDate.value);
 };
 
+const hasAppointmentsForSelectedDate = computed(() => {
+	return localAppointments.value.some(
+		(appointment) => appointmentDate(appointment) === selectedDate.value
+	);
+});
+
+const emptyDayMessage = computed(() => {
+	const today = dateToIso(new Date());
+	if (selectedDate.value === today) {
+		return "No appointments scheduled for today";
+	}
+	return "No appointments scheduled for selected day";
+});
+
 const visibleDates = computed(() => {
 	const baseDate = isoToDate(selectedDate.value);
 	if (currentView.value === "day") {
@@ -640,20 +661,29 @@ const getTimeOffsetMinutes = (time) => {
 };
 
 const appointmentClass = (appointment) => {
-	const baseClass = "text-on-primary-container border border-white/20";
+	const status = String(appointment.status || "")
+		.trim()
+		.toLowerCase();
 
-	switch (appointment.status) {
-		case "active":
-			return `${baseClass} bg-primary-container`;
-		case "arrived":
-			return `${baseClass} bg-secondary-fixed text-on-secondary-fixed-variant border-0`;
-		case "delayed":
-			return `${baseClass} bg-error text-on-error border-0`;
-		case "unavailable":
-			return "bg-surface-variant text-on-surface-variant opacity-50 border border-dashed border-outline";
-		default:
-			return `${baseClass} bg-primary-container`;
-	}
+	const classesByStatus = {
+		open: "bg-primary-container text-on-primary-container border border-white/20",
+		"pending payment":
+			"bg-tertiary-container text-on-tertiary-container border border-white/20",
+		confirmed: "bg-secondary-fixed text-on-secondary-fixed-variant border-0",
+		"checked-in": "bg-secondary-fixed text-on-secondary-fixed-variant border-0",
+		ongoing: "bg-primary text-on-primary border-0",
+		rescheduled: "bg-error-container text-on-error-container border border-error/20",
+		completed: "bg-secondary-container text-on-secondary-container border border-secondary/20",
+		cancelled:
+			"bg-surface-variant text-on-surface-variant opacity-70 border border-dashed border-outline",
+		closed: "bg-surface-variant text-on-surface-variant opacity-70 border border-dashed border-outline",
+		"no show": "bg-error text-on-error border-0",
+	};
+
+	return (
+		classesByStatus[status] ||
+		"bg-primary-container text-on-primary-container border border-white/20"
+	);
 };
 
 const providerRowClass = (provider) => {
