@@ -4,12 +4,9 @@ import { navigateTo } from "./utils";
 
 const routes = [
 	{
-		name: "Bookings",
+		name: "Dashboard",
 		path: "/",
-		components: {
-			default: () => import("@/pages/booking/Bookings.vue"),
-			sidebar: () => import("@/pages/booking/BookingSummary.vue"),
-		},
+		component: () => import("@/pages/dashboard/Dashboard.vue"),
 		meta: { requiresLogin: true },
 	},
 	{
@@ -26,10 +23,7 @@ const routes = [
 	{
 		name: "NewBooking",
 		path: "/new_booking",
-		components: {
-			default: () => import("@/pages/booking/NewBooking.vue"),
-			sidebar: () => import("@/pages/booking/NewBookingSummary.vue"),
-		},
+		component: () => import("@/pages/booking/NewBooking.vue"),
 		meta: { requiresLogin: true },
 	},
 ];
@@ -50,7 +44,7 @@ router.beforeEach(async (to) => {
 	}
 
 	if (to.name === "Login" && auth.isLoggedIn) {
-		return { name: "Bookings" };
+		return { name: "Dashboard" };
 	}
 });
 
