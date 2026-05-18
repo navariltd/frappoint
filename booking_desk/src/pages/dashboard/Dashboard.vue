@@ -17,46 +17,34 @@
 	<div class="p-6 space-y-6">
 		<!-- Operational Summary Cards -->
 		<section class="grid lg:grid-cols-6 gap-4 md:grid-cols-3">
-			<OperationalSummaryCards label="Today's Appt" :number="24" icon="calendar_add_on" />
-			<OperationalSummaryCards label="Checked-In" :number="8" icon="check_circle" />
-			<OperationalSummaryCards label="Ongoing" :number="5" icon="sync" />
-			<OperationalSummaryCards
-				label="Pending Payment"
-				:number="3"
-				icon="pending"
-				numberColor="text-tertiary"
-				iconColor="text-tertiary"
-			/>
-			<OperationalSummaryCards
-				label="Delayed"
-				:number="2"
-				icon="warning"
-				numberColor="text-error"
-				iconColor="text-error"
-				borderLeftColor="border-l-error"
-				:iconFilled="true"
-			/>
-			<OperationalSummaryCards
-				label="No-Show"
-				:number="1"
-				icon="person_off"
-				numberColor="text-on-surface-variant"
-				iconColor="text-on-surface-variant"
-				numberOpacity="opacity-50"
-				iconOpacity="opacity-30"
-			/>
+			<OperationalSummaryCards v-for="card in summaryCards" :key="card.key" v-bind="card" />
 		</section>
 
 		<div class="grid grid-cols-12 gap-6">
 			<!-- Live Operational Timeline (Dominant Focus) -->
-			<ResourceTimeline
-				class="col-span-9"
-				title="Live Resource Timeline"
-				:providers="providers"
-				:appointments="appointments"
-				:timeSlots="timeSlots"
-				@appointments-updated="onAppointmentsUpdated"
-			/>
+			<div class="col-span-9 space-y-3">
+				<div
+					v-if="dashboardError"
+					class="rounded-lg border border-error-container bg-error-container/30 px-3 py-2 text-[12px] text-on-surface flex items-center justify-between"
+				>
+					<span>{{ dashboardError }}</span>
+					<button class="text-primary font-semibold" @click="retry">Retry</button>
+				</div>
+				<div v-if="dashboardLoading" class="text-[12px] text-on-surface-variant px-1">
+					Loading dashboard data...
+				</div>
+				<ResourceTimeline
+					title="Live Resource Timeline"
+					:providers="providers"
+					:appointments="appointments"
+					:selectedDateValue="selectedDate"
+					:defaultView="view"
+					:statuses="timelineStatuses"
+					@appointments-updated="onAppointmentsUpdated"
+					@date-changed="onDateChanged"
+					@view-changed="onViewChanged"
+				/>
+			</div>
 			<!-- Check-in & Queue Panel -->
 			<aside class="col-span-3 space-y-6">
 				<section
@@ -291,90 +279,20 @@
 <script setup>
 import ResourceTimeline from "@/components/dashboard/ResourceTimeline.vue";
 import OperationalSummaryCards from "@/components/dashboard/OperationalSummaryCards.vue";
-import { ref } from "vue";
+import { useDashboard } from "@/composables/dashboard/useDashboard";
+import { useProviderTimeline } from "@/composables/dashboard/useProviderTimeline";
 
-const timeSlots = ref(["09:00", "10:00", "11:00", "12:00", "13:00"]);
-
-const providers = ref([
-	{
-		id: "provider-1",
-		name: "Dr. Marcus S.",
-		initials: "MS",
-		designation: "Physio",
-		overloaded: false,
-	},
-	{
-		id: "provider-2",
-		name: "Lydia Moore",
-		initials: "LM",
-		designation: "OVERLOADED",
-		overloaded: true,
-	},
-	{
-		id: "provider-3",
-		name: "Dr. Aris V.",
-		initials: "AV",
-		designation: "Chiropractor",
-		overloaded: false,
-	},
-]);
-
-const appointments = ref([
-	// Provider 1 appointments
-	{
-		id: "apt-1",
-		providerId: "provider-1",
-		guestName: "Sarah Jenkins",
-		service: "Deep Tissue",
-		startTime: "09:00",
-		duration: 1,
-		status: "active",
-		showTimer: true,
-	},
-	{
-		id: "apt-2",
-		providerId: "provider-1",
-		guestName: "Alex Rivera",
-		service: "Consultation",
-		startTime: "10:15",
-		duration: 0.75,
-		status: "arrived",
-	},
-	// Provider 2 appointments
-	{
-		id: "apt-3",
-		providerId: "provider-2",
-		guestName: "Marcus Thorne",
-		service: "Swedish Massage",
-		startTime: "09:05",
-		duration: 1.25,
-		status: "delayed",
-		delayed: "DELAYED 12m",
-	},
-	{
-		id: "apt-4",
-		providerId: "provider-2",
-		guestName: "Emma Wilson",
-		service: "Aromatherapy",
-		startTime: "10:40",
-		duration: 1,
-		status: "unavailable",
-	},
-	// Provider 3 appointments
-	{
-		id: "apt-5",
-		providerId: "provider-3",
-		guestName: "Liam Hudson",
-		service: "Adjustment",
-		startTime: "11:40",
-		duration: 0.5,
-		status: "active",
-	},
-]);
-
-const onAppointmentsUpdated = (nextAppointments) => {
-	appointments.value = nextAppointments;
-};
+const { summaryCards, isLoading: dashboardLoading, error: dashboardError, retry } = useDashboard();
+const {
+	providers,
+	appointments,
+	selectedDate,
+	view,
+	timelineStatuses,
+	onAppointmentsUpdated,
+	onDateChanged,
+	onViewChanged,
+} = useProviderTimeline();
 </script>
 
 <style></style>
