@@ -1,7 +1,7 @@
 <template>
 	<RouterLink
 		:to="to"
-		class="group flex items-center justify-between px-3 py-2.5 rounded-lg transition-all duration-200"
+		class="group flex items-center justify-between px-3 py-2.5 rounded-sm transition-all duration-200"
 		:class="[
 			isActive
 				? 'bg-primary/10 text-primary border-l-4 border-primary'
@@ -10,12 +10,16 @@
 	>
 		<div class="flex items-center gap-3">
 			<span
-				class="material-symbols-outlined text-[20px]"
+				class="material-symbols-outlined text-[24px]"
 				:class="isActive ? 'text-primary' : 'text-gray-400 group-hover:text-gray-600'"
 			>
 				{{ icon }}
 			</span>
-			<span class="text-sm font-medium">{{ label }}</span>
+			<span
+				class="text-md font-medium"
+				:class="isActive ? 'text-primary' : 'text-gray-400'"
+				>{{ label }}</span
+			>
 		</div>
 
 		<span

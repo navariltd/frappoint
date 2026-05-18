@@ -8,7 +8,7 @@
 				>
 			</span>
 			<input
-				class="block w-full pl-10 pr-12 py-2 sm:text-sm bg-gray-50 dark:bg-gray-800 border-border-light dark:border-border-dark rounded-md focus:ring-primary focus:border-primary placeholder-text-sub-light dark:placeholder-text-sub-dark text-text-main-light dark:text-text-main-dark transition-colors"
+				class="block w-full pl-10 pr-12 py-[12px] sm:text-sm bg-gray-50 dark:bg-gray-800 border-border-light dark:border-border-dark rounded-md focus:ring-primary focus:border-primary placeholder-text-sub-light dark:placeholder-text-sub-dark text-text-main-light dark:text-text-main-dark transition-colors"
 				placeholder="Search"
 				type="text"
 			/>
