@@ -5,6 +5,13 @@ import frappe
 from frappe import _
 from frappe.utils import flt
 
+from frappoint.payments import (
+	get_confirmation_deposit_percent,
+	get_payment_amount,
+	get_payment_gateways_for_service_type,
+	get_payment_link,
+)
+
 
 def _parse_json_payload(value, fallback):
 	if value is None:
@@ -83,6 +90,9 @@ def _serialize_booking(booking):
 			"end_time",
 			"appointment_provider",
 			"status",
+			"payment_status",
+			"total_amount",
+			"outstanding_amount",
 			"full_name",
 			"email",
 			"mobile_no",
@@ -101,6 +111,7 @@ def _serialize_booking(booking):
 		"currency": booking.currency,
 		"subtotal": booking.subtotal,
 		"grandTotal": booking.grand_total,
+		"outstandingAmount": booking.outstanding_amount,
 		"totalGuests": booking.total_guests,
 		"items": [
 			{
@@ -122,6 +133,9 @@ def _serialize_booking(booking):
 				"endTime": appointment.end_time,
 				"provider": appointment.appointment_provider,
 				"status": appointment.status,
+				"paymentStatus": appointment.payment_status,
+				"totalAmount": appointment.total_amount,
+				"outstandingAmount": appointment.outstanding_amount,
 				"fullName": appointment.full_name,
 				"email": appointment.email,
 				"mobileNo": appointment.mobile_no,
@@ -129,6 +143,246 @@ def _serialize_booking(booking):
 			}
 			for appointment in appointments
 		],
+	}
+
+
+def _build_checkout_summary(booking):
+	total_amount = flt(booking.grand_total)
+	outstanding_amount = max(0, flt(booking.outstanding_amount))
+	paid_amount = max(0, total_amount - outstanding_amount)
+	deposit_percent = flt(get_confirmation_deposit_percent("Service Booking", booking.name, doc=booking))
+	minimum_due = flt(get_payment_amount("Service Booking", booking.name, total_amount, doc=booking))
+
+	return {
+		"booking": _serialize_booking(booking),
+		"payment": {
+			"referenceDoctype": "Service Booking",
+			"referenceDocname": booking.name,
+			"currency": booking.currency,
+			"totalAmount": total_amount,
+			"paidAmount": paid_amount,
+			"outstandingAmount": outstanding_amount,
+			"minimumDue": minimum_due,
+			"depositPercent": deposit_percent,
+		},
+	}
+
+
+def _get_booking_service_types(booking):
+	service_types = []
+	for item in booking.items:
+		service_type = item.service_type
+		if service_type and service_type not in service_types:
+			service_types.append(service_type)
+	return service_types
+
+
+def _get_mode_of_payment_options():
+	try:
+		rows = frappe.get_all(
+			"Mode of Payment",
+			filters={"enabled": 1},
+			fields=["name", "type"],
+			order_by="name asc",
+		)
+	except Exception:
+		rows = frappe.get_all("Mode of Payment", fields=["name"], order_by="name asc")
+
+	options = []
+	for row in rows:
+		name = row.get("name") if isinstance(row, dict) else None
+		if not name:
+			continue
+		label = name
+		provider_type = "cash" if name.lower() == "cash" else "manual"
+		options.append(
+			{
+				"id": f"mode:{name}",
+				"label": label,
+				"sourceType": "mode_of_payment",
+				"providerType": provider_type,
+				"modeOfPayment": name,
+			}
+		)
+	return options
+
+
+def _get_gateway_options(booking):
+	service_types = _get_booking_service_types(booking)
+
+	gateway_names = []
+	for service_type in service_types:
+		for gateway in get_payment_gateways_for_service_type(service_type):
+			if gateway and gateway not in gateway_names:
+				gateway_names.append(gateway)
+
+	if not gateway_names:
+		for gateway in get_payment_gateways_for_service_type(None):
+			if gateway and gateway not in gateway_names:
+				gateway_names.append(gateway)
+
+	options = []
+	for gateway in gateway_names:
+		provider_type = "mpesa" if "mpesa" in gateway.lower() else "hosted"
+		capabilities = ["redirect", "link"]
+		if provider_type == "mpesa":
+			capabilities = ["mpesa", "link"]
+
+		options.append(
+			{
+				"id": f"gateway:{gateway}",
+				"label": gateway,
+				"sourceType": "gateway",
+				"providerType": provider_type,
+				"gateway": gateway,
+				"capabilities": capabilities,
+			}
+		)
+
+	return options
+
+
+@frappe.whitelist()
+def get_checkout_summary(booking_id: str):
+	if not booking_id:
+		frappe.throw(_("Booking reference is required."))
+
+	booking = frappe.get_doc("Service Booking", booking_id)
+	booking.reload()
+	booking.sync_financial_snapshot()
+	booking.reload()
+
+	return _build_checkout_summary(booking)
+
+
+@frappe.whitelist()
+def get_checkout_payment_methods(booking_id: str):
+	if not booking_id:
+		frappe.throw(_("Booking reference is required."))
+
+	booking = frappe.get_doc("Service Booking", booking_id)
+	methods = _get_gateway_options(booking)
+	methods.extend(_get_mode_of_payment_options())
+
+	default_method_id = ""
+	if methods:
+		mpesa = next((method for method in methods if method.get("providerType") == "mpesa"), None)
+		default_method_id = (mpesa or methods[0]).get("id")
+
+	return {
+		"methods": methods,
+		"defaultMethodId": default_method_id,
+	}
+
+
+@frappe.whitelist()
+def get_checkout_offline_payment_methods(booking_id: str):
+	if not booking_id:
+		frappe.throw(_("Booking reference is required."))
+
+	# Validate booking context even though offline methods are global configuration.
+	frappe.get_doc("Service Booking", booking_id)
+	methods = _get_mode_of_payment_options()
+	default_method_id = methods[0].get("id") if methods else ""
+	return {
+		"methods": methods,
+		"defaultMethodId": default_method_id,
+	}
+
+
+@frappe.whitelist()
+def get_checkout_online_payment_gateways(booking_id: str):
+	if not booking_id:
+		frappe.throw(_("Booking reference is required."))
+
+	booking = frappe.get_doc("Service Booking", booking_id)
+	methods = _get_gateway_options(booking)
+	default_method_id = ""
+	if methods:
+		mpesa = next((method for method in methods if method.get("providerType") == "mpesa"), None)
+		default_method_id = (mpesa or methods[0]).get("id")
+
+	return {
+		"methods": methods,
+		"defaultMethodId": default_method_id,
+	}
+
+
+@frappe.whitelist()
+def create_checkout_payment_link(
+	booking_id: str,
+	payment_gateway: str | None = None,
+	redirect_to: str | None = None,
+	phone_number: str | None = None,
+):
+	if not booking_id:
+		frappe.throw(_("Booking reference is required."))
+
+	if phone_number:
+		frappe.db.set_value("Service Booking", booking_id, "mobile_no", phone_number)
+
+	url = get_payment_link(
+		reference_doctype="Service Booking",
+		reference_docname=booking_id,
+		payment_gateway=payment_gateway or "",
+		redirect_to=redirect_to or "",
+	)
+
+	booking = frappe.get_doc("Service Booking", booking_id)
+	booking.reload()
+
+	return {
+		"url": url,
+		"checkout": _build_checkout_summary(booking),
+	}
+
+
+@frappe.whitelist()
+def record_manual_checkout_payment(
+	booking_id: str,
+	amount: float,
+	mode_of_payment: str | None = None,
+	reference_no: str | None = None,
+):
+	if not booking_id:
+		frappe.throw(_("Booking reference is required."))
+
+	booking = frappe.get_doc("Service Booking", booking_id)
+	pay_amount = flt(amount)
+
+	if pay_amount <= 0:
+		frappe.throw(_("Payment amount must be greater than zero."))
+
+	if pay_amount > flt(booking.outstanding_amount):
+		frappe.throw(_("Payment amount cannot exceed outstanding balance."))
+
+	payment_doc = frappe.new_doc("Service Appointment Payment")
+	payment_doc.user = frappe.session.user
+	payment_doc.amount = pay_amount
+	payment_doc.currency = booking.currency
+	payment_doc.reference_doctype = "Service Booking"
+	payment_doc.reference_docname = booking.name
+	payment_doc.payment_received = 1
+
+	if mode_of_payment:
+		payment_doc.mode_of_payment = mode_of_payment
+
+	if reference_no:
+		payment_doc.payment_id = reference_no
+		payment_doc.order_id = reference_no
+
+	payment_doc.insert(ignore_permissions=True)
+	payment_doc.submit()
+
+	booking.reload()
+	booking.sync_financial_snapshot()
+	booking.reload()
+
+	frappe.db.commit()  # nosemgrep
+
+	return {
+		"paymentName": payment_doc.name,
+		"checkout": _build_checkout_summary(booking),
 	}
 
 
