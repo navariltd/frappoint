@@ -35,8 +35,11 @@ export function useServiceCart() {
 
 	const onAddService = (service, price, packageName, duration, packageId) =>
 		store.addServiceToCart(service, price, packageName, duration, packageId);
-	const onRemoveService = (serviceId) => store.removeServiceFromCart(serviceId);
-	const onDecrementService = (serviceId) => store.decrementServiceQuantity(serviceId);
+	const onRemoveService = (cartKey) => store.removeServiceFromCart(cartKey);
+	const onDecrementService = (cartKey) => store.decrementServiceQuantity(cartKey);
+	const onIncrementService = (cartKey) => store.incrementServiceQuantity(cartKey);
+	const onUpdateServicePackage = (cartKey, packageId, packageName, price, duration) =>
+		store.updateServicePackage(cartKey, packageId, packageName, price, duration);
 	const onCategorySelect = (category) => store.setSelectedCategory(category);
 	const onSearchChange = (value) => store.setSearchQuery(value);
 	const onSelectCustomer = (customerId) => store.setSelectedCustomer(customerId);
@@ -76,6 +79,8 @@ export function useServiceCart() {
 		onAddService,
 		onRemoveService,
 		onDecrementService,
+		onIncrementService,
+		onUpdateServicePackage,
 		onCategorySelect,
 		onSearchChange,
 		onSelectCustomer,

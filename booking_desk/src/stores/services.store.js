@@ -129,6 +129,27 @@ export const useServicesStore = defineStore("services", {
 			}
 			item.quantity -= 1;
 		},
+		incrementServiceQuantity(cartKeyOrServiceId) {
+			const item = this.cartItems.find(
+				(entry) =>
+					entry.cartKey === cartKeyOrServiceId || entry.serviceId === cartKeyOrServiceId
+			);
+			if (item) {
+				item.quantity += 1;
+			}
+		},
+		updateServicePackage(cartKeyOrServiceId, packageId, packageName, price, duration) {
+			const item = this.cartItems.find(
+				(entry) =>
+					entry.cartKey === cartKeyOrServiceId || entry.serviceId === cartKeyOrServiceId
+			);
+			if (item) {
+				item.packageId = packageId;
+				item.packageName = packageName;
+				item.price = price;
+				item.duration = duration;
+			}
+		},
 		clearCart() {
 			this.cartItems = [];
 		},

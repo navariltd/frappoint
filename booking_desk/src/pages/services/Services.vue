@@ -1,11 +1,9 @@
 <template>
-	<div class="flex h-full overflow-hidden bg-[#f4fafd] text-on-surface">
+	<div class="flex h-full overflow-hidden text-on-surface">
 		<section
-			class="flex-1 min-w-0 flex flex-col border-r border-outline-variant/60 bg-surface-container-low"
+			class="flex-1 min-w-0 flex flex-col border-r border-outline-variant/60 bg-gray-50/50"
 		>
-			<div
-				class="shrink-0 px-4 py-3 border-b border-outline-variant bg-surface-container-lowest"
-			>
+			<div class="shrink-0 px-4 py-3 border-outline-variant bg-surface-container-lowest">
 				<div class="flex items-center gap-2 overflow-x-auto scrollbar-hide pb-1">
 					<button
 						v-for="category in categories"
@@ -173,33 +171,52 @@
 						class="rounded-xl border border-outline-variant p-3 bg-surface-container-low"
 					>
 						<div class="flex items-start justify-between gap-2">
-							<div class="min-w-0">
+							<div class="min-w-0 flex-1">
 								<p class="text-[12px] font-semibold truncate">{{ item.name }}</p>
-								<p
-									v-if="item.packageName"
-									class="text-[11px] text-on-surface-variant"
+								<button
+									type="button"
+									class="text-[11px] text-primary hover:underline mt-1"
+									@click="openPackageChangeDialog(item)"
 								>
-									{{ item.packageName }}
-								</p>
-								<p class="text-[11px] text-on-surface-variant">
-									{{ item.duration }} min • Qty {{ item.quantity }}
+									{{ item.packageName || "Change package" }}
+								</button>
+								<p class="text-[11px] text-on-surface-variant mt-1">
+									{{ item.duration }} min
 								</p>
 							</div>
-							<p class="text-[12px] font-semibold">
+							<p class="text-[12px] font-semibold whitespace-nowrap">
 								{{ formatMoney(item.price * item.quantity) }}
 							</p>
 						</div>
-						<div class="mt-2 flex justify-end gap-2">
-							<button
-								type="button"
-								class="text-[11px] text-on-surface-variant"
-								@click="onDecrementService(item.cartKey || item.serviceId)"
+						<div class="mt-3 flex items-center justify-between gap-2">
+							<div
+								class="flex items-center gap-2 bg-surface-container-high rounded-lg px-2 py-1"
 							>
-								-1
-							</button>
+								<button
+									type="button"
+									class="text-[13px] text-on-surface hover:text-primary transition-colors"
+									@click="onDecrementService(item.cartKey || item.serviceId)"
+									:disabled="item.quantity <= 1"
+									:class="
+										item.quantity <= 1 ? 'opacity-50 cursor-not-allowed' : ''
+									"
+								>
+									−
+								</button>
+								<span class="text-[12px] font-semibold w-6 text-center">
+									{{ item.quantity }}
+								</span>
+								<button
+									type="button"
+									class="text-[13px] text-on-surface hover:text-primary transition-colors"
+									@click="onIncrementService(item.cartKey || item.serviceId)"
+								>
+									+
+								</button>
+							</div>
 							<button
 								type="button"
-								class="text-[11px] text-error"
+								class="text-[11px] text-error hover:text-error/80 transition-colors"
 								@click="onRemoveService(item.cartKey || item.serviceId)"
 							>
 								Remove
@@ -247,8 +264,14 @@
 	<PricingPackageDialog
 		:isOpen="isPricingDialogOpen"
 		:service="selectedService"
-		@select="handlePriceSelected"
-		@close="isPricingDialogOpen = false"
+		@select="
+			editingCartItemKey ? handleCartPackageSelected($event) : handlePriceSelected($event)
+		"
+		@close="
+			editingCartItemKey
+				? onPricingDialogClose()
+				: ((isPricingDialogOpen = false), (selectedService = null))
+		"
 	/>
 </template>
 
@@ -262,6 +285,8 @@ const isCustomerPickerOpen = ref(false);
 const isPricingDialogOpen = ref(false);
 const selectedService = ref(null);
 const loadingServiceId = ref("");
+const editingCartItemKey = ref("");
+const cartItemPackages = ref({});
 
 const {
 	filteredServices,
@@ -283,6 +308,8 @@ const {
 	onAddService,
 	onRemoveService,
 	onDecrementService,
+	onIncrementService,
+	onUpdateServicePackage,
 	onCategorySelect,
 	onSelectCustomer,
 	onResolveServicePackages,
@@ -371,6 +398,45 @@ const handlePriceSelected = (selectedPrice) => {
 			selectedPrice.duration || selectedService.value.duration,
 			selectedPrice.id
 		);
+		selectedService.value = null;
+	}
+};
+
+const openPackageChangeDialog = async (item) => {
+	if (!editingCartItemKey.value) {
+		editingCartItemKey.value = item.cartKey || item.serviceId;
+		const packageData = await onResolveServicePackages(item.serviceId, item.duration);
+		cartItemPackages.value[editingCartItemKey.value] = packageData?.packages || [];
+
+		selectedService.value = {
+			...item,
+			id: item.serviceId,
+			availablePrices: cartItemPackages.value[editingCartItemKey.value],
+		};
+		isPricingDialogOpen.value = true;
+	}
+};
+
+const handleCartPackageSelected = (selectedPrice) => {
+	if (editingCartItemKey.value && selectedService.value) {
+		onUpdateServicePackage(
+			editingCartItemKey.value,
+			selectedPrice.id,
+			selectedPrice.name,
+			selectedPrice.amount,
+			selectedPrice.duration || selectedService.value.duration
+		);
+		editingCartItemKey.value = "";
+		selectedService.value = null;
+	}
+};
+
+const onPricingDialogClose = () => {
+	if (editingCartItemKey.value) {
+		editingCartItemKey.value = "";
+		handleCartPackageSelected(selectedService.value);
+	} else {
+		isPricingDialogOpen.value = false;
 		selectedService.value = null;
 	}
 };
