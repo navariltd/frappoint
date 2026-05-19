@@ -50,6 +50,12 @@ const routes = [
 		component: () => import("@/pages/bookings/BookingDetails.vue"),
 		meta: { requiresLogin: true },
 	},
+	{
+		name: "AppointmentDetails",
+		path: "/appointments/:appointmentId",
+		component: () => import("@/pages/bookings/AppointmentDetails.vue"),
+		meta: { requiresLogin: true },
+	},
 ];
 
 const router = createRouter({
