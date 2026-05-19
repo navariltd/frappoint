@@ -53,6 +53,7 @@
 				:progress="progress"
 				:isComplete="isComplete"
 				:total="formattedTotal"
+				@proceed="onProceedToPayment"
 			/>
 		</div>
 	</div>
@@ -60,6 +61,7 @@
 
 <script setup>
 import { computed } from "vue";
+import { useRouter } from "vue-router";
 import AssignmentLoadingState from "@/components/booking/guest-assignment/AssignmentLoadingState.vue";
 import AssignmentSummarySidebar from "@/components/booking/guest-assignment/AssignmentSummarySidebar.vue";
 import AssignmentValidationBanner from "@/components/booking/guest-assignment/AssignmentValidationBanner.vue";
@@ -67,6 +69,8 @@ import ServiceAssignmentCard from "@/components/booking/guest-assignment/Service
 import { useAvailability } from "@/composables/booking/guest-assignment/useAvailability";
 import { useGuestAssignment } from "@/composables/booking/guest-assignment/useGuestAssignment";
 import { useSlotSelection } from "@/composables/booking/guest-assignment/useSlotSelection";
+
+const router = useRouter();
 
 const {
 	assignments,
@@ -121,5 +125,16 @@ const onSelectGuestDate = async (serviceKey, guestKey, date) => {
 
 const onSelectGuestSlot = async (serviceKey, guestKey, slotId) => {
 	await selectGuestSlot(serviceKey, guestKey, slotId);
+};
+
+const onProceedToPayment = () => {
+	if (!isComplete.value) {
+		return;
+	}
+
+	router.push({
+		name: "Checkout",
+		query: draftBooking.value?.name ? { booking_id: draftBooking.value.name } : undefined,
+	});
 };
 </script>

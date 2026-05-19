@@ -49,6 +49,7 @@
 						: 'bg-surface-variant text-on-surface-variant cursor-not-allowed'
 				"
 				:disabled="!isComplete"
+				@click="$emit('proceed')"
 			>
 				{{ isComplete ? "Continue to Payment" : "Complete Assignments to Continue" }}
 			</button>
@@ -75,4 +76,6 @@ defineProps({
 		default: false,
 	},
 });
+
+defineEmits(["proceed"]);
 </script>
