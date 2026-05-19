@@ -1686,8 +1686,58 @@ def reschedule_appointment(
 			else:
 				new_appointment.selected_slot_ids = json.dumps(new_slot_ids)
 
-		# Insert and submit the new appointment
+		# Insert new appointment first so child payment links can be reassigned,
+		# then set outstanding/payment state before submit validations run.
 		new_appointment.insert(ignore_permissions=True)
+
+		# Move direct appointment payment records to the new appointment.
+		payment_rows = frappe.get_all(
+			"Service Appointment Payment",
+			filters={"reference_doctype": "Service Appointment", "reference_docname": old_appointment.name},
+			fields=["name", "amount", "payment_received"],
+		)
+		paid_amount = 0
+		for payment_row in payment_rows:
+			if payment_row.get("payment_received"):
+				paid_amount += flt(payment_row.get("amount"))
+			frappe.db.set_value(
+				"Service Appointment Payment",
+				payment_row.get("name"),
+				{"reference_docname": new_appointment.name},
+			)
+
+		# Move booking-allocation references so booking-paid balances follow the new appointment.
+		payment_reference_rows = frappe.get_all(
+			"Service Appointment Payment Reference",
+			filters={"reference_doctype": "Service Appointment", "reference_name": old_appointment.name},
+			fields=["name", "allocated_amount"],
+		)
+		allocated_paid_amount = 0
+		for reference_row in payment_reference_rows:
+			allocated_paid_amount += flt(reference_row.get("allocated_amount"))
+			frappe.db.set_value(
+				"Service Appointment Payment Reference",
+				reference_row.get("name"),
+				{"reference_name": new_appointment.name},
+			)
+
+		# Fallback to old appointment paid state in case any payment links are stale.
+		old_paid_amount = max(0, flt(old_appointment.grand_total) - flt(old_appointment.outstanding_amount))
+		paid_amount = max(paid_amount, allocated_paid_amount, old_paid_amount)
+
+		grand_total = flt(new_appointment.grand_total or new_appointment.total_amount)
+		outstanding_amount = max(0, grand_total - paid_amount)
+		if outstanding_amount <= 0 and grand_total > 0:
+			payment_status = "Paid"
+		elif paid_amount > 0:
+			payment_status = "Partly Paid"
+		else:
+			payment_status = "Unpaid"
+
+		new_appointment.outstanding_amount = outstanding_amount
+		new_appointment.payment_status = payment_status
+
+		# Submit after payment state is in place so confirmation deposit validation passes.
 		new_appointment.submit()
 
 		# Cancel the old appointment
@@ -1712,6 +1762,8 @@ def reschedule_appointment(
 			"success": True,
 			"new_appointment": new_appointment.name,
 			"old_appointment": old_appointment.name,
+			"transferred_payments": len(payment_rows),
+			"transferred_payment_references": len(payment_reference_rows),
 			"message": _("Appointment rescheduled successfully. New appointment: {0}").format(
 				get_link_to_form("Service Appointment", new_appointment.name)
 			),
