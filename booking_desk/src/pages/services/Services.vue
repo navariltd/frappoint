@@ -254,6 +254,7 @@
 							: 'bg-surface-container-high text-on-surface-variant cursor-not-allowed'
 					"
 					:disabled="!canContinue"
+					@click="proceedToGuestAssignment"
 				>
 					Continue Booking
 				</button>
@@ -277,9 +278,11 @@
 
 <script setup>
 import { computed, ref } from "vue";
+import { useRouter } from "vue-router";
 import { useServiceCart } from "@/composables/services/useServiceCart";
 import PricingPackageDialog from "@/components/services/PricingPackageDialog.vue";
 
+const router = useRouter();
 const customerSearch = ref("");
 const isCustomerPickerOpen = ref(false);
 const isPricingDialogOpen = ref(false);
@@ -441,6 +444,12 @@ const onPricingDialogClose = () => {
 	}
 };
 
+const proceedToGuestAssignment = () => {
+	if (!canContinue.value) {
+		return;
+	}
+	router.push({ name: "GuestAssignment" });
+};
 const clearCart = onClearCart;
 </script>
 

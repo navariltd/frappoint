@@ -26,6 +26,12 @@ const routes = [
 		component: () => import("@/pages/booking/NewBooking.vue"),
 		meta: { requiresLogin: true },
 	},
+	{
+		name: "GuestAssignment",
+		path: "/guest_assignment",
+		component: () => import("@/pages/booking/GuestAssignment.vue"),
+		meta: { requiresLogin: true },
+	},
 ];
 
 const router = createRouter({
