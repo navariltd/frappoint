@@ -1,0 +1,216 @@
+<template>
+	<div
+		class="rounded-lg border border-outline-variant bg-surface-container-lowest overflow-hidden"
+	>
+		<!-- Collapsible header -->
+		<button
+			type="button"
+			class="w-full flex items-center justify-between gap-2 px-3 py-2.5 text-left hover:bg-surface-container/30 transition-colors"
+			@click="isExpanded = !isExpanded"
+		>
+			<div class="flex items-center gap-2 min-w-0">
+				<span
+					class="material-symbols-outlined text-[16px] text-on-surface-variant shrink-0 transition-transform duration-200"
+					:class="isExpanded ? '' : '-rotate-90'"
+					>expand_more</span
+				>
+				<p class="text-[12px] font-semibold text-on-surface shrink-0">
+					Guest {{ guest.sequence }}
+				</p>
+				<span v-if="guest.fullName" class="text-[11px] text-on-surface-variant truncate"
+					>— {{ guest.fullName }}</span
+				>
+			</div>
+			<span
+				class="rounded-full px-2 py-0.5 text-[10px] font-semibold shrink-0"
+				:class="
+					guest.isComplete
+						? 'bg-tertiary-container text-on-tertiary-container'
+						: 'bg-secondary-container text-on-secondary-container'
+				"
+			>
+				{{ guest.isComplete ? "Scheduled" : "Pending" }}
+			</span>
+		</button>
+
+		<!-- Collapsible body -->
+		<div v-show="isExpanded" class="px-3 pb-3 space-y-3 border-t border-outline-variant">
+			<!-- 1. Assign Guest: inline fields -->
+			<div class="space-y-2 pt-3">
+				<div class="flex items-center justify-between">
+					<p class="text-[11px] font-semibold uppercase tracking-wide text-on-surface">
+						1. Assign Guest
+					</p>
+					<button
+						v-if="guest.fullName"
+						type="button"
+						class="text-[11px] text-error hover:underline"
+						@click.stop="onClear"
+					>
+						Clear
+					</button>
+				</div>
+
+				<div class="grid grid-cols-3 gap-2">
+					<div>
+						<label class="block text-[10px] text-on-surface-variant mb-1">
+							Full Name <span class="text-error">*</span>
+						</label>
+						<input
+							:list="datalistId"
+							type="text"
+							class="w-full rounded-lg border border-outline-variant bg-surface px-3 py-2 text-[12px] outline-none focus:border-primary transition-colors"
+							placeholder="Search or type name"
+							v-model="localName"
+							@change="onNameChange"
+						/>
+						<datalist :id="datalistId">
+							<option v-for="c in customers" :key="c.id" :value="c.name" />
+						</datalist>
+					</div>
+					<div>
+						<label class="block text-[10px] text-on-surface-variant mb-1">Email</label>
+						<input
+							type="email"
+							class="w-full rounded-lg border border-outline-variant bg-surface px-3 py-2 text-[12px] outline-none focus:border-primary transition-colors"
+							placeholder="email@example.com"
+							v-model="localEmail"
+							@change="onDetailChange"
+						/>
+					</div>
+					<div>
+						<label class="block text-[10px] text-on-surface-variant mb-1">Phone</label>
+						<input
+							type="tel"
+							class="w-full rounded-lg border border-outline-variant bg-surface px-3 py-2 text-[12px] outline-none focus:border-primary transition-colors"
+							placeholder="+254 700 000 000"
+							v-model="localPhone"
+							@change="onDetailChange"
+						/>
+					</div>
+				</div>
+
+				<p v-if="error" class="text-[11px] text-error">{{ error }}</p>
+			</div>
+
+			<DateSelectionSection
+				:dates="guest.availableDates"
+				:selectedDate="guest.date"
+				:isLoading="isLoadingDates"
+				:error="!guest.fullName ? '' : error"
+				@load-dates="$emit('load-dates')"
+				@select-date="$emit('select-date', $event)"
+			/>
+
+			<SlotSelectionSection
+				:slots="guest.availableSlots"
+				:selectedSlotId="guest.slot?.id || ''"
+				:isLoading="isLoadingSlots"
+				:error="!guest.date ? '' : error"
+				@select-slot="$emit('select-slot', $event)"
+			/>
+		</div>
+	</div>
+</template>
+
+<script setup>
+import { ref, computed, watch } from "vue";
+import DateSelectionSection from "./DateSelectionSection.vue";
+import SlotSelectionSection from "./SlotSelectionSection.vue";
+
+const emit = defineEmits([
+	"select-customer",
+	"quick-create",
+	"clear-guest",
+	"load-dates",
+	"select-date",
+	"select-slot",
+]);
+
+const props = defineProps({
+	guest: {
+		type: Object,
+		required: true,
+	},
+	quantity: {
+		type: Number,
+		default: 1,
+	},
+	customers: {
+		type: Array,
+		default: () => [],
+	},
+	isLoadingDates: {
+		type: Boolean,
+		default: false,
+	},
+	isLoadingSlots: {
+		type: Boolean,
+		default: false,
+	},
+	error: {
+		type: String,
+		default: "",
+	},
+});
+
+const isExpanded = ref(!props.guest.isComplete);
+
+const localName = ref(props.guest.fullName || "");
+const localEmail = ref(props.guest.email || "");
+const localPhone = ref(props.guest.mobileNo || "");
+
+// Sync from store when props change (e.g., after select-customer resolves)
+watch(
+	() => props.guest.fullName,
+	(v) => {
+		localName.value = v || "";
+	}
+);
+watch(
+	() => props.guest.email,
+	(v) => {
+		localEmail.value = v || "";
+	}
+);
+watch(
+	() => props.guest.mobileNo,
+	(v) => {
+		localPhone.value = v || "";
+	}
+);
+
+const datalistId = computed(() => `dl-${props.guest.guestKey.replace(/[^a-z0-9]/gi, "-")}`);
+
+const onNameChange = () => {
+	const trimmed = localName.value.trim();
+	if (!trimmed) return;
+	const matched = props.customers.find((c) => c.name === trimmed);
+	if (matched) {
+		emit("select-customer", matched.id);
+	} else {
+		emit("quick-create", {
+			fullName: trimmed,
+			email: localEmail.value,
+			mobileNo: localPhone.value,
+		});
+	}
+};
+
+const onDetailChange = () => {
+	const trimmed = localName.value.trim();
+	if (!trimmed) return;
+	emit("quick-create", {
+		fullName: trimmed,
+		email: localEmail.value,
+		mobileNo: localPhone.value,
+	});
+};
+
+const onClear = () => {
+	localName.value = "";
+	localEmail.value = "";
+	localPhone.value = "";
+	emit("clear-guest");
+};
+</script>
