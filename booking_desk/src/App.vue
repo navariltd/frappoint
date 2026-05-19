@@ -5,7 +5,7 @@
 		<div class="flex-1 flex flex-col overflow-hidden">
 			<Topbar />
 
-			<main class="flex-1 overflow-y-auto p-4 bg-gray-50/50">
+			<main class="flex-1 overflow-y-auto bg-gray-50/50">
 				<router-view />
 			</main>
 		</div>
