@@ -1,0 +1,31 @@
+import { createResource } from "frappe-ui";
+
+const CREATE_DRAFT_BOOKING_ENDPOINT =
+	"frappoint.frappoint.api.booking_desk.create_draft_service_booking";
+const GET_DRAFT_BOOKING_ENDPOINT =
+	"frappoint.frappoint.api.booking_desk.get_draft_service_booking";
+
+const createDraftBookingResource = createResource({
+	url: CREATE_DRAFT_BOOKING_ENDPOINT,
+	auto: false,
+});
+
+const getDraftBookingResource = createResource({
+	url: GET_DRAFT_BOOKING_ENDPOINT,
+	auto: false,
+});
+
+const unwrapPayload = (payload) => payload?.message ?? payload ?? null;
+
+export async function createDraftServiceBookingApi({ customer, items }) {
+	const response = await createDraftBookingResource.fetch({
+		customer: JSON.stringify(customer || {}),
+		items: JSON.stringify(items || []),
+	});
+	return unwrapPayload(response ?? createDraftBookingResource.data);
+}
+
+export async function getDraftServiceBookingApi(bookingId) {
+	const response = await getDraftBookingResource.fetch({ booking_id: bookingId });
+	return unwrapPayload(response ?? getDraftBookingResource.data);
+}
