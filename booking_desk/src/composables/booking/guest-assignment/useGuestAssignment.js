@@ -1,0 +1,82 @@
+import { computed, onMounted } from "vue";
+import { storeToRefs } from "pinia";
+import { useGuestAssignmentStore } from "@/stores/guestAssignment.store";
+import { useBookingWorkflowStore } from "@/stores/bookingWorkflow.store";
+import { useServicesStore } from "@/stores/services.store";
+
+export function useGuestAssignment() {
+	const guestStore = useGuestAssignmentStore();
+	const workflowStore = useBookingWorkflowStore();
+	const servicesStore = useServicesStore();
+	workflowStore.hydrateFromStorage();
+	const {
+		assignments,
+		activeServiceIndex,
+		activeGuestIndex,
+		isLoadingDates,
+		isLoadingSlots,
+		errorByGuest,
+		progress,
+		validationIssues,
+		isComplete,
+		summaryRows,
+	} = storeToRefs(guestStore);
+	const { cartItems, customers, selectedCustomerId, grandTotal } = storeToRefs(servicesStore);
+	const { draftBooking, appointmentsByGuestKey } = storeToRefs(workflowStore);
+
+	const sourceCartItems = computed(() => {
+		return workflowStore.cartItemsSnapshot.length
+			? workflowStore.cartItemsSnapshot
+			: cartItems.value;
+	});
+
+	const workflowSelectedCustomerId = computed(() => {
+		return workflowStore.customerSnapshot?.customer || selectedCustomerId.value;
+	});
+
+	const activeServiceKey = computed(
+		() => assignments.value[activeServiceIndex.value]?.serviceKey || ""
+	);
+
+	const initialize = async () => {
+		if (!customers.value.length) {
+			await servicesStore.loadCustomers();
+		}
+		if (workflowStore.bookingId && !workflowStore.draftBooking.items.length) {
+			await workflowStore.reloadDraftBookingSession().catch(() => null);
+		}
+		guestStore.initialize({
+			cartItems: sourceCartItems.value,
+			customers: customers.value,
+			selectedCustomerId: workflowSelectedCustomerId.value,
+			appointmentsByGuestKey: appointmentsByGuestKey.value,
+		});
+	};
+
+	onMounted(initialize);
+
+	return {
+		assignments,
+		activeServiceIndex,
+		activeGuestIndex,
+		activeServiceKey,
+		isLoadingDates,
+		isLoadingSlots,
+		errorByGuest,
+		progress,
+		validationIssues,
+		isComplete,
+		summaryRows,
+		draftBooking,
+		grandTotal,
+		customers,
+		setActiveIndices: guestStore.setActiveIndices,
+		updateGuestFromCustomer: guestStore.updateGuestFromCustomer,
+		quickCreateGuest: guestStore.quickCreateGuest,
+		clearGuest: guestStore.clearGuest,
+		fetchGuestDates: guestStore.fetchGuestDates,
+		selectGuestDate: guestStore.selectGuestDate,
+		selectGuestSlot: guestStore.selectGuestSlot,
+		refresh: initialize,
+	};
+}

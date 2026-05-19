@@ -144,7 +144,10 @@ class ServiceAppointmentPayment(Document):
 
 	@frappe.whitelist()
 	def get_references(self):
-		"""Populate the child table with linked appointments"""
+		"""
+		Populate the child table with linked appointments using proportional allocation.
+		Allocates payment proportionally based on each appointment's confirmation deposit requirement.
+		"""
 		if self.reference_doctype != "Service Booking":
 			return
 
@@ -157,26 +160,56 @@ class ServiceAppointmentPayment(Document):
 				"status": ["not in", ["Cancelled", "Rescheduled", "Closed"]],
 				"outstanding_amount": [">", 0],
 			},
-			fields=["name", "grand_total", "outstanding_amount", "currency"],
+			fields=[
+				"name",
+				"grand_total",
+				"outstanding_amount",
+				"confirmation_required_amount",
+				"currency",
+			],
 		)
 
-		remaining_amount = flt(self.amount)
+		if not appointments:
+			return
 
+		payment_amount = flt(self.amount)
+
+		# Calculate total deposit required across all active appointments
+		total_deposit_required = sum(
+			flt(appt.get("confirmation_required_amount", 0)) for appt in appointments
+		)
+
+		# Allocate payment proportionally based on each appointment's deposit requirement
 		for appt in appointments:
-			if remaining_amount <= 0:
-				break
+			deposit_required = flt(appt.get("confirmation_required_amount", 0))
+			outstanding = flt(appt.get("outstanding_amount", 0))
 
-			allocated_amount = min(flt(appt.outstanding_amount), remaining_amount)
-			remaining_amount -= allocated_amount
+			# Calculate this appointment's allocation share
+			if total_deposit_required > 0:
+				# Proportional to deposit requirement
+				allocation_ratio = deposit_required / total_deposit_required
+				allocated_amount = payment_amount * allocation_ratio
+			else:
+				# Fallback: allocate proportionally by outstanding amount if no deposits required
+				total_outstanding = sum(flt(a.get("outstanding_amount", 0)) for a in appointments)
+				if total_outstanding > 0:
+					allocation_ratio = outstanding / total_outstanding
+					allocated_amount = payment_amount * allocation_ratio
+				else:
+					allocated_amount = 0
 
-			self.append(
-				"references",
-				{
-					"reference_doctype": "Service Appointment",
-					"reference_name": appt.name,
-					"currency": appt.currency,
-					"grand_total": appt.grand_total,
-					"outstanding_amount": appt.outstanding_amount,
-					"allocated_amount": allocated_amount,
-				},
-			)
+			# Cap allocation to outstanding amount (cannot allocate more than owed)
+			allocated_amount = min(allocated_amount, outstanding)
+
+			if allocated_amount > 0.01:  # Only add if meaningful amount
+				self.append(
+					"references",
+					{
+						"reference_doctype": "Service Appointment",
+						"reference_name": appt.name,
+						"currency": appt.currency,
+						"grand_total": appt.grand_total,
+						"outstanding_amount": outstanding,
+						"allocated_amount": allocated_amount,
+					},
+				)

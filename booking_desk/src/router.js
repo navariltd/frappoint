@@ -4,12 +4,9 @@ import { navigateTo } from "./utils";
 
 const routes = [
 	{
-		name: "Bookings",
+		name: "Dashboard",
 		path: "/",
-		components: {
-			default: () => import("@/pages/booking/Bookings.vue"),
-			sidebar: () => import("@/pages/booking/BookingSummary.vue"),
-		},
+		component: () => import("@/pages/dashboard/Dashboard.vue"),
 		meta: { requiresLogin: true },
 	},
 	{
@@ -26,10 +23,37 @@ const routes = [
 	{
 		name: "NewBooking",
 		path: "/new_booking",
-		components: {
-			default: () => import("@/pages/booking/NewBooking.vue"),
-			sidebar: () => import("@/pages/booking/NewBookingSummary.vue"),
-		},
+		component: () => import("@/pages/booking/NewBooking.vue"),
+		meta: { requiresLogin: true },
+	},
+	{
+		name: "GuestAssignment",
+		path: "/guest_assignment",
+		component: () => import("@/pages/booking/GuestAssignment.vue"),
+		meta: { requiresLogin: true },
+	},
+	{
+		name: "Checkout",
+		path: "/checkout",
+		component: () => import("@/components/booking/checkout/Checkout.vue"),
+		meta: { requiresLogin: true },
+	},
+	{
+		name: "Bookings",
+		path: "/bookings",
+		component: () => import("@/pages/bookings/Bookings.vue"),
+		meta: { requiresLogin: true },
+	},
+	{
+		name: "BookingDetails",
+		path: "/bookings/:bookingId",
+		component: () => import("@/pages/bookings/BookingDetails.vue"),
+		meta: { requiresLogin: true },
+	},
+	{
+		name: "AppointmentDetails",
+		path: "/appointments/:appointmentId",
+		component: () => import("@/pages/bookings/AppointmentDetails.vue"),
 		meta: { requiresLogin: true },
 	},
 ];
@@ -50,7 +74,7 @@ router.beforeEach(async (to) => {
 	}
 
 	if (to.name === "Login" && auth.isLoggedIn) {
-		return { name: "Bookings" };
+		return { name: "Dashboard" };
 	}
 });
 

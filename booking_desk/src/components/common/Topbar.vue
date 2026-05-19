@@ -1,85 +1,59 @@
 <template>
 	<header
-		class="h-16 bg-surface-light dark:bg-surface-dark border-b border-border-light dark:border-border-dark flex items-center justify-between px-6 shrink-0 z-20"
+		class="h-20 bg-surface-light dark:bg-surface-dark border-b border-border-light dark:border-border-dark flex items-center justify-between px-6 shrink-0 z-20"
 	>
-		<RouterLink
-			:to="{ name: 'Bookings' }"
-			class="flex items-center gap-3 group cursor-pointer"
-		>
-			<div
-				class="flex items-center justify-center rounded-xl bg-white p-1 shadow-sm ring-1 ring-gray-100 dark:ring-gray-800 transition-transform group-hover:scale-105"
+		<div class="flex-1 max-w-3xl">
+			<Search />
+		</div>
+		<div class="flex items-center gap-4 md:gap-6 pl-6">
+			<RouterLink
+				:to="{ name: 'NewBooking' }"
+				class="px-6 py-2.5 bg-primary text-white font-semibold rounded-sm hover:bg-primary/90 transition-colors shadow-sm"
 			>
-				<img
-					class="w-10 h-10 object-contain"
-					src="../../assets/images/logo_img.png"
-					alt="Logo"
-				/>
+				+ New Booking
+			</RouterLink>
+
+			<button
+				type="button"
+				class="relative inline-flex h-12 w-12 items-center justify-center rounded-full border border-border-light dark:border-border-dark bg-white dark:bg-gray-800 text-text-sub-light dark:text-text-sub-dark hover:text-primary transition-colors"
+				aria-label="Notifications"
+			>
+				<span class="material-symbols-outlined text-[24px]">notifications</span>
+				<span
+					class="absolute top-2 right-2 h-2 w-2 rounded-full bg-red-500 ring-2 ring-white dark:ring-gray-800"
+				></span>
+			</button>
+
+			<div class="hidden sm:flex flex-col items-end leading-tight">
+				<span
+					class="text-base font-semibold text-text-main-light dark:text-text-main-dark"
+				>
+					{{ displayName }}
+				</span>
+				<span class="text-sm text-text-sub-light dark:text-text-sub-dark">
+					{{ userDesignation }}
+				</span>
 			</div>
 
-			<div class="flex flex-col">
-				<h1 class="text-xl font-extrabold leading-tight tracking-tight text-primary">
-					Booking<span class="text-text-main-light dark:text-text-main-dark font-medium">
-						Desk</span
-					>
-				</h1>
-			</div>
-		</RouterLink>
-		<Search />
-		<div class="hidden md:flex gap-4 relative z-[60]">
-			<RouterLink
-				class="bg-primary/20 px-4 lg:px-6 py-2 rounded-lg text-primary font-medium hover:bg-primary/30 transition-colors"
-				v-if="!auth.isLoggedIn"
-				:to="{ name: 'Login' }"
-				>Log In</RouterLink
-			>
-			<Dropdown v-else :options="userMenuOptions" placement="bottom-end">
-				<template v-slot="{ open }">
-					<button
-						class="flex items-center gap-2 cursor-pointer hover:opacity-80 transition-opacity"
-					>
-						<img
-							class="h-10 w-10 lg:h-12 lg:w-12 rounded-full object-cover bg-gray-100"
-							:src="auth.userImage || defaultAvatar"
-							alt="profile"
-						/>
-					</button>
-				</template>
-			</Dropdown>
+			<img
+				class="h-12 w-12 rounded-full object-cover bg-gray-100"
+				:src="auth.userImage || defaultAvatar"
+				alt="profile"
+			/>
 		</div>
 	</header>
 </template>
 
 <script setup>
-import { Dropdown } from "frappe-ui";
 import { useAuthStore } from "@/stores/auth";
-import { ref, computed } from "vue";
-import { useRouter } from "vue-router";
+import { computed } from "vue";
+import { RouterLink } from "vue-router";
 
 import Search from "./Search.vue";
 import defaultAvatar from "@/assets/images/profile-circle.svg";
 
 const auth = useAuthStore();
-const router = useRouter();
-const mobileMenuOpen = ref(false);
 
-const userMenuOptions = computed(() => [
-	{
-		label: "User Profile",
-		icon: "user",
-		onClick: () => {
-			router.push({ name: "User" });
-		},
-	},
-	{
-		label: "Logout",
-		icon: "log-out",
-		onClick: handleLogout,
-	},
-]);
-
-async function handleLogout() {
-	mobileMenuOpen.value = false;
-	await auth.logout();
-	window.location.reload();
-}
+const displayName = computed(() => auth.userName || auth.userId || "Guest User");
+const userDesignation = computed(() => (auth.isLoggedIn ? "Appointment Desk" : "Guest"));
 </script>
