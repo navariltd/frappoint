@@ -10,6 +10,7 @@ import {
 	fetchNormalizedAvailableSlots,
 	validateSlotAvailability,
 } from "@/services/availability.service";
+import { useBookingWorkflowStore } from "@/stores/bookingWorkflow.store";
 
 const findServiceIndex = (assignments, serviceKey) =>
 	assignments.findIndex((service) => service.serviceKey === serviceKey);
@@ -47,12 +48,21 @@ export const useGuestAssignmentStore = defineStore("guestAssignment", {
 		},
 	},
 	actions: {
-		initialize({ cartItems = [], customers = [], selectedCustomerId = "" }) {
+		initialize({
+			cartItems = [],
+			customers = [],
+			selectedCustomerId = "",
+			appointmentsByGuestKey = {},
+		}) {
 			this.customers = customers;
 			this.selectedCustomerId = selectedCustomerId;
 			const selectedCustomer =
 				customers.find((item) => item.id === selectedCustomerId) || null;
-			this.assignments = buildAssignmentsFromCart(cartItems, selectedCustomer);
+			this.assignments = buildAssignmentsFromCart(
+				cartItems,
+				selectedCustomer,
+				appointmentsByGuestKey
+			);
 			this.activeServiceIndex = 0;
 			this.activeGuestIndex = 0;
 			this.isLoadingDates = {};
@@ -99,9 +109,18 @@ export const useGuestAssignmentStore = defineStore("guestAssignment", {
 			const service = this.assignments[serviceIndex];
 			const guestIndex = findGuestIndex(service, guestKey);
 			if (guestIndex === -1) return;
+			if (service.guests[guestIndex].appointmentId) {
+				this.errorByGuest = {
+					...this.errorByGuest,
+					[guestKey]:
+						"Reserved appointments cannot be cleared yet. Pick a new date or slot to update the reservation.",
+				};
+				return;
+			}
 
 			service.guests[guestIndex] = {
 				...service.guests[guestIndex],
+				appointmentId: "",
 				customerId: "",
 				fullName: "",
 				email: "",
@@ -170,6 +189,7 @@ export const useGuestAssignmentStore = defineStore("guestAssignment", {
 			}
 		},
 		async selectGuestSlot(serviceKey, guestKey, slotId) {
+			const workflowStore = useBookingWorkflowStore();
 			const serviceIndex = findServiceIndex(this.assignments, serviceKey);
 			if (serviceIndex === -1) return;
 			const service = this.assignments[serviceIndex];
@@ -189,10 +209,45 @@ export const useGuestAssignmentStore = defineStore("guestAssignment", {
 				return;
 			}
 
-			guest.slot = slot;
+			this.isLoadingSlots = { ...this.isLoadingSlots, [guestKey]: true };
 			this.errorByGuest = { ...this.errorByGuest, [guestKey]: "" };
-			syncGuestCompletion(guest);
-			this.moveToNextPendingGuest();
+
+			try {
+				const result = await workflowStore.upsertDraftAppointment({
+					guestKey,
+					service: {
+						serviceKey: service.serviceKey,
+						serviceId: service.serviceId,
+						serviceName: service.serviceName,
+						pricingModel: service.pricingModel,
+						packageName: service.packageName,
+						packageId: service.packageId,
+						price: service.price,
+						currency: service.currency,
+						duration: service.duration,
+					},
+					guest: {
+						fullName: guest.fullName,
+						email: guest.email,
+						mobileNo: guest.mobileNo,
+						notes: guest.notes,
+					},
+					date: guest.date,
+					slot,
+				});
+
+				guest.slot = slot;
+				guest.appointmentId = result?.appointment?.name || guest.appointmentId;
+				syncGuestCompletion(guest);
+				this.moveToNextPendingGuest();
+			} catch (error) {
+				this.errorByGuest = {
+					...this.errorByGuest,
+					[guestKey]: error?.message || "Appointment could not be reserved.",
+				};
+			} finally {
+				this.isLoadingSlots = { ...this.isLoadingSlots, [guestKey]: false };
+			}
 		},
 		moveToNextPendingGuest() {
 			for (let s = 0; s < this.assignments.length; s += 1) {

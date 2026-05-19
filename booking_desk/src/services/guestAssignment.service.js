@@ -5,24 +5,34 @@ const toNumber = (value, fallback = 0) => {
 	return Number.isFinite(parsed) ? parsed : fallback;
 };
 
-export function buildAssignmentsFromCart(cartItems = [], selectedCustomer = null) {
+export function buildAssignmentsFromCart(
+	cartItems = [],
+	selectedCustomer = null,
+	appointmentsByGuestKey = {}
+) {
 	return cartItems.map((item) => {
 		const quantity = Math.max(1, toNumber(item.quantity, 1));
 		const guests = Array.from({ length: quantity }).map((_, index) => {
 			const sequence = index + 1;
+			const guestKey = makeGuestKey(item.cartKey || item.serviceId, sequence);
+			const persistedAppointment = appointmentsByGuestKey[guestKey] || null;
 			const useSelectedCustomer = Boolean(selectedCustomer && sequence === 1);
 
 			return {
-				guestKey: makeGuestKey(item.cartKey || item.serviceId, sequence),
+				guestKey,
 				sequence,
+				appointmentId: persistedAppointment?.appointmentId || "",
 				customerId: useSelectedCustomer ? selectedCustomer.id : "",
-				fullName: useSelectedCustomer ? selectedCustomer.name : "",
-				email: "",
-				mobileNo: "",
-				isInlineGuest: false,
-				isComplete: false,
-				date: "",
-				slot: null,
+				fullName:
+					persistedAppointment?.guest?.fullName ||
+					(useSelectedCustomer ? selectedCustomer.name : ""),
+				email: persistedAppointment?.guest?.email || "",
+				mobileNo: persistedAppointment?.guest?.mobileNo || "",
+				isInlineGuest:
+					Boolean(persistedAppointment?.guest?.fullName) || !useSelectedCustomer,
+				isComplete: Boolean(persistedAppointment?.slot && persistedAppointment?.date),
+				date: persistedAppointment?.date || "",
+				slot: persistedAppointment?.slot || null,
 				availableDates: [],
 				availableSlots: [],
 			};
@@ -36,6 +46,7 @@ export function buildAssignmentsFromCart(cartItems = [], selectedCustomer = null
 			quantity,
 			duration: toNumber(item.duration),
 			price: toNumber(item.price),
+			packageId: item.packageId || null,
 			currency: item.currency || "KES",
 			guests,
 		};
