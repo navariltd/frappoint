@@ -28,6 +28,7 @@
 		<nav class="overflow-y-auto flex-1 p-3 space-y-1 no-scrollbar">
 			<SidebarItem :to="{ name: 'Dashboard' }" icon="dashboard" label="Dashboard" />
 			<SidebarItem :to="{ name: 'Services' }" icon="spa" label="Services" />
+			<SidebarItem :to="{ name: 'Bookings' }" icon="event_note" label="Bookings" />
 		</nav>
 
 		<div class="p-4 border-t border-border-light dark:border-border-dark">
