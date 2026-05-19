@@ -7,7 +7,7 @@ export function useBookingOperations() {
 		router.push({
 			name: "AppointmentDetails",
 			params: { appointmentId: appointment.appointmentId },
-			query: { bookingId: booking.bookingId },
+			query: booking?.bookingId ? { bookingId: booking.bookingId } : undefined,
 		});
 	};
 

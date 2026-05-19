@@ -22,7 +22,9 @@
 							<AppointmentsWorkspace
 								:appointments="booking.appointments"
 								:currency="booking.currency"
-								@open-appointment="openAppointment"
+								@open-appointment="
+									(appointment) => openAppointment(appointment, booking)
+								"
 								@appointment-action="handleAppointmentAction"
 							/>
 						</div>
