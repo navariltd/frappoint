@@ -32,6 +32,12 @@ const routes = [
 		component: () => import("@/pages/booking/GuestAssignment.vue"),
 		meta: { requiresLogin: true },
 	},
+	{
+		name: "Checkout",
+		path: "/checkout",
+		component: () => import("@/components/booking/checkout/Checkout.vue"),
+		meta: { requiresLogin: true },
+	},
 ];
 
 const router = createRouter({
