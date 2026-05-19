@@ -9,7 +9,7 @@ export function useDashboard() {
 	const summaryCards = computed(() => [
 		{
 			key: "todayAppointments",
-			label: "Today's Appt",
+			label: "Today's Appointments",
 			number: metrics.value.todayAppointments,
 			icon: "calendar_add_on",
 		},
