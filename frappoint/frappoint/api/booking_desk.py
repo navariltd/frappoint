@@ -559,6 +559,14 @@ def get_draft_service_booking(booking_id: str):
 	return _serialize_booking(booking)
 
 
+@frappe.whitelist()
+def get_booking_details(booking_id: str):
+	if not booking_id:
+		frappe.throw(_("Booking reference is required."))
+	booking = frappe.get_doc("Service Booking", booking_id)
+	return _serialize_booking(booking)
+
+
 def _derive_payment_status(booking_row):
 	outstanding = flt(booking_row.get("outstanding_amount"))
 	grand_total = flt(booking_row.get("grand_total"))
