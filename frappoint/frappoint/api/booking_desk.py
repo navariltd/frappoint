@@ -3,8 +3,12 @@ from collections import defaultdict
 
 import frappe
 from frappe import _
-from frappe.utils import flt
+from frappe.utils import flt, nowtime
 
+from frappoint.frappoint.doctype.service_appointment.service_appointment import (
+	cancel_appointment,
+	reschedule_appointment,
+)
 from frappoint.payments import (
 	get_confirmation_deposit_percent,
 	get_payment_amount,
@@ -143,6 +147,282 @@ def _serialize_booking(booking):
 			}
 			for appointment in appointments
 		],
+	}
+
+
+def _safe_json_loads(value, fallback):
+	if value is None:
+		return fallback
+	if isinstance(value, str):
+		try:
+			return json.loads(value)
+		except Exception:
+			return fallback
+	return value
+
+
+def _serialize_appointment(appointment):
+	return {
+		"name": appointment.name,
+		"appointmentId": appointment.name,
+		"bookingId": appointment.booking_id,
+		"status": appointment.status,
+		"paymentStatus": appointment.payment_status,
+		"customer": appointment.customer,
+		"customerName": appointment.customer,
+		"fullName": appointment.full_name,
+		"email": appointment.email,
+		"mobileNo": appointment.mobile_no,
+		"currency": appointment.currency,
+		"appointmentType": appointment.appointment_type,
+		"appointmentDate": appointment.appointment_date,
+		"startTime": appointment.start_time,
+		"endTime": appointment.end_time,
+		"actualStartTime": appointment.actual_start_time,
+		"actualEndTime": appointment.actual_end_time,
+		"duration": appointment.duration,
+		"serviceUnit": appointment.service_unit,
+		"provider": appointment.appointment_provider,
+		"serviceProviderName": appointment.service_provider_name,
+		"appointmentPrice": appointment.appointment_price,
+		"totalAmount": flt(appointment.total_amount),
+		"grandTotal": flt(appointment.grand_total or appointment.total_amount),
+		"outstandingAmount": flt(appointment.outstanding_amount),
+		"details": appointment.details,
+		"notes": appointment.notes,
+		"source": appointment.source,
+		"selectedSlotIds": _safe_json_loads(getattr(appointment, "selected_slot_ids", None), []),
+		"allAvailableProviders": _safe_json_loads(getattr(appointment, "all_available_providers", None), []),
+		"modified": appointment.modified,
+		"creation": appointment.creation,
+	}
+
+
+def _serialize_appointment_payment(payment):
+	return {
+		"name": payment.name,
+		"referenceDoctype": payment.reference_doctype,
+		"referenceDocname": payment.reference_docname,
+		"user": payment.user,
+		"modeOfPayment": payment.mode_of_payment,
+		"paymentGateway": payment.payment_gateway,
+		"postingDate": payment.posting_date,
+		"referenceDate": payment.reference_date,
+		"paymentReceived": payment.payment_received,
+		"currency": payment.currency,
+		"amount": flt(payment.amount),
+		"paymentId": payment.payment_id,
+		"orderId": payment.order_id,
+		"modified": payment.modified,
+	}
+
+
+def _build_appointment_timeline(appointment, payments):
+	timeline = [
+		{
+			"id": "created",
+			"label": "Appointment created",
+			"detail": appointment.creation,
+			"tone": "info",
+			"timestamp": appointment.creation,
+		}
+	]
+
+	if appointment.booking_id:
+		timeline.append(
+			{
+				"id": "booking-linked",
+				"label": "Linked to booking",
+				"detail": appointment.booking_id,
+				"tone": "neutral",
+				"timestamp": appointment.modified,
+			}
+		)
+
+	if appointment.appointment_provider:
+		timeline.append(
+			{
+				"id": "provider-assigned",
+				"label": "Provider assigned",
+				"detail": appointment.appointment_provider,
+				"tone": "success",
+				"timestamp": appointment.modified,
+			}
+		)
+
+	if appointment.actual_start_time:
+		timeline.append(
+			{
+				"id": "started",
+				"label": "Actual start recorded",
+				"detail": appointment.actual_start_time,
+				"tone": "warning",
+				"timestamp": appointment.modified,
+			}
+		)
+
+	if appointment.actual_end_time:
+		timeline.append(
+			{
+				"id": "completed",
+				"label": "Actual end recorded",
+				"detail": appointment.actual_end_time,
+				"tone": "success",
+				"timestamp": appointment.modified,
+			}
+		)
+
+	for payment in payments:
+		if flt(payment.amount) <= 0:
+			continue
+		timeline.append(
+			{
+				"id": f"payment-{payment.name}",
+				"label": "Payment recorded",
+				"detail": f"{payment.currency} {flt(payment.amount):.2f}",
+				"tone": "success" if payment.payment_received else "warning",
+				"timestamp": payment.modified,
+			}
+		)
+
+	if appointment.status == "Rescheduled" and appointment.rescheduled_to:
+		timeline.append(
+			{
+				"id": "rescheduled",
+				"label": "Appointment rescheduled",
+				"detail": appointment.rescheduled_to,
+				"tone": "warning",
+				"timestamp": appointment.modified,
+			}
+		)
+
+	if appointment.status == "Cancelled":
+		timeline.append(
+			{
+				"id": "cancelled",
+				"label": "Appointment cancelled",
+				"detail": appointment.modified,
+				"tone": "danger",
+				"timestamp": appointment.modified,
+			}
+		)
+
+	return timeline
+
+
+def _build_appointment_alerts(appointment, payments):
+	alerts = []
+	outstanding = flt(appointment.outstanding_amount)
+
+	if appointment.status in ["Open", "Pending Payment"] and outstanding > 0:
+		alerts.append(
+			{
+				"id": "outstanding-payment",
+				"severity": "warning",
+				"label": "Outstanding balance",
+				"message": f"{appointment.currency} {outstanding:.2f} remains unpaid.",
+			}
+		)
+
+	if not appointment.appointment_provider:
+		alerts.append(
+			{
+				"id": "missing-provider",
+				"severity": "warning",
+				"label": "Provider not assigned",
+				"message": "Assign a provider before the appointment starts.",
+			}
+		)
+
+	if appointment.status == "Rescheduled":
+		alerts.append(
+			{
+				"id": "rescheduled",
+				"severity": "info",
+				"label": "Appointment rescheduled",
+				"message": "This appointment has been moved to a new time slot.",
+			}
+		)
+
+	paid_amount = sum(flt(payment.amount) for payment in payments if payment.payment_received)
+	if paid_amount > 0 and outstanding <= 0:
+		alerts.append(
+			{
+				"id": "paid",
+				"severity": "success",
+				"label": "Payment complete",
+				"message": f"{appointment.currency} {paid_amount:.2f} has been recorded.",
+			}
+		)
+
+	return alerts
+
+
+def _build_appointment_response(appointment, booking=None):
+	payment_rows = frappe.get_all(
+		"Service Appointment Payment",
+		filters={"reference_doctype": "Service Appointment", "reference_docname": appointment.name},
+		fields=[
+			"name",
+			"reference_doctype",
+			"reference_docname",
+			"user",
+			"mode_of_payment",
+			"payment_gateway",
+			"posting_date",
+			"reference_date",
+			"payment_received",
+			"currency",
+			"amount",
+			"payment_id",
+			"order_id",
+			"modified",
+		],
+		order_by="posting_date desc, modified desc",
+	)
+	payments = [
+		_serialize_appointment_payment(frappe.get_doc("Service Appointment Payment", row.name))
+		for row in payment_rows
+	]
+	appointment_payload = _serialize_appointment(appointment)
+	paid_amount = sum(flt(payment.get("amount")) for payment in payments if payment.get("paymentReceived"))
+	outstanding_amount = flt(appointment_payload.get("outstandingAmount"))
+	if outstanding_amount <= 0 and flt(appointment_payload.get("totalAmount")) > 0:
+		payment_status = "Paid"
+	elif paid_amount > 0:
+		payment_status = "Partly Paid"
+	else:
+		payment_status = appointment_payload.get("paymentStatus") or "Unpaid"
+
+	appointment_payload["paymentStatus"] = payment_status
+
+	return {
+		"appointment": appointment_payload,
+		"booking": _serialize_booking(booking) if booking else None,
+		"payments": payments,
+		"paymentSummary": {
+			"currency": appointment_payload.get("currency") or (booking.currency if booking else "KES"),
+			"totalAmount": flt(appointment_payload.get("totalAmount")),
+			"paidAmount": paid_amount,
+			"outstandingAmount": outstanding_amount,
+		},
+		"timeline": _build_appointment_timeline(appointment, payment_rows),
+		"alerts": _build_appointment_alerts(appointment, payment_rows),
+		"availability": {
+			"serviceType": appointment.appointment_type,
+			"duration": appointment.duration,
+			"provider": appointment.appointment_provider,
+			"date": appointment.appointment_date,
+		},
+		"actions": {
+			"canCheckIn": appointment.status in ["Open", "Pending Payment", "Confirmed"],
+			"canStart": appointment.status in ["Open", "Pending Payment", "Confirmed"],
+			"canComplete": appointment.status in ["Confirmed", "Open", "Pending Payment"],
+			"canReschedule": appointment.status in ["Open", "Pending Payment", "Confirmed"],
+			"canCancel": appointment.status not in ["Cancelled", "Closed", "Completed", "No Show"],
+			"canReassignProvider": appointment.status in ["Open", "Pending Payment", "Confirmed"],
+			"canEditTimeSlot": appointment.status in ["Open", "Pending Payment", "Confirmed"],
+		},
 	}
 
 
@@ -565,6 +845,142 @@ def get_booking_details(booking_id: str):
 		frappe.throw(_("Booking reference is required."))
 	booking = frappe.get_doc("Service Booking", booking_id)
 	return _serialize_booking(booking)
+
+
+@frappe.whitelist()
+def get_appointment_details(appointment_id: str):
+	if not appointment_id:
+		frappe.throw(_("Appointment reference is required."))
+	appointment = frappe.get_doc("Service Appointment", appointment_id)
+	booking = frappe.get_doc("Service Booking", appointment.booking_id) if appointment.booking_id else None
+	return _build_appointment_response(appointment, booking)
+
+
+@frappe.whitelist()
+def perform_appointment_action(
+	appointment_id: str,
+	action: str,
+	new_appointment_date: str | None = None,
+	new_start_time: str | None = None,
+	new_end_time: str | None = None,
+	new_provider: str | None = None,
+	new_slot_ids=None,
+	new_service_unit: str | None = None,
+	actual_start_time: str | None = None,
+	actual_end_time: str | None = None,
+	cancellation_reasons=None,
+):
+	if not appointment_id:
+		frappe.throw(_("Appointment reference is required."))
+	if not action:
+		frappe.throw(_("Action is required."))
+
+	action = action.strip().lower()
+	appointment = frappe.get_doc("Service Appointment", appointment_id)
+
+	if action in {"check_in", "start"}:
+		appointment.actual_start_time = actual_start_time or appointment.actual_start_time or nowtime()
+		if appointment.status not in ["Cancelled", "Closed", "Completed", "No Show"]:
+			appointment.status = "Confirmed"
+		appointment.save(ignore_permissions=True)
+		frappe.db.commit()
+		return _build_appointment_response(
+			appointment,
+			frappe.get_doc("Service Booking", appointment.booking_id) if appointment.booking_id else None,
+		)
+
+	if action == "complete":
+		start_time = actual_start_time or appointment.actual_start_time or appointment.start_time or nowtime()
+		end_time = actual_end_time or appointment.actual_end_time or nowtime()
+		invoice_name = appointment.complete_and_invoice(start_time, end_time)
+		appointment.reload()
+		frappe.db.commit()
+		response = _build_appointment_response(
+			appointment,
+			frappe.get_doc("Service Booking", appointment.booking_id) if appointment.booking_id else None,
+		)
+		response["invoiceName"] = invoice_name
+		return response
+
+	if action == "confirm":
+		appointment.confirm_appointment()
+		appointment.reload()
+		frappe.db.commit()
+		return _build_appointment_response(
+			appointment,
+			frappe.get_doc("Service Booking", appointment.booking_id) if appointment.booking_id else None,
+		)
+
+	if action == "cancel":
+		result = cancel_appointment(appointment_id, cancellation_reasons=cancellation_reasons)
+		appointment.reload()
+		booking = (
+			frappe.get_doc("Service Booking", appointment.booking_id) if appointment.booking_id else None
+		)
+		response = _build_appointment_response(appointment, booking)
+		response["operationResult"] = result
+		return response
+
+	if action in {"reassign_provider", "edit_time_slot"}:
+		# Booking desk frequently operates on non-submitted appointments; allow in-place updates.
+		if not new_appointment_date:
+			new_appointment_date = appointment.appointment_date
+		if not new_start_time:
+			new_start_time = appointment.start_time
+		if not new_end_time:
+			new_end_time = appointment.end_time
+
+		appointment.appointment_date = new_appointment_date
+		appointment.start_time = new_start_time
+		appointment.end_time = new_end_time
+		appointment.appointment_provider = new_provider or appointment.appointment_provider
+		appointment.service_unit = new_service_unit or appointment.service_unit
+		if new_slot_ids is not None:
+			appointment.selected_slot_ids = (
+				json.dumps(new_slot_ids) if isinstance(new_slot_ids, list) else new_slot_ids
+			)
+
+		appointment.save(ignore_permissions=True)
+		frappe.db.commit()
+		booking = (
+			frappe.get_doc("Service Booking", appointment.booking_id) if appointment.booking_id else None
+		)
+		response = _build_appointment_response(appointment, booking)
+		response["operationResult"] = {
+			"success": True,
+			"message": _("Appointment updated successfully."),
+			"updated_appointment": appointment.name,
+		}
+		return response
+
+	if action == "reschedule":
+		if not new_appointment_date:
+			new_appointment_date = appointment.appointment_date
+		if not new_start_time:
+			new_start_time = appointment.start_time
+		if not new_end_time:
+			new_end_time = appointment.end_time
+		result = reschedule_appointment(
+			appointment_name=appointment_id,
+			new_appointment_date=new_appointment_date,
+			new_start_time=new_start_time,
+			new_end_time=new_end_time,
+			new_provider=new_provider or appointment.appointment_provider,
+			new_slot_ids=json.dumps(new_slot_ids) if isinstance(new_slot_ids, list) else new_slot_ids,
+			new_service_unit=new_service_unit or appointment.service_unit,
+		)
+		response = {"operationResult": result}
+		if result.get("new_appointment"):
+			new_appointment = frappe.get_doc("Service Appointment", result["new_appointment"])
+			booking = (
+				frappe.get_doc("Service Booking", new_appointment.booking_id)
+				if new_appointment.booking_id
+				else None
+			)
+			response.update(_build_appointment_response(new_appointment, booking))
+		return response
+
+	frappe.throw(_("Unsupported appointment action: {0}").format(action))
 
 
 def _derive_payment_status(booking_row):
