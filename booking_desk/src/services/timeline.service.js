@@ -5,8 +5,28 @@ const formatTime = (value) => {
 	if (!value) {
 		return "00:00";
 	}
-	const [hh = "00", mm = "00"] = String(value).split(":");
-	return `${hh.padStart(2, "0")}:${mm.padStart(2, "0")}`;
+
+	const raw = String(value).trim().toLowerCase();
+	const ampmMatch = raw.match(/^(\d{1,2})(?::(\d{1,2}))?(?::\d{1,2})?\s*(am|pm)$/i);
+	if (ampmMatch) {
+		const hour12 = Number(ampmMatch[1]);
+		const minute = Number(ampmMatch[2] || 0);
+		const suffix = ampmMatch[3].toLowerCase();
+		let hour24 = hour12 % 12;
+		if (suffix === "pm") {
+			hour24 += 12;
+		}
+		return `${String(hour24).padStart(2, "0")}:${String(minute).padStart(2, "0")}`;
+	}
+
+	const hmsMatch = raw.match(/^(\d{1,2})(?::(\d{1,2}))?(?::\d{1,2})?/);
+	if (hmsMatch) {
+		const hh = Number(hmsMatch[1]);
+		const mm = Number(hmsMatch[2] || 0);
+		return `${String(hh).padStart(2, "0")}:${String(mm).padStart(2, "0")}`;
+	}
+
+	return "00:00";
 };
 
 const toInitials = (name) => {
@@ -38,10 +58,13 @@ const mapProvider = (row) => {
 const mapAppointment = (row) => {
 	const durationMinutes = Number(row.duration) || 60;
 	const durationHours = Number((durationMinutes / 60).toFixed(2));
+	const rawDate = row.appointment_date ? String(row.appointment_date) : "";
+	const normalizedDate = rawDate.includes(" ") ? rawDate.split(" ")[0] : rawDate;
+	const providerId = row.appointment_provider || "unassigned";
 
 	return {
 		id: row.name,
-		providerId: row.appointment_provider,
+		providerId,
 		guestName: row.full_name || row.customer || "Guest",
 		service: row.appointment_type || "Service",
 		startTime: formatTime(row.start_time),
@@ -49,7 +72,7 @@ const mapAppointment = (row) => {
 		status: row.status || "Open",
 		delayed: "",
 		showTimer: String(row.status || "").toLowerCase() === "ongoing",
-		date: row.appointment_date,
+		date: normalizedDate,
 	};
 };
 
@@ -61,6 +84,40 @@ export async function fetchTimelineDataset({ fromDate, toDate }) {
 
 	const providers = providersRaw.map(mapProvider);
 	const appointments = appointmentsRaw.map(mapAppointment);
+	const providerIds = new Set(providers.map((provider) => provider.id));
+
+	const missingProviderIds = Array.from(
+		new Set(
+			appointments
+				.map((appointment) => appointment.providerId)
+				.filter((providerId) => providerId && providerId !== "unassigned")
+				.filter((providerId) => !providerIds.has(providerId))
+		)
+	);
+
+	for (const missingProviderId of missingProviderIds) {
+		providers.push({
+			id: missingProviderId,
+			name: missingProviderId,
+			initials: toInitials(missingProviderId),
+			designation: "Provider not in active list",
+			overloaded: false,
+		});
+	}
+
+	const hasUnassignedAppointments = appointments.some(
+		(appointment) => appointment.providerId === "unassigned"
+	);
+
+	if (hasUnassignedAppointments && !providerIds.has("unassigned")) {
+		providers.push({
+			id: "unassigned",
+			name: "Unassigned",
+			initials: "UA",
+			designation: "No provider linked",
+			overloaded: false,
+		});
+	}
 
 	return {
 		providers,

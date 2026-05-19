@@ -384,7 +384,7 @@
 </template>
 
 <script setup>
-import { computed, onBeforeUnmount, ref, watch } from "vue";
+import { computed, nextTick, onBeforeUnmount, ref, watch } from "vue";
 
 const emit = defineEmits(["appointments-updated", "view-changed", "date-changed"]);
 
@@ -514,6 +514,19 @@ watch(currentView, (value) => {
 	emit("view-changed", value);
 });
 
+watch(
+	() => [currentView.value, selectedDate.value, localAppointments.value.length],
+	async () => {
+		if (currentView.value !== "day") {
+			return;
+		}
+
+		await nextTick();
+		autoScrollToRelevantTime();
+	},
+	{ immediate: true }
+);
+
 const slotWidth = computed(() => Math.max(90, Math.min(240, (140 * zoom.value) / 100)));
 
 const activeTimeSlots = computed(() => {
@@ -560,7 +573,7 @@ const timelineStartMinutes = computed(() => props.startHour * 60);
 const timelineEndMinutes = computed(() => props.endHour * 60);
 
 const appointmentDate = (appointment) => {
-	return appointment.date || appointment.appointmentDate || selectedDate.value;
+	return appointment.date || appointment.appointmentDate || "";
 };
 
 const getProviderAppointmentsByDate = (providerId, dateIso) => {
@@ -646,8 +659,31 @@ const dragPreviewOffsetPx = computed(() => {
 const dragCurrentX = ref(0);
 
 const parseTimeToMinutes = (time) => {
-	const [hours, minutes = "0"] = time.split(":");
-	return Number(hours) * 60 + Number(minutes);
+	if (!time) {
+		return timelineStartMinutes.value;
+	}
+
+	const raw = String(time).trim().toLowerCase();
+	const ampmMatch = raw.match(/^(\d{1,2})(?::(\d{1,2}))?(?::\d{1,2})?\s*(am|pm)$/i);
+	if (ampmMatch) {
+		const hour12 = Number(ampmMatch[1]);
+		const minute = Number(ampmMatch[2] || 0);
+		const suffix = ampmMatch[3].toLowerCase();
+		let hour24 = hour12 % 12;
+		if (suffix === "pm") {
+			hour24 += 12;
+		}
+		return hour24 * 60 + minute;
+	}
+
+	const hmsMatch = raw.match(/^(\d{1,2})(?::(\d{1,2}))?(?::\d{1,2})?/);
+	if (hmsMatch) {
+		const hours = Number(hmsMatch[1]);
+		const minutes = Number(hmsMatch[2] || 0);
+		return hours * 60 + minutes;
+	}
+
+	return timelineStartMinutes.value;
 };
 
 const formatMinutesToTime = (minutes) => {
@@ -693,6 +729,33 @@ const providerRowClass = (provider) => {
 const providerName = (providerId) => {
 	const provider = props.providers.find((item) => item.id === providerId);
 	return provider?.name || "Unassigned";
+};
+
+const autoScrollToRelevantTime = () => {
+	if (!mainScrollRef.value || !bottomScrollRef.value) {
+		return;
+	}
+
+	const selectedDayAppointments = localAppointments.value.filter(
+		(appointment) => appointmentDate(appointment) === selectedDate.value
+	);
+
+	if (!selectedDayAppointments.length) {
+		mainScrollRef.value.scrollLeft = 0;
+		bottomScrollRef.value.scrollLeft = 0;
+		return;
+	}
+
+	const earliestMinutes = selectedDayAppointments.reduce((min, appointment) => {
+		const minutes = parseTimeToMinutes(appointment.startTime);
+		return Math.min(min, minutes);
+	}, Number.POSITIVE_INFINITY);
+
+	const offsetMinutes = Math.max(0, earliestMinutes - timelineStartMinutes.value - 60);
+	const targetScrollLeft = Math.max(0, (offsetMinutes / 60) * slotWidth.value);
+
+	mainScrollRef.value.scrollLeft = targetScrollLeft;
+	bottomScrollRef.value.scrollLeft = targetScrollLeft;
 };
 
 const setZoom = (value) => {
