@@ -559,6 +559,116 @@ def get_draft_service_booking(booking_id: str):
 	return _serialize_booking(booking)
 
 
+def _derive_payment_status(booking_row):
+	outstanding = flt(booking_row.get("outstanding_amount"))
+	grand_total = flt(booking_row.get("grand_total"))
+
+	if outstanding <= 0:
+		return "Paid"
+	if grand_total > 0 and outstanding < grand_total:
+		return "Partly Paid"
+	return "Unpaid"
+
+
+@frappe.whitelist()
+def get_service_bookings_workspace(
+	search_text: str | None = None,
+	customer_query: str | None = None,
+	statuses=None,
+	payment_statuses=None,
+	from_date: str | None = None,
+	to_date: str | None = None,
+	page: int = 1,
+	page_size: int = 20,
+):
+	statuses = _parse_json_payload(statuses, []) or []
+	payment_statuses = _parse_json_payload(payment_statuses, []) or []
+
+	page = max(int(page or 1), 1)
+	page_size = max(min(int(page_size or 20), 100), 1)
+	limit_start = (page - 1) * page_size
+
+	filters = {"docstatus": ["!=", 2]}
+	if statuses:
+		filters["status"] = ["in", statuses]
+
+	if from_date and to_date:
+		filters["booking_date"] = ["between", [from_date, to_date]]
+	elif from_date:
+		filters["booking_date"] = [">=", from_date]
+	elif to_date:
+		filters["booking_date"] = ["<=", to_date]
+
+	or_filters = []
+	if search_text:
+		needle = f"%{search_text}%"
+		or_filters.extend(
+			[
+				["name", "like", needle],
+				["full_name", "like", needle],
+				["customer", "like", needle],
+				["mobile_no", "like", needle],
+			]
+		)
+
+	if customer_query:
+		needle = f"%{customer_query}%"
+		or_filters.extend(
+			[
+				["full_name", "like", needle],
+				["customer", "like", needle],
+				["mobile_no", "like", needle],
+			]
+		)
+
+	rows = frappe.get_all(
+		"Service Booking",
+		filters=filters,
+		or_filters=or_filters or None,
+		fields=[
+			"name",
+			"status",
+			"customer",
+			"full_name",
+			"mobile_no",
+			"email",
+			"booking_date",
+			"currency",
+			"grand_total",
+			"outstanding_amount",
+		],
+		order_by="modified desc",
+		limit_start=limit_start,
+		limit_page_length=page_size + 1,
+	)
+
+	has_more = len(rows) > page_size
+	rows = rows[:page_size]
+
+	filtered_rows = []
+	for row in rows:
+		derived_payment_status = _derive_payment_status(row)
+		if payment_statuses and derived_payment_status not in payment_statuses:
+			continue
+		filtered_rows.append((row, derived_payment_status))
+
+	bookings = []
+	for row, payment_status in filtered_rows:
+		booking_doc = frappe.get_doc("Service Booking", row.get("name"))
+		serialized = _serialize_booking(booking_doc)
+		serialized["bookingDate"] = row.get("booking_date")
+		serialized["paymentStatus"] = payment_status
+		serialized["appointmentCount"] = len(serialized.get("appointments") or [])
+		bookings.append(serialized)
+
+	return {
+		"bookings": bookings,
+		"page": page,
+		"pageSize": page_size,
+		"hasMore": has_more,
+	}
+
+
 @frappe.whitelist()
 def create_booking(customer: str, guests: list):
 	if isinstance(customer, str):
