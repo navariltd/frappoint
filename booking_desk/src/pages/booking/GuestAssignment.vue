@@ -15,6 +15,7 @@
 			<div
 				class="mt-2 flex flex-wrap items-center gap-3 text-[11px] text-on-surface-variant"
 			>
+				<span v-if="draftBooking?.name">Draft {{ draftBooking.name }}</span>
 				<span>{{ progress.completedGuests }}/{{ progress.totalGuests }} completed</span>
 				<span>{{ selectedSlotCount }} slot(s) selected</span>
 				<span>{{ pendingSlotCount }} slot(s) pending</span>
@@ -77,6 +78,7 @@ const {
 	validationIssues,
 	isComplete,
 	summaryRows,
+	draftBooking,
 	grandTotal,
 	customers,
 	updateGuestFromCustomer,

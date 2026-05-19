@@ -229,6 +229,12 @@
 			<div
 				class="shrink-0 p-5 border-t border-outline-variant bg-surface-container-lowest space-y-3"
 			>
+				<div
+					v-if="bookingError"
+					class="rounded-xl border border-error-container bg-error-container/30 px-3 py-2 text-[12px] text-on-surface"
+				>
+					{{ bookingError }}
+				</div>
 				<div class="space-y-1.5 text-[12px]">
 					<div class="flex justify-between">
 						<span class="text-on-surface-variant">Subtotal</span>
@@ -249,14 +255,14 @@
 					type="button"
 					class="w-full rounded-xl px-4 py-3 font-label-md text-label-md transition-colors"
 					:class="
-						canContinue
+						canContinue && !isCreatingBooking
 							? 'bg-primary text-on-primary'
 							: 'bg-surface-container-high text-on-surface-variant cursor-not-allowed'
 					"
-					:disabled="!canContinue"
+					:disabled="!canContinue || isCreatingBooking"
 					@click="proceedToGuestAssignment"
 				>
-					Continue Booking
+					{{ isCreatingBooking ? "Creating Draft Booking..." : "Continue Booking" }}
 				</button>
 			</div>
 		</aside>
@@ -279,6 +285,7 @@
 <script setup>
 import { computed, ref } from "vue";
 import { useRouter } from "vue-router";
+import { useBookingWorkflow } from "@/composables/booking/useBookingWorkflow";
 import { useServiceCart } from "@/composables/services/useServiceCart";
 import PricingPackageDialog from "@/components/services/PricingPackageDialog.vue";
 
@@ -297,6 +304,7 @@ const {
 	selectedCategory,
 	customers,
 	selectedCustomerId,
+	customerSummary,
 	cartItems,
 	subtotal,
 	taxAmount,
@@ -319,6 +327,8 @@ const {
 	onRetry,
 	onClearCart,
 } = useServiceCart();
+const { isCreatingBooking, bookingError, createDraftBookingSession, clearBookingError } =
+	useBookingWorkflow();
 
 const selectedCustomerName = computed(() => {
 	if (!selectedCustomerId.value) {
@@ -326,6 +336,10 @@ const selectedCustomerName = computed(() => {
 	}
 	const selected = customers.value.find((customer) => customer.id === selectedCustomerId.value);
 	return selected?.name || "";
+});
+
+const selectedCustomer = computed(() => {
+	return customers.value.find((customer) => customer.id === selectedCustomerId.value) || null;
 });
 
 const filteredCustomers = computed(() => {
@@ -448,7 +462,16 @@ const proceedToGuestAssignment = () => {
 	if (!canContinue.value) {
 		return;
 	}
-	router.push({ name: "GuestAssignment" });
+	clearBookingError();
+	createDraftBookingSession({
+		customer: selectedCustomer.value,
+		customerSummary: customerSummary.value,
+		cartItems: cartItems.value,
+	})
+		.then(() => {
+			router.push({ name: "GuestAssignment" });
+		})
+		.catch(() => null);
 };
 const clearCart = onClearCart;
 </script>
