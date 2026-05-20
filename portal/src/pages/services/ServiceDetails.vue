@@ -1,230 +1,94 @@
 <template>
-	<div class="my-10 w-full max-w-7xl mx-auto px-4">
-		<div class="grid grid-cols-1 lg:grid-cols-12 lg:gap-12">
-			<!-- Left Section  -->
-			<div class="lg:col-span-8 flex flex-col gap-10">
-				<div class="space-y-6">
-					<div
-						class="relative w-full aspect-[16/9] lg:aspect-[21/9] rounded-xl overflow-hidden shadow-sm group"
-						style="
-							background: linear-gradient(
-								to bottom right,
-								#3a8a8b,
-								#2c7677,
-								#1f5a5b
-							);
-						"
-					>
-						<div
-							class="absolute inset-0 bg-cover bg-center transition-transform duration-700 group-hover:scale-105"
-							:data-alt="serviceDetails.name"
-							:style="{ backgroundImage: `url(${serviceDetails.image})` }"
-						></div>
+	<ServiceDetailsSkeleton v-if="loading && !serviceDetails" />
 
-						<div class="absolute bottom-4 left-4 z-20 flex gap-2">
-							<ServiceTag v-for="tag in serviceDetails.tags" :tag="tag" :key="tag" />
-						</div>
-					</div>
-				</div>
-				<div class="flex flex-col gap-3">
-					<h2 class="text-3xl font-black">{{ serviceDetails.name }}</h2>
-					<p class="text-m text-gray-700">{{ serviceDetails.short_description }}</p>
-				</div>
+	<main v-else class="max-w-[1200px] mx-auto px-container-padding py-section-gap space-y-10">
+		<ServiceHero
+			v-if="serviceDetails"
+			:service="serviceDetails"
+			:selected-package="selectedPackage"
+		/>
 
-				<div class="bg-white p-8 rounded-xl shadow-lg border border-slate-100">
-					<div class="flex gap-2 items-center mb-6">
-						<FeatherIcon class="h-6" name="file-text" color="#2c7677" />
-						<p class="text-lg font-semibold">About the Service</p>
-					</div>
+		<div
+			v-if="error && !serviceDetails"
+			class="rounded-3xl border border-red-200 bg-red-50 p-8 text-red-900"
+		>
+			<p class="font-headline-sm text-headline-sm">Unable to load service details</p>
+			<p class="mt-2 text-body-md text-red-800">{{ error }}</p>
+			<button
+				class="mt-6 rounded-full bg-primary px-6 py-3 text-white font-semibold"
+				type="button"
+				@click="refreshServiceDetails"
+			>
+				Try again
+			</button>
+		</div>
 
-					<div class="text-xl/6 text-gray-700" v-html="serviceDetails.description"></div>
-				</div>
+		<div v-if="serviceDetails" class="grid grid-cols-1 lg:grid-cols-12 gap-stack-md lg:gap-16">
+			<div class="lg:col-span-7 space-y-section-gap">
+				<ServiceDescription :content="longDescription" />
+				<section class="grid grid-cols-1 md:grid-cols-2 gap-stack-md">
+					<ServiceBenefitsTable
+						:items="formattedBenefits"
+						:raw-html="serviceDetails?.benefits || ''"
+					/>
+					<ServiceTechniquesTable
+						:items="formattedTechniques"
+						:raw-html="serviceDetails?.techniques || ''"
+					/>
+				</section>
+			</div>
 
-				<div>
-					<h3 class="mb-6 font-semibold text-2xl">Top Specialists</h3>
-
-					<div class="grid lg:grid-cols-2 gap-4 mb-4">
-						<ProviderCard
-							v-for="provider in serviceDetails.providers"
-							:provider="provider"
-							:key="provider.provider_name"
+			<aside class="lg:col-span-5">
+				<div
+					class="sticky top-28 bg-surface-container-lowest rounded-3xl p-8 shadow-[0px_12px_32px_rgba(45,52,54,0.08)] border border-outline-variant/20"
+				>
+					<h3 class="font-headline-md text-headline-md text-on-surface mb-6">
+						Customize Your Ritual
+					</h3>
+					<div class="space-y-6">
+						<ServicePackageSelector
+							:packages="packages"
+							:selected-package="selectedPackage"
+							:service="serviceDetails"
+							@select="selectPackage"
+						/>
+						<AddToBookingPanel
+							:selected-package="selectedPackage"
+							:service="serviceDetails"
+							:busy="isAddingToBooking"
+							:error="bookingError"
+							@add="handleAddToBooking"
 						/>
 					</div>
 				</div>
-			</div>
-			<!-- Right section  -->
-			<div class="lg:col-span-4 relative">
-				<div
-					class="flex flex-col gap-4 bg-white/80 p-8 rounded-lg shadow-lg border-gray-300"
-				>
-					<div class="flex justify-between mb-4">
-						<div>
-							<p class="text-gray-700 mb-2">Starting from</p>
-							<h2
-								v-if="servicePrice.amount && servicePrice.currency"
-								class="text-2xl font-black"
-							>
-								{{ formatCurrency(servicePrice.amount, servicePrice.currency) }}
-								<span class="text-lg text-gray-700">/ session</span>
-							</h2>
-						</div>
-						<div class="bg-background-light rounded-full p-4">
-							<FeatherIcon class="h-6" name="tag" color="#236061" :strokeWidth="3" />
-						</div>
-					</div>
-					<div>
-						<h3 class="font-medium text-lg mb-4">PRICES</h3>
-						<div class="grid grid-cols-2 gap-2">
-							<div
-								v-for="price in serviceDetails.prices"
-								:key="price.price_name"
-								@click="setSelectedPrice(price)"
-								class="px-4 py-4 rounded-lg cursor-pointer flex flex-col gap-2 border-2 transition-all"
-								:class="
-									booking.draft.priceName === price.price_name
-										? 'border-primary bg-primary/10'
-										: 'border-gray-300 hover:border-primary'
-								"
-							>
-								<span
-									class="font-bold text-sm text-gray-700 uppercase tracking-wide"
-								>
-									{{ price.price_name }}
-								</span>
-								<span class="font-semibold text-primary text-xl">
-									{{ price.duration }} min
-								</span>
-								<span class="text-sm font-semibold text-gray-900">
-									{{ formatCurrency(price.amount, price.currency) }}
-								</span>
-								<span class="text-xs text-gray-500" v-if="price.pricing_model">
-									{{ price.pricing_model }}
-								</span>
-								<span class="text-xs text-gray-500" v-if="price.guest_count">
-									{{ price.guest_count }}
-									{{ price.guest_count === 1 ? "guest" : "guests" }}
-								</span>
-							</div>
-						</div>
-					</div>
-
-					<!-- Guest Requirements -->
-					<div v-if="serviceDetails.min_guests || serviceDetails.max_guests">
-						<h3 class="font-medium text-lg mb-2">NUMBER OF GUESTS</h3>
-						<div class="space-y-1">
-							<p v-if="serviceDetails.min_guests" class="text-sm text-gray-600">
-								Minimum {{ serviceDetails.min_guests }}
-								{{ serviceDetails.min_guests === 1 ? "guest" : "guests" }} required
-							</p>
-							<p
-								v-if="serviceDetails.max_guests && serviceDetails.max_guests > 0"
-								class="text-sm text-gray-600"
-							>
-								Maximum {{ serviceDetails.max_guests }}
-								{{ serviceDetails.max_guests === 1 ? "guest" : "guests" }}
-							</p>
-						</div>
-					</div>
-
-					<div>
-						<Button
-							@click="showBookingDialog"
-							class="mt-4 w-full font-semibold py-6 rounded-xl transition-all duration-300 text-lg"
-							:class="
-								isPriceSelected
-									? '!bg-primary !text-white/80 hover:!bg-primary-dark hover:!text-white'
-									: 'bg-gray-300 text-gray-500 cursor-not-allowed'
-							"
-						>
-							Book Appointment
-						</Button>
-					</div>
-				</div>
-				<div></div>
-			</div>
+			</aside>
 		</div>
-	</div>
+	</main>
 </template>
 
 <script setup>
-import { useRoute, useRouter } from "vue-router";
-import { createResource, FeatherIcon, Button, FormControl } from "frappe-ui";
-import ServiceTag from "@/components/common/ServiceTag.vue";
-import ProviderCard from "@/components/providers/ProviderCard.vue";
-import { formatCurrency } from "@/utils";
-import { computed, watch } from "vue";
-import { useBookingStore } from "@/stores/bookingStore";
+import AddToBookingPanel from "@/components/service-details/AddToBookingPanel.vue";
+import ServiceBenefitsTable from "@/components/service-details/ServiceBenefitsTable.vue";
+import ServiceDescription from "@/components/service-details/ServiceDescription.vue";
+import ServiceDetailsSkeleton from "@/components/service-details/ServiceDetailsSkeleton.vue";
+import ServiceHero from "@/components/service-details/ServiceHero.vue";
+import ServicePackageSelector from "@/components/service-details/ServicePackageSelector.vue";
+import ServiceTechniquesTable from "@/components/service-details/ServiceTechniquesTable.vue";
+import { useServiceDetails } from "@/composables/useServiceDetails";
 
-const booking = useBookingStore();
-const route = useRoute();
-const router = useRouter();
-
-const isPriceSelected = computed(() => {
-	return !!booking.draft.priceName;
-});
-
-function showBookingDialog() {
-	if (!isPriceSelected.value) {
-		return;
-	}
-	router.push({
-		name: "BookingWizard",
-		params: { serviceType: serviceDetails.value.name },
-	});
-	booking.setServiceType(serviceDetails.value.name);
-}
-
-const serviceTypeDetailsResource = createResource({
-	url: "frappoint.frappoint.api.service_type.get_service_type_details",
-	makeParams() {
-		return {
-			service_type: route.params.name,
-		};
-	},
-	auto: true,
-});
-
-const serviceDetails = computed(() => {
-	if (serviceTypeDetailsResource.data) {
-		return serviceTypeDetailsResource.data;
-	}
-	return {};
-});
-
-const servicePrice = computed(() => {
-	if (booking.draft.priceName) {
-		return {
-			price_name: booking.draft.priceName,
-			amount: booking.draft.price,
-			currency: booking.draft.currency,
-		};
-	}
-	return serviceDetails.value.prices?.[0] || {};
-});
-
-watch(
-	() => serviceDetails.value.prices,
-	(prices) => {
-		if (prices?.length && !booking.draft.priceName) {
-			const first = prices[0];
-			booking.setPriceName(first.price_name);
-			booking.setPrice(first.amount);
-			booking.setCurrency(first.currency);
-			booking.setDuration(first.duration);
-
-			// Set number of guests from service type min_guests
-			const guestCount = serviceDetails.value.min_guests || 1;
-			booking.setNumberOfGuests(guestCount);
-		}
-	},
-	{ immediate: true }
-);
-
-const setSelectedPrice = (price) => {
-	booking.setPriceName(price.price_name);
-	booking.setPrice(price.amount);
-	booking.setCurrency(price.currency);
-	booking.setDuration(price.duration);
-	// Guest count is managed by user selection, not by price
-};
+const {
+	serviceDetails,
+	loading,
+	error,
+	packages,
+	selectedPackage,
+	formattedBenefits,
+	formattedTechniques,
+	longDescription,
+	isAddingToBooking,
+	bookingError,
+	selectPackage,
+	handleAddToBooking,
+	refreshServiceDetails,
+} = useServiceDetails();
 </script>
