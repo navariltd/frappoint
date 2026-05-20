@@ -1,41 +1,41 @@
 <template>
 	<section
-		class="rounded-2xl border border-outline-variant/30 bg-surface-container-lowest p-5 shadow-sm space-y-4"
+		class="rounded-lg border border-outline-variant/40 bg-surface-container-lowest p-4 lg:p-5 shadow-sm space-y-4"
 	>
 		<div class="flex items-center justify-between gap-3">
 			<div>
-				<p class="text-[11px] font-semibold uppercase tracking-wider text-outline">
+				<p class="text-[11px] font-semibold uppercase tracking-[0.08em] text-outline">
 					Service
 				</p>
-				<h2 class="mt-1 text-lg font-semibold text-on-surface">
+				<h2 class="mt-1 text-base font-semibold tracking-tight text-on-surface">
 					{{ appointment.appointmentType || "Service" }}
 				</h2>
 			</div>
 			<span class="material-symbols-outlined text-primary">spa</span>
 		</div>
-		<div class="grid grid-cols-2 gap-3 text-sm">
-			<div class="rounded-xl bg-surface-container px-3 py-3">
-				<p class="text-[11px] uppercase tracking-wider text-outline">Duration</p>
-				<p class="mt-1 font-semibold text-on-surface">
-					{{ appointment.duration || 0 }} min
-				</p>
+		<div
+			class="rounded-md border border-outline-variant/30 divide-y divide-outline-variant/20 text-sm"
+		>
+			<div class="flex items-start justify-between gap-3 px-3 py-2.5">
+				<p class="text-[11px] uppercase tracking-[0.08em] text-outline">Duration</p>
+				<p class="font-medium text-on-surface">{{ appointment.duration || 0 }} min</p>
 			</div>
-			<div class="rounded-xl bg-surface-container px-3 py-3">
-				<p class="text-[11px] uppercase tracking-wider text-outline">Provider</p>
-				<p class="mt-1 font-semibold text-on-surface">
+			<div class="flex items-start justify-between gap-3 px-3 py-2.5">
+				<p class="text-[11px] uppercase tracking-[0.08em] text-outline">Provider</p>
+				<p class="font-medium text-on-surface text-right max-w-[65%] break-words">
 					{{ appointment.provider || "Unassigned" }}
 				</p>
 			</div>
-			<div class="rounded-xl bg-surface-container px-3 py-3 col-span-2">
-				<p class="text-[11px] uppercase tracking-wider text-outline">Time window</p>
-				<p class="mt-1 font-semibold text-on-surface">
+			<div class="flex items-start justify-between gap-3 px-3 py-2.5">
+				<p class="text-[11px] uppercase tracking-[0.08em] text-outline">Time window</p>
+				<p class="font-medium text-on-surface text-right">
 					{{ appointment.startTime || "-" }} - {{ appointment.endTime || "-" }}
 				</p>
 			</div>
 		</div>
 		<div
 			v-if="appointment.details"
-			class="rounded-xl border border-outline-variant/30 bg-surface p-3 text-sm text-on-surface-variant"
+			class="rounded-md border border-outline-variant/30 bg-surface px-3 py-2.5 text-sm text-on-surface-variant"
 		>
 			{{ appointment.details }}
 		</div>

@@ -1,46 +1,48 @@
 <template>
 	<section
-		class="rounded-2xl border border-outline-variant/30 bg-surface-container-lowest p-5 shadow-sm space-y-4"
+		class="rounded-lg border border-outline-variant/40 bg-surface-container-lowest p-4 lg:p-5 shadow-sm space-y-4"
 	>
 		<div class="flex items-center justify-between gap-3">
 			<div>
-				<p class="text-[11px] font-semibold uppercase tracking-wider text-outline">
+				<p class="text-[11px] font-semibold uppercase tracking-[0.08em] text-outline">
 					Financial snapshot
 				</p>
-				<h2 class="mt-1 text-lg font-semibold text-on-surface">Payment summary</h2>
+				<h2 class="mt-1 text-base font-semibold tracking-tight text-on-surface">
+					Payment summary
+				</h2>
 			</div>
 			<span class="material-symbols-outlined text-primary">payments</span>
 		</div>
-		<div class="space-y-2 text-sm">
-			<div class="flex items-center justify-between gap-3">
+		<div
+			class="rounded-md border border-outline-variant/30 divide-y divide-outline-variant/20 text-sm"
+		>
+			<div class="flex items-center justify-between gap-3 px-3 py-2.5">
 				<span class="text-on-surface-variant">Total</span>
-				<span class="font-semibold text-on-surface"
+				<span class="font-medium text-on-surface"
 					>{{ currency }} {{ totalAmount.toFixed(2) }}</span
 				>
 			</div>
-			<div class="flex items-center justify-between gap-3">
+			<div class="flex items-center justify-between gap-3 px-3 py-2.5">
 				<span class="text-on-surface-variant">Paid</span>
-				<span class="font-semibold text-success"
+				<span class="font-medium text-success"
 					>{{ currency }} {{ paidAmount.toFixed(2) }}</span
 				>
 			</div>
-			<div
-				class="flex items-center justify-between gap-3 border-t border-outline-variant/30 pt-3"
-			>
+			<div class="flex items-center justify-between gap-3 px-3 py-2.5">
 				<span class="font-semibold text-on-surface">Outstanding</span>
 				<span class="font-semibold text-primary"
 					>{{ currency }} {{ outstandingAmount.toFixed(2) }}</span
 				>
 			</div>
 		</div>
-		<div class="flex flex-wrap gap-2">
+		<div class="flex flex-wrap gap-1.5">
 			<span
-				class="px-3 py-1 rounded-full bg-surface-container-high text-[11px] font-semibold uppercase tracking-wider text-on-surface-variant"
+				class="px-2.5 py-1 rounded-md bg-surface-container-high text-[10px] font-semibold uppercase tracking-[0.08em] text-on-surface-variant"
 			>
 				{{ appointment.paymentStatus || "Unpaid" }}
 			</span>
 			<span
-				class="px-3 py-1 rounded-full bg-surface-container-high text-[11px] font-semibold uppercase tracking-wider text-on-surface-variant"
+				class="px-2.5 py-1 rounded-md bg-surface-container-high text-[10px] font-semibold uppercase tracking-[0.08em] text-on-surface-variant"
 			>
 				{{ paymentCount }} payment{{ paymentCount === 1 ? "" : "s" }}
 			</span>

@@ -1,43 +1,108 @@
 <template>
 	<section
-		class="rounded-2xl border border-outline-variant/30 bg-surface-container-lowest p-5 shadow-sm space-y-4"
+		class="rounded-lg border border-outline-variant/40 bg-surface-container-lowest p-4 lg:p-5 shadow-sm space-y-4"
 	>
 		<div class="flex items-center justify-between gap-3">
 			<div>
-				<p class="text-[11px] font-semibold uppercase tracking-wider text-outline">
+				<p class="text-[11px] font-semibold uppercase tracking-[0.08em] text-outline">
 					Timeline
 				</p>
-				<h2 class="mt-1 text-lg font-semibold text-on-surface">Lifecycle log</h2>
+				<h2 class="mt-1 text-base font-semibold tracking-tight text-on-surface">
+					Lifecycle log
+				</h2>
 			</div>
 			<span class="material-symbols-outlined text-primary">schedule</span>
 		</div>
-		<div class="space-y-4">
-			<div v-for="event in timeline" :key="event.id" class="flex gap-3">
-				<div
-					class="mt-1 h-3 w-3 rounded-full"
-					:class="dotClasses[event.tone] || dotClasses.neutral"
-				></div>
-				<div class="min-w-0">
-					<p class="font-semibold text-on-surface">{{ event.label }}</p>
-					<p class="text-sm text-on-surface-variant break-words">
-						{{ event.detail || event.timestamp || "-" }}
-					</p>
+		<div class="grid grid-cols-1 md:grid-cols-3 gap-2.5">
+			<div
+				class="rounded-md bg-surface-container border border-outline-variant/20 px-3 py-2.5"
+			>
+				<p class="text-[11px] font-semibold uppercase tracking-[0.08em] text-outline">
+					Effective time
+				</p>
+				<p class="mt-1 text-xl font-semibold text-on-surface">
+					{{ formatDuration(currentDuration) }}
+				</p>
+			</div>
+			<div
+				class="rounded-md bg-surface-container border border-outline-variant/20 px-3 py-2.5"
+			>
+				<p class="text-[11px] font-semibold uppercase tracking-[0.08em] text-outline">
+					Pause total
+				</p>
+				<p class="mt-1 text-xl font-semibold text-on-surface">
+					{{ formatDuration(totalPauseSeconds) }}
+				</p>
+			</div>
+			<div
+				class="rounded-md bg-surface-container border border-outline-variant/20 px-3 py-2.5"
+			>
+				<p class="text-[11px] font-semibold uppercase tracking-[0.08em] text-outline">
+					Active session
+				</p>
+				<p class="mt-1 text-sm font-semibold text-on-surface">
+					{{ activeSession ? activeSession.logType : "Idle" }}
+				</p>
+				<p class="text-xs text-on-surface-variant truncate">
+					{{ activeSession ? activeSession.startTime : "No open session" }}
+				</p>
+			</div>
+		</div>
+		<div class="space-y-2.5">
+			<div
+				v-for="segment in segments"
+				:key="segment.id"
+				class="rounded-md border px-3.5 py-3"
+				:class="segmentClasses[segment.tone] || segmentClasses.work"
+			>
+				<div class="flex items-start justify-between gap-3">
+					<div>
+						<p class="text-sm font-semibold text-on-surface">{{ segment.label }}</p>
+						<p class="text-xs text-on-surface-variant">
+							{{ segment.startTime || "-" }}
+							<span v-if="segment.endTime"> to {{ segment.endTime }}</span>
+						</p>
+						<p v-if="segment.notes" class="mt-1 text-xs text-on-surface-variant">
+							{{ segment.notes }}
+						</p>
+					</div>
+					<div class="text-right">
+						<p class="text-sm font-semibold text-on-surface">
+							{{ formatDuration(segment.durationSeconds) }}
+						</p>
+						<p class="text-[10px] uppercase tracking-[0.08em] text-outline">
+							{{ segment.isOpen ? "Active" : "Closed" }}
+						</p>
+					</div>
 				</div>
 			</div>
+			<p v-if="!segments.length" class="text-sm text-on-surface-variant">
+				No lifecycle logs recorded yet.
+			</p>
 		</div>
 	</section>
 </template>
 
 <script setup>
 defineProps({
-	timeline: { type: Array, default: () => [] },
+	segments: { type: Array, default: () => [] },
+	currentDuration: { type: Number, default: 0 },
+	totalPauseSeconds: { type: Number, default: 0 },
+	activeSession: { type: Object, default: null },
 });
 
-const dotClasses = {
-	success: "bg-success",
-	warning: "bg-warning",
-	danger: "bg-error",
-	info: "bg-primary",
-	neutral: "bg-outline-variant",
+const segmentClasses = {
+	work: "border-primary/20 bg-primary/5",
+	pause: "border-warning/30 bg-warning/10",
+	end: "border-success/20 bg-success/5",
+	checkin: "border-outline-variant/30 bg-surface-container",
+};
+
+const formatDuration = (value) => {
+	const totalSeconds = Number(value || 0);
+	const hours = Math.floor(totalSeconds / 3600);
+	const minutes = Math.floor((totalSeconds % 3600) / 60);
+	const seconds = totalSeconds % 60;
+	return [hours, minutes, seconds].map((part) => String(part).padStart(2, "0")).join(":");
 };
 </script>
