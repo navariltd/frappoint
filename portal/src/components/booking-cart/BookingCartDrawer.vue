@@ -92,6 +92,8 @@
 import { ref } from "vue";
 import { useRouter } from "vue-router";
 import { useBookingCart } from "@/composables/useBookingCart";
+import { useAuthStore } from "@/stores/auth";
+import { useBookingWorkflow } from "@/composables/useBookingWorkflow";
 import BookingCartItem from "./BookingCartItem.vue";
 import BookingCartSummary from "./BookingCartSummary.vue";
 import EmptyBookingCart from "./EmptyBookingCart.vue";
@@ -107,16 +109,26 @@ const emit = defineEmits<{
 
 const router = useRouter();
 const { cartItems, isEmpty, currency, addOne, removeOne, removeItem, clear } = useBookingCart();
+const auth = useAuthStore();
+const workflow = useBookingWorkflow();
 
 const isProcessing = ref(false);
 
 async function handleContinueBooking() {
 	isProcessing.value = true;
 	try {
-		// Navigate to booking wizard
-		// Cart data persists in store automatically
+		if (!auth.isLoggedIn) {
+			await router.push({
+				name: "Login",
+				query: { redirect: "/booking/workflow" },
+			});
+			emit("close");
+			return;
+		}
+
+		await workflow.startWorkflow();
 		await router.push({
-			name: "BookingWizard",
+			name: "BookingWorkflow",
 		});
 		emit("close");
 	} catch (error) {

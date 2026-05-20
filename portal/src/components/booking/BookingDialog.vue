@@ -1,14 +1,528 @@
 <template>
-	<div class="max-w-6xl mx-auto px-4 sm:px-6 py-4 sm:py-6">
-		<!-- Backdrop for better contrast -->
-		<div
+	<!-- TopAppBar -->
+	<header
+		class="bg-surface dark:bg-background shadow-sm docked full-width top-0 z-50 flex justify-between items-center h-16 px-gutter w-full max-w-[1440px] mx-auto"
+	>
+		<div class="flex items-center gap-4">
+			<span
+				class="font-headline-md text-headline-md font-semibold text-primary dark:text-inverse-primary"
+				>Frappoint</span
+			>
+		</div>
+		<div class="flex items-center gap-4">
+			<span class="material-symbols-outlined text-primary cursor-pointer"
+				>notifications</span
+			>
+			<span class="material-symbols-outlined text-primary cursor-pointer"
+				>account_circle</span
+			>
+		</div>
+	</header>
+	<div class="flex flex-1 overflow-hidden">
+		<!-- LEFT PANEL: Navigation -->
+		<aside
+			class="fixed left-0 top-16 bottom-0 flex flex-col p-4 w-72 z-40 bg-surface-container-low dark:bg-surface-container-lowest border-r border-outline-variant"
+		>
+			<div class="mb-6 px-2">
+				<h2 class="font-headline-sm text-headline-sm text-primary">Booking Session</h2>
+				<p class="font-label-sm text-label-sm text-on-surface-variant opacity-70">
+					3 Services in progress
+				</p>
+			</div>
+			<nav class="space-y-3 flex-1 overflow-y-auto">
+				<!-- Deep Tissue Massage [Active] -->
+				<div
+					class="text-primary dark:text-inverse-primary font-bold bg-secondary-container/30 dark:bg-secondary-container/10 rounded-lg p-3 spa-card border-none"
+				>
+					<div class="flex justify-between items-start mb-1">
+						<span class="font-label-md text-label-md uppercase tracking-wider"
+							>Active</span
+						>
+						<span
+							class="material-symbols-outlined text-primary"
+							style="font-variation-settings: 'FILL' 1"
+							>spa</span
+						>
+					</div>
+					<p class="font-headline-sm text-headline-sm leading-tight mb-2">
+						Deep Tissue Massage
+					</p>
+					<div class="flex items-center gap-4 text-on-surface-variant">
+						<div class="flex items-center gap-1">
+							<span class="material-symbols-outlined text-[16px]">groups</span>
+							<span class="text-xs">4 Guests</span>
+						</div>
+						<div class="flex items-center gap-1">
+							<span class="material-symbols-outlined text-[16px]"
+								>pending_actions</span
+							>
+							<span class="text-xs">Incomplete</span>
+						</div>
+					</div>
+				</div>
+				<!-- Back Massage [Pending] -->
+				<div
+					class="text-on-surface-variant dark:text-surface-variant font-medium p-3 hover:bg-surface-container-high transition-all rounded-lg cursor-pointer"
+				>
+					<div class="flex justify-between items-start mb-1 opacity-60">
+						<span class="font-label-sm text-label-sm">Pending</span>
+						<span class="material-symbols-outlined">calendar_today</span>
+					</div>
+					<p class="font-body-md text-body-md font-semibold">Back Massage</p>
+					<div class="flex items-center gap-1 mt-1 opacity-60">
+						<span class="material-symbols-outlined text-[14px]">groups</span>
+						<span class="text-xs">2 Guests</span>
+					</div>
+				</div>
+				<!-- Facial Treatment [Pending] -->
+				<div
+					class="text-on-surface-variant dark:text-surface-variant font-medium p-3 hover:bg-surface-container-high transition-all rounded-lg cursor-pointer"
+				>
+					<div class="flex justify-between items-start mb-1 opacity-60">
+						<span class="font-label-sm text-label-sm">Pending</span>
+						<span class="material-symbols-outlined">spa</span>
+					</div>
+					<p class="font-body-md text-body-md font-semibold">Facial Treatment</p>
+					<div class="flex items-center gap-1 mt-1 opacity-60">
+						<span class="material-symbols-outlined text-[14px]">groups</span>
+						<span class="text-xs">1 Guest</span>
+					</div>
+				</div>
+			</nav>
+			<div class="mt-auto pt-4 border-t border-outline-variant space-y-2">
+				<button
+					class="w-full flex items-center gap-3 p-2 rounded-lg text-on-surface-variant hover:bg-surface-container-high"
+				>
+					<span class="material-symbols-outlined">settings</span>
+					<span class="font-label-md text-label-md">Settings</span>
+				</button>
+				<button
+					class="w-full flex items-center gap-3 p-2 rounded-lg text-on-surface-variant hover:bg-surface-container-high"
+				>
+					<span class="material-symbols-outlined">help_outline</span>
+					<span class="font-label-md text-label-md">Help</span>
+				</button>
+			</div>
+		</aside>
+		<!-- CENTER PANEL: Active Workspace -->
+		<main class="ml-72 mr-[320px] flex-1 h-full overflow-y-auto bg-surface-bright">
+			<div class="max-w-[800px] mx-auto px-10 py-12">
+				<header class="mb-10">
+					<div class="flex items-center gap-2 text-primary mb-2">
+						<span class="material-symbols-outlined">arrow_back</span>
+						<span class="font-label-md text-label-md">Service Dashboard</span>
+					</div>
+					<h1 class="font-headline-lg text-headline-lg text-primary">
+						Deep Tissue Massage
+					</h1>
+					<p class="font-body-lg text-body-lg text-on-surface-variant">
+						Configure your therapy details, guest allocations, and scheduling
+						preferences.
+					</p>
+				</header>
+				<div class="space-y-section-gap">
+					<!-- STEP A: Package Selection -->
+					<section>
+						<div class="flex items-center gap-3 mb-6">
+							<span
+								class="flex items-center justify-center w-8 h-8 rounded-full bg-primary text-white font-bold text-sm"
+								>A</span
+							>
+							<h3 class="font-headline-sm text-headline-sm">Package Selection</h3>
+						</div>
+						<div class="grid grid-cols-2 gap-6">
+							<div
+								class="spa-card rounded-2xl p-6 active-ring border-primary/20 relative group cursor-pointer overflow-hidden"
+							>
+								<div class="absolute top-0 right-0 p-3">
+									<span
+										class="material-symbols-outlined text-primary"
+										style="font-variation-settings: 'FILL' 1"
+										>check_circle</span
+									>
+								</div>
+								<h4 class="font-headline-sm text-headline-sm text-primary mb-1">
+									Essential Relief
+								</h4>
+								<p class="text-on-surface-variant text-sm mb-4">
+									Focused therapy for major muscle groups.
+								</p>
+								<div class="flex items-end justify-between">
+									<div class="flex flex-col">
+										<span class="font-label-sm text-label-sm opacity-60"
+											>Duration</span
+										>
+										<span class="font-body-md text-body-md font-semibold"
+											>30 Minutes</span
+										>
+									</div>
+									<div class="text-right">
+										<span
+											class="font-headline-sm text-headline-sm text-primary"
+											>KES 4,500</span
+										>
+									</div>
+								</div>
+							</div>
+							<div
+								class="spa-card rounded-2xl p-6 hover:border-primary/40 cursor-pointer overflow-hidden"
+							>
+								<h4 class="font-headline-sm text-headline-sm text-on-surface mb-1">
+									Deep Restoration
+								</h4>
+								<p class="text-on-surface-variant text-sm mb-4">
+									Full body reset with targeted intensity.
+								</p>
+								<div class="flex items-end justify-between">
+									<div class="flex flex-col">
+										<span class="font-label-sm text-label-sm opacity-60"
+											>Duration</span
+										>
+										<span class="font-body-md text-body-md font-semibold"
+											>60 Minutes</span
+										>
+									</div>
+									<div class="text-right">
+										<span class="font-headline-sm text-headline-sm"
+											>KES 8,000</span
+										>
+									</div>
+								</div>
+							</div>
+						</div>
+					</section>
+					<!-- STEP B: Guest Population -->
+					<section>
+						<div class="flex items-center gap-3 mb-6">
+							<span
+								class="flex items-center justify-center w-8 h-8 rounded-full bg-primary text-white font-bold text-sm"
+								>B</span
+							>
+							<h3 class="font-headline-sm text-headline-sm">Guest Population</h3>
+						</div>
+						<div class="grid grid-cols-2 gap-4">
+							<!-- Guest 1 -->
+							<div class="spa-card rounded-xl p-4 flex items-center gap-4">
+								<img
+									class="w-12 h-12 rounded-full object-cover"
+									data-alt="A professional headshot of a woman with a serene expression, Sarah J., in a high-key studio setting. The lighting is soft and flattering, reflecting a luxury wellness brand aesthetic. The background is a clean, minimalist off-white, maintaining the brand's quiet luxury tone."
+									src="https://lh3.googleusercontent.com/aida-public/AB6AXuBIaZl2epibCKPK7TuCUKVrRM8b2OOzTrFD7uIsfIM3PRTDj1tdMmQjjoeuv_UBqpU59DMld-Qdpak_FBgtBmIoD-fjze90yMxTHb81sF-Qys3K-zan0HpQfTbVf7sls0-5N_ftB5D2OqCm0xVJ44fWqNC850soTyZHr6_Omefcgn7BahuOi3BagvMI1AgC4LNYN6OqofodZUcSeWlmV755ZZAn2cWybmgn9hsnSbfS8J6NP4XYS6zGC8WU_oip_msM0snf-zzgJNkL"
+								/>
+								<div class="flex-1">
+									<p class="font-label-md text-label-md text-primary">
+										Sarah J.
+									</p>
+									<p class="font-label-sm text-label-sm opacity-60">
+										Guest 1 • Primary
+									</p>
+								</div>
+								<span class="material-symbols-outlined text-outline cursor-pointer"
+									>edit</span
+								>
+							</div>
+							<!-- Guest 2 -->
+							<div class="spa-card rounded-xl p-4 flex items-center gap-4">
+								<img
+									class="w-12 h-12 rounded-full object-cover"
+									data-alt="A professional headshot of a man with a gentle smile, Michael C., in a modern studio environment. The image is brightly lit with a soft-box effect, emphasizing a clean and premium feel. The color palette is neutral with soft shadows, consistent with a high-end wellness platform."
+									src="https://lh3.googleusercontent.com/aida-public/AB6AXuAugeYNg9hPenpAk8HJ4-BrmIj2ulB7z4uBFWy-MWDX_3N567D2H5jazJFgWNz3f0jtFSNbEq6sVO3H_YdrfnwVxqANzK37-zM1WTW9SFQI6xvJzw-SUEd5JtyZVtLytw6gL3Gubx36Dc7ej8VKa9bY8hSBK-cun9Jtrw9dHa8aCjRV6GqtLpqI_0A1A71Ecgx4qoUVqIGffdih7yJG5qVlyTA_WZsrUDUiyzF7lbavyUag0NSWwt_zFB-64uR4P0r7aCYFL0_KFB7J"
+								/>
+								<div class="flex-1">
+									<p class="font-label-md text-label-md text-primary">
+										Michael C.
+									</p>
+									<p class="font-label-sm text-label-sm opacity-60">Guest 2</p>
+								</div>
+								<span class="material-symbols-outlined text-outline cursor-pointer"
+									>edit</span
+								>
+							</div>
+							<!-- Empty Slots -->
+							<button
+								class="spa-card rounded-xl p-4 flex items-center gap-4 border-dashed border-2 border-outline-variant bg-transparent hover:bg-surface-container-low"
+							>
+								<div
+									class="w-12 h-12 rounded-full bg-surface-container-highest flex items-center justify-center text-outline"
+								>
+									<span class="material-symbols-outlined">person_add</span>
+								</div>
+								<div class="flex-1 text-left">
+									<p class="font-label-md text-label-md text-outline">
+										Select Guest
+									</p>
+									<p class="font-label-sm text-label-sm opacity-60">
+										Guest 3 • Empty
+									</p>
+								</div>
+							</button>
+							<button
+								class="spa-card rounded-xl p-4 flex items-center gap-4 border-dashed border-2 border-outline-variant bg-transparent hover:bg-surface-container-low"
+							>
+								<div
+									class="w-12 h-12 rounded-full bg-surface-container-highest flex items-center justify-center text-outline"
+								>
+									<span class="material-symbols-outlined">person_add</span>
+								</div>
+								<div class="flex-1 text-left">
+									<p class="font-label-md text-label-md text-outline">
+										Select Guest
+									</p>
+									<p class="font-label-sm text-label-sm opacity-60">
+										Guest 4 • Empty
+									</p>
+								</div>
+							</button>
+						</div>
+					</section>
+					<!-- STEP C: Scheduling Preference -->
+					<section>
+						<div class="flex items-center gap-3 mb-6">
+							<span
+								class="flex items-center justify-center w-8 h-8 rounded-full bg-primary text-white font-bold text-sm"
+								>C</span
+							>
+							<h3 class="font-headline-sm text-headline-sm">
+								Scheduling Preference
+							</h3>
+						</div>
+						<div class="flex flex-wrap gap-3">
+							<button
+								class="px-6 py-2 rounded-full bg-secondary-container text-on-secondary-container border border-secondary font-label-md text-label-md"
+							>
+								Keep Together
+							</button>
+							<button
+								class="px-6 py-2 rounded-full bg-surface text-on-surface-variant border border-outline-variant font-label-md text-label-md hover:bg-surface-container-high transition-colors"
+							>
+								Spread Apart
+							</button>
+							<button
+								class="px-6 py-2 rounded-full bg-surface text-on-surface-variant border border-outline-variant font-label-md text-label-md hover:bg-surface-container-high transition-colors"
+							>
+								Auto-Optimize
+							</button>
+						</div>
+					</section>
+					<!-- STEP D: Slot Allocation -->
+					<section>
+						<div class="flex items-center gap-3 mb-6">
+							<span
+								class="flex items-center justify-center w-8 h-8 rounded-full bg-primary text-white font-bold text-sm"
+								>D</span
+							>
+							<h3 class="font-headline-sm text-headline-sm">Slot Allocation</h3>
+						</div>
+						<div class="space-y-4">
+							<!-- Slot 1 -->
+							<div class="spa-card rounded-2xl overflow-hidden">
+								<div
+									class="p-4 bg-surface-container flex justify-between items-center"
+								>
+									<div class="flex items-center gap-3">
+										<span class="material-symbols-outlined text-primary"
+											>schedule</span
+										>
+										<span class="font-label-md text-label-md"
+											>10:00 AM Slot</span
+										>
+									</div>
+									<span
+										class="px-3 py-1 rounded-full bg-secondary-container text-[10px] uppercase font-bold tracking-widest text-on-secondary-container"
+										>Fully Allocated</span
+									>
+								</div>
+								<div class="p-6">
+									<div class="flex items-center justify-between mb-4">
+										<div class="flex -space-x-3">
+											<img
+												class="w-10 h-10 rounded-full border-2 border-white"
+												data-alt="Portrait of Sarah J."
+												src="https://lh3.googleusercontent.com/aida-public/AB6AXuCgHzQf1QW7P4sxz2P7MkKw1LwoLf2asDvAeBZgHXi3ILw_-gNO60z8XUNINyLGMDhAEvWpdqkclrHAxwsWuKwpUOJIRIUJgG4ovc2nmBXqvXMPAq4ymw35czhRYOU3DYB57CtAB8F_6p3KENt5D3O1WpYULcoRR9j45sS6RfZhbZD-x2fsaSwfWptKXgyf-T-wQTy8o7BXNkXkIF_VVBKtnpPG--EAGuaRYIZ9uP8WTM5Vt8ZW1Xvb5OmZ1xzsCSwRalIksQVpmuQF"
+											/>
+											<img
+												class="w-10 h-10 rounded-full border-2 border-white"
+												data-alt="Portrait of Michael C."
+												src="https://lh3.googleusercontent.com/aida-public/AB6AXuDhJLqgj7wKHPC28ucWjlrnjUdsC-SefdvwptJVpKrRWBoafVCZIYMkbozepon2Xmuwhp0HD9ghDQMx3oZE1RX2fixeEj_n_RJxrDtBs6MkIZ_pDq0_Mypa1sX0dF7WWJ6uaOyKJHHzOmgOs2cNk2UQPkDbQ0z34VuW3YsSZOy30WuHje_glwtg72tYenzmMXWFhdIGGQBRjHn1Qn9EndtNxIWIa-TV4nNNFYsI7pluDsRGmRUF_1nL0-87dbjCsUtKRxuhIm3XA5RX"
+											/>
+										</div>
+										<div class="text-right">
+											<p
+												class="font-label-sm text-label-sm text-on-surface-variant"
+											>
+												Capacity
+											</p>
+											<p
+												class="font-body-md text-body-md font-bold text-primary"
+											>
+												2/2 Guests Assigned
+											</p>
+										</div>
+									</div>
+									<div
+										class="flex items-center gap-2 text-on-surface-variant text-sm"
+									>
+										<span class="material-symbols-outlined text-sm"
+											>person_check</span
+										>
+										<span>2 Providers Available (Maria, David)</span>
+									</div>
+								</div>
+							</div>
+							<!-- Slot 2 -->
+							<div class="spa-card rounded-2xl overflow-hidden opacity-60">
+								<div
+									class="p-4 bg-surface-container-high flex justify-between items-center"
+								>
+									<div class="flex items-center gap-3">
+										<span class="material-symbols-outlined">schedule</span>
+										<span class="font-label-md text-label-md"
+											>11:30 AM Slot</span
+										>
+									</div>
+									<span
+										class="px-3 py-1 rounded-full bg-surface-variant text-[10px] uppercase font-bold tracking-widest text-on-surface-variant"
+										>Unallocated</span
+									>
+								</div>
+								<div class="p-6">
+									<div class="flex items-center justify-between mb-4">
+										<div
+											class="w-10 h-10 rounded-full bg-surface-container-highest border-2 border-dashed border-outline-variant flex items-center justify-center"
+										>
+											<span class="material-symbols-outlined text-sm"
+												>add</span
+											>
+										</div>
+										<div class="text-right">
+											<p
+												class="font-label-sm text-label-sm text-on-surface-variant"
+											>
+												Capacity
+											</p>
+											<p class="font-body-md text-body-md font-bold">
+												0/2 Guests Assigned
+											</p>
+										</div>
+									</div>
+									<div
+										class="flex items-center gap-2 text-on-surface-variant text-sm"
+									>
+										<span class="material-symbols-outlined text-sm"
+											>person_check</span
+										>
+										<span>2 Providers Available</span>
+									</div>
+								</div>
+							</div>
+						</div>
+					</section>
+					<!-- STEP E: Validation -->
+					<section class="mt-12">
+						<div
+							class="p-4 rounded-xl bg-primary-container/10 border border-primary-container/20 flex items-center gap-4"
+						>
+							<span class="material-symbols-outlined text-primary">info</span>
+							<div class="flex-1">
+								<p class="font-label-md text-label-md text-on-primary-container">
+									Configuration Status
+								</p>
+								<p
+									class="font-label-sm text-label-sm text-on-primary-container/70"
+								>
+									2 / 4 guests assigned. 1 additional slot group required.
+								</p>
+							</div>
+							<div
+								class="w-24 h-2 bg-surface-container-highest rounded-full overflow-hidden"
+							>
+								<div class="bg-primary h-full w-[50%]"></div>
+							</div>
+						</div>
+					</section>
+				</div>
+			</div>
+		</main>
+		<!-- RIGHT PANEL: Summary -->
+		<aside
+			class="fixed right-0 top-16 bottom-0 w-[320px] bg-white border-l border-outline-variant p-6 flex flex-col z-40"
+		>
+			<h3 class="font-headline-sm text-headline-sm text-primary mb-6">Booking Summary</h3>
+			<div class="flex-1 space-y-6">
+				<!-- Active Service Item -->
+				<div class="pb-6 border-b border-outline-variant">
+					<p
+						class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider mb-2"
+					>
+						Current Service
+					</p>
+					<div class="flex justify-between items-start mb-1">
+						<span class="font-body-md text-body-md font-bold"
+							>Deep Tissue Massage</span
+						>
+						<span class="text-sm font-semibold">KES 9,000</span>
+					</div>
+					<p class="text-sm text-on-surface-variant">
+						Essential Relief (30m) x 2 Guests
+					</p>
+				</div>
+				<!-- Totals Section -->
+				<div class="space-y-3">
+					<div class="flex justify-between text-sm">
+						<span class="text-on-surface-variant">Subtotal</span>
+						<span class="font-semibold text-on-surface">KES 9,000</span>
+					</div>
+					<div class="flex justify-between text-sm">
+						<span class="text-on-surface-variant">Taxes &amp; Levies</span>
+						<span class="font-semibold text-on-surface">KES 1,440</span>
+					</div>
+					<div class="flex justify-between text-sm">
+						<span class="text-on-surface-variant">Service Fee</span>
+						<span class="font-semibold text-on-surface">KES 500</span>
+					</div>
+					<div class="pt-4 flex justify-between items-center">
+						<span class="font-headline-sm text-headline-sm text-on-surface"
+							>Total</span
+						>
+						<span class="font-headline-sm text-headline-sm text-primary"
+							>KES 10,940</span
+						>
+					</div>
+				</div>
+				<!-- Image Focus -->
+				<div class="pt-6">
+					<div class="rounded-2xl overflow-hidden aspect-[4/3] spa-card border-none">
+						<img
+							class="w-full h-full object-cover"
+							data-alt="A luxurious and calm spa treatment room interior with minimalist architectural lines. Soft, warm teal lighting washes over natural stone walls and a pristine massage bed. The atmosphere is peaceful, professional, and reflects a high-end wellness sanctuary designed for maximum relaxation and aesthetic focus."
+							src="https://lh3.googleusercontent.com/aida-public/AB6AXuAhYirU-LHbWE2H2pNlLVO_zE6aUEPw_q-PIHVLPqb-YCvr82mYJOGaC09LTaaEojCZe-4raL4Gy2W1Ng-_EdR0xTRJYi3nLInOdrvUITMxu1dZ8AMBw8rlWnJHJm5QPJ7dKcIPycDXvzPmu4FxKZtZbvPwtAd5khsA4fWxbLhk5NHMauGuUIXlkl1o8Fe7v9rjyyPW0W95GIQIttv-WruL1_jtR8jzZl2HmBhWTmSjO9BVQ46SR8m4mhME4NMw72yMXVyYsRja7neU"
+						/>
+					</div>
+				</div>
+			</div>
+			<div class="mt-auto space-y-3">
+				<button
+					class="w-full py-4 rounded-xl bg-primary text-white font-label-md text-label-md hover:opacity-90 active:scale-[0.98] transition-all"
+				>
+					Save Service Configuration
+				</button>
+				<button
+					class="w-full py-3 rounded-xl border border-primary text-primary font-label-md text-label-md hover:bg-primary/5 active:scale-[0.98] transition-all"
+				>
+					Save as Draft
+				</button>
+			</div>
+		</aside>
+	</div>
+	<!-- <div class="max-w-6xl mx-auto px-4 sm:px-6 py-4 sm:py-6"> -->
+	<!-- Backdrop for better contrast -->
+	<!-- <div
 			v-if="alertOptions.message"
 			class="fixed inset-0 bg-black/20 backdrop-blur-sm z-[100] transition-opacity duration-300"
 			@click="alertOptions.message = ''"
-		></div>
+		></div> -->
 
-		<!-- Alert with enhanced visibility -->
-		<Alert
+	<!-- Alert with enhanced visibility -->
+	<!-- <Alert
 			v-if="alertOptions.message"
 			:title="alertOptions.title"
 			:description="alertOptions.message"
@@ -16,10 +530,10 @@
 			:theme="alertOptions.theme"
 			class="fixed top-4 md:top-8 left-1/2 -translate-x-1/2 z-[101] w-[90%] md:w-auto md:min-w-[400px] md:max-w-[500px] shadow-2xl animate-slide-down"
 			@close="alertOptions.message = ''"
-		/>
+		/> -->
 
-		<!-- Show errors at the top -->
-		<ErrorMessage
+	<!-- Show errors at the top -->
+	<!-- <ErrorMessage
 			v-if="getAvailableDates.error"
 			:message="getAvailableDates.error"
 			class="mb-4"
@@ -36,9 +550,9 @@
 		/>
 
 		<div class="flex flex-col gap-4 sm:gap-6">
-			<div class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
-				<!-- header section  -->
-				<div class="flex-1">
+			<div class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4"> -->
+	<!-- header section  -->
+	<!-- <div class="flex-1">
 					<h1
 						class="font-semibold text-xl sm:text-2xl md:text-3xl text-gray-900 leading-tight"
 					>
@@ -47,10 +561,10 @@
 					<p class="text-sm sm:text-base md:text-lg text-gray-600 mt-1">
 						{{ stepSubtitle }}
 					</p>
-				</div>
+				</div> -->
 
-				<!-- progress section  -->
-				<div class="flex gap-3 sm:gap-4 md:gap-6 text-xs sm:text-sm md:text-base">
+	<!-- progress section  -->
+	<!-- <div class="flex gap-3 sm:gap-4 md:gap-6 text-xs sm:text-sm md:text-base">
 					<div class="flex items-center gap-1.5">
 						<span
 							:class="[
@@ -106,25 +620,25 @@
 						>
 					</div>
 				</div>
-			</div>
+			</div> -->
 
-			<!-- Main Booking Card Step Content  -->
-			<div
+	<!-- Main Booking Card Step Content  -->
+	<!-- <div
 				class="bg-white rounded-xl sm:rounded-2xl shadow-lg overflow-hidden flex flex-col min-h-[500px] sm:min-h-[600px]"
-			>
-				<!-- Step Components -->
-				<div class="flex-1 flex flex-col lg:flex-row">
-					<!-- Show skeleton while initially loading dates -->
-					<SlotPickerSkeleton
+			> -->
+	<!-- Step Components -->
+	<!-- <div class="flex-1 flex flex-col lg:flex-row"> -->
+	<!-- Show skeleton while initially loading dates -->
+	<!-- <SlotPickerSkeleton
 						v-if="
 							currentStep === 1 &&
 							getAvailableDates.loading &&
 							availableDates.length === 0
 						"
-					/>
+					/> -->
 
-					<!-- Show SlotPicker once dates are available or loaded -->
-					<SlotPicker
+	<!-- Show SlotPicker once dates are available or loaded -->
+	<!-- <SlotPicker
 						v-else-if="currentStep === 1"
 						:date="booking.draft.date"
 						:slot="booking.draft.slot"
@@ -224,10 +738,10 @@
 							</p>
 						</div>
 					</div>
-				</div>
+				</div> -->
 
-				<!-- Buttons for step 1 (Choose Time) -->
-				<div
+	<!-- Buttons for step 1 (Choose Time) -->
+	<!-- <div
 					v-if="currentStep === 1"
 					class="mt-auto px-6 md:px-8 pb-6 md:pb-8 flex items-center justify-between border-t border-gray-100 pt-6"
 				>
@@ -254,10 +768,10 @@
 							/>
 						</svg>
 					</button>
-				</div>
+				</div> -->
 
-				<!-- Buttons for step 2 (integrated in form) -->
-				<div
+	<!-- Buttons for step 2 (integrated in form) -->
+	<!-- <div
 					v-if="currentStep === 2"
 					class="mt-auto px-6 md:px-8 pb-6 md:pb-8 flex items-center justify-between border-t border-gray-100 pt-6"
 				>
@@ -298,7 +812,7 @@
 				</div>
 			</div>
 		</div>
-	</div>
+	</div> -->
 </template>
 
 <script setup>
@@ -584,6 +1098,7 @@ function getErrorMessage(error) {
 		opacity: 0;
 		transform: translate(-50%, -100%);
 	}
+
 	to {
 		opacity: 1;
 		transform: translate(-50%, 0);
