@@ -72,8 +72,8 @@ export const useAuthStore = defineStore("auth", {
 			});
 
 			await logoutResource.submit();
-			this.userId = null;
-			this.userName = null;
+			this.user = null;
+			this.checked = true;
 			router.replace({ name: "Login" });
 		},
 
