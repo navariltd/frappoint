@@ -6,16 +6,22 @@
 				:views="views"
 				@update:modelValue="$emit('update:view', $event)"
 			/>
+			<!-- Appointments metrics strip to the right of view switcher -->
+			<AppointmentMetricsStrip
+				v-if="selectedView === 'APPOINTMENTS'"
+				:metrics="metrics"
+				class="ml-4"
+			/>
 		</div>
 		<div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-6 gap-3">
 			<BookingSearchBar
 				:modelValue="filters.searchText"
-				placeholder="Search booking ID"
+				placeholder="Search booking ID or appointments"
 				@update:modelValue="$emit('update:searchText', $event)"
 			/>
 			<BookingSearchBar
 				:modelValue="filters.customerQuery"
-				placeholder="Search customer"
+				placeholder="Search guest"
 				@update:modelValue="$emit('update:customerQuery', $event)"
 			/>
 			<select
@@ -57,14 +63,19 @@
 <script setup>
 import BookingSearchBar from "@/components/bookings/BookingSearchBar.vue";
 import BookingsViewSwitcher from "@/components/bookings/BookingsViewSwitcher.vue";
+import AppointmentMetricsStrip from "@/components/bookings/appointments/AppointmentMetricsStrip.vue";
+import { useAppointments } from "@/composables/bookings/useAppointments";
 
-defineProps({
+const props = defineProps({
 	filters: { type: Object, required: true },
 	selectedView: { type: String, required: true },
 	statusOptions: { type: Array, default: () => [] },
 	paymentStatusOptions: { type: Array, default: () => [] },
 	views: { type: Array, default: () => [] },
 });
+
+// Appointments metrics
+const { metrics } = useAppointments();
 
 defineEmits([
 	"update:view",
