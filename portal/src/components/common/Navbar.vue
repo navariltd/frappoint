@@ -8,7 +8,12 @@
 			<NavbarLinks :isLoggedIn="auth.isLoggedIn" />
 
 			<div class="flex items-center gap-3">
+				<!-- Booking Cart Badge -->
+				<BookingCartBadge @click="cartDrawerOpen = true" />
+
+				<!-- Appointments Basket -->
 				<NavbarCartIndicator :count="appointmentBasketCount" @open="goToBookings" />
+
 				<NavbarUserMenu
 					:isLoggedIn="auth.isLoggedIn"
 					:userImage="auth.userImage"
@@ -34,6 +39,13 @@
 			@logout="handleLogout"
 		/>
 	</div>
+
+	<!-- Booking Cart Drawer -->
+	<BookingCartDrawer
+		:open="cartDrawerOpen"
+		@close="cartDrawerOpen = false"
+		@browse="handleBrowseServices"
+	/>
 </template>
 
 <script setup>
@@ -48,17 +60,28 @@ import NavbarUserMenu from "@/components/navbar/NavbarUserMenu.vue";
 import NavbarMobileMenu from "@/components/navbar/NavbarMobileMenu.vue";
 import MenuIcon from "@/components/icons/MenuIcon.vue";
 import CloseIcon from "@/components/icons/CloseIcon.vue";
+import BookingCartBadge from "@/components/booking-cart/BookingCartBadge.vue";
+import BookingCartDrawer from "@/components/booking-cart/BookingCartDrawer.vue";
+import { useBookingCart } from "@/composables/useBookingCart";
 
 const auth = useAuthStore();
 const bookingStore = useBookingStore();
 const router = useRouter();
+const { hydrate } = useBookingCart();
+
 const mobileMenuOpen = ref(false);
+const cartDrawerOpen = ref(false);
 
 const appointmentBasketCount = computed(() => bookingStore.draft.appointments?.length || 0);
 
 function goToBookings() {
 	mobileMenuOpen.value = false;
 	router.push({ name: "Bookings" });
+}
+
+function handleBrowseServices() {
+	cartDrawerOpen.value = false;
+	router.push({ name: "Services" });
 }
 
 async function handleLogout() {
@@ -68,5 +91,7 @@ async function handleLogout() {
 
 onMounted(() => {
 	auth.refreshUser();
+	// Hydrate booking cart from localStorage
+	hydrate();
 });
 </script>
