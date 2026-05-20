@@ -1,44 +1,35 @@
 <template>
-	<div
-		class="bg-surface-container-lowest p-5 rounded-2xl border border-outline-variant flex gap-4 shadow-[0px_4px_20px_rgba(45,52,54,0.05)]"
+	<section
+		class="rounded-lg border border-outline-variant/40 bg-surface-container-lowest p-4 lg:p-5 shadow-sm space-y-3"
 	>
-		<div
-			class="h-14 w-14 rounded-2xl bg-surface-container-high flex items-center justify-center text-primary font-bold text-[16px] overflow-hidden shrink-0"
-		>
-			{{ initials }}
-		</div>
-		<div class="flex-grow min-w-0">
-			<div class="flex justify-between items-start gap-2">
-				<h3 class="text-[16px] font-semibold text-on-surface truncate">
+		<div class="flex items-center justify-between gap-3">
+			<div>
+				<p class="text-[11px] font-semibold uppercase tracking-[0.08em] text-outline">
+					Customer
+				</p>
+				<h2 class="mt-1 text-base font-semibold tracking-tight text-on-surface">
 					{{ booking.customerName }}
-				</h3>
-				<span
-					class="text-[10px] font-bold uppercase px-2 py-0.5 bg-tertiary-fixed text-on-tertiary-fixed rounded"
-					>Customer</span
-				>
+				</h2>
 			</div>
-			<p class="text-on-surface-variant text-[13px] truncate mt-1">
-				{{ booking.email || "No email available" }}
-			</p>
-			<p class="text-on-surface-variant text-[13px] mt-1">
-				{{ booking.mobileNo || "No phone available" }}
-			</p>
+			<span class="material-symbols-outlined text-primary">person</span>
 		</div>
-	</div>
+		<div class="space-y-2.5 text-sm">
+			<div class="rounded-md border border-outline-variant/30 px-3 py-2.5">
+				<p class="text-[11px] uppercase tracking-[0.08em] text-outline">Email</p>
+				<p class="mt-1 font-medium text-on-surface break-all">
+					{{ booking.email || "-" }}
+				</p>
+			</div>
+			<div class="rounded-md border border-outline-variant/30 px-3 py-2.5">
+				<p class="text-[11px] uppercase tracking-[0.08em] text-outline">Phone</p>
+				<p class="mt-1 font-medium text-on-surface">
+					{{ booking.mobileNo || "-" }}
+				</p>
+			</div>
+		</div>
+	</section>
 </template>
 
 <script setup>
-import { computed } from "vue";
-
-const props = defineProps({ booking: { type: Object, required: true } });
-
-const initials = computed(() => {
-	const source = props.booking.customerName || "BK";
-	return source
-		.split(" ")
-		.filter(Boolean)
-		.slice(0, 2)
-		.map((part) => part[0]?.toUpperCase() || "")
-		.join("");
-});
+defineProps({ booking: { type: Object, required: true } });
 </script>

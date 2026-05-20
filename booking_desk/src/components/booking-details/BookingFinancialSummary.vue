@@ -1,32 +1,46 @@
 <template>
-	<div class="tonal-layer-1 rounded-2xl overflow-hidden border border-outline-variant">
-		<div class="bg-surface-container-high p-4 border-b border-outline-variant">
-			<h3 class="text-[14px] font-semibold text-on-surface flex items-center gap-2">
-				<span class="material-symbols-outlined text-[20px]">account_balance_wallet</span>
-				Financial Summary
-			</h3>
+	<section
+		class="rounded-lg border border-outline-variant/40 bg-surface-container-lowest p-4 lg:p-5 shadow-sm space-y-4"
+	>
+		<div class="flex items-center justify-between gap-3">
+			<div>
+				<p class="text-[11px] font-semibold uppercase tracking-[0.08em] text-outline">
+					Financial Summary
+				</p>
+			</div>
+			<span class="material-symbols-outlined text-primary">account_balance_wallet</span>
 		</div>
-		<div class="p-5 space-y-3 text-[13px]">
-			<div class="flex justify-between text-on-surface-variant">
-				<span>Subtotal</span>
-				<span>{{ currency }} {{ summary.subtotal.toFixed(2) }}</span>
+		<div
+			class="rounded-md border border-outline-variant/30 divide-y divide-outline-variant/20 text-sm"
+		>
+			<div class="flex items-start justify-between gap-3 px-3 py-2.5">
+				<p class="text-[11px] uppercase tracking-[0.08em] text-outline">Subtotal</p>
+				<p class="font-medium text-on-surface">
+					{{ currency }} {{ Number(summary.subtotal || 0).toFixed(2) }}
+				</p>
 			</div>
-			<div class="flex justify-between text-on-surface-variant">
-				<span>Paid</span>
-				<span>{{ currency }} {{ summary.paidAmount.toFixed(2) }}</span>
+			<div class="flex items-start justify-between gap-3 px-3 py-2.5">
+				<p class="text-[11px] uppercase tracking-[0.08em] text-outline">Paid</p>
+				<p class="font-medium text-on-surface">
+					{{ currency }} {{ Number(summary.paidAmount || 0).toFixed(2) }}
+				</p>
 			</div>
-			<div class="flex justify-between text-on-surface-variant">
-				<span>Outstanding</span>
-				<span>{{ currency }} {{ summary.outstandingAmount.toFixed(2) }}</span>
+			<div class="flex items-start justify-between gap-3 px-3 py-2.5">
+				<p class="text-[11px] uppercase tracking-[0.08em] text-outline">Outstanding</p>
+				<p class="font-medium text-on-surface text-warning">
+					{{ currency }} {{ Number(summary.outstandingAmount || 0).toFixed(2) }}
+				</p>
 			</div>
 			<div
-				class="pt-3 border-t border-dashed border-outline-variant flex justify-between font-semibold"
+				class="flex items-start justify-between gap-3 px-3 py-2.5 bg-surface-container-high font-semibold"
 			>
-				<span>Total Value</span>
-				<span>{{ currency }} {{ summary.grandTotal.toFixed(2) }}</span>
+				<p class="text-[11px] uppercase tracking-[0.08em] text-outline">Total</p>
+				<p class="text-on-surface">
+					{{ currency }} {{ Number(summary.grandTotal || 0).toFixed(2) }}
+				</p>
 			</div>
 		</div>
-	</div>
+	</section>
 </template>
 
 <script setup>
