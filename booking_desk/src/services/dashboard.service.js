@@ -19,11 +19,13 @@ const getStatus = (row) =>
 		.toLowerCase();
 
 const isCheckedIn = (row) => {
-	return getStatus(row) === "checked-in";
+	const status = getStatus(row);
+	return ["checked-in", "checked in"].includes(status);
 };
 
 const isOngoing = (row, selectedDate) => {
-	return getStatus(row) === "ongoing";
+	const status = getStatus(row);
+	return ["ongoing", "in progress"].includes(status);
 };
 
 const isDelayed = (row, selectedDate) => {
@@ -58,12 +60,16 @@ const hasPendingPayment = (row) => {
 
 const isNoShow = (row) => getStatus(row) === "no show";
 
+const isCancelled = (row) => getStatus(row) === "cancelled";
+
 export function mapDashboardMetrics(appointments, selectedDate) {
 	return {
 		todayAppointments: appointments.length,
 		checkedIn: appointments.filter(isCheckedIn).length,
 		ongoing: appointments.filter((item) => isOngoing(item, selectedDate)).length,
+		completed: appointments.filter((item) => getStatus(item) === "completed").length,
 		pendingPayment: appointments.filter(hasPendingPayment).length,
+		cancelled: appointments.filter(isCancelled).length,
 		delayed: appointments.filter((item) => isDelayed(item, selectedDate)).length,
 		noShow: appointments.filter(isNoShow).length,
 	};

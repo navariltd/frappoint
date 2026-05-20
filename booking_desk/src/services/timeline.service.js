@@ -1,5 +1,5 @@
 import { fetchAppointmentsByDateRange } from "@/api/appointment.api";
-import { fetchProviders } from "@/api/provider.api";
+import { fetchProviders, fetchProvidersByIds } from "@/api/provider.api";
 
 const formatTime = (value) => {
 	if (!value) {
@@ -95,7 +95,16 @@ export async function fetchTimelineDataset({ fromDate, toDate }) {
 		)
 	);
 
+	const missingProviderRows = await fetchProvidersByIds(missingProviderIds);
+	const missingProviderById = new Map(missingProviderRows.map((row) => [row.name, row]));
+
 	for (const missingProviderId of missingProviderIds) {
+		const resolvedProvider = missingProviderById.get(missingProviderId);
+		if (resolvedProvider) {
+			providers.push(mapProvider(resolvedProvider));
+			continue;
+		}
+
 		providers.push({
 			id: missingProviderId,
 			name: missingProviderId,
