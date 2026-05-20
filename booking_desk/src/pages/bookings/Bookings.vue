@@ -29,15 +29,7 @@
 					</button>
 				</div>
 
-				<div
-					v-if="!isBookingsView"
-					class="rounded-xl border border-outline-variant bg-surface-container-lowest p-6 text-[13px] text-on-surface-variant"
-				>
-					{{ selectedView }} workspace is coming next. Bookings view is fully
-					operational.
-				</div>
-
-				<template v-else>
+				<template v-if="isBookingsView">
 					<BookingLoadingState v-if="isLoading" />
 					<BookingEmptyState
 						v-else-if="!hasBookings"
@@ -53,9 +45,22 @@
 						@cancel="cancelBooking"
 					/>
 				</template>
+
+				<AppointmentsView v-else-if="selectedView === BOOKING_VIEWS.APPOINTMENTS" />
+
+				<div
+					v-else
+					class="rounded-xl border border-outline-variant bg-surface-container-lowest p-6 text-[13px] text-on-surface-variant"
+				>
+					{{ selectedView }} workspace is coming next. Bookings view is fully
+					operational.
+				</div>
 			</main>
 
-			<div class="hidden xl:flex p-4 border-l border-outline-variant bg-surface min-h-0">
+			<div
+				v-if="isBookingsView"
+				class="hidden xl:flex p-4 border-l border-outline-variant bg-surface min-h-0"
+			>
 				<BookingOperationalSidebar
 					:summary="summary"
 					:pendingPaymentBookings="pendingPaymentBookings"
@@ -73,9 +78,11 @@ import BookingEmptyState from "@/components/bookings/BookingEmptyState.vue";
 import BookingLoadingState from "@/components/bookings/BookingLoadingState.vue";
 import BookingOperationalSidebar from "@/components/bookings/BookingOperationalSidebar.vue";
 import BookingsToolbar from "@/components/bookings/BookingsToolbar.vue";
+import AppointmentsView from "@/components/bookings/views/AppointmentsView.vue";
 import { useBookingActions } from "@/composables/bookings/useBookingActions";
 import { useBookingFilters } from "@/composables/bookings/useBookingFilters";
 import { useBookings } from "@/composables/bookings/useBookings";
+import { useAppointments } from "@/composables/bookings/useAppointments";
 import { BOOKING_VIEWS } from "@/types/bookings";
 
 const router = useRouter();
@@ -94,6 +101,14 @@ const {
 	retry,
 	setView,
 } = useBookings();
+
+// Appointments workspace store
+const {
+	filters: appointmentsFilters,
+	updateFilters: updateAppointmentsFilters,
+	resetFilters: resetAppointmentsFilters,
+	retry: retryAppointments,
+} = useAppointments();
 
 const {
 	updateSearchText,
@@ -130,33 +145,72 @@ function onViewChange(view) {
 }
 
 function onSearchTextChange(value) {
-	updateSearchText(value);
-	triggerFilterApplyDebounced();
+	if (selectedView.value === BOOKING_VIEWS.APPOINTMENTS) {
+		updateAppointmentsFilters({ searchText: value }, { debounceMs: 0 });
+		// Debounce fetch for appointments
+		clearTimeout(filtersDebounceTimer);
+		filtersDebounceTimer = setTimeout(() => {
+			updateAppointmentsFilters({}, { debounceMs: 0 });
+		}, 250);
+	} else {
+		updateSearchText(value);
+		triggerFilterApplyDebounced();
+	}
 }
 
 function onCustomerQueryChange(value) {
-	updateCustomerQuery(value);
-	triggerFilterApplyDebounced();
+	if (selectedView.value === BOOKING_VIEWS.APPOINTMENTS) {
+		updateAppointmentsFilters({ customerQuery: value }, { debounceMs: 0 });
+		clearTimeout(filtersDebounceTimer);
+		filtersDebounceTimer = setTimeout(() => {
+			updateAppointmentsFilters({}, { debounceMs: 0 });
+		}, 250);
+	} else {
+		updateCustomerQuery(value);
+		triggerFilterApplyDebounced();
+	}
 }
 
 function onStatusChange(value) {
-	updateStatuses(value ? [value] : []);
-	applyFilters();
+	if (selectedView.value === BOOKING_VIEWS.APPOINTMENTS) {
+		updateAppointmentsFilters({ statuses: value ? [value] : [] }, { debounceMs: 0 });
+	} else {
+		updateStatuses(value ? [value] : []);
+		applyFilters();
+	}
 }
 
 function onPaymentStatusChange(value) {
-	updatePaymentStatuses(value ? [value] : []);
-	applyFilters();
+	if (selectedView.value === BOOKING_VIEWS.APPOINTMENTS) {
+		updateAppointmentsFilters({ paymentStatuses: value ? [value] : [] }, { debounceMs: 0 });
+	} else {
+		updatePaymentStatuses(value ? [value] : []);
+		applyFilters();
+	}
 }
 
 function onFromDateChange(value) {
-	updateDateRange({ fromDate: value, toDate: filters.value.toDate });
-	applyFilters();
+	if (selectedView.value === BOOKING_VIEWS.APPOINTMENTS) {
+		updateAppointmentsFilters(
+			{ fromDate: value, toDate: appointmentsFilters.value.toDate },
+			{ debounceMs: 0 }
+		);
+	} else {
+		updateDateRange({ fromDate: value, toDate: filters.value.toDate });
+		applyFilters();
+	}
 }
 
 function onToDateChange(value) {
-	updateDateRange({ fromDate: filters.value.fromDate, toDate: value });
-	applyFilters();
+	if (selectedView.value === BOOKING_VIEWS.APPOINTMENTS) {
+		updateAppointmentsFilters(
+			{ fromDate: appointmentsFilters.value.fromDate, toDate: value },
+			{ debounceMs: 0 }
+		);
+	} else {
+		updateDateRange({ fromDate: filters.value.fromDate, toDate: value });
+		applyFilters();
+	}
 }
 
 onBeforeUnmount(() => {
