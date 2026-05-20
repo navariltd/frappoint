@@ -16,7 +16,6 @@
 						@update:paymentStatus="onPaymentStatusChange"
 						@update:fromDate="onFromDateChange"
 						@update:toDate="onToDateChange"
-						@quick-booking="goToQuickBooking"
 					/>
 				</div>
 
@@ -116,10 +115,6 @@ const views = [
 	{ value: BOOKING_VIEWS.APPOINTMENTS, label: "Appointments" },
 	{ value: BOOKING_VIEWS.CALENDAR, label: "Calendar" },
 ];
-
-function goToQuickBooking() {
-	router.push({ name: "Services" });
-}
 
 let filtersDebounceTimer;
 

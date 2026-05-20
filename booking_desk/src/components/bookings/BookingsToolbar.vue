@@ -6,15 +6,6 @@
 				:views="views"
 				@update:modelValue="$emit('update:view', $event)"
 			/>
-			<div class="flex items-center gap-2">
-				<button
-					type="button"
-					class="rounded-lg bg-primary text-on-primary px-3 py-2 text-[12px] font-semibold"
-					@click="$emit('quick-booking')"
-				>
-					Quick Booking
-				</button>
-			</div>
 		</div>
 		<div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-6 gap-3">
 			<BookingSearchBar
