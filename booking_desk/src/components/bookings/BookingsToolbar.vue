@@ -6,16 +6,21 @@
 				:views="views"
 				@update:modelValue="$emit('update:view', $event)"
 			/>
+			<AppointmentMetricsStrip
+				v-if="selectedView === 'appointments'"
+				:metrics="metrics"
+				class="ml-4"
+			/>
 		</div>
 		<div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-6 gap-3">
 			<BookingSearchBar
 				:modelValue="filters.searchText"
-				placeholder="Search booking ID"
+				placeholder="Search booking ID or appointments"
 				@update:modelValue="$emit('update:searchText', $event)"
 			/>
 			<BookingSearchBar
 				:modelValue="filters.customerQuery"
-				placeholder="Search customer"
+				placeholder="Search guest"
 				@update:modelValue="$emit('update:customerQuery', $event)"
 			/>
 			<select
@@ -29,7 +34,8 @@
 				</option>
 			</select>
 			<select
-				:value="filters.paymentStatuses[0] || ''"
+				v-if="showPaymentStatus"
+				:value="filters.paymentStatuses?.[0] || ''"
 				class="rounded-lg border border-outline-variant bg-surface px-3 py-2 text-[13px]"
 				@change="$emit('update:paymentStatus', $event.target.value)"
 			>
@@ -57,6 +63,7 @@
 <script setup>
 import BookingSearchBar from "@/components/bookings/BookingSearchBar.vue";
 import BookingsViewSwitcher from "@/components/bookings/BookingsViewSwitcher.vue";
+import AppointmentMetricsStrip from "@/components/bookings/appointments/AppointmentMetricsStrip.vue";
 
 defineProps({
 	filters: { type: Object, required: true },
@@ -64,6 +71,8 @@ defineProps({
 	statusOptions: { type: Array, default: () => [] },
 	paymentStatusOptions: { type: Array, default: () => [] },
 	views: { type: Array, default: () => [] },
+	metrics: { type: Object, default: () => ({}) },
+	showPaymentStatus: { type: Boolean, default: true },
 });
 
 defineEmits([
