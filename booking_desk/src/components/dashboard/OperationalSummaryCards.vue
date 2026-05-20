@@ -1,7 +1,7 @@
 <template>
 	<div
 		:class="[
-			'bg-surface-container-lowest p-4 rounded-xl shadow-sm border border-outline-variant',
+			'h-full min-h-[96px] bg-surface-container-lowest p-4 rounded-lg shadow-sm border border-outline-variant/40',
 			borderLeftColor && `border-l-4 ${borderLeftColor}`,
 		]"
 	>
