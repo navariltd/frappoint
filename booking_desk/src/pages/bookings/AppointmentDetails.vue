@@ -1,7 +1,7 @@
 <template>
 	<div class="h-full flex flex-col bg-background text-on-surface overflow-hidden">
-		<main class="flex-1 min-w-0 px-4 pb-4 overflow-y-auto">
-			<div class="max-w-[1360px] mx-auto w-full space-y-4 pt-4">
+		<main class="flex-1 min-w-0 px-4 pb-5 overflow-y-auto">
+			<div class="max-w-[1320px] mx-auto w-full space-y-4 pt-4 lg:pt-5">
 				<AppointmentDetailsLoadingState v-if="isLoading" />
 				<AppointmentDetailsEmptyState
 					v-else-if="error || !hasAppointment"
@@ -17,38 +17,43 @@
 						@back="goBack"
 						@check-in="checkIn"
 						@start="startAppointment"
+						@pause="pauseAppointment"
+						@resume="resumeAppointment"
 						@complete="completeAppointment"
 					/>
 
-					<div class="grid grid-cols-1 lg:grid-cols-12 gap-4 xl:gap-6">
-						<div class="lg:col-span-8 space-y-4 xl:space-y-6">
-							<div class="grid grid-cols-1 md:grid-cols-2 gap-4 xl:gap-6">
+					<div class="grid grid-cols-1 lg:grid-cols-12 gap-4 lg:gap-5 xl:gap-6">
+						<div class="lg:col-span-8 space-y-4 lg:space-y-5">
+							<div class="grid grid-cols-1 md:grid-cols-2 gap-4 lg:gap-5">
 								<AppointmentServiceCard :appointment="appointment" />
 								<AppointmentGuestCard :appointment="appointment" />
 							</div>
 							<AppointmentScheduleCard
 								:appointment="appointment"
+								:actions="actionState"
 								@reschedule="openReschedulePanel"
 								@reassign-provider="handleReassignProvider"
 							/>
 							<section
 								v-if="isReschedulePanelOpen"
-								class="rounded-2xl border border-outline-variant/30 bg-surface-container-lowest p-4 space-y-3"
+								class="rounded-lg border border-outline-variant/40 bg-surface-container-lowest p-4 lg:p-5 space-y-4"
 							>
 								<div class="flex items-center justify-between gap-3">
 									<div>
 										<p
-											class="text-[11px] font-semibold uppercase tracking-wider text-outline"
+											class="text-[11px] font-semibold uppercase tracking-[0.08em] text-outline"
 										>
 											Reschedule
 										</p>
-										<h3 class="text-sm font-semibold text-on-surface">
+										<h3
+											class="text-sm font-semibold text-on-surface tracking-tight"
+										>
 											Pick a new slot
 										</h3>
 									</div>
 									<button
 										type="button"
-										class="px-3 py-1.5 rounded-full border border-outline-variant text-on-surface-variant hover:bg-surface-container-high text-xs"
+										class="px-3 py-1.5 rounded-md border border-outline-variant/60 text-on-surface-variant hover:bg-surface-container-high hover:border-outline transition-colors text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
 										@click="closeReschedulePanel"
 									>
 										Close
@@ -66,9 +71,16 @@
 									@apply-slot="applySelectedSlot"
 								/>
 							</section>
-							<AppointmentTimelinePanel :timeline="timeline" />
+							<AppointmentTimelinePanel
+								:segments="timelineSegments"
+								:active-session="activeSession"
+								:current-duration="currentDuration"
+								:total-pause-seconds="totalPauseSeconds"
+							/>
 						</div>
-						<div class="lg:col-span-4 space-y-4 xl:space-y-6">
+						<div
+							class="lg:col-span-4 space-y-4 lg:space-y-5 lg:sticky lg:top-4 self-start"
+						>
 							<AppointmentFinancialCard
 								:appointment="appointment"
 								:currency="financialSummary.currency"
@@ -88,6 +100,8 @@
 								:busy="isSubmittingAction"
 								@check-in="checkIn"
 								@start="startAppointment"
+								@pause="pauseAppointment"
+								@resume="resumeAppointment"
 								@complete="completeAppointment"
 								@reschedule="openReschedulePanel"
 								@reassign-provider="handleReassignProvider"
@@ -103,10 +117,12 @@
 
 <script setup>
 import { computed, ref } from "vue";
+import { storeToRefs } from "pinia";
 import { useRoute, useRouter } from "vue-router";
 import { useAppointmentDetails } from "@/composables/appointment-details/useAppointmentDetails";
 import { useAppointmentActions } from "@/composables/appointment-details/useAppointmentActions";
 import { useAppointmentScheduling } from "@/composables/appointment-details/useAppointmentScheduling";
+import { useAppointmentEventLogsStore } from "@/stores/appointmentEventLogs.store";
 import AppointmentDetailsLoadingState from "@/components/appointment-details/AppointmentDetailsLoadingState.vue";
 import AppointmentDetailsEmptyState from "@/components/appointment-details/AppointmentDetailsEmptyState.vue";
 import AppointmentDetailsHeader from "@/components/appointment-details/AppointmentDetailsHeader.vue";
@@ -124,12 +140,14 @@ const route = useRoute();
 const router = useRouter();
 const appointmentId = computed(() => String(route.params.appointmentId || ""));
 const isReschedulePanelOpen = ref(false);
+const eventLogsStore = useAppointmentEventLogsStore();
+const { timelineSegments, activeSession, currentDuration, totalPauseSeconds } =
+	storeToRefs(eventLogsStore);
 
 const {
 	appointment,
 	booking,
 	payments,
-	timeline,
 	alerts,
 	isLoading,
 	isLoadingAvailability,
@@ -152,7 +170,8 @@ const {
 	applySelectedSlot: applySelectedSlotAction,
 } = useAppointmentScheduling();
 
-const { checkIn, start, complete, cancel, reassignProvider } = useAppointmentActions();
+const { checkIn, start, pause, resume, complete, cancel, reassignProvider } =
+	useAppointmentActions();
 
 const goBack = () => {
 	if (appointment.value.bookingId) {
@@ -195,6 +214,14 @@ const applySelectedSlot = async () => {
 
 const startAppointment = async () => {
 	await start();
+};
+
+const pauseAppointment = async () => {
+	await pause();
+};
+
+const resumeAppointment = async () => {
+	await resume();
 };
 
 const completeAppointment = async () => {

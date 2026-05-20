@@ -101,6 +101,9 @@ function normalizeAppointment(raw = {}) {
 		appointmentDate: raw.appointmentDate || appointment.appointmentDate,
 		startTime: raw.startTime || appointment.startTime,
 		endTime: raw.endTime || appointment.endTime,
+		checkedInAt: raw.checkedInAt || appointment.checkedInAt,
+		startedAt: raw.startedAt || appointment.startedAt,
+		completedAt: raw.completedAt || appointment.completedAt,
 		actualStartTime: raw.actualStartTime || appointment.actualStartTime,
 		actualEndTime: raw.actualEndTime || appointment.actualEndTime,
 		duration: Number(raw.duration || appointment.duration),
@@ -136,6 +139,8 @@ export async function fetchAppointmentDetails(appointmentId) {
 	return {
 		appointment,
 		booking,
+		eventLogs: Array.isArray(payload.eventLogs) ? payload.eventLogs : [],
+		timeTracking: payload.timeTracking || null,
 		payments,
 		timeline,
 		alerts,
