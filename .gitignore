@@ -8,7 +8,7 @@ __pycache__
 docs/
 **.idea/
 frappoint/www/frappoint
-frappoint/www/frontend
+frappoint/www/booking_desk
 frappoint/www/portal
-frappoint/public/frontend
+frappoint/public/booking_desk
 frappoint/public/portal
