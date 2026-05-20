@@ -3,6 +3,7 @@ import { storeToRefs } from "pinia";
 import { useRouter } from "vue-router";
 import { useServicesStore } from "@/stores/services.store";
 import { useBookingStore } from "@/stores/bookingStore";
+import { useBookingCart } from "@/composables/useBookingCart";
 
 export function useServices() {
 	const servicesStore = useServicesStore();
@@ -89,16 +90,24 @@ export function useServices() {
 	}
 
 	function addToBooking(service) {
-		servicesStore.setSelectedService(service);
-		bookingStore.setServiceType(service.name);
+		const { addItem } = useBookingCart();
+
+		// Add service to booking cart with default package
 		if (service.price) {
-			bookingStore.setPriceName(service.price.price_name);
-			bookingStore.setPrice(service.price.amount);
-			bookingStore.setCurrency(service.price.currency);
-			bookingStore.setDuration(service.price.duration);
+			addItem({
+				service_type: service.name,
+				service_name: service.appointment_type,
+				package_name: service.price.price_name,
+				duration_minutes: service.price.duration || service.default_duration_in_minutes || 30,
+				price: service.price.amount || 0,
+				currency: service.price.currency || "USD",
+				image: service.image,
+				metadata: {
+					item_group: service.item_group,
+					item_name: service.item_name,
+				},
+			});
 		}
-		bookingStore.setNumberOfGuests(servicesStore.filters.guests || 1);
-		router.push({ name: "BookingWizard", params: { serviceType: service.name } });
 	}
 
 	onBeforeUnmount(() => {
