@@ -6,9 +6,8 @@
 				:views="views"
 				@update:modelValue="$emit('update:view', $event)"
 			/>
-			<!-- Appointments metrics strip to the right of view switcher -->
 			<AppointmentMetricsStrip
-				v-if="selectedView === 'APPOINTMENTS'"
+				v-if="selectedView === 'appointments'"
 				:metrics="metrics"
 				class="ml-4"
 			/>
@@ -35,7 +34,8 @@
 				</option>
 			</select>
 			<select
-				:value="filters.paymentStatuses[0] || ''"
+				v-if="showPaymentStatus"
+				:value="filters.paymentStatuses?.[0] || ''"
 				class="rounded-lg border border-outline-variant bg-surface px-3 py-2 text-[13px]"
 				@change="$emit('update:paymentStatus', $event.target.value)"
 			>
@@ -64,18 +64,16 @@
 import BookingSearchBar from "@/components/bookings/BookingSearchBar.vue";
 import BookingsViewSwitcher from "@/components/bookings/BookingsViewSwitcher.vue";
 import AppointmentMetricsStrip from "@/components/bookings/appointments/AppointmentMetricsStrip.vue";
-import { useAppointments } from "@/composables/bookings/useAppointments";
 
-const props = defineProps({
+defineProps({
 	filters: { type: Object, required: true },
 	selectedView: { type: String, required: true },
 	statusOptions: { type: Array, default: () => [] },
 	paymentStatusOptions: { type: Array, default: () => [] },
 	views: { type: Array, default: () => [] },
+	metrics: { type: Object, default: () => ({}) },
+	showPaymentStatus: { type: Boolean, default: true },
 });
-
-// Appointments metrics
-const { metrics } = useAppointments();
 
 defineEmits([
 	"update:view",
