@@ -28,9 +28,11 @@ class ServiceType(Document):
 		)
 
 		appointment_type: DF.Data
+		benefits: DF.TextEditor | None
 		buffer_after: DF.Int
 		buffer_before: DF.Int
 		company: DF.Link
+		confirmation_deposit_percent: DF.Percent
 		consumables: DF.Table[ServiceTypeMaterial]
 		default_duration_in_minutes: DF.Int
 		description: DF.TextEditor | None
@@ -40,7 +42,6 @@ class ServiceType(Document):
 		item_group: DF.Data | None
 		item_name: DF.Data | None
 		max_clients_per_slot: DF.Int
-		confirmation_deposit_percent: DF.Percent
 		max_guests: DF.Int
 		min_guests: DF.Int
 		payment_gateways: DF.Table[ServiceTypePaymentGateway]
@@ -48,6 +49,7 @@ class ServiceType(Document):
 		service_unit_types: DF.Table[ServiceTypeUnitType]
 		short_description: DF.Data | None
 		tags: DF.SmallText | None
+		techniques: DF.TextEditor | None
 	# end: auto-generated types
 	pass
 

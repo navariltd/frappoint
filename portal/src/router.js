@@ -33,6 +33,12 @@ const routes = [
 		meta: { requiresLogin: true },
 	},
 	{
+		name: "BookingWorkflow",
+		path: "/booking/workflow",
+		component: () => import("@/pages/booking/BookingWorkflow.vue"),
+		meta: { requiresLogin: true },
+	},
+	{
 		name: "User",
 		path: "/user/me",
 		component: () => import("@/pages/User.vue"),
@@ -81,7 +87,7 @@ const router = createRouter({
 	routes,
 });
 
-router.beforeEach(async (to) => {
+router.beforeEach(async (to, from) => {
 	const auth = useAuthStore();
 
 	await auth.refreshUser?.();
@@ -90,7 +96,13 @@ router.beforeEach(async (to) => {
 		return { name: "Login", query: { redirect: to.fullPath } };
 	}
 
+	// After login redirect handling
 	if (to.name === "Login" && auth.isLoggedIn) {
+		// If we came from a login redirect, go back to intended destination
+		const redirect = to.query.redirect;
+		if (redirect) {
+			return redirect;
+		}
 		return { name: "Services" };
 	}
 
