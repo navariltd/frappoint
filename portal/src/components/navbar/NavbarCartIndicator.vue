@@ -5,7 +5,6 @@
 		aria-label="Open bookings"
 		@click="$emit('open')"
 	>
-		shopping_bag
 		<span
 			v-if="count > 0"
 			class="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-primary text-on-primary text-[10px] leading-[18px] text-center"
