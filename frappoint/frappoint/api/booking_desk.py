@@ -3,11 +3,16 @@ from collections import defaultdict
 
 import frappe
 from frappe import _
-from frappe.utils import flt, nowtime
+from frappe.utils import flt, now_datetime
 
 from frappoint.frappoint.doctype.service_appointment.service_appointment import (
 	cancel_appointment,
 	reschedule_appointment,
+)
+from frappoint.frappoint.doctype.service_appointment_event_log.service_appointment_event_log import (
+	apply_appointment_event_action,
+	compute_appointment_time_summary,
+	get_appointment_event_logs,
 )
 from frappoint.payments import (
 	get_confirmation_deposit_percent,
@@ -178,6 +183,9 @@ def _serialize_appointment(appointment):
 		"appointmentDate": appointment.appointment_date,
 		"startTime": appointment.start_time,
 		"endTime": appointment.end_time,
+		"checkedInAt": getattr(appointment, "checked_in_at", None),
+		"startedAt": getattr(appointment, "started_at", None),
+		"completedAt": getattr(appointment, "completed_at", None),
 		"actualStartTime": appointment.actual_start_time,
 		"actualEndTime": appointment.actual_end_time,
 		"duration": appointment.duration,
@@ -195,6 +203,20 @@ def _serialize_appointment(appointment):
 		"allAvailableProviders": _safe_json_loads(getattr(appointment, "all_available_providers", None), []),
 		"modified": appointment.modified,
 		"creation": appointment.creation,
+	}
+
+
+def _serialize_appointment_event_log(log):
+	return {
+		"name": log.get("name"),
+		"appointment": log.get("appointment"),
+		"booking": log.get("booking"),
+		"logType": log.get("logType"),
+		"startTime": log.get("startTime"),
+		"endTime": log.get("endTime"),
+		"durationSeconds": int(log.get("durationSeconds") or 0),
+		"createdBy": log.get("createdBy"),
+		"notes": log.get("notes") or "",
 	}
 
 
@@ -217,7 +239,7 @@ def _serialize_appointment_payment(payment):
 	}
 
 
-def _build_appointment_timeline(appointment, payments):
+def _build_appointment_timeline(appointment, payments, event_logs):
 	timeline = [
 		{
 			"id": "created",
@@ -250,25 +272,14 @@ def _build_appointment_timeline(appointment, payments):
 			}
 		)
 
-	if appointment.actual_start_time:
+	for event in event_logs:
 		timeline.append(
 			{
-				"id": "started",
-				"label": "Actual start recorded",
-				"detail": appointment.actual_start_time,
-				"tone": "warning",
-				"timestamp": appointment.modified,
-			}
-		)
-
-	if appointment.actual_end_time:
-		timeline.append(
-			{
-				"id": "completed",
-				"label": "Actual end recorded",
-				"detail": appointment.actual_end_time,
-				"tone": "success",
-				"timestamp": appointment.modified,
+				"id": f"event-{event.get('name')}",
+				"label": event.get("logType") or "Activity",
+				"detail": event.get("notes") or event.get("startTime") or "",
+				"tone": "warning" if event.get("logType") == "Pause" else "success",
+				"timestamp": event.get("startTime"),
 			}
 		)
 
@@ -359,6 +370,10 @@ def _build_appointment_alerts(appointment, payments):
 
 
 def _build_appointment_response(appointment, booking=None):
+	event_logs = [
+		_serialize_appointment_event_log(log) for log in get_appointment_event_logs(appointment.name)
+	]
+	time_tracking = compute_appointment_time_summary(event_logs)
 	payment_rows = frappe.get_all(
 		"Service Appointment Payment",
 		filters={"reference_doctype": "Service Appointment", "reference_docname": appointment.name},
@@ -399,6 +414,8 @@ def _build_appointment_response(appointment, booking=None):
 	return {
 		"appointment": appointment_payload,
 		"booking": _serialize_booking(booking) if booking else None,
+		"eventLogs": event_logs,
+		"timeTracking": time_tracking,
 		"payments": payments,
 		"paymentSummary": {
 			"currency": appointment_payload.get("currency") or (booking.currency if booking else "KES"),
@@ -406,7 +423,7 @@ def _build_appointment_response(appointment, booking=None):
 			"paidAmount": paid_amount,
 			"outstandingAmount": outstanding_amount,
 		},
-		"timeline": _build_appointment_timeline(appointment, payment_rows),
+		"timeline": _build_appointment_timeline(appointment, payment_rows, event_logs),
 		"alerts": _build_appointment_alerts(appointment, payment_rows),
 		"availability": {
 			"serviceType": appointment.appointment_type,
@@ -416,12 +433,21 @@ def _build_appointment_response(appointment, booking=None):
 		},
 		"actions": {
 			"canCheckIn": appointment.status in ["Open", "Pending Payment", "Confirmed"],
-			"canStart": appointment.status in ["Open", "Pending Payment", "Confirmed"],
-			"canComplete": appointment.status in ["Confirmed", "Open", "Pending Payment"],
-			"canReschedule": appointment.status in ["Open", "Pending Payment", "Confirmed"],
+			"canStart": (appointment.status in ["Open", "Pending Payment", "Confirmed", "Checked In"])
+			and not time_tracking.get("activeSession"),
+			"canPause": bool(time_tracking.get("isRunning")),
+			"canResume": bool(time_tracking.get("isPaused")),
+			"canComplete": appointment.status
+			in ["Confirmed", "Open", "Pending Payment", "Checked In", "In Progress"]
+			and appointment.status not in ["Completed", "Cancelled", "Closed", "No Show"],
+			"canReschedule": appointment.status in ["Open", "Pending Payment", "Confirmed", "Checked In"]
+			and appointment.status not in ["Completed", "Cancelled", "Closed", "No Show"],
 			"canCancel": appointment.status not in ["Cancelled", "Closed", "Completed", "No Show"],
-			"canReassignProvider": appointment.status in ["Open", "Pending Payment", "Confirmed"],
-			"canEditTimeSlot": appointment.status in ["Open", "Pending Payment", "Confirmed"],
+			"canReassignProvider": appointment.status
+			in ["Open", "Pending Payment", "Confirmed", "Checked In"]
+			and appointment.status not in ["Completed", "Cancelled", "Closed", "No Show"],
+			"canEditTimeSlot": appointment.status in ["Open", "Pending Payment", "Confirmed", "Checked In"]
+			and appointment.status not in ["Completed", "Cancelled", "Closed", "No Show"],
 		},
 	}
 
@@ -878,11 +904,13 @@ def perform_appointment_action(
 	action = action.strip().lower()
 	appointment = frappe.get_doc("Service Appointment", appointment_id)
 
-	if action in {"check_in", "start"}:
-		appointment.actual_start_time = actual_start_time or appointment.actual_start_time or nowtime()
-		if appointment.status not in ["Cancelled", "Closed", "Completed", "No Show"]:
-			appointment.status = "Confirmed"
-		appointment.save(ignore_permissions=True)
+	if action in {"check_in", "start", "pause", "resume"}:
+		apply_appointment_event_action(
+			appointment,
+			action,
+			action_time=actual_start_time or now_datetime(),
+		)
+		appointment.reload()
 		frappe.db.commit()
 		return _build_appointment_response(
 			appointment,
@@ -890,9 +918,12 @@ def perform_appointment_action(
 		)
 
 	if action == "complete":
-		start_time = actual_start_time or appointment.actual_start_time or appointment.start_time or nowtime()
-		end_time = actual_end_time or appointment.actual_end_time or nowtime()
-		invoice_name = appointment.complete_and_invoice(start_time, end_time)
+		apply_appointment_event_action(
+			appointment,
+			"complete",
+			action_time=actual_end_time or now_datetime(),
+		)
+		invoice_name = appointment.complete_appointment()
 		appointment.reload()
 		frappe.db.commit()
 		response = _build_appointment_response(

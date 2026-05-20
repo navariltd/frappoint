@@ -1,7 +1,9 @@
 <template>
-	<span class="px-3 py-1 rounded-full text-[11px] font-semibold" :class="badgeClass">{{
-		status
-	}}</span>
+	<span
+		class="px-2.5 py-1 rounded-md text-[10px] font-semibold uppercase tracking-[0.08em]"
+		:class="badgeClass"
+		>{{ status }}</span
+	>
 </template>
 
 <script setup>

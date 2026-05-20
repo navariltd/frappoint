@@ -6,8 +6,10 @@
   "scripts": {
     "portal-install": "cd portal && yarn install",
     "portal-build": "cd portal && yarn build",
-    "postinstall": "yarn portal-install",
-    "build": "yarn portal-build"
+    "bookingdesk-install": "cd booking_desk && yarn install",
+    "booingdesk-build": "cd booking_desk && yarn build",
+    "postinstall": "yarn portal-install && yarn bookingdesk-install",
+    "build": "yarn portal-build && yarn booingdesk-build"
   },
   "repository": {
     "type": "git",

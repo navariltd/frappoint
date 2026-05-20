@@ -11,6 +11,12 @@ export function useAppointmentActions() {
 	const start = (appointmentId = store.appointment.appointmentId) =>
 		store.performAction({ appointmentId, action: "start" });
 
+	const pause = (appointmentId = store.appointment.appointmentId) =>
+		store.performAction({ appointmentId, action: "pause" });
+
+	const resume = (appointmentId = store.appointment.appointmentId) =>
+		store.performAction({ appointmentId, action: "resume" });
+
 	const complete = (appointmentId = store.appointment.appointmentId) =>
 		store.performAction({ appointmentId, action: "complete" });
 
@@ -60,6 +66,8 @@ export function useAppointmentActions() {
 		busy,
 		checkIn,
 		start,
+		pause,
+		resume,
 		complete,
 		confirm,
 		cancel,

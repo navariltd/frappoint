@@ -1,6 +1,6 @@
 <template>
 	<header
-		class="rounded-2xl border border-outline-variant/30 bg-surface-container-lowest p-5 md:p-6 shadow-sm"
+		class="rounded-lg border border-outline-variant/40 bg-surface-container-lowest p-4 md:p-5 shadow-sm"
 	>
 		<div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
 			<div class="space-y-3">
@@ -10,17 +10,17 @@
 					>
 					<span
 						v-if="appointment.bookingId"
-						class="h-1.5 w-1.5 rounded-full bg-outline-variant"
+						class="h-1 w-1 rounded-full bg-outline"
 					></span>
 					<span v-if="appointment.bookingId">Booking {{ appointment.bookingId }}</span>
 					<span
 						v-if="appointment.appointmentDate"
-						class="h-1.5 w-1.5 rounded-full bg-outline-variant"
+						class="h-1 w-1 rounded-full bg-outline"
 					></span>
 					<span>{{ appointment.appointmentDate }}</span>
 				</div>
 				<div>
-					<h1 class="text-2xl md:text-3xl font-semibold text-on-surface">
+					<h1 class="text-xl md:text-2xl font-semibold tracking-tight text-on-surface">
 						{{
 							appointment.fullName ||
 							appointment.customerName ||
@@ -32,19 +32,19 @@
 						<span v-if="appointment.provider"> · {{ appointment.provider }}</span>
 					</p>
 				</div>
-				<div class="flex flex-wrap gap-2">
+				<div class="flex flex-wrap gap-1.5">
 					<span
-						class="px-3 py-1 rounded-full bg-primary-container text-on-primary-container text-[11px] font-semibold uppercase tracking-wider"
+						class="px-2.5 py-1 rounded-md bg-primary-container text-on-primary-container text-[10px] font-semibold uppercase tracking-[0.08em]"
 					>
 						{{ appointment.status || "Open" }}
 					</span>
 					<span
-						class="px-3 py-1 rounded-full bg-surface-container-high text-on-surface-variant text-[11px] font-semibold uppercase tracking-wider"
+						class="px-2.5 py-1 rounded-md bg-surface-container-high text-on-surface-variant text-[10px] font-semibold uppercase tracking-[0.08em]"
 					>
 						{{ appointment.paymentStatus || "Unpaid" }}
 					</span>
 					<span
-						class="px-3 py-1 rounded-full bg-surface-container-high text-on-surface-variant text-[11px] font-semibold uppercase tracking-wider"
+						class="px-2.5 py-1 rounded-md bg-surface-container-high text-on-surface-variant text-[10px] font-semibold uppercase tracking-[0.08em]"
 					>
 						{{ appointment.currency }}
 						{{ Number(financialSummary.totalAmount || 0).toFixed(2) }}
@@ -52,16 +52,16 @@
 				</div>
 			</div>
 
-			<div class="flex flex-wrap gap-2 lg:justify-end">
+			<div class="flex flex-wrap gap-2 lg:justify-end lg:max-w-[560px]">
 				<button
-					class="px-4 py-2 rounded-full border border-outline-variant text-on-surface-variant hover:bg-surface-container-high"
+					class="px-3.5 py-2 rounded-md border border-outline-variant/70 text-on-surface-variant hover:bg-surface-container-high hover:border-outline transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
 					type="button"
 					@click="$emit('back')"
 				>
 					Back
 				</button>
 				<button
-					class="px-4 py-2 rounded-full border border-primary text-primary hover:bg-primary/5 disabled:opacity-60"
+					class="px-3.5 py-2 rounded-md border border-primary/70 text-primary hover:bg-primary/10 hover:border-primary transition-colors shadow-sm hover:shadow focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 disabled:opacity-45 disabled:cursor-not-allowed"
 					type="button"
 					:disabled="busy || !actions.canCheckIn"
 					@click="$emit('check-in')"
@@ -69,7 +69,7 @@
 					Check in
 				</button>
 				<button
-					class="px-4 py-2 rounded-full bg-primary text-on-primary disabled:opacity-60"
+					class="px-3.5 py-2 rounded-md border border-primary bg-primary text-on-primary hover:bg-primary/90 transition-colors shadow-sm hover:shadow focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 disabled:opacity-45 disabled:cursor-not-allowed"
 					type="button"
 					:disabled="busy || !actions.canStart"
 					@click="$emit('start')"
@@ -77,7 +77,23 @@
 					Start
 				</button>
 				<button
-					class="px-4 py-2 rounded-full border border-outline-variant text-on-surface-variant hover:bg-surface-container-high disabled:opacity-60"
+					class="px-3.5 py-2 rounded-md border border-warning/70 text-warning hover:bg-warning/10 hover:border-warning transition-colors shadow-sm hover:shadow focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-warning/40 disabled:opacity-45 disabled:cursor-not-allowed"
+					type="button"
+					:disabled="busy || !actions.canPause"
+					@click="$emit('pause')"
+				>
+					Pause
+				</button>
+				<button
+					class="px-3.5 py-2 rounded-md border border-outline-variant/70 text-on-surface-variant hover:bg-surface-container-high hover:border-outline transition-colors shadow-sm hover:shadow focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30 disabled:opacity-45 disabled:cursor-not-allowed"
+					type="button"
+					:disabled="busy || !actions.canResume"
+					@click="$emit('resume')"
+				>
+					Resume
+				</button>
+				<button
+					class="px-3.5 py-2 rounded-md border border-success/60 text-success hover:bg-success/10 hover:border-success transition-colors shadow-sm hover:shadow focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-success/30 disabled:opacity-45 disabled:cursor-not-allowed"
 					type="button"
 					:disabled="busy || !actions.canComplete"
 					@click="$emit('complete')"
@@ -97,5 +113,5 @@ defineProps({
 	busy: { type: Boolean, default: false },
 });
 
-defineEmits(["back", "check-in", "start", "complete"]);
+defineEmits(["back", "check-in", "start", "pause", "resume", "complete"]);
 </script>

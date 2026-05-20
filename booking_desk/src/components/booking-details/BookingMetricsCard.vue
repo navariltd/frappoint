@@ -1,26 +1,33 @@
 <template>
-	<div
-		class="bg-surface-container-lowest p-5 rounded-2xl border border-outline-variant flex flex-col justify-between gap-3 shadow-[0px_4px_20px_rgba(45,52,54,0.05)]"
+	<section
+		class="rounded-lg border border-outline-variant/40 bg-surface-container-lowest p-4 lg:p-5 shadow-sm"
 	>
-		<h3 class="text-[12px] font-semibold uppercase tracking-wider text-outline">
-			Booking Value &amp; Scale
-		</h3>
-		<div class="flex items-center gap-6">
+		<div class="space-y-4">
 			<div>
-				<p class="text-[22px] md:text-[24px] font-bold text-primary">
-					{{ currency }} {{ booking.grandTotal.toFixed(2) }}
+				<p class="text-[11px] font-semibold uppercase tracking-[0.08em] text-outline mb-2">
+					Booking Metrics
 				</p>
-				<p class="text-outline text-[12px]">Estimated Total</p>
 			</div>
-			<div class="h-10 w-px bg-outline-variant"></div>
-			<div>
-				<p class="text-[22px] md:text-[24px] font-bold text-on-surface">
-					{{ durationLabel }}
-				</p>
-				<p class="text-outline text-[12px]">Total Duration</p>
+			<div class="grid grid-cols-2 gap-3">
+				<div class="rounded-md border border-outline-variant/30 px-3 py-2.5">
+					<p class="text-[10px] uppercase tracking-[0.08em] text-outline font-semibold">
+						Total Value
+					</p>
+					<p class="mt-2 text-lg font-semibold text-primary">
+						{{ currency }} {{ Number(booking.grandTotal || 0).toFixed(2) }}
+					</p>
+				</div>
+				<div class="rounded-md border border-outline-variant/30 px-3 py-2.5">
+					<p class="text-[10px] uppercase tracking-[0.08em] text-outline font-semibold">
+						Duration
+					</p>
+					<p class="mt-2 text-lg font-semibold text-on-surface">
+						{{ durationLabel }}
+					</p>
+				</div>
 			</div>
 		</div>
-	</div>
+	</section>
 </template>
 
 <script setup>

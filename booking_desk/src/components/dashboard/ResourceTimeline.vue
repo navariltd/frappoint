@@ -1,6 +1,6 @@
 <template>
 	<div
-		class="bg-surface-container-lowest rounded-2xl shadow-sm border border-outline-variant overflow-hidden"
+		class="h-full bg-surface-container-lowest rounded-lg shadow-sm border border-outline-variant overflow-hidden isolate flex flex-col"
 	>
 		<!-- Header -->
 		<div
@@ -91,133 +91,160 @@
 
 		<!-- Day Timeline -->
 		<div
-			ref="mainScrollRef"
 			v-if="currentView === 'day'"
-			class="overflow-x-auto scrollbar-hide"
-			@scroll="onMainScroll"
+			class="flex-1 min-h-0 overflow-hidden bg-surface-container-lowest relative z-0"
 		>
-			<div :style="{ minWidth: minWidth }" class="w-full">
+			<div class="w-full h-full bg-surface-container-lowest flex flex-col overflow-hidden">
 				<!-- Time Header -->
-				<div class="flex border-b border-outline-variant bg-surface">
+				<div
+					class="flex border-b border-outline-variant bg-surface-container-lowest shrink-0"
+				>
 					<div
-						class="w-[200px] p-3 border-r border-outline-variant font-label-md text-label-md shrink-0 sticky left-0 z-30 bg-surface shadow-[8px_0_12px_-10px_rgba(0,0,0,0.25)]"
+						class="p-3 border-r border-outline-variant font-label-md text-label-md shrink-0 sticky left-0 z-40 bg-surface-container-lowest shadow-[8px_0_12px_-10px_rgba(0,0,0,0.25)]"
+						:style="providerColumnStyle"
 					>
 						Provider
 					</div>
-					<div class="relative" :style="{ width: timelineWidth }">
+					<div
+						ref="dayHeaderScrollRef"
+						class="min-w-0 flex-1 overflow-x-auto overflow-y-hidden scrollbar-hide"
+						@scroll="onDayHeaderScroll"
+					>
 						<div
-							class="grid divide-x divide-outline-variant"
-							:style="timeHeaderGridStyle"
+							class="relative bg-surface-container-lowest"
+							:style="timelineGridStyle"
 						>
-							<div
-								v-for="time in activeTimeSlots"
-								:key="time"
-								class="p-3 text-center text-[12px] font-bold text-on-surface-variant"
-							>
-								{{ time }}
+							<div class="grid divide-x divide-outline" :style="timeHeaderGridStyle">
+								<div
+									v-for="time in activeTimeSlots"
+									:key="time"
+									class="p-3 text-center text-[12px] font-bold text-on-surface-variant whitespace-nowrap"
+								>
+									{{ time }}
+								</div>
 							</div>
 						</div>
 					</div>
 				</div>
 
 				<!-- Provider Rows -->
-				<div class="divide-y divide-outline-variant">
+				<div
+					class="flex-1 min-h-0 bg-surface-container-lowest overflow-y-auto overflow-x-hidden"
+				>
 					<div
 						v-if="!hasAppointmentsForSelectedDate"
 						class="h-48 flex items-center justify-center text-[13px] text-on-surface-variant"
 					>
 						{{ emptyDayMessage }}
 					</div>
-					<div
-						v-else
-						v-for="provider in providers"
-						:key="provider.id"
-						:class="['flex', providerRowClass(provider)]"
-						:data-provider-id="provider.id"
-					>
-						<!-- Provider Info -->
-						<div
-							class="w-[200px] p-4 border-r border-outline-variant flex items-center gap-3 shrink-0 sticky left-0 z-20 bg-surface-container-lowest shadow-[8px_0_12px_-10px_rgba(0,0,0,0.25)]"
-						>
+					<div v-else class="flex min-w-0">
+						<div class="shrink-0" :style="providerColumnStyle">
 							<div
-								class="w-8 h-8 rounded-full bg-surface-container-high flex items-center justify-center font-bold text-[10px]"
+								v-for="provider in providers"
+								:key="`provider-col-${provider.id}`"
+								:class="[
+									'p-4 border-r border-b border-outline-variant flex items-center gap-3 bg-surface-container-lowest sticky left-0 z-30 shadow-[8px_0_12px_-10px_rgba(0,0,0,0.25)]',
+									providerRowClass(provider),
+									providerRowsScrollable ? 'h-24 shrink-0' : 'min-h-[6rem]',
+								]"
 							>
-								{{ provider.initials }}
-							</div>
-							<div>
-								<p class="font-label-sm text-label-sm leading-tight">
-									{{ provider.name }}
-								</p>
-								<p
-									class="text-[10px]"
-									:class="
-										provider.overloaded
-											? 'text-error font-bold flex items-center gap-0.5'
-											: 'text-on-surface-variant'
-									"
+								<div
+									class="w-8 h-8 rounded-full bg-surface-container-high flex items-center justify-center font-bold text-[10px]"
 								>
-									<span
-										v-if="provider.overloaded"
-										class="material-symbols-outlined text-[12px]"
-										>bolt</span
+									{{ provider.initials }}
+								</div>
+								<div>
+									<p class="font-label-sm text-label-sm leading-tight">
+										{{ provider.name }}
+									</p>
+									<p
+										class="text-[10px]"
+										:class="
+											provider.overloaded
+												? 'text-error font-bold flex items-center gap-0.5'
+												: 'text-on-surface-variant'
+										"
 									>
-									{{ provider.designation }}
-								</p>
+										<span
+											v-if="provider.overloaded"
+											class="material-symbols-outlined text-[12px]"
+											>bolt</span
+										>
+										{{ provider.designation }}
+									</p>
+								</div>
 							</div>
 						</div>
-
-						<!-- Timeline Slots -->
-						<div class="relative h-24" :style="{ width: timelineWidth }">
-							<div class="absolute inset-0 grid" :style="timeHeaderGridStyle">
+						<div
+							ref="dayBodyScrollRef"
+							class="min-w-0 flex-1 overflow-x-auto overflow-y-hidden scrollbar-hide"
+							@scroll="onDayBodyScroll"
+						>
+							<div :style="timelineGridStyle">
 								<div
-									v-for="i in activeTimeSlots.length"
-									:key="`grid-${provider.id}-${i}`"
-									class="border-r border-outline-variant h-full"
-								></div>
-							</div>
-
-							<!-- Appointment Cards -->
-							<div
-								v-for="appointment in getProviderAppointmentsForSelectedDate(
-									provider.id
-								)"
-								:key="appointment.id"
-								:class="[
-									'group absolute top-3 rounded-lg p-2 text-[10px] shadow-sm z-10 cursor-grab active:cursor-grabbing transition-transform duration-150',
-									appointmentClass(appointment),
-									dragState.appointmentId === appointment.id
-										? 'scale-[1.01] ring-2 ring-primary/50'
-										: 'hover:scale-[1.01]',
-								]"
-								:style="appointmentPosition(appointment)"
-								@mousedown="
-									onAppointmentMouseDown($event, appointment, provider.id)
-								"
-								@click.stop="openDetails(appointment)"
-							>
-								<p class="font-bold">{{ appointment.guestName }}</p>
-								<p>{{ appointment.service }}</p>
-								<p v-if="appointment.delayed" class="mt-1 font-bold italic">
-									{{ appointment.delayed }}
-								</p>
-								<span
-									v-if="appointment.showTimer"
-									class="absolute bottom-1 right-1 material-symbols-outlined text-[12px]"
-									>timer</span
+									v-for="provider in providers"
+									:key="provider.id"
+									class="relative border-b border-outline-variant bg-surface-container-lowest"
+									:class="providerRowsScrollable ? 'h-24' : 'min-h-[6rem]'"
+									:data-provider-id="provider.id"
 								>
-
-								<div
-									class="pointer-events-none absolute left-1/2 top-[calc(100%+6px)] z-30 hidden w-52 -translate-x-1/2 rounded-lg border border-outline-variant bg-surface p-2 text-[10px] text-on-surface shadow-lg group-hover:block"
-								>
-									<p class="font-bold text-[11px]">
-										{{ appointment.guestName }}
-									</p>
-									<p class="text-on-surface-variant">
-										{{ appointment.service }}
-									</p>
-									<p class="mt-1">Starts: {{ appointment.startTime }}</p>
-									<p>Duration: {{ appointment.duration }}h</p>
-									<p class="capitalize">Status: {{ appointment.status }}</p>
+									<div
+										class="absolute inset-0 grid"
+										:style="timeHeaderGridStyle"
+									>
+										<div
+											v-for="i in activeTimeSlots.length"
+											:key="`day-grid-${provider.id}-${i}`"
+											class="border-r border-outline-variant h-full"
+										></div>
+									</div>
+									<div
+										v-if="
+											!getProviderAppointmentsForSelectedDate(provider.id)
+												.length
+										"
+										class="absolute left-2 top-2 z-10 text-[10px] text-on-surface-variant"
+									>
+										No appointments
+									</div>
+									<div
+										v-for="(
+											appointment, appointmentIndex
+										) in getProviderAppointmentsForSelectedDate(provider.id)"
+										:key="appointment.id"
+										:class="[
+											'group absolute rounded-lg p-2 text-[10px] shadow-sm z-10 cursor-grab active:cursor-grabbing transition-transform duration-150',
+											appointmentClass(appointment),
+											dragState.appointmentId === appointment.id
+												? 'scale-[1.01] ring-2 ring-primary/50'
+												: 'hover:scale-[1.01]',
+										]"
+										:style="
+											appointmentCardStyle(appointment, appointmentIndex)
+										"
+										@mousedown="
+											onAppointmentMouseDown(
+												$event,
+												appointment,
+												provider.id
+											)
+										"
+										@click.stop="openDetails(appointment)"
+									>
+										<p class="font-bold">{{ appointment.guestName }}</p>
+										<p>{{ appointment.service }}</p>
+										<p
+											v-if="appointment.delayed"
+											class="mt-1 font-bold italic"
+										>
+											{{ appointment.delayed }}
+										</p>
+										<span
+											v-if="appointment.showTimer"
+											class="absolute bottom-1 right-1 material-symbols-outlined text-[12px]"
+											>timer</span
+										>
+									</div>
 								</div>
 							</div>
 						</div>
@@ -228,155 +255,89 @@
 
 		<!-- Week / Month Grid -->
 		<div
-			ref="mainScrollRef"
 			v-else
-			class="overflow-x-auto scrollbar-hide"
-			@scroll="onMainScroll"
+			class="flex-1 min-h-0 overflow-hidden bg-surface-container-lowest relative z-0"
 		>
-			<div class="min-w-[980px]">
-				<div
-					class="grid border-b border-outline-variant bg-surface"
-					:style="altViewGridStyle"
-				>
+			<div class="h-full overflow-x-hidden overflow-y-hidden">
+				<div class="h-full flex flex-col overflow-x-auto overflow-y-auto">
 					<div
-						class="p-3 border-r border-outline-variant font-semibold text-[12px] text-on-surface sticky left-0 bg-surface z-30 shadow-[8px_0_12px_-10px_rgba(0,0,0,0.25)]"
-					>
-						Provider
-					</div>
-					<div
-						v-for="day in visibleDates"
-						:key="day.iso"
-						class="p-3 border-r border-outline-variant text-center text-[11px] text-on-surface-variant"
-					>
-						<p class="font-semibold text-on-surface">{{ day.shortLabel }}</p>
-						<p>{{ day.dayLabel }}</p>
-					</div>
-				</div>
-
-				<div class="divide-y divide-outline-variant">
-					<div
-						v-for="provider in providers"
-						:key="`alt-${provider.id}`"
-						class="grid"
+						class="grid border-b border-outline-variant bg-surface-container-lowest"
 						:style="altViewGridStyle"
 					>
 						<div
-							class="p-3 border-r border-outline-variant sticky left-0 bg-surface-container-lowest z-20 shadow-[8px_0_12px_-10px_rgba(0,0,0,0.25)]"
+							class="p-3 border-r border-outline-variant font-semibold text-[12px] text-on-surface sticky left-0 bg-surface-container-lowest z-40 shadow-[8px_0_12px_-10px_rgba(0,0,0,0.25)]"
+							:style="providerColumnStyle"
 						>
-							<p class="text-[12px] font-semibold text-on-surface">
-								{{ provider.name }}
-							</p>
-							<p class="text-[10px] text-on-surface-variant">
-								{{ provider.designation }}
-							</p>
+							Provider
 						</div>
 						<div
 							v-for="day in visibleDates"
-							:key="`${provider.id}-${day.iso}`"
-							class="min-h-24 border-r border-outline-variant p-2"
+							:key="day.iso"
+							class="p-3 border-r border-outline-variant text-center text-[11px] text-on-surface-variant"
 						>
-							<div class="space-y-1">
-								<button
-									v-for="appointment in getProviderAppointmentsByDate(
-										provider.id,
-										day.iso
-									).slice(0, 3)"
-									:key="appointment.id"
-									type="button"
-									:class="[
-										'w-full rounded-md px-2 py-1 text-left text-[10px] font-medium',
-										appointmentClass(appointment),
-									]"
-									@click="openDetails(appointment)"
-								>
-									{{ appointment.startTime }} {{ appointment.guestName }}
-								</button>
-								<p
-									v-if="
-										getProviderAppointmentsByDate(provider.id, day.iso)
-											.length > 3
-									"
-									class="text-[10px] text-on-surface-variant"
-								>
-									+{{
-										getProviderAppointmentsByDate(provider.id, day.iso)
-											.length - 3
-									}}
-									more
+							<p class="font-semibold text-on-surface">{{ day.shortLabel }}</p>
+							<p>{{ day.dayLabel }}</p>
+						</div>
+					</div>
+
+					<div
+						class="flex-1 min-h-0 divide-y divide-outline-variant bg-surface-container-lowest"
+					>
+						<div
+							v-for="provider in providers"
+							:key="`alt-${provider.id}`"
+							class="grid"
+							:style="altViewGridStyle"
+						>
+							<div
+								class="p-3 border-r border-outline-variant sticky left-0 bg-surface-container-lowest z-30 shadow-[8px_0_12px_-10px_rgba(0,0,0,0.25)]"
+								:style="providerColumnStyle"
+							>
+								<p class="text-[12px] font-semibold text-on-surface">
+									{{ provider.name }}
 								</p>
+								<p class="text-[10px] text-on-surface-variant">
+									{{ provider.designation }}
+								</p>
+							</div>
+							<div
+								v-for="day in visibleDates"
+								:key="`${provider.id}-${day.iso}`"
+								class="min-h-24 border-r border-outline-variant p-2"
+							>
+								<div class="space-y-1">
+									<button
+										v-for="appointment in getProviderAppointmentsByDate(
+											provider.id,
+											day.iso
+										).slice(0, 3)"
+										:key="appointment.id"
+										type="button"
+										:class="[
+											'w-full rounded-md px-2 py-1 text-left text-[10px] font-medium',
+											appointmentClass(appointment),
+										]"
+										@click="openDetails(appointment)"
+									>
+										{{ appointment.startTime }} {{ appointment.guestName }}
+									</button>
+									<p
+										v-if="
+											getProviderAppointmentsByDate(provider.id, day.iso)
+												.length > 3
+										"
+										class="text-[10px] text-on-surface-variant"
+									>
+										+{{
+											getProviderAppointmentsByDate(provider.id, day.iso)
+												.length - 3
+										}}
+										more
+									</p>
+								</div>
 							</div>
 						</div>
 					</div>
-				</div>
-			</div>
-		</div>
-
-		<div class="border-t border-outline-variant bg-surface px-6 py-2">
-			<div
-				ref="bottomScrollRef"
-				class="overflow-x-auto overflow-y-hidden h-4"
-				@scroll="onBottomScroll"
-			>
-				<div :style="{ width: scrollTrackWidth, height: '1px' }"></div>
-			</div>
-		</div>
-
-		<div
-			v-if="selectedAppointment"
-			class="border-t border-outline-variant bg-surface px-6 py-4"
-		>
-			<div class="flex flex-wrap items-start justify-between gap-3">
-				<div>
-					<p class="text-[11px] uppercase tracking-wide text-on-surface-variant">
-						Appointment Details
-					</p>
-					<h3 class="text-[15px] font-semibold text-on-surface">
-						{{ selectedAppointment.guestName }}
-					</h3>
-					<p class="text-[12px] text-on-surface-variant">
-						{{ selectedAppointment.service }}
-					</p>
-				</div>
-				<button
-					type="button"
-					class="material-symbols-outlined text-on-surface-variant hover:text-on-surface"
-					@click="selectedAppointmentId = null"
-					aria-label="Close appointment details"
-				>
-					close
-				</button>
-			</div>
-			<div class="mt-3 grid grid-cols-2 gap-3 text-[12px] sm:grid-cols-4">
-				<div
-					class="rounded-lg border border-outline-variant bg-surface-container-low px-3 py-2"
-				>
-					<p class="text-on-surface-variant">Provider</p>
-					<p class="font-medium text-on-surface">
-						{{ providerName(selectedAppointment.providerId) }}
-					</p>
-				</div>
-				<div
-					class="rounded-lg border border-outline-variant bg-surface-container-low px-3 py-2"
-				>
-					<p class="text-on-surface-variant">Start</p>
-					<p class="font-medium text-on-surface">
-						{{ appointmentDate(selectedAppointment) }}
-						{{ selectedAppointment.startTime }}
-					</p>
-				</div>
-				<div
-					class="rounded-lg border border-outline-variant bg-surface-container-low px-3 py-2"
-				>
-					<p class="text-on-surface-variant">Duration</p>
-					<p class="font-medium text-on-surface">{{ selectedAppointment.duration }}h</p>
-				</div>
-				<div
-					class="rounded-lg border border-outline-variant bg-surface-container-low px-3 py-2"
-				>
-					<p class="text-on-surface-variant">Status</p>
-					<p class="font-medium capitalize text-on-surface">
-						{{ selectedAppointment.status }}
-					</p>
 				</div>
 			</div>
 		</div>
@@ -386,7 +347,12 @@
 <script setup>
 import { computed, nextTick, onBeforeUnmount, ref, watch } from "vue";
 
-const emit = defineEmits(["appointments-updated", "view-changed", "date-changed"]);
+const emit = defineEmits([
+	"appointments-updated",
+	"view-changed",
+	"date-changed",
+	"appointment-selected",
+]);
 
 function dateToIso(date) {
 	return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(
@@ -486,17 +452,18 @@ const selectedAppointmentId = ref(null);
 const currentView = ref(viewOptions.includes(props.defaultView) ? props.defaultView : "day");
 const selectedDate = ref(props.selectedDateValue || dateToIso(new Date()));
 const suppressClickUntil = ref(0);
-const mainScrollRef = ref(null);
-const bottomScrollRef = ref(null);
-const syncingFromMain = ref(false);
-const syncingFromBottom = ref(false);
 const dragState = ref({
 	appointmentId: null,
 	providerId: null,
 	startX: 0,
 	startMinutes: 0,
+	timelineWidthPx: 1,
 	moved: false,
 });
+
+const dayHeaderScrollRef = ref(null);
+const dayBodyScrollRef = ref(null);
+const isSyncingDayHorizontal = ref(false);
 
 watch(
 	() => props.appointments,
@@ -517,17 +484,20 @@ watch(currentView, (value) => {
 watch(
 	() => [currentView.value, selectedDate.value, localAppointments.value.length],
 	async () => {
-		if (currentView.value !== "day") {
-			return;
-		}
-
 		await nextTick();
-		autoScrollToRelevantTime();
 	},
 	{ immediate: true }
 );
 
-const slotWidth = computed(() => Math.max(90, Math.min(240, (140 * zoom.value) / 100)));
+const providerColumnWidthPx = 176;
+
+const providerColumnStyle = computed(() => ({
+	width: `${providerColumnWidthPx}px`,
+	minWidth: `${providerColumnWidthPx}px`,
+	maxWidth: `${providerColumnWidthPx}px`,
+}));
+
+const slotWidth = computed(() => Math.max(120, Math.min(260, (160 * zoom.value) / 100)));
 
 const activeTimeSlots = computed(() => {
 	if (!props.showFullDay) {
@@ -536,49 +506,68 @@ const activeTimeSlots = computed(() => {
 	return Array.from({ length: 24 }, (_, hour) => `${String(hour).padStart(2, "0")}:00`);
 });
 
-const timelineWidth = computed(() => `${activeTimeSlots.value.length * slotWidth.value}px`);
+const timelineGridWidthPx = computed(() => activeTimeSlots.value.length * slotWidth.value);
 
-const minWidth = computed(() => `${200 + activeTimeSlots.value.length * slotWidth.value}px`);
+const timelineGridStyle = computed(() => ({
+	width: `${timelineGridWidthPx.value}px`,
+	minWidth: `${timelineGridWidthPx.value}px`,
+}));
 
-const altMinWidth = computed(() => Math.max(980, 200 + visibleDates.value.length * 110));
-
-const scrollTrackWidth = computed(() => {
-	if (currentView.value === "day") {
-		return minWidth.value;
-	}
-	return `${altMinWidth.value}px`;
-});
+const dayTrackStyle = computed(() => ({
+	minWidth: `${providerColumnWidthPx + timelineGridWidthPx.value}px`,
+}));
 
 const timeHeaderGridStyle = computed(() => ({
 	gridTemplateColumns: `repeat(${activeTimeSlots.value.length}, ${slotWidth.value}px)`,
 }));
 
+const altSlotWidthPx = computed(() => (currentView.value === "month" ? 132 : 156));
+
 const altViewGridStyle = computed(() => ({
 	display: "grid",
-	gridTemplateColumns: `200px repeat(${visibleDates.value.length}, minmax(110px, 1fr))`,
+	gridTemplateColumns: `${providerColumnWidthPx}px repeat(${visibleDates.value.length}, ${altSlotWidthPx.value}px)`,
+	minWidth: `${providerColumnWidthPx + visibleDates.value.length * altSlotWidthPx.value}px`,
 }));
 
-const selectedAppointment = computed(() => {
-	if (!selectedAppointmentId.value) {
-		return null;
-	}
-	return (
-		localAppointments.value.find(
-			(appointment) => appointment.id === selectedAppointmentId.value
-		) || null
-	);
-});
+const providerRowsScrollable = computed(() => props.providers.length > 6);
 
 const timelineStartMinutes = computed(() => props.startHour * 60);
 const timelineEndMinutes = computed(() => props.endHour * 60);
 
+const normalizeDateKey = (value) => {
+	if (!value) {
+		return "";
+	}
+
+	const raw = String(value).trim();
+	const datePart = raw.split(" ")[0].split("T")[0];
+	if (/^\d{4}-\d{2}-\d{2}$/.test(datePart)) {
+		return datePart;
+	}
+
+	const normalized = datePart.replace(/\//g, "-");
+	if (/^\d{4}-\d{2}-\d{2}$/.test(normalized)) {
+		return normalized;
+	}
+
+	const parsed = new Date(raw);
+	if (!Number.isNaN(parsed.getTime())) {
+		return dateToIso(parsed);
+	}
+
+	return normalized;
+};
+
 const appointmentDate = (appointment) => {
-	return appointment.date || appointment.appointmentDate || "";
+	return normalizeDateKey(appointment.date || appointment.appointmentDate || "");
 };
 
 const getProviderAppointmentsByDate = (providerId, dateIso) => {
+	const normalizedDateIso = normalizeDateKey(dateIso);
 	return localAppointments.value
-		.filter((apt) => apt.providerId === providerId && appointmentDate(apt) === dateIso)
+		.filter(
+			(apt) => apt.providerId === providerId && appointmentDate(apt) === normalizedDateIso
+		)
 		.sort((a, b) => parseTimeToMinutes(a.startTime) - parseTimeToMinutes(b.startTime));
 };
 
@@ -587,8 +576,9 @@ const getProviderAppointmentsForSelectedDate = (providerId) => {
 };
 
 const hasAppointmentsForSelectedDate = computed(() => {
+	const normalizedSelectedDate = normalizeDateKey(selectedDate.value);
 	return localAppointments.value.some(
-		(appointment) => appointmentDate(appointment) === selectedDate.value
+		(appointment) => appointmentDate(appointment) === normalizedSelectedDate
 	);
 });
 
@@ -637,15 +627,59 @@ const headerRangeLabel = computed(() => {
 
 const appointmentPosition = (appointment) => {
 	const startOffsetMinutes = getTimeOffsetMinutes(appointment.startTime);
-	const durationHours = appointment.duration || 1;
-	const width = Math.max(56, durationHours * slotWidth.value - 4);
+	const durationMinutes = getAppointmentDurationMinutes(appointment);
+	const totalTimelineMinutes = Math.max(
+		1,
+		timelineEndMinutes.value - timelineStartMinutes.value
+	);
+	const widthPercent = Math.max(0.5, (durationMinutes * 100) / totalTimelineMinutes);
 	const previewOffset =
 		dragState.value.appointmentId === appointment.id ? dragPreviewOffsetPx.value : 0;
-	const left = (startOffsetMinutes / 60) * slotWidth.value + 2 + previewOffset;
+	const leftPercent = (startOffsetMinutes * 100) / totalTimelineMinutes;
+	const previewOffsetPercent =
+		dragState.value.appointmentId === appointment.id
+			? (previewOffset * 100) / Math.max(1, dragState.value.timelineWidthPx)
+			: 0;
 
 	return {
-		left: `${left}px`,
-		width: `${width}px`,
+		left: `${Math.max(0, Math.min(100, leftPercent + previewOffsetPercent))}%`,
+		width: `${Math.max(0.5, Math.min(100, widthPercent))}%`,
+	};
+};
+
+const getAppointmentDurationMinutes = (appointment) => {
+	const rawDuration = Number(appointment?.duration);
+	if (Number.isFinite(rawDuration) && rawDuration > 0) {
+		// Most records store duration in hours, but some payloads provide minutes.
+		if (rawDuration <= 12) {
+			return rawDuration * 60;
+		}
+		if (rawDuration <= 24 * 60) {
+			return rawDuration;
+		}
+	}
+
+	const startMinutes = parseTimeToMinutes(appointment?.startTime);
+	const endMinutes = parseTimeToMinutes(appointment?.endTime);
+	if (
+		Number.isFinite(startMinutes) &&
+		Number.isFinite(endMinutes) &&
+		endMinutes > startMinutes
+	) {
+		return endMinutes - startMinutes;
+	}
+
+	return 60;
+};
+
+const appointmentCardStyle = (appointment, appointmentIndex) => {
+	const position = appointmentPosition(appointment);
+	const laneHeightPx = 24;
+	const laneTopPx = 6 + appointmentIndex * laneHeightPx;
+
+	return {
+		...position,
+		top: `${laneTopPx}px`,
 	};
 };
 
@@ -726,36 +760,23 @@ const providerRowClass = (provider) => {
 	return provider.overloaded ? "bg-error-container/10" : "";
 };
 
-const providerName = (providerId) => {
-	const provider = props.providers.find((item) => item.id === providerId);
-	return provider?.name || "Unassigned";
+const syncHorizontalScroll = (sourceEl, targetEl, syncFlag) => {
+	if (!sourceEl || !targetEl || syncFlag.value) {
+		return;
+	}
+	syncFlag.value = true;
+	targetEl.scrollLeft = sourceEl.scrollLeft;
+	requestAnimationFrame(() => {
+		syncFlag.value = false;
+	});
 };
 
-const autoScrollToRelevantTime = () => {
-	if (!mainScrollRef.value || !bottomScrollRef.value) {
-		return;
-	}
+const onDayHeaderScroll = () => {
+	syncHorizontalScroll(dayHeaderScrollRef.value, dayBodyScrollRef.value, isSyncingDayHorizontal);
+};
 
-	const selectedDayAppointments = localAppointments.value.filter(
-		(appointment) => appointmentDate(appointment) === selectedDate.value
-	);
-
-	if (!selectedDayAppointments.length) {
-		mainScrollRef.value.scrollLeft = 0;
-		bottomScrollRef.value.scrollLeft = 0;
-		return;
-	}
-
-	const earliestMinutes = selectedDayAppointments.reduce((min, appointment) => {
-		const minutes = parseTimeToMinutes(appointment.startTime);
-		return Math.min(min, minutes);
-	}, Number.POSITIVE_INFINITY);
-
-	const offsetMinutes = Math.max(0, earliestMinutes - timelineStartMinutes.value - 60);
-	const targetScrollLeft = Math.max(0, (offsetMinutes / 60) * slotWidth.value);
-
-	mainScrollRef.value.scrollLeft = targetScrollLeft;
-	bottomScrollRef.value.scrollLeft = targetScrollLeft;
+const onDayBodyScroll = () => {
+	syncHorizontalScroll(dayBodyScrollRef.value, dayHeaderScrollRef.value, isSyncingDayHorizontal);
 };
 
 const setZoom = (value) => {
@@ -783,39 +804,12 @@ const shiftPeriod = (direction) => {
 	);
 };
 
-const onMainScroll = (event) => {
-	if (syncingFromBottom.value) {
-		return;
-	}
-	if (!bottomScrollRef.value) {
-		return;
-	}
-	syncingFromMain.value = true;
-	bottomScrollRef.value.scrollLeft = event.target.scrollLeft;
-	requestAnimationFrame(() => {
-		syncingFromMain.value = false;
-	});
-};
-
-const onBottomScroll = (event) => {
-	if (syncingFromMain.value) {
-		return;
-	}
-	if (!mainScrollRef.value) {
-		return;
-	}
-	syncingFromBottom.value = true;
-	mainScrollRef.value.scrollLeft = event.target.scrollLeft;
-	requestAnimationFrame(() => {
-		syncingFromBottom.value = false;
-	});
-};
-
 const openDetails = (appointment) => {
 	if (Date.now() < suppressClickUntil.value) {
 		return;
 	}
 	selectedAppointmentId.value = appointment.id;
+	emit("appointment-selected", { ...appointment });
 };
 
 const onAppointmentMouseDown = (event, appointment, providerId) => {
@@ -827,6 +821,10 @@ const onAppointmentMouseDown = (event, appointment, providerId) => {
 		providerId,
 		startX: event.clientX,
 		startMinutes: parseTimeToMinutes(appointment.startTime),
+		timelineWidthPx:
+			event.currentTarget?.parentElement?.clientWidth ||
+			event.currentTarget?.closest("[data-provider-id]")?.clientWidth ||
+			1,
 		moved: false,
 	};
 	dragCurrentX.value = event.clientX;
@@ -859,7 +857,11 @@ const onMouseUp = () => {
 	}
 
 	if (dragState.value.moved) {
-		const minutePerPixel = 60 / slotWidth.value;
+		const totalTimelineMinutes = Math.max(
+			1,
+			timelineEndMinutes.value - timelineStartMinutes.value
+		);
+		const minutePerPixel = totalTimelineMinutes / Math.max(1, dragState.value.timelineWidthPx);
 		const movedMinutes = (dragCurrentX.value - dragState.value.startX) * minutePerPixel;
 		const rawStart = dragState.value.startMinutes + movedMinutes;
 		const snappedStart = Math.round(rawStart / 15) * 15;
@@ -893,6 +895,7 @@ const resetDragState = () => {
 		providerId: null,
 		startX: 0,
 		startMinutes: 0,
+		timelineWidthPx: 1,
 		moved: false,
 	};
 	dragCurrentX.value = 0;

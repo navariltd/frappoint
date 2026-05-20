@@ -1,11 +1,15 @@
 <template>
-	<div class="flex items-center gap-2 flex-wrap">
-		<span class="px-2.5 py-1 rounded-full text-[10px] font-semibold" :class="statusClass">{{
-			appointment.status
-		}}</span>
-		<span class="px-2.5 py-1 rounded-full text-[10px] font-semibold" :class="paymentClass">{{
-			appointment.paymentStatus
-		}}</span>
+	<div class="flex items-center gap-1.5 flex-wrap">
+		<span
+			class="px-2.5 py-1 rounded-md text-[10px] font-semibold uppercase tracking-[0.08em]"
+			:class="statusClass"
+			>{{ appointment.status }}</span
+		>
+		<span
+			class="px-2.5 py-1 rounded-md text-[10px] font-semibold uppercase tracking-[0.08em]"
+			:class="paymentClass"
+			>{{ appointment.paymentStatus }}</span
+		>
 	</div>
 </template>
 

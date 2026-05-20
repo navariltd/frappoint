@@ -1,5 +1,6 @@
 import { defineStore } from "pinia";
 import { createEmptyAppointmentDetails } from "@/types/appointment-details";
+import { useAppointmentEventLogsStore } from "@/stores/appointmentEventLogs.store";
 import {
 	fetchAppointmentAvailability,
 	fetchAppointmentDetails,
@@ -81,8 +82,10 @@ export const useAppointmentDetailsStore = defineStore("appointmentDetails", {
 			this.selectedAvailabilityDate = slot?.date || this.selectedAvailabilityDate;
 		},
 		async fetchAppointment(appointmentId) {
+			const eventLogsStore = useAppointmentEventLogsStore();
 			if (!appointmentId) {
 				this.error = "Appointment ID is required.";
+				eventLogsStore.reset();
 				return;
 			}
 			this.isLoading = true;
@@ -96,6 +99,10 @@ export const useAppointmentDetailsStore = defineStore("appointmentDetails", {
 				this.alerts = payload.alerts || [];
 				this.paymentSummary = payload.paymentSummary || null;
 				this.actionState = payload.actions || {};
+				eventLogsStore.hydrateFromPayload(
+					payload.eventLogs || [],
+					payload.timeTracking || {}
+				);
 				this.selectedAvailabilityDate =
 					payload.availability?.date || this.appointment.appointmentDate;
 				this.selectedAvailabilitySlotId = "";
@@ -140,6 +147,7 @@ export const useAppointmentDetailsStore = defineStore("appointmentDetails", {
 			}
 		},
 		async performAction(payload) {
+			const eventLogsStore = useAppointmentEventLogsStore();
 			const actionPayload = {
 				appointmentId: payload.appointmentId || this.appointment.appointmentId,
 				action: payload.action,
@@ -179,6 +187,10 @@ export const useAppointmentDetailsStore = defineStore("appointmentDetails", {
 				}
 				this.paymentSummary = response?.paymentSummary || this.paymentSummary;
 				this.actionState = response?.actions || this.actionState;
+				eventLogsStore.hydrateFromPayload(
+					response?.eventLogs || [],
+					response?.timeTracking || {}
+				);
 				this.selectedAvailabilityDate =
 					response?.availability?.date || this.selectedAvailabilityDate;
 				this.selectedAvailabilitySlotId = "";

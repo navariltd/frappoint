@@ -1,22 +1,31 @@
 <template>
-	<div
-		class="bg-error-container/20 border border-error/20 p-4 rounded-2xl flex gap-3 shadow-[0px_4px_20px_rgba(45,52,54,0.05)]"
+	<section
+		class="rounded-lg border border-error/30 bg-error-container/10 p-4 shadow-sm space-y-3"
 	>
-		<span
-			class="material-symbols-outlined text-error text-[20px]"
-			style="font-variation-settings: 'FILL' 1"
-			>report</span
-		>
-		<div class="space-y-2">
-			<div>
-				<h4 class="text-[13px] font-semibold text-error">Operational Alerts</h4>
-				<p class="text-[12px] text-on-error-container">{{ message }}</p>
+		<div class="flex items-start gap-3">
+			<span
+				class="material-symbols-outlined text-error text-[18px] mt-0.5 shrink-0"
+				style="font-variation-settings: 'FILL' 1"
+				>warning</span
+			>
+			<div class="space-y-2 min-w-0">
+				<h4 class="text-[12px] font-semibold uppercase tracking-[0.08em] text-error">
+					Operational Alerts
+				</h4>
+				<p class="text-[13px] text-on-surface-variant leading-relaxed">
+					{{ message }}
+				</p>
+				<ul v-if="alerts.length" class="space-y-1 text-[12px] text-on-surface-variant">
+					<li v-for="alert in alerts" :key="alert.id" class="flex items-start gap-2">
+						<span
+							class="inline-block w-1 h-1 bg-error rounded-full mt-1.5 shrink-0"
+						></span>
+						{{ alert.message }}
+					</li>
+				</ul>
 			</div>
-			<ul v-if="alerts.length" class="space-y-1 text-[12px] text-on-surface-variant">
-				<li v-for="alert in alerts" :key="alert.id">• {{ alert.message }}</li>
-			</ul>
 		</div>
-	</div>
+	</section>
 </template>
 
 <script setup>

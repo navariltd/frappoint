@@ -66,6 +66,7 @@ class ServiceAppointment(Document):
 		cancellation_date: DF.Datetime | None
 		cancellation_notes: DF.Text | None
 		cancellation_reasons: DF.TableMultiSelect[ServiceAppointmentLostReasonDetail]
+		checked_in_at: DF.Datetime | None
 		company: DF.Link
 		confirmation_required_amount: DF.Currency
 		confirmation_token: DF.Data | None
@@ -90,12 +91,7 @@ class ServiceAppointment(Document):
 		outstanding_amount: DF.Currency
 		payment_expires_at: DF.Datetime | None
 		payment_status: DF.Literal[
-			"Unpaid",
-			"Paid",
-			"Partly Paid",
-			"Partly Refunded",
-			"Refunded",
-			"Cancellation",
+			"Unpaid", "Paid", "Partly Paid", "Partly Refunded", "Refunded", "Cancellation"
 		]
 		reschedule_date: DF.Datetime | None
 		reschedule_notes: DF.Text | None
@@ -112,6 +108,8 @@ class ServiceAppointment(Document):
 			"Open",
 			"Pending Payment",
 			"Confirmed",
+			"Checked In",
+			"In Progress",
 			"Rescheduled",
 			"Completed",
 			"Cancelled",
@@ -143,6 +141,13 @@ class ServiceAppointment(Document):
 
 	def before_save(self):
 		"""Assign provider if multiple options exist then, book slots"""
+
+		# Clear actual times on new appointments - they should only be set during service delivery
+		if self.is_new():
+			self.actual_start_time = None
+			self.actual_end_time = None
+			self.actual_duration = 0
+			self.checked_in_at = None
 
 		if self.is_new() and self.source == "Portal" and not self.booking_id:
 			self.booking_id = self.create_portal_booking()
@@ -284,13 +289,14 @@ class ServiceAppointment(Document):
 		"""Handle status changes and reschedules and cancellations"""
 		# Validate actual end time when completing appointment
 		if self.has_value_changed("status") and self.status == "Completed":
-			if not self.actual_end_time:
+			if not self.completed_at and not self.actual_end_time:
 				frappe.throw(
-					_("Actual End Time is required to mark appointment as Completed"),
+					_("Completed At is required to mark appointment as Completed"),
 					title=_("Actual End Time Required"),
 				)
 
-			self.calculate_actual_duration()
+			if self.actual_start_time and self.actual_end_time:
+				self.calculate_actual_duration()
 
 		if self.has_value_changed("status"):
 			self.handle_status_change()
@@ -1065,7 +1071,6 @@ class ServiceAppointment(Document):
 			self.handle_cancellation()
 
 	def complete_appointment(self):
-		self.calculate_actual_duration()
 		self.auto_issue_consumables()
 		self.complete_linked_event()
 
@@ -1076,8 +1081,8 @@ class ServiceAppointment(Document):
 
 	@frappe.whitelist()
 	def complete_and_invoice(self, actual_start_time: str, actual_end_time: str) -> str:
-		self.actual_start_time = actual_start_time
-		self.actual_end_time = actual_end_time
+		self.started_at = self.started_at or actual_start_time
+		self.completed_at = actual_end_time
 		self.status = "Completed"
 		self.save()
 

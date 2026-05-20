@@ -1,28 +1,22 @@
 <template>
-	<div class="space-y-4">
-		<div class="flex items-center justify-between">
-			<h3 class="text-[16px] font-semibold text-on-surface flex items-center gap-2">
-				Appointments
+	<section class="space-y-4">
+		<div class="flex items-center justify-between gap-3">
+			<div class="flex items-center gap-2">
+				<h2 class="text-base font-semibold text-on-surface">Appointments</h2>
 				<span
-					class="bg-surface-container-highest text-on-surface px-2 py-0.5 rounded-full text-xs"
-					>{{ appointments.length }}</span
+					class="px-2.5 py-1 rounded-md bg-surface-container-high text-on-surface-variant text-[10px] font-semibold"
 				>
-			</h3>
-			<button
-				class="text-primary font-semibold flex items-center gap-1 hover:underline"
-				@click="$emit('view-log')"
-			>
-				<span class="material-symbols-outlined text-[20px]">history</span>
-				View Log
-			</button>
+					{{ appointments.length }}
+				</span>
+			</div>
 		</div>
 		<div
 			v-if="!appointments.length"
-			class="rounded-xl border border-outline-variant bg-surface-container-lowest p-6 text-[13px] text-on-surface-variant"
+			class="rounded-lg border border-outline-variant/40 bg-surface-container-lowest p-6 text-[13px] text-on-surface-variant text-center"
 		>
 			No appointments are linked to this booking.
 		</div>
-		<div v-else class="space-y-4">
+		<div v-else class="space-y-3">
 			<AppointmentCard
 				v-for="appointment in appointments"
 				:key="appointment.id"
@@ -35,7 +29,7 @@
 				"
 			/>
 		</div>
-	</div>
+	</section>
 </template>
 
 <script setup>

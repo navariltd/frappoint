@@ -10,7 +10,9 @@ const defaultMetrics = () => ({
 	todayAppointments: 0,
 	checkedIn: 0,
 	ongoing: 0,
+	completed: 0,
 	pendingPayment: 0,
+	cancelled: 0,
 	delayed: 0,
 	noShow: 0,
 });
