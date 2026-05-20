@@ -23,7 +23,7 @@ const routes = [
 	{
 		name: "NewBooking",
 		path: "/new_booking",
-		component: () => import("@/pages/booking/NewBooking.vue"),
+		component: () => import("@/pages/services/Services.vue"),
 		meta: { requiresLogin: true },
 	},
 	{
