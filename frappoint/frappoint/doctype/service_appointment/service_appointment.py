@@ -289,7 +289,7 @@ class ServiceAppointment(Document):
 		"""Handle status changes and reschedules and cancellations"""
 		# Validate actual end time when completing appointment
 		if self.has_value_changed("status") and self.status == "Completed":
-			if not self.completed_at and not self.actual_end_time:
+			if not self.actual_end_time:
 				frappe.throw(
 					_("Completed At is required to mark appointment as Completed"),
 					title=_("Actual End Time Required"),
@@ -1081,8 +1081,8 @@ class ServiceAppointment(Document):
 
 	@frappe.whitelist()
 	def complete_and_invoice(self, actual_start_time: str, actual_end_time: str) -> str:
-		self.started_at = self.started_at or actual_start_time
-		self.completed_at = actual_end_time
+		self.actual_start_time = actual_start_time
+		self.actual_end_time = actual_end_time
 		self.status = "Completed"
 		self.save()
 
