@@ -75,6 +75,12 @@ const routes = [
 		meta: { requiresLogin: true },
 	},
 	{
+		name: "ReviewPricing",
+		path: "/booking/:bookingId/review",
+		component: () => import("@/pages/booking/ReviewPricing.vue"),
+		meta: { requiresLogin: true },
+	},
+	{
 		name: "Checkout",
 		path: "/booking/:bookingId/checkout",
 		component: () => import("@/pages/booking/Checkout.vue"),

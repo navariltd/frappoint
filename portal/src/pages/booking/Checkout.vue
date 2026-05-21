@@ -161,6 +161,26 @@
 							:remaining-after-payment="remainingAfterPayment"
 							:currency="currency"
 							:payment-type="selectedPaymentType"
+							:total-savings="totalSavings"
+						/>
+
+						<DiscountBreakdown
+							:total-savings="totalSavings"
+							:discounted-total="discountedTotal"
+							:currency="currency"
+						/>
+
+						<CouponCodeSection
+							:coupon-draft="couponDraft"
+							:currency="currency"
+							:applied-coupon="appliedCoupon"
+							:error-message="couponError"
+							:success-message="couponMessage"
+							:loading="isValidatingCoupon || isApplyingCoupon"
+							:submitting="isSubmitting"
+							@update:draft="setCouponDraft"
+							@apply="applyCoupon()"
+							@remove="removeCoupon"
 						/>
 
 						<!-- Error message -->
@@ -286,6 +306,8 @@ import AppointmentSummaryList from "@/components/checkout/AppointmentSummaryList
 import PaymentOptionSelector from "@/components/checkout/PaymentOptionSelector.vue";
 import PaymentGatewaySelector from "@/components/checkout/PaymentGatewaySelector.vue";
 import CheckoutTotalsCard from "@/components/checkout/CheckoutTotalsCard.vue";
+import CouponCodeSection from "@/components/checkout/CouponCodeSection.vue";
+import DiscountBreakdown from "@/components/checkout/DiscountBreakdown.vue";
 import CheckoutActionFooter from "@/components/checkout/CheckoutActionFooter.vue";
 import PaymentProcessingOverlay from "@/components/checkout/PaymentProcessingOverlay.vue";
 
@@ -298,6 +320,11 @@ const {
 	gateways,
 	selectedPaymentType,
 	selectedGatewayId,
+	couponDraft,
+	couponMessage,
+	couponError,
+	isValidatingCoupon,
+	isApplyingCoupon,
 	mpesaPhone,
 	paymentProgress,
 	statusMessage,
@@ -312,11 +339,17 @@ const {
 	calculatedDepositAmount,
 	canSubmit,
 	currency,
+	totalSavings,
+	discountedTotal,
+	appliedCoupon,
 	financialSummary,
 	payButtonLabel,
 	initializeCheckout,
 	selectPaymentType,
 	selectGateway,
+	setCouponDraft,
+	applyCoupon,
+	removeCoupon,
 	updateMpesaPhone,
 	submitPayment,
 } = useCheckout();
