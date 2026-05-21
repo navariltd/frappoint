@@ -75,6 +75,12 @@ const routes = [
 		meta: { requiresLogin: true },
 	},
 	{
+		name: "Checkout",
+		path: "/booking/:bookingId/checkout",
+		component: () => import("@/pages/booking/Checkout.vue"),
+		meta: { requiresLogin: true },
+	},
+	{
 		name: "CancelAppointment",
 		path: "/appointments/:id/cancel",
 		component: () => import("@/pages/booking/CancelAppointment.vue"),

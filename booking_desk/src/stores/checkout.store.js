@@ -241,12 +241,17 @@ export const useCheckoutStore = defineStore("checkout", {
 			this.statusMessage = "Initiating payment gateway request...";
 
 			try {
+				const paymentType = this.selectedPaymentType;
+				const amount = Number(this.payableAmount || 0);
+
 				const payload = await createHostedCheckoutPayment({
 					bookingId: this.bookingId,
 					paymentGateway: this.selectedMethod.gateway,
 					redirectTo,
 					phoneNumber:
 						this.selectedMethod.providerType === "mpesa" ? this.mpesaPhone : "",
+					amount,
+					paymentType,
 				});
 
 				this.hostedPaymentUrl = payload?.url || "";
