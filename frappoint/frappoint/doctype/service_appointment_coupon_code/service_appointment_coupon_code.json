@@ -152,7 +152,7 @@
    "fieldname": "applicable_for",
    "fieldtype": "Select",
    "label": "Applicable For",
-   "options": "Service Type\nService Appointment\nCustomer\nCustomer Group\nBooking Source"
+    "options": "Service Type\nService Appointment\nService Booking\nCustomer\nCustomer Group\nBooking Source"
   },
   {
    "depends_on": "eval:doc.discount_type == 'Percentage'",
