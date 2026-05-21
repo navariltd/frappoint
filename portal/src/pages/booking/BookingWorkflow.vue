@@ -1,160 +1,366 @@
 <template>
-	<div class="h-screen flex flex-col bg-surface-bright">
-		<header class="border-b border-outline-variant/20 px-6 py-4 bg-surface">
-			<div class="flex items-center gap-2 text-on-surface-variant mb-1">
-				<span class="text-label-sm uppercase tracking-wider font-semibold text-primary"
-					>Booking Workflow</span
-				>
-				<span class="material-symbols-outlined text-sm">chevron_right</span>
-				<span class="text-label-sm">Step 2 of 3</span>
-			</div>
-			<h1 class="text-headline-lg font-headline-lg text-on-surface mb-1">
-				Assign Guests and Schedule
-			</h1>
-			<p class="text-body-md text-on-surface-variant">
-				Assign each selected service to a guest, then choose appointment date and slot.
-			</p>
-		</header>
-
-		<div v-if="pageLoading" class="flex-1 flex items-center justify-center">
-			<div class="space-y-4 text-center">
-				<div
-					class="inline-block w-12 h-12 border-4 border-primary/20 border-t-primary rounded-full animate-spin"
-				></div>
-				<p class="text-body-md text-on-surface-variant">Preparing booking workflow...</p>
-			</div>
-		</div>
-
-		<div v-else-if="pageError" class="flex-1 flex items-center justify-center">
-			<div class="space-y-4 text-center">
-				<div class="inline-block p-4 rounded-full bg-error-container/30">
-					<span class="material-symbols-outlined text-error text-[40px]"
-						>error_outline</span
+	<main class="flex-grow bg-surface-bright">
+		<div class="max-w-[800px] mx-auto px-container-padding py-section-gap">
+			<div class="flex justify-center items-center mb-12 space-x-16">
+				<div class="flex flex-col items-center gap-2 relative">
+					<div
+						class="w-10 h-10 rounded-full bg-secondary-container text-on-secondary-container flex items-center justify-center"
 					>
-				</div>
-				<p class="text-body-md text-on-surface">{{ pageError }}</p>
-				<button
-					class="px-6 py-2 rounded-full bg-primary text-on-primary font-semibold hover:opacity-90"
-					@click="initializePage"
-				>
-					Retry
-				</button>
-			</div>
-		</div>
-
-		<div v-else class="flex-1 flex overflow-hidden">
-			<BookingServiceProgress
-				:groups="serviceGroups"
-				:active-assignment-id="activeAssignment?.id"
-				@select="setActiveAssignment"
-			/>
-
-			<main class="flex-1 overflow-y-auto">
-				<div v-if="activeAssignment" class="p-8 max-w-3xl mx-auto">
-					<GuestAssignmentCard
-						:assignment="activeAssignment"
-						:current-index="activeAssignmentIndex"
-						:total="totalGuests"
-						:error="getAssignmentError(activeAssignment.id)"
-						:is-loading-dates="isLoadingDates(activeAssignment.id)"
-						:is-loading-slots="isLoadingSlots(activeAssignment.id)"
-						@assign-guest="onAssignGuest"
-						@select-date="onSelectDate"
-						@select-slot="onSelectSlot"
-					/>
-				</div>
-			</main>
-
-			<aside
-				class="w-80 border-l border-outline-variant/20 bg-surface-container-lowest p-6 flex flex-col overflow-y-auto"
-			>
-				<h3 class="text-headline-sm font-headline-sm text-on-surface mb-6">
-					Booking Summary
-				</h3>
-
-				<div class="flex-1 space-y-6">
-					<BookingAssignmentProgress
-						:total="totalGuests"
-						:completed="completedAssignments"
-						:percent="progressPercentage"
-					/>
-
-					<div class="space-y-3">
-						<p class="text-label-md font-semibold text-on-surface-variant">Services</p>
-						<div
-							v-for="group in serviceGroups"
-							:key="group.serviceKey"
-							class="p-3 rounded-lg bg-surface-container space-y-1"
+						<span
+							class="material-symbols-outlined"
+							style="font-variation-settings: 'FILL' 1"
+							>check</span
 						>
-							<div class="flex justify-between items-start">
+					</div>
+					<span class="font-label-sm text-on-surface-variant">Selection</span>
+					<div
+						class="absolute top-5 left-full w-16 h-[2px] bg-secondary-container mx-2"
+					></div>
+				</div>
+				<div class="flex flex-col items-center gap-2 relative">
+					<div
+						class="w-10 h-10 rounded-full bg-primary text-on-primary flex items-center justify-center font-label-md"
+					>
+						2
+					</div>
+					<span class="font-label-md text-primary font-bold">Assign Guests</span>
+					<div
+						class="absolute top-5 left-full w-16 h-[2px] bg-outline-variant mx-2 opacity-50"
+					></div>
+				</div>
+				<div class="flex flex-col items-center gap-2">
+					<div
+						class="w-10 h-10 rounded-full border-2 border-outline-variant text-outline-variant flex items-center justify-center font-label-md"
+					>
+						3
+					</div>
+					<span class="font-label-sm text-outline-variant">Confirmation</span>
+				</div>
+			</div>
+
+			<div class="text-center mb-section-gap">
+				<h1 class="font-headline-lg text-headline-lg text-on-background mb-2">
+					Assign Guests
+				</h1>
+				<p class="font-body-md text-on-surface-variant max-w-md mx-auto">
+					Please tell us who will be enjoying each service.
+				</p>
+			</div>
+
+			<div v-if="pageLoading" class="flex items-center justify-center py-20">
+				<div class="space-y-4 text-center">
+					<div
+						class="inline-block w-12 h-12 border-4 border-primary/20 border-t-primary rounded-full animate-spin"
+					></div>
+					<p class="text-body-md text-on-surface-variant">
+						Preparing booking workflow...
+					</p>
+				</div>
+			</div>
+
+			<div v-else-if="pageError" class="flex items-center justify-center py-20">
+				<div class="space-y-4 text-center">
+					<div class="inline-block p-4 rounded-full bg-error-container/30">
+						<span class="material-symbols-outlined text-error text-[40px]"
+							>error_outline</span
+						>
+					</div>
+					<p class="text-body-md text-on-surface">{{ pageError }}</p>
+					<button
+						class="px-6 py-2 rounded-full bg-primary text-on-primary font-semibold hover:opacity-90"
+						@click="initializePage"
+					>
+						Retry
+					</button>
+				</div>
+			</div>
+
+			<div v-else class="space-y-gutter">
+				<section
+					v-for="service in serviceGroups"
+					:key="service.serviceKey"
+					class="bg-white rounded-xl custom-shadow p-6 transition-all duration-300 border border-transparent hover:border-primary-container"
+				>
+					<div class="flex items-start justify-between gap-4 mb-6">
+						<div class="flex items-center gap-4 min-w-0">
+							<div
+								class="w-16 h-16 rounded-lg bg-primary-container/20 text-primary flex items-center justify-center flex-shrink-0"
+							>
+								<span class="material-symbols-outlined text-[28px]">spa</span>
+							</div>
+							<div class="min-w-0">
+								<h3 class="font-headline-sm text-headline-sm text-on-surface">
+									{{ service.serviceName }}
+								</h3>
+								<p class="font-label-sm text-on-surface-variant">
+									{{ service.duration }} Minutes • {{ service.packageName }}
+								</p>
+							</div>
+						</div>
+						<div class="flex items-center gap-3 shrink-0">
+							<div class="text-right">
+								<p class="font-label-md text-on-surface">
+									{{ serviceCompleted(service) }}/{{
+										service.assignments.length
+									}}
+								</p>
+								<p class="font-label-sm text-on-surface-variant">
+									guests assigned
+								</p>
+							</div>
+							<button
+								:disabled="!isServiceComplete(service)"
+								class="w-10 h-10 rounded-full border border-outline-variant/40 flex items-center justify-center transition-colors disabled:opacity-40 disabled:cursor-not-allowed hover:border-primary"
+								@click="toggleService(service.serviceKey)"
+							>
+								<span class="material-symbols-outlined text-on-surface-variant">
+									{{
+										isServiceExpanded(service.serviceKey)
+											? "expand_less"
+											: "expand_more"
+									}}
+								</span>
+							</button>
+						</div>
+					</div>
+
+					<div v-if="isServiceExpanded(service.serviceKey)" class="space-y-4">
+						<div
+							v-for="assignment in service.assignments"
+							:key="assignment.id"
+							class="rounded-xl border border-outline-variant/30 bg-surface-container-lowest p-4 transition-all"
+						>
+							<div
+								class="flex items-center justify-between gap-3"
+								:class="canCollapseGuest(assignment) ? 'cursor-pointer' : ''"
+								@click="toggleGuestCard(assignment.id, assignment.globalIndex)"
+							>
 								<div>
-									<p class="text-label-md font-semibold text-on-surface">
-										{{ group.serviceName }}
-									</p>
-									<p class="text-label-sm text-on-surface-variant">
-										{{ group.packageName }}
+									<label class="font-label-md text-on-surface"
+										>Guest {{ assignment.guest_index + 1 }}</label
+									>
+									<p class="font-label-sm text-on-surface-variant">
+										{{ guestSummary(assignment) }}
 									</p>
 								</div>
-								<span class="text-label-md font-semibold"
-									>{{ group.assignments.length }}x</span
-								>
+								<div class="flex items-center gap-2">
+									<span
+										class="px-3 py-1 rounded-full font-label-sm"
+										:class="
+											isAssignmentComplete(assignment)
+												? 'bg-primary-container/30 text-primary'
+												: 'bg-surface-container text-on-surface-variant'
+										"
+									>
+										{{
+											isAssignmentComplete(assignment)
+												? "Assigned"
+												: "Pending"
+										}}
+									</span>
+									<span
+										v-if="canCollapseGuest(assignment)"
+										class="material-symbols-outlined text-on-surface-variant"
+									>
+										{{
+											isGuestExpanded(assignment.id)
+												? "expand_less"
+												: "expand_more"
+										}}
+									</span>
+								</div>
 							</div>
-							<div class="flex justify-between text-label-sm">
-								<span class="text-on-surface-variant"
-									>{{ group.duration }} minutes each</span
-								>
-								<span class="font-semibold"
-									>{{ group.currency }}
-									{{ (group.price * group.assignments.length).toFixed(2) }}</span
-								>
-							</div>
-						</div>
-					</div>
 
-					<div class="pt-4 border-t border-outline-variant/20 space-y-3">
-						<div class="flex justify-between text-body-sm">
-							<span class="text-on-surface-variant">Subtotal</span>
-							<span class="text-on-surface"
-								>{{ draftBooking?.currency || "KES" }}
-								{{ subtotal.toFixed(2) }}</span
-							>
-						</div>
-						<div class="flex justify-between text-headline-sm font-semibold">
-							<span class="text-on-surface">Total</span>
-							<span class="text-primary"
-								>{{ draftBooking?.currency || "KES" }}
-								{{ subtotal.toFixed(2) }}</span
-							>
+							<div v-if="isGuestExpanded(assignment.id)" class="space-y-4 pt-4">
+								<div
+									v-if="getAssignmentError(assignment.id)"
+									class="p-3 rounded-lg bg-error-container/30 border border-error-container"
+								>
+									<div class="flex gap-3">
+										<span class="material-symbols-outlined text-error"
+											>error</span
+										>
+										<p class="text-body-sm text-on-error-container">
+											{{ getAssignmentError(assignment.id) }}
+										</p>
+									</div>
+								</div>
+
+								<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+									<div class="relative">
+										<input
+											:value="assignment.guest_full_name"
+											type="text"
+											placeholder="Full Name"
+											class="w-full bg-surface-container-low border-none rounded-lg px-4 py-3 font-body-md text-on-surface focus:ring-2 focus:ring-primary transition-all"
+											@input="
+												onAssignGuest(assignment.id, {
+													fullName: ($event.target as HTMLInputElement)
+														.value,
+													email: assignment.guest_email,
+													mobile: assignment.guest_mobile,
+												})
+											"
+										/>
+									</div>
+									<div class="relative">
+										<input
+											:value="assignment.guest_email"
+											type="email"
+											placeholder="Email Address (Optional)"
+											class="w-full bg-surface-container-low border-none rounded-lg px-4 py-3 font-body-md text-on-surface focus:ring-2 focus:ring-primary transition-all"
+											@input="
+												onAssignGuest(assignment.id, {
+													fullName: assignment.guest_full_name,
+													email: ($event.target as HTMLInputElement)
+														.value,
+													mobile: assignment.guest_mobile,
+												})
+											"
+										/>
+									</div>
+								</div>
+
+								<div class="flex items-center justify-between gap-4 flex-wrap">
+									<div
+										v-if="assignment.selected_date"
+										class="flex items-center gap-2 text-on-surface-variant"
+									>
+										<span
+											class="material-symbols-outlined text-[18px] text-primary"
+											>event</span
+										>
+										<span class="font-label-sm">
+											{{ assignment.selected_date }}
+											<template v-if="assignment.selected_slot"
+												>•
+												{{
+													formatTime(assignment.selected_slot.startTime)
+												}}</template
+											>
+										</span>
+									</div>
+									<button
+										class="text-primary font-label-sm hover:underline transition-all flex items-center gap-1 disabled:opacity-50 disabled:no-underline"
+										:disabled="!assignment.guest_full_name"
+										@click.stop="
+											openDateTimeModal(
+												assignment.id,
+												assignment.globalIndex
+											)
+										"
+									>
+										<span class="material-symbols-outlined text-[16px]"
+											>calendar_clock</span
+										>
+										{{
+											assignment.selected_slot_id
+												? "Change Time Slot"
+												: "Pick Time Slot"
+										}}
+									</button>
+								</div>
+							</div>
 						</div>
 					</div>
+				</section>
+			</div>
+
+			<div
+				v-if="!pageLoading && !pageError"
+				class="mt-section-gap flex flex-col items-center gap-stack-md"
+			>
+				<button
+					:disabled="!isWorkflowComplete"
+					class="w-full max-w-md bg-primary text-on-primary font-headline-sm py-4 rounded-full deep-shadow hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:scale-100"
+					@click="proceedToPayment"
+				>
+					Proceed to Review
+					<span class="material-symbols-outlined">arrow_forward</span>
+				</button>
+				<p class="font-label-md text-on-surface-variant">
+					{{ completedAssignments }}/{{ totalGuests }} guests assigned
+				</p>
+			</div>
+		</div>
+
+		<div
+			v-if="isDateTimeModalOpen && modalAssignment"
+			class="fixed inset-0 z-50 flex items-center justify-center p-4"
+		>
+			<div class="absolute inset-0 bg-black/40" @click="closeDateTimeModal"></div>
+			<div
+				class="relative w-full max-w-4xl rounded-2xl bg-white custom-shadow overflow-hidden"
+			>
+				<div
+					class="flex items-center justify-between px-6 py-5 border-b border-outline-variant/20"
+				>
+					<div>
+						<h2 class="font-headline-sm text-headline-sm text-on-surface">
+							Select Date & Time
+						</h2>
+						<p class="font-body-sm text-on-surface-variant">
+							{{ modalAssignment.service_name }} for
+							{{
+								modalAssignment.guest_full_name ||
+								`Guest ${modalAssignment.guest_index + 1}`
+							}}
+						</p>
+					</div>
+					<button
+						class="w-10 h-10 rounded-full hover:bg-surface-container-low flex items-center justify-center"
+						@click="closeDateTimeModal"
+					>
+						<span class="material-symbols-outlined text-on-surface-variant"
+							>close</span
+						>
+					</button>
 				</div>
 
-				<AssignmentConfirmationPanel
-					:can-confirm="canConfirmCurrent"
-					:saving="activeAssignment ? isSavingAssignment(activeAssignment.id) : false"
-					:workflow-complete="isWorkflowComplete"
-					:disable-previous="activeAssignmentIndex === 0"
-					@confirm="confirmCurrentAssignment"
-					@previous="goPrevious"
-					@proceed="proceedToPayment"
-				/>
-			</aside>
+				<div class="grid grid-cols-1 lg:grid-cols-[1fr_1.2fr] min-h-[420px]">
+					<div
+						class="p-6 border-b lg:border-b-0 lg:border-r border-outline-variant/20 bg-surface-container-lowest"
+					>
+						<p class="font-label-md text-on-surface mb-4">Choose a date</p>
+						<AppointmentDateSelector
+							:dates="modalAssignment.available_dates || []"
+							:selected-date="modalAssignment.selected_date"
+							:loading="isLoadingDates(modalAssignment.id)"
+							@select="onSelectDate(modalAssignment.id, $event)"
+						/>
+					</div>
+					<div class="p-6">
+						<p class="font-label-md text-on-surface mb-4">Choose a time slot</p>
+						<AppointmentSlotSelector
+							:slots="modalAssignment.available_slots || []"
+							:selected-slot-id="modalAssignment.selected_slot_id"
+							:loading="
+								isLoadingSlots(modalAssignment.id) ||
+								isSavingAssignment(modalAssignment.id)
+							"
+							@select="onSelectSlot(modalAssignment.id, $event)"
+						/>
+					</div>
+				</div>
+			</div>
 		</div>
-	</div>
+	</main>
 </template>
 
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from "vue";
 import { useRouter } from "vue-router";
 import { useBookingWorkflow } from "@/composables/useBookingWorkflow";
-import BookingServiceProgress from "@/components/booking/BookingServiceProgress.vue";
-import GuestAssignmentCard from "@/components/booking/GuestAssignmentCard.vue";
-import BookingAssignmentProgress from "@/components/booking/BookingAssignmentProgress.vue";
-import AssignmentConfirmationPanel from "@/components/booking/AssignmentConfirmationPanel.vue";
+import AppointmentDateSelector from "@/components/booking/AppointmentDateSelector.vue";
+import AppointmentSlotSelector from "@/components/booking/AppointmentSlotSelector.vue";
 
 const router = useRouter();
 const pageLoading = ref(true);
 const pageError = ref("");
+const expandedGuests = ref<Record<string, boolean>>({});
+const expandedServices = ref<Record<string, boolean>>({});
+const isDateTimeModalOpen = ref(false);
+const modalAssignmentId = ref("");
 
 const {
 	draftBooking,
@@ -163,14 +369,12 @@ const {
 	activeAssignmentIndex,
 	totalGuests,
 	completedAssignments,
-	progressPercentage,
 	isWorkflowComplete,
 	startWorkflow,
 	setActiveAssignment,
 	assignGuest,
 	loadDates,
 	chooseDate,
-	loadSlots,
 	chooseSlot,
 	confirmAssignment,
 	getAssignmentError,
@@ -213,38 +417,129 @@ const serviceGroups = computed(() => {
 	return groups;
 });
 
-const subtotal = computed(() =>
-	assignments.value.reduce((sum, assignment) => sum + Number(assignment.price || 0), 0)
+const modalAssignment = computed(
+	() => assignments.value.find((assignment) => assignment.id === modalAssignmentId.value) || null
 );
 
-const canConfirmCurrent = computed(() => {
-	if (!activeAssignment.value) return false;
-	return Boolean(
-		activeAssignment.value.guest_full_name &&
-			activeAssignment.value.selected_date &&
-			activeAssignment.value.selected_slot_id
+function isAssignmentComplete(assignment: any) {
+	return (
+		assignment.status === "completed" ||
+		Boolean(assignment.selected_date && assignment.selected_slot_id)
 	);
-});
+}
+
+function canCollapseGuest(assignment: any) {
+	return isAssignmentComplete(assignment);
+}
+
+function serviceCompleted(service: { assignments: Array<any> }) {
+	return service.assignments.filter((assignment) => isAssignmentComplete(assignment)).length;
+}
+
+function isServiceComplete(service: { assignments: Array<any> }) {
+	return (
+		service.assignments.length > 0 && serviceCompleted(service) === service.assignments.length
+	);
+}
+
+function isGuestExpanded(assignmentId: string) {
+	return expandedGuests.value[assignmentId] !== false;
+}
+
+function isServiceExpanded(serviceKey: string) {
+	return expandedServices.value[serviceKey] !== false;
+}
+
+function guestSummary(assignment: any) {
+	if (assignment.selected_date && assignment.selected_slot) {
+		return `${assignment.selected_date} • ${formatTime(assignment.selected_slot.startTime)}`;
+	}
+	if (assignment.guest_full_name) {
+		return assignment.guest_email || "Date & time pending";
+	}
+	return "Guest details pending";
+}
+
+function formatTime(time: string) {
+	if (!time) return "";
+	try {
+		const [hours, minutes] = time.split(":");
+		const date = new Date();
+		date.setHours(Number(hours), Number(minutes));
+		return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+	} catch {
+		return time;
+	}
+}
+
+async function ensureDatesLoaded(assignmentId: string) {
+	const assignment = assignments.value.find((item) => item.id === assignmentId);
+	if (!assignment) return;
+	if (Array.isArray(assignment.available_dates) && assignment.available_dates.length) return;
+	await loadDates(assignmentId);
+}
+
+function syncExpansionState() {
+	const nextGuests: Record<string, boolean> = {};
+	const nextServices: Record<string, boolean> = {};
+
+	serviceGroups.value.forEach((service) => {
+		nextServices[service.serviceKey] =
+			expandedServices.value[service.serviceKey] ?? !isServiceComplete(service);
+		service.assignments.forEach((assignment) => {
+			nextGuests[assignment.id] =
+				expandedGuests.value[assignment.id] ?? !canCollapseGuest(assignment);
+		});
+	});
+
+	expandedGuests.value = nextGuests;
+	expandedServices.value = nextServices;
+}
+
+async function focusAssignment(assignmentId: string, globalIndex: number) {
+	setActiveAssignment(globalIndex);
+	expandedGuests.value = { ...expandedGuests.value, [assignmentId]: true };
+	const assignment = assignments.value.find((item) => item.id === assignmentId);
+	if (assignment) {
+		expandedServices.value = { ...expandedServices.value, [assignment.service_key]: true };
+	}
+	await ensureDatesLoaded(assignmentId);
+}
+
+async function toggleGuestCard(assignmentId: string, globalIndex: number) {
+	const assignment = assignments.value.find((item) => item.id === assignmentId);
+	if (!assignment) return;
+
+	setActiveAssignment(globalIndex);
+	if (!canCollapseGuest(assignment)) {
+		expandedGuests.value = { ...expandedGuests.value, [assignmentId]: true };
+		return;
+	}
+
+	const isExpanded = isGuestExpanded(assignmentId);
+	expandedGuests.value = { ...expandedGuests.value, [assignmentId]: !isExpanded };
+	if (!isExpanded) {
+		await ensureDatesLoaded(assignmentId);
+	}
+}
+
+function toggleService(serviceKey: string) {
+	const service = serviceGroups.value.find((item) => item.serviceKey === serviceKey);
+	if (!service || !isServiceComplete(service)) return;
+	expandedServices.value = {
+		...expandedServices.value,
+		[serviceKey]: !isServiceExpanded(serviceKey),
+	};
+}
 
 async function initializePage() {
 	pageLoading.value = true;
 	pageError.value = "";
 	try {
 		await startWorkflow();
+		syncExpansionState();
 		if (activeAssignment.value) {
-			if (
-				!Array.isArray(activeAssignment.value.available_dates) ||
-				!activeAssignment.value.available_dates.length
-			) {
-				await loadDates(activeAssignment.value.id);
-			}
-			if (
-				activeAssignment.value.selected_date &&
-				(!Array.isArray(activeAssignment.value.available_slots) ||
-					!activeAssignment.value.available_slots.length)
-			) {
-				await loadSlots(activeAssignment.value.id);
-			}
+			await focusAssignment(activeAssignment.value.id, activeAssignmentIndex.value);
 		}
 	} catch (error: any) {
 		pageError.value = error?.message || "Unable to initialize booking workflow.";
@@ -253,84 +548,78 @@ async function initializePage() {
 	}
 }
 
-function onAssignGuest(payload: { fullName: string; email?: string; mobile?: string }) {
-	if (!activeAssignment.value) return;
-	assignGuest(activeAssignment.value.id, payload);
+function onAssignGuest(
+	assignmentId: string,
+	payload: { fullName: string; email?: string; mobile?: string }
+) {
+	assignGuest(assignmentId, payload);
+	if (activeAssignment.value?.id !== assignmentId) {
+		const assignment = assignments.value.find((item) => item.id === assignmentId);
+		if (!assignment) return;
+		const service = serviceGroups.value.find(
+			(group) => group.serviceKey === assignment.service_key
+		);
+		const activeIndex = service?.assignments.find(
+			(item) => item.id === assignmentId
+		)?.globalIndex;
+		if (typeof activeIndex === "number") {
+			setActiveAssignment(activeIndex);
+		}
+	}
 }
 
-async function onSelectDate(date: string) {
-	if (!activeAssignment.value) return;
+async function openDateTimeModal(assignmentId: string, globalIndex: number) {
+	await focusAssignment(assignmentId, globalIndex);
+	modalAssignmentId.value = assignmentId;
+	isDateTimeModalOpen.value = true;
+}
+
+function closeDateTimeModal() {
+	isDateTimeModalOpen.value = false;
+	modalAssignmentId.value = "";
+}
+
+async function onSelectDate(assignmentId: string, date: string) {
 	try {
-		await chooseDate(activeAssignment.value.id, date);
-	} catch (error: any) {
+		await chooseDate(assignmentId, date);
+	} catch (error) {
 		console.error("[BookingWorkflow] Date selection failed:", error);
 	}
 }
 
-async function onSelectSlot(slotId: string) {
-	if (!activeAssignment.value) return;
+async function onSelectSlot(assignmentId: string, slotId: string) {
+	const assignment = assignments.value.find((item) => item.id === assignmentId);
+	if (!assignment) return;
+
+	chooseSlot(assignmentId, slotId);
 	try {
-		// Step 1: Update selected slot in store
-		chooseSlot(activeAssignment.value.id, slotId);
-		console.log(
-			`[BookingWorkflow] Slot selected for assignment ${activeAssignment.value.id}: ${slotId}`
-		);
+		await confirmAssignment(assignmentId);
+		expandedGuests.value = { ...expandedGuests.value, [assignmentId]: false };
+		syncExpansionState();
 
-		// Step 2: Auto-trigger appointment creation if all required fields are present
-		const assignmentId = activeAssignment.value.id;
-		const assignment = activeAssignment.value;
-
-		if (
-			assignment.guest_full_name &&
-			assignment.selected_date &&
-			assignment.selected_slot_id
-		) {
-			console.log(
-				`[BookingWorkflow] All fields present for ${assignmentId}. Auto-triggering appointment creation...`
+		const refreshed = assignments.value.find((item) => item.id === assignmentId);
+		if (refreshed?.service_key) {
+			const service = serviceGroups.value.find(
+				(group) => group.serviceKey === refreshed.service_key
 			);
-			await confirmCurrentAssignment();
+			if (service && isServiceComplete(service)) {
+				expandedServices.value = {
+					...expandedServices.value,
+					[refreshed.service_key]: false,
+				};
+			}
 		}
-	} catch (error: any) {
+
+		closeDateTimeModal();
+		const nextPendingIndex = assignments.value.findIndex(
+			(item) => !isAssignmentComplete(item)
+		);
+		if (nextPendingIndex >= 0) {
+			const nextAssignment = assignments.value[nextPendingIndex];
+			await focusAssignment(nextAssignment.id, nextPendingIndex);
+		}
+	} catch (error) {
 		console.error("[BookingWorkflow] Slot selection failed:", error);
-		// Error is managed by store, just log for debugging
-	}
-}
-
-async function confirmCurrentAssignment() {
-	if (!activeAssignment.value) return;
-	const currentAssignmentId = activeAssignment.value.id;
-
-	try {
-		console.log(`[BookingWorkflow] Starting appointment creation for ${currentAssignmentId}`);
-		await confirmAssignment(currentAssignmentId);
-		console.log(
-			`[BookingWorkflow] Appointment created successfully. Active index is now: ${activeAssignmentIndex.value}`
-		);
-
-		// After appointment creation, activeAssignmentIndex has changed to next guest
-		// Load dates for the new active guest if not already loaded
-		if (
-			activeAssignment.value &&
-			(!Array.isArray(activeAssignment.value.available_dates) ||
-				!activeAssignment.value.available_dates.length)
-		) {
-			console.log(
-				`[BookingWorkflow] Loading dates for next guest: ${activeAssignment.value.id}`
-			);
-			await loadDates(activeAssignment.value.id);
-		}
-	} catch (error: any) {
-		console.error(
-			`[BookingWorkflow] Appointment creation failed for ${currentAssignmentId}:`,
-			error
-		);
-		// Error message is managed by store assignmentErrors
-	}
-}
-
-function goPrevious() {
-	if (activeAssignmentIndex.value > 0) {
-		setActiveAssignment(activeAssignmentIndex.value - 1);
 	}
 }
 
@@ -350,29 +639,25 @@ onMounted(() => {
 	initializePage();
 });
 
-// Watch for active assignment changes (e.g., user clicks Previous button)
-// Ensure dates are loaded for the current guest
+watch(
+	() =>
+		assignments.value.map(
+			(assignment) =>
+				`${assignment.id}:${assignment.status}:${assignment.selected_slot_id || ""}`
+		),
+	() => {
+		syncExpansionState();
+	}
+);
+
 watch(
 	() => activeAssignment.value?.id,
 	async (newAssignmentId) => {
 		if (!newAssignmentId) return;
-
-		console.log(`[BookingWorkflow] Active assignment changed to: ${newAssignmentId}`);
-
-		const assignment = activeAssignment.value;
-		if (
-			assignment &&
-			(!Array.isArray(assignment.available_dates) || !assignment.available_dates.length)
-		) {
-			console.log(`[BookingWorkflow] Loading dates for assignment: ${newAssignmentId}`);
-			try {
-				await loadDates(newAssignmentId);
-			} catch (error) {
-				console.error(
-					`[BookingWorkflow] Failed to load dates for assignment ${newAssignmentId}:`,
-					error
-				);
-			}
+		try {
+			await ensureDatesLoaded(newAssignmentId);
+		} catch (error) {
+			console.error(`Failed to load dates for assignment ${newAssignmentId}:`, error);
 		}
 	}
 );
