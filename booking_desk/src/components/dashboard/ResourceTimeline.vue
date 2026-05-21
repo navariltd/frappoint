@@ -78,15 +78,25 @@
 						</button>
 					</div>
 				</div>
-				<span
-					v-for="status in statuses"
-					:key="status.key"
-					class="flex items-center gap-1 text-[12px] font-medium"
-				>
-					<span :class="['w-3 h-3 rounded-full', status.color]"></span>
-					{{ status.label }}
-				</span>
 			</div>
+		</div>
+
+		<!-- Status Legend Row -->
+		<div
+			v-if="statuses.length"
+			class="px-6 py-2 border-b border-outline-variant flex items-center gap-x-6 gap-y-1 flex-wrap bg-surface-container-lowest"
+		>
+			<span class="text-[11px] font-semibold text-on-surface-variant uppercase tracking-wider"
+				>Legend</span
+			>
+			<span
+				v-for="status in statuses"
+				:key="status.key"
+				class="flex items-center gap-1.5 text-[11px] font-medium text-on-surface-variant"
+			>
+				<span :class="['w-2.5 h-2.5 rounded-full flex-shrink-0', status.color]"></span>
+				{{ status.label }}
+			</span>
 		</div>
 
 		<!-- Day Timeline -->
