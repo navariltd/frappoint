@@ -1,189 +1,429 @@
 <template>
-	<div class="min-h-screen bg-surface-bright flex flex-col">
-		<!-- Header -->
-		<header class="border-b border-outline-variant/20 px-6 py-4 bg-surface">
-			<div class="max-w-7xl mx-auto flex items-center gap-2 text-on-surface-variant mb-1">
-				<router-link
-					:to="{ name: 'Bookings' }"
-					class="text-label-sm hover:text-primary transition-colors"
-				>
-					My Bookings
-				</router-link>
-				<span class="material-symbols-outlined text-sm">chevron_right</span>
-				<span class="text-label-sm uppercase tracking-wider font-semibold text-primary"
-					>Secure Checkout</span
-				>
-			</div>
-			<div class="max-w-7xl mx-auto">
-				<h1 class="text-headline-lg font-headline-lg text-on-surface">
-					Complete Your Payment
-				</h1>
-				<p class="text-body-md text-on-surface-variant">
-					Review your selection and complete your transaction securely.
-				</p>
-			</div>
-		</header>
-
-		<!-- Loading State -->
-		<div v-if="isLoading" class="flex-1 flex items-center justify-center">
-			<div class="space-y-4 text-center">
-				<div
-					class="w-12 h-12 border-4 border-primary/20 border-t-primary rounded-full animate-spin mx-auto"
-				></div>
-				<p class="text-body-md text-on-surface-variant">Preparing checkout...</p>
-			</div>
-		</div>
-
-		<!-- Error State -->
-		<div
-			v-else-if="error && !booking.name"
-			class="flex-1 flex items-center justify-center p-8"
-		>
-			<div class="max-w-md text-center space-y-4">
-				<div
-					class="w-16 h-16 rounded-full bg-error-container/30 flex items-center justify-center mx-auto"
-				>
-					<span class="material-symbols-outlined text-error text-[32px]"
-						>error_outline</span
-					>
-				</div>
-				<p class="text-body-md text-on-surface">{{ error }}</p>
-				<button
-					class="px-6 py-2 rounded-full bg-primary text-on-primary font-semibold"
-					@click="retry"
-				>
-					Retry
-				</button>
-			</div>
-		</div>
-
-		<!-- Main Checkout Layout -->
-		<main v-else-if="booking.name" class="flex-1">
-			<div class="max-w-7xl mx-auto px-6 py-8 grid grid-cols-1 lg:grid-cols-12 gap-8">
-				<!-- LEFT: Booking Summary -->
-				<div class="lg:col-span-7 space-y-6">
-					<div class="flex items-center gap-2 text-primary">
-						<span class="material-symbols-outlined text-[18px]">lock</span>
-						<span class="text-label-sm uppercase tracking-widest font-semibold"
+	<div class="min-h-screen bg-surface-bright">
+		<main class="w-full px-6 max-w-[1200px] mx-auto py-12">
+			<div class="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-12">
+				<div>
+					<nav class="flex items-center gap-2 mb-2">
+						<router-link
+							:to="{ name: 'Bookings' }"
+							class="text-label-sm text-outline uppercase tracking-wider hover:text-primary transition-colors"
+						>
+							My Bookings
+						</router-link>
+						<span class="material-symbols-outlined text-[14px] text-outline"
+							>chevron_right</span
+						>
+						<span class="text-label-sm text-primary font-bold uppercase tracking-wider"
 							>Secure Checkout</span
 						>
+					</nav>
+					<h1 class="font-headline-lg text-headline-lg text-on-surface mb-2">
+						Complete Your Payment
+					</h1>
+					<p class="text-on-surface-variant font-body-md">
+						Step 4 of 4 — Review your selection and complete your transaction securely.
+					</p>
+				</div>
+				<div class="flex items-center gap-4 font-label-md text-label-md">
+					<span class="text-on-surface-variant">Selection</span>
+					<span class="material-symbols-outlined text-[16px] text-outline"
+						>arrow_forward</span
+					>
+					<span class="text-on-surface-variant">Guests</span>
+					<span class="material-symbols-outlined text-[16px] text-outline"
+						>arrow_forward</span
+					>
+					<span class="text-on-surface-variant font-bold">Review</span>
+					<span class="material-symbols-outlined text-[16px] text-outline"
+						>arrow_forward</span
+					>
+					<span class="text-primary">Checkout</span>
+				</div>
+			</div>
+
+			<div v-if="isLoading" class="flex items-center justify-center py-24">
+				<div class="space-y-4 text-center">
+					<div
+						class="w-12 h-12 border-4 border-primary/20 border-t-primary rounded-full animate-spin mx-auto"
+					></div>
+					<p class="text-body-md text-on-surface-variant">Preparing checkout...</p>
+				</div>
+			</div>
+
+			<div v-else-if="error && !booking.name" class="flex items-center justify-center py-24">
+				<div class="max-w-md text-center space-y-4">
+					<div
+						class="w-16 h-16 rounded-full bg-error-container/30 flex items-center justify-center mx-auto"
+					>
+						<span class="material-symbols-outlined text-error text-[32px]"
+							>error_outline</span
+						>
+					</div>
+					<p class="text-body-md text-on-surface">{{ error }}</p>
+					<button
+						class="px-6 py-2 rounded-full bg-primary text-on-primary font-semibold"
+						@click="retry"
+					>
+						Retry
+					</button>
+				</div>
+			</div>
+
+			<div
+				v-else-if="booking.name"
+				class="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-start"
+			>
+				<div class="lg:col-span-7 flex flex-col gap-6">
+					<div
+						class="flex items-center gap-2 text-primary font-label-sm text-label-sm uppercase tracking-wide"
+					>
+						<span class="material-symbols-outlined text-[18px]">lock</span>
+						Secure Checkout
 					</div>
 
-					<BookingSummaryCard :booking="booking" />
-
-					<div class="glass-card rounded-xl p-6 space-y-4">
-						<h3 class="text-headline-sm font-headline-sm text-on-surface">
-							Your Appointments
-						</h3>
-						<AppointmentSummaryList
-							:appointments="booking.appointments"
-							:currency="currency"
-						/>
-					</div>
-
-					<!-- Trust Signals -->
-					<div class="grid grid-cols-3 gap-3">
-						<div
-							class="flex flex-col items-center text-center p-4 rounded-xl border border-outline-variant/20"
-						>
-							<span class="material-symbols-outlined text-primary mb-1"
-								>verified</span
+					<div
+						class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 py-2 border-b border-outline-variant/30"
+					>
+						<div>
+							<p
+								class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider mb-1"
 							>
-							<p class="text-label-sm text-on-surface-variant">SSL Encrypted</p>
-						</div>
-						<div
-							class="flex flex-col items-center text-center p-4 rounded-xl border border-outline-variant/20"
-						>
-							<span class="material-symbols-outlined text-primary mb-1"
-								>event_available</span
-							>
-							<p class="text-label-sm text-on-surface-variant">
-								Instant Confirmation
+								Service Booking
+							</p>
+							<h2 class="font-headline-sm text-headline-sm text-on-surface">
+								{{ booking.name }}
+							</h2>
+							<p class="font-body-md text-body-md text-on-surface-variant mt-1">
+								{{ booking.fullName || booking.customer || "Guest" }}
+								<template v-if="booking.email"
+									>&middot; {{ booking.email }}</template
+								>
 							</p>
 						</div>
 						<div
-							class="flex flex-col items-center text-center p-4 rounded-xl border border-outline-variant/20"
+							class="inline-flex items-center px-3 py-1 rounded-full bg-surface-container-high text-on-surface-variant font-label-sm text-label-sm"
 						>
-							<span class="material-symbols-outlined text-primary mb-1">replay</span>
-							<p class="text-label-sm text-on-surface-variant">Flexible Refund</p>
+							<span
+								class="w-2 h-2 rounded-full mr-2"
+								:class="isBookingPaid ? 'bg-secondary' : 'bg-outline'"
+							></span>
+							{{ isBookingPaid ? "Paid" : "Payment Pending" }}
+						</div>
+					</div>
+
+					<div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-2">
+						<div
+							class="bg-surface-bright border border-outline-variant/30 rounded-xl p-5 flex flex-col gap-2"
+						>
+							<span
+								class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider"
+								>Grand Total</span
+							>
+							<span
+								class="font-headline-sm text-headline-sm text-on-surface font-bold"
+								>{{ financialSummary.formattedFinal }}</span
+							>
+						</div>
+						<div
+							class="bg-surface-bright border border-outline-variant/30 rounded-xl p-5 flex flex-col gap-2"
+						>
+							<span
+								class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider"
+								>Outstanding</span
+							>
+							<span
+								class="font-headline-sm text-headline-sm text-primary font-bold"
+								>{{ financialSummary.formattedOutstanding }}</span
+							>
+						</div>
+					</div>
+
+					<div class="mt-4">
+						<h3 class="font-headline-sm text-headline-sm text-on-surface mb-4">
+							Your Appointments
+						</h3>
+						<p
+							class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider mb-3"
+						>
+							{{ booking.appointments.length }}
+							{{
+								booking.appointments.length === 1 ? "Appointment" : "Appointments"
+							}}
+						</p>
+						<div class="space-y-4">
+							<div
+								v-for="appointment in booking.appointments"
+								:key="appointment.name"
+								class="bg-surface-bright border border-outline-variant/20 rounded-xl p-5 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 hover:shadow-sm transition-shadow duration-300"
+							>
+								<div>
+									<h4
+										class="font-label-md text-label-md text-on-surface text-base mb-1"
+									>
+										{{ appointment.appointmentType || "Appointment" }}
+									</h4>
+									<p
+										class="font-body-md text-body-md text-on-surface-variant text-sm mb-1"
+									>
+										{{ appointment.guestName || "Guest" }}
+									</p>
+									<div
+										class="flex items-center gap-2 text-on-surface-variant font-label-sm text-label-sm"
+									>
+										<span class="material-symbols-outlined text-[16px]"
+											>calendar_today</span
+										>
+										{{ formatDate(appointment.date) }}
+										<template v-if="appointment.startTime">
+											&middot; {{ formatTime(appointment.startTime) }}
+											<template v-if="appointment.endTime">
+												- {{ formatTime(appointment.endTime) }}
+											</template>
+										</template>
+									</div>
+								</div>
+								<div
+									class="flex flex-col items-end gap-1 text-right w-full sm:w-auto"
+								>
+									<span
+										v-if="appointment.discountAmount > 0"
+										class="font-body-md text-body-md text-on-surface-variant line-through text-sm"
+									>
+										{{ fmt(appointment.price || appointment.grandTotal) }}
+									</span>
+									<span
+										class="font-label-md text-label-md text-on-surface text-base"
+									>
+										{{ fmt(appointment.grandTotal) }}
+									</span>
+									<span
+										v-if="appointment.couponCode"
+										class="font-label-sm text-label-sm text-primary"
+									>
+										Coupon: {{ appointment.couponCode }}
+									</span>
+									<span
+										class="font-label-sm text-label-sm text-on-surface-variant mt-1"
+									>
+										{{ appointment.status || "Open" }}
+									</span>
+								</div>
+							</div>
+						</div>
+					</div>
+
+					<div class="grid grid-cols-3 gap-4 mt-6">
+						<div
+							class="bg-surface-bright border border-outline-variant/20 rounded-xl p-4 flex flex-col items-center justify-center text-center gap-2"
+						>
+							<span class="material-symbols-outlined text-primary"
+								>verified_user</span
+							>
+							<span class="font-label-sm text-label-sm text-on-surface-variant"
+								>SSL Encrypted</span
+							>
+						</div>
+						<div
+							class="bg-surface-bright border border-outline-variant/20 rounded-xl p-4 flex flex-col items-center justify-center text-center gap-2"
+						>
+							<span class="material-symbols-outlined text-primary"
+								>event_available</span
+							>
+							<span class="font-label-sm text-label-sm text-on-surface-variant"
+								>Instant Confirmation</span
+							>
+						</div>
+						<div
+							class="bg-surface-bright border border-outline-variant/20 rounded-xl p-4 flex flex-col items-center justify-center text-center gap-2"
+						>
+							<span class="material-symbols-outlined text-primary">restart_alt</span>
+							<span class="font-label-sm text-label-sm text-on-surface-variant"
+								>Flexible Refund</span
+							>
 						</div>
 					</div>
 				</div>
 
-				<!-- RIGHT: Payment Panel -->
-				<div class="lg:col-span-5 space-y-5">
+				<div class="lg:col-span-5 flex flex-col gap-6">
 					<div
-						class="bg-surface-container-highest rounded-xl border border-primary/10 shadow-lg p-6 space-y-6"
+						class="bg-surface-container rounded-2xl p-6 sm:p-8 flex flex-col gap-6 shadow-sm"
 					>
-						<h3 class="text-headline-sm font-headline-sm text-on-surface">
-							Payment Details
-						</h3>
-
-						<!-- Amount header -->
-						<div
-							class="flex justify-between items-end pb-5 border-b border-outline-variant/20"
-						>
-							<div>
-								<p
-									class="text-label-sm text-on-surface-variant uppercase tracking-tighter mb-1"
-								>
-									Amount Due Today
-								</p>
-								<h2 class="text-headline-lg font-headline-lg text-primary">
-									{{ financialSummary.formattedPayable }}
-								</h2>
-							</div>
-							<span
-								class="bg-secondary-container text-on-secondary-container px-3 py-1 rounded-lg text-label-sm font-bold uppercase"
+						<div>
+							<h2
+								class="font-headline-sm text-headline-sm text-on-surface mb-6 border-b border-outline-variant/20 pb-4"
 							>
-								{{ selectedPaymentType === "full" ? "Full Payment" : "Deposit" }}
-							</span>
+								Payment Details
+							</h2>
+							<p
+								class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider mb-2"
+							>
+								Amount Due Today
+							</p>
+							<div class="flex items-end justify-between gap-3">
+								<span class="font-headline-lg text-headline-lg text-primary">{{
+									financialSummary.formattedPayable
+								}}</span>
+								<span
+									class="inline-flex items-center px-3 py-1 rounded-full bg-secondary-container text-on-secondary-container font-label-sm text-label-sm uppercase tracking-wider text-[10px]"
+								>
+									{{
+										selectedPaymentType === "full" ? "Full Payment" : "Deposit"
+									}}
+								</span>
+							</div>
 						</div>
 
-						<!-- Payment type selection -->
-						<div class="space-y-2">
-							<p class="text-label-md font-semibold text-on-surface">
+						<div>
+							<p class="font-label-sm text-label-sm text-on-surface-variant mb-2">
 								Payment Option
 							</p>
-							<PaymentOptionSelector
-								:selected="selectedPaymentType"
-								:deposit-enabled="depositEnabled"
-								@select="onSelectPaymentType"
-							/>
+							<div
+								class="flex bg-surface-bright rounded-full p-1 border border-outline-variant/30"
+							>
+								<button
+									class="flex-1 py-2 rounded-full font-label-md text-label-md text-sm transition-colors"
+									:class="
+										selectedPaymentType === 'full'
+											? 'bg-primary text-on-primary shadow-sm'
+											: 'text-on-surface-variant hover:text-on-surface'
+									"
+									@click="onSelectPaymentType('full')"
+								>
+									Pay Full Amount
+								</button>
+								<button
+									:disabled="!depositEnabled"
+									class="flex-1 py-2 rounded-full font-label-md text-label-md text-sm transition-colors"
+									:class="
+										selectedPaymentType === 'deposit'
+											? 'bg-primary text-on-primary shadow-sm'
+											: 'text-on-surface-variant hover:text-on-surface disabled:opacity-40 disabled:cursor-not-allowed'
+									"
+									@click="onSelectPaymentType('deposit')"
+								>
+									Pay Deposit
+								</button>
+							</div>
 						</div>
 
-						<!-- Totals breakdown -->
-						<CheckoutTotalsCard
-							:booking="booking"
-							:payable-amount="payableAmount"
-							:deposit-amount="calculatedDepositAmount"
-							:deposit-percent="depositPercent"
-							:remaining-after-payment="remainingAfterPayment"
-							:currency="currency"
-							:payment-type="selectedPaymentType"
-							:total-savings="totalSavings"
-						/>
+						<div class="flex flex-col gap-3 py-4 border-y border-outline-variant/20">
+							<div
+								class="flex justify-between items-center font-body-md text-body-md text-on-surface-variant text-sm"
+							>
+								<span>Subtotal</span>
+								<span>{{ financialSummary.formattedTotal }}</span>
+							</div>
+							<div
+								class="flex justify-between items-center font-body-md text-body-md text-primary text-sm"
+							>
+								<span>Coupon savings</span>
+								<span>-{{ fmt(totalSavings) }}</span>
+							</div>
+							<div
+								class="flex justify-between items-center font-headline-sm text-headline-sm text-on-surface mt-2 pt-2"
+							>
+								<span>Total Due</span>
+								<span class="text-primary font-bold">{{
+									financialSummary.formattedPayable
+								}}</span>
+							</div>
+							<div
+								v-if="selectedPaymentType === 'deposit'"
+								class="flex justify-between items-center font-body-md text-body-md text-on-surface-variant text-sm"
+							>
+								<span>Remaining after payment</span>
+								<span>{{ financialSummary.formattedRemaining }}</span>
+							</div>
+						</div>
 
-						<DiscountBreakdown
-							:total-savings="totalSavings"
-							:discounted-total="discountedTotal"
-							:currency="currency"
-						/>
+						<div>
+							<p class="font-label-sm text-label-sm text-on-surface-variant mb-2">
+								Payment Method
+							</p>
+							<div class="space-y-2">
+								<button
+									v-for="gateway in gateways"
+									:key="gateway.id"
+									type="button"
+									class="w-full rounded-xl p-4 flex items-center justify-between cursor-pointer transition-colors border"
+									:class="
+										selectedGatewayId === gateway.id
+											? 'bg-primary/5 border-primary hover:bg-primary/10'
+											: 'bg-surface-bright border-outline-variant/30 hover:bg-surface-container-high/30'
+									"
+									@click="selectGateway(gateway.id)"
+								>
+									<div class="flex items-center gap-4 text-left">
+										<div
+											class="w-10 h-10 rounded-lg bg-primary text-on-primary flex items-center justify-center font-headline-sm font-bold"
+										>
+											{{
+												(gateway.label || gateway.name || "G")
+													.slice(0, 1)
+													.toUpperCase()
+											}}
+										</div>
+										<div>
+											<p class="font-label-md text-label-md text-on-surface">
+												{{ gateway.label || gateway.name }}
+											</p>
+											<p
+												class="font-body-md text-body-md text-on-surface-variant text-xs"
+											>
+												{{ gateway.details || "Secure online payment" }}
+											</p>
+										</div>
+									</div>
+									<span
+										class="material-symbols-outlined"
+										:class="
+											selectedGatewayId === gateway.id
+												? 'text-primary'
+												: 'text-outline'
+										"
+									>
+										{{
+											selectedGatewayId === gateway.id
+												? "radio_button_checked"
+												: "radio_button_unchecked"
+										}}
+									</span>
+								</button>
+							</div>
+						</div>
 
-						<CouponCodeSection
-							:coupon-draft="couponDraft"
-							:currency="currency"
-							:applied-coupon="appliedCoupon"
-							:error-message="couponError"
-							:success-message="couponMessage"
-							:loading="isValidatingCoupon || isApplyingCoupon"
-							:submitting="isSubmitting"
-							@update:draft="setCouponDraft"
-							@apply="applyCoupon()"
-							@remove="removeCoupon"
-						/>
+						<div class="mt-2">
+							<p
+								v-if="isMpesaGateway"
+								class="font-label-sm text-label-sm text-on-surface-variant mb-2"
+							>
+								Phone Number for M-Pesa
+							</p>
+							<input
+								v-if="isMpesaGateway"
+								:value="mpesaPhone"
+								class="w-full bg-surface-bright border border-outline-variant rounded-lg font-body-md text-body-md px-4 py-3 mb-4 focus:border-primary focus:ring-1 focus:ring-primary transition-all text-on-surface"
+								type="tel"
+								placeholder="07XX XXX XXX"
+								@input="
+									updateMpesaPhone(($event.target as HTMLInputElement).value)
+								"
+							/>
+							<button
+								:disabled="!canSubmit"
+								class="w-full py-4 bg-[#7BB4A7] text-white font-label-md text-label-md rounded-xl hover:bg-[#68a093] transition-colors shadow-sm mb-3 flex items-center justify-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed"
+								@click="handleSubmit"
+							>
+								{{ payButtonLabel }}
+							</button>
+							<div
+								class="flex items-center justify-center gap-1.5 text-on-surface-variant font-label-sm text-label-sm text-xs"
+							>
+								<span class="material-symbols-outlined text-[14px]">lock</span>
+								Secured with SSL encryption
+							</div>
+						</div>
 
-						<!-- Error message -->
 						<div
 							v-if="error"
 							class="p-3 rounded-lg bg-error-container/20 border border-error/20"
@@ -197,91 +437,74 @@
 								{{ error }}
 							</p>
 						</div>
-
-						<!-- Gateway Selection -->
-						<div class="space-y-3">
-							<p class="text-label-md font-semibold text-on-surface">
-								Payment Method
-							</p>
-							<PaymentGatewaySelector
-								:gateways="gateways"
-								:selected-id="selectedGatewayId"
-								@select="selectGateway"
-							/>
-						</div>
-
-						<!-- CTA Footer -->
-						<CheckoutActionFooter
-							:label="payButtonLabel"
-							:can-submit="canSubmit"
-							:submitting="isSubmitting"
-							:is-mpesa="isMpesaGateway"
-							:mpesa-phone="mpesaPhone"
-							@submit="handleSubmit"
-							@update-phone="updateMpesaPhone"
-						/>
 					</div>
 
-					<!-- Booking Progress Indicator -->
-					<div class="glass-card rounded-xl p-5">
-						<h4
-							class="text-label-md font-semibold text-on-surface mb-4 uppercase tracking-wider"
+					<div class="px-2 mt-4">
+						<h3
+							class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider mb-6"
 						>
 							Booking Progress
-						</h4>
-						<div class="relative space-y-5">
+						</h3>
+						<div class="relative flex flex-col gap-6 pl-3">
 							<div
-								class="absolute left-[15px] top-2 bottom-2 w-0.5 bg-outline-variant/30"
+								class="absolute left-6 top-4 bottom-4 w-px bg-outline-variant/30"
 							></div>
-
-							<div class="flex items-start gap-4 relative z-10">
+							<div class="flex gap-4 relative z-10">
 								<div
-									class="w-8 h-8 rounded-full bg-secondary flex items-center justify-center text-on-secondary shadow-sm flex-shrink-0"
+									class="w-6 h-6 rounded-full bg-secondary text-on-secondary flex items-center justify-center flex-shrink-0 mt-0.5"
 								>
-									<span class="material-symbols-outlined text-[16px]"
+									<span
+										class="material-symbols-outlined text-[14px]"
+										style="font-variation-settings: 'FILL' 1"
 										>check</span
 									>
 								</div>
 								<div>
-									<p class="text-label-md font-semibold text-on-surface">
+									<p class="font-label-md text-label-md text-on-surface">
 										Guests Assigned
 									</p>
-									<p class="text-label-sm text-on-surface-variant">
+									<p
+										class="font-body-md text-body-md text-on-surface-variant text-sm"
+									>
 										{{ booking.appointments.length }} appointment(s) scheduled
 									</p>
 								</div>
 							</div>
-
-							<div class="flex items-start gap-4 relative z-10">
+							<div class="flex gap-4 relative z-10">
 								<div
-									class="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-on-primary shadow-md ring-4 ring-primary-container/20 flex-shrink-0"
+									class="w-6 h-6 rounded-full bg-primary text-on-primary flex items-center justify-center flex-shrink-0 mt-0.5 shadow-[0_0_0_4px_rgba(0,106,99,0.1)]"
 								>
-									<span class="material-symbols-outlined text-[16px]"
-										>payments</span
+									<span
+										class="material-symbols-outlined text-[14px]"
+										style="font-variation-settings: 'FILL' 1"
+										>credit_card</span
 									>
 								</div>
 								<div>
-									<p class="text-label-md font-bold text-primary">Payment</p>
-									<p class="text-label-sm text-on-surface-variant">
+									<p class="font-label-md text-label-md text-primary">Payment</p>
+									<p
+										class="font-body-md text-body-md text-on-surface-variant text-sm"
+									>
 										Completing your transaction
 									</p>
 								</div>
 							</div>
-
-							<div class="flex items-start gap-4 relative z-10">
+							<div class="flex gap-4 relative z-10 opacity-50">
 								<div
-									class="w-8 h-8 rounded-full bg-surface-container-high border-2 border-outline-variant/30 flex items-center justify-center text-on-surface-variant/40 flex-shrink-0"
+									class="w-6 h-6 rounded-full bg-surface-container-highest text-on-surface-variant flex items-center justify-center flex-shrink-0 mt-0.5 border border-outline-variant"
 								>
-									<span class="material-symbols-outlined text-[16px]"
-										>done_all</span
+									<span class="material-symbols-outlined text-[14px]"
+										>check</span
 									>
 								</div>
 								<div>
-									<p class="text-label-md text-on-surface-variant/60">
+									<p class="font-label-md text-label-md text-on-surface">
 										Confirmation
 									</p>
-									<p class="text-label-sm text-on-surface-variant/40">
-										Booking confirmation & receipt
+									<p
+										class="font-body-md text-body-md text-on-surface-variant text-sm"
+									>
+										Booking confirmation &amp; receipt
 									</p>
 								</div>
 							</div>
@@ -291,7 +514,6 @@
 			</div>
 		</main>
 
-		<!-- Payment Processing Overlay -->
 		<PaymentProcessingOverlay :progress="paymentProgress" :message="statusMessage" />
 	</div>
 </template>
@@ -301,22 +523,14 @@ import { computed, onMounted } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useCheckout } from "@/composables/useCheckout";
 import { useCheckoutStore } from "@/stores/checkout.store";
-import BookingSummaryCard from "@/components/checkout/BookingSummaryCard.vue";
-import AppointmentSummaryList from "@/components/checkout/AppointmentSummaryList.vue";
-import PaymentOptionSelector from "@/components/checkout/PaymentOptionSelector.vue";
-import PaymentGatewaySelector from "@/components/checkout/PaymentGatewaySelector.vue";
-import CheckoutTotalsCard from "@/components/checkout/CheckoutTotalsCard.vue";
-import CouponCodeSection from "@/components/checkout/CouponCodeSection.vue";
-import DiscountBreakdown from "@/components/checkout/DiscountBreakdown.vue";
-import CheckoutActionFooter from "@/components/checkout/CheckoutActionFooter.vue";
 import PaymentProcessingOverlay from "@/components/checkout/PaymentProcessingOverlay.vue";
+import { formatCurrency } from "@/utils";
 
 const route = useRoute();
 const router = useRouter();
 const store = useCheckoutStore();
 
 const {
-	bookingId,
 	gateways,
 	selectedPaymentType,
 	selectedGatewayId,
@@ -332,6 +546,7 @@ const {
 	isSubmitting,
 	error,
 	booking,
+	isBookingPaid,
 	payableAmount,
 	remainingAfterPayment,
 	isMpesaGateway,
@@ -354,6 +569,14 @@ const {
 	submitPayment,
 } = useCheckout();
 
+const appliedCouponCode = computed(() => {
+	if (!appliedCoupon.value) return "";
+	if ("code" in appliedCoupon.value) {
+		return appliedCoupon.value.code || appliedCoupon.value.name || "";
+	}
+	return appliedCoupon.value.coupon || "";
+});
+
 // Deposit is available only if minimumDue is less than total
 const depositEnabled = computed(() => {
 	const min = Number(store.summary.payment.minimumDue || 0);
@@ -363,6 +586,33 @@ const depositEnabled = computed(() => {
 
 function onSelectPaymentType(type: "full" | "deposit") {
 	selectPaymentType(type);
+}
+
+function fmt(value: number) {
+	return formatCurrency(Number(value || 0), currency.value);
+}
+
+function formatDate(value: string) {
+	if (!value) return "Date pending";
+	const date = new Date(`${value}T00:00:00`);
+	if (Number.isNaN(date.getTime())) return value;
+	return new Intl.DateTimeFormat("en-KE", {
+		weekday: "short",
+		day: "2-digit",
+		month: "short",
+		year: "numeric",
+	}).format(date);
+}
+
+function formatTime(value: string) {
+	if (!value) return "";
+	const date = new Date(`1970-01-01T${value}`);
+	if (Number.isNaN(date.getTime())) return value;
+	return new Intl.DateTimeFormat("en-KE", {
+		hour: "2-digit",
+		minute: "2-digit",
+		hour12: false,
+	}).format(date);
 }
 
 async function handleSubmit() {

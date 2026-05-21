@@ -10,6 +10,7 @@
 						:paymentStatusOptions="toolbarPaymentStatusOptions"
 						:showPaymentStatus="showPaymentStatus"
 						:metrics="appointmentsMetrics"
+						:summary="summary"
 						:views="views"
 						@update:view="onViewChange"
 						@update:searchText="onSearchTextChange"
@@ -58,15 +59,6 @@
 				/>
 			</main>
 
-			<div
-				v-if="isBookingsView"
-				class="hidden xl:flex p-4 border-l border-outline-variant bg-surface min-h-0"
-			>
-				<BookingOperationalSidebar
-					:summary="summary"
-					:pendingPaymentBookings="pendingPaymentBookings"
-				/>
-			</div>
 		</div>
 	</div>
 </template>
@@ -77,7 +69,6 @@ import { storeToRefs } from "pinia";
 import BookingCardGrid from "@/components/bookings/BookingCardGrid.vue";
 import BookingEmptyState from "@/components/bookings/BookingEmptyState.vue";
 import BookingLoadingState from "@/components/bookings/BookingLoadingState.vue";
-import BookingOperationalSidebar from "@/components/bookings/BookingOperationalSidebar.vue";
 import BookingsToolbar from "@/components/bookings/BookingsToolbar.vue";
 import AppointmentsView from "@/components/bookings/views/AppointmentsView.vue";
 import CalendarView from "@/components/bookings/views/CalendarView.vue";
@@ -132,9 +123,6 @@ const { openBooking, collectPayment, checkIn, reschedule, cancelBooking } = useB
 
 const { goPrev, goNext, goToday, setView: setCalendarView } = useCalendarWorkspace();
 
-const pendingPaymentBookings = computed(() =>
-	bookings.value.filter((booking) => booking.paymentStatus !== "Paid").slice(0, 8)
-);
 
 const views = [
 	{ value: BOOKING_VIEWS.BOOKINGS, label: "Bookings" },

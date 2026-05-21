@@ -175,9 +175,12 @@
 								<p class="text-[12px] font-semibold truncate">{{ item.name }}</p>
 								<button
 									type="button"
-									class="text-[11px] text-primary hover:underline mt-1"
+									class="inline-flex items-center gap-1 mt-1.5 text-[11px] font-semibold text-primary bg-primary/10 hover:bg-primary/20 px-2 py-0.5 rounded-full transition-colors"
 									@click="openPackageChangeDialog(item)"
 								>
+									<span class="material-symbols-outlined text-[12px]"
+										>swap_horiz</span
+									>
 									{{ item.packageName || "Change package" }}
 								</button>
 								<p class="text-[11px] text-on-surface-variant mt-1">

@@ -24,11 +24,9 @@
 			</div>
 		</div>
 
-		<div
-			class="ml-auto flex w-full items-start justify-between gap-3 sm:w-auto sm:justify-end"
-		>
+		<div class="flex w-full items-center justify-between gap-2">
 			<!-- Price -->
-			<div class="min-w-[112px] flex-shrink-0 text-left sm:text-right">
+			<div class="flex-shrink-0 text-left">
 				<p class="font-semibold text-body-lg text-on-surface whitespace-nowrap">
 					{{ currency }}{{ (item.price * item.quantity).toFixed(2) }}
 				</p>
@@ -37,37 +35,37 @@
 				</p>
 			</div>
 
-			<!-- Quantity Controls -->
-			<div
-				class="flex-shrink-0 flex items-center gap-2 bg-outline-variant/10 rounded-lg p-1"
-			>
+			<!-- Quantity Controls + Remove -->
+			<div class="flex flex-shrink-0 items-center gap-2">
+				<div class="flex items-center gap-2 bg-outline-variant/10 rounded-lg p-1">
+					<button
+						class="p-1.5 rounded hover:bg-outline-variant/20 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+						@click="$emit('decrement')"
+						:aria-label="`Decrease quantity of ${item.service_name}`"
+					>
+						<span class="material-symbols-outlined text-[18px]">remove</span>
+					</button>
+					<span class="w-6 text-center text-body-sm font-semibold">
+						{{ item.quantity }}
+					</span>
+					<button
+						class="p-1.5 rounded hover:bg-outline-variant/20 transition-colors"
+						@click="$emit('increment')"
+						:aria-label="`Increase quantity of ${item.service_name}`"
+					>
+						<span class="material-symbols-outlined text-[18px]">add</span>
+					</button>
+				</div>
+
+				<!-- Remove Button -->
 				<button
-					class="p-1.5 rounded hover:bg-outline-variant/20 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-					@click="$emit('decrement')"
-					:aria-label="`Decrease quantity of ${item.service_name}`"
+					class="p-2 rounded-full hover:bg-error/10 transition-colors"
+					@click="$emit('remove')"
+					:aria-label="`Remove ${item.service_name} from cart`"
 				>
-					<span class="material-symbols-outlined text-[18px]">remove</span>
-				</button>
-				<span class="w-6 text-center text-body-sm font-semibold">
-					{{ item.quantity }}
-				</span>
-				<button
-					class="p-1.5 rounded hover:bg-outline-variant/20 transition-colors"
-					@click="$emit('increment')"
-					:aria-label="`Increase quantity of ${item.service_name}`"
-				>
-					<span class="material-symbols-outlined text-[18px]">add</span>
+					<span class="material-symbols-outlined text-error">close</span>
 				</button>
 			</div>
-
-			<!-- Remove Button -->
-			<button
-				class="flex-shrink-0 p-2 rounded-full hover:bg-error/10 transition-colors"
-				@click="$emit('remove')"
-				:aria-label="`Remove ${item.service_name} from cart`"
-			>
-				<span class="material-symbols-outlined text-error">close</span>
-			</button>
 		</div>
 	</div>
 </template>
