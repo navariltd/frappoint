@@ -1,11 +1,5 @@
 <template>
 	<div class="bg-surface-container-low rounded-lg p-6 space-y-4">
-		<!-- Items Count -->
-		<div class="flex justify-between items-center text-body-md">
-			<span class="text-on-surface-variant">Items</span>
-			<span class="font-semibold text-on-surface">{{ totalQuantity }}</span>
-		</div>
-
 		<!-- Service Count -->
 		<div class="flex justify-between items-center text-body-md">
 			<span class="text-on-surface-variant">Services</span>
