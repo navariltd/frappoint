@@ -341,8 +341,8 @@ async function proceedToPayment() {
 	}
 
 	await router.push({
-		name: "BookingDetails",
-		params: { id: draftBooking.value.id },
+		name: "Checkout",
+		params: { bookingId: draftBooking.value.id },
 	});
 }
 
