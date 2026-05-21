@@ -1,6 +1,6 @@
 {
  "charts": [],
- "content": "[{\"id\":\"boWqkujk8K\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\">Frappoint</span>\",\"col\":12}},{\"id\":\"8BCzOHffzA\",\"type\":\"spacer\",\"data\":{\"col\":12}},{\"id\":\"kOIIwYzHXe\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Today's Appointments\",\"col\":4}},{\"id\":\"VSXQTSgD1E\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Pending Payments\",\"col\":4}},{\"id\":\"ApwvKSNGwc\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Revenue\",\"col\":4}},{\"id\":\"exZkckjiUN\",\"type\":\"spacer\",\"data\":{\"col\":12}},{\"id\":\"2dW0jtQkJj\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\">Quick Actions</span>\",\"col\":12}},{\"id\":\"XbFgs4gb_s\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"New Service Appointment\",\"col\":4}},{\"id\":\"B3486zmFsw\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Assign Services\",\"col\":4}},{\"id\":\"6sZvkkgHHp\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Manage Shifts\",\"col\":4}},{\"id\":\"Jc8Rf_Xf6N\",\"type\":\"spacer\",\"data\":{\"col\":12}},{\"id\":\"uIMQWeCDDa\",\"type\":\"card\",\"data\":{\"card_name\":\"Setup\",\"col\":4}},{\"id\":\"qJJpWdBNBx\",\"type\":\"card\",\"data\":{\"card_name\":\"Masters\",\"col\":4}},{\"id\":\"yhh22m4cxL\",\"type\":\"card\",\"data\":{\"card_name\":\"Operations\",\"col\":4}}]",
+ "content": "[{\"id\":\"boWqkujk8K\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\">Frappoint</span>\",\"col\":12}},{\"id\":\"8BCzOHffzA\",\"type\":\"spacer\",\"data\":{\"col\":12}},{\"id\":\"kOIIwYzHXe\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Today's Appointments\",\"col\":4}},{\"id\":\"VSXQTSgD1E\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Pending Payments\",\"col\":4}},{\"id\":\"ApwvKSNGwc\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Revenue\",\"col\":4}},{\"id\":\"f_134su7Um\",\"type\":\"spacer\",\"data\":{\"col\":12}},{\"id\":\"ZW-WKDOrDx\",\"type\":\"quick_list\",\"data\":{\"quick_list_name\":\"Draft Appointments\",\"col\":4}},{\"id\":\"C7K0DCNqUs\",\"type\":\"quick_list\",\"data\":{\"quick_list_name\":\"Completed Appointments\",\"col\":4}},{\"id\":\"B-XoSjRUd2\",\"type\":\"quick_list\",\"data\":{\"quick_list_name\":\"Cancelled Appointments\",\"col\":4}},{\"id\":\"exZkckjiUN\",\"type\":\"spacer\",\"data\":{\"col\":12}},{\"id\":\"2dW0jtQkJj\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\">Quick Actions</span>\",\"col\":12}},{\"id\":\"XbFgs4gb_s\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"New Service Appointment\",\"col\":4}},{\"id\":\"B3486zmFsw\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Assign Services\",\"col\":4}},{\"id\":\"6sZvkkgHHp\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Manage Shifts\",\"col\":4}},{\"id\":\"Jc8Rf_Xf6N\",\"type\":\"spacer\",\"data\":{\"col\":12}},{\"id\":\"uIMQWeCDDa\",\"type\":\"card\",\"data\":{\"card_name\":\"Setup\",\"col\":4}},{\"id\":\"qJJpWdBNBx\",\"type\":\"card\",\"data\":{\"card_name\":\"Masters\",\"col\":4}},{\"id\":\"yhh22m4cxL\",\"type\":\"card\",\"data\":{\"card_name\":\"Operations\",\"col\":4}}]",
  "creation": "2025-11-26 16:39:03.542220",
  "custom_blocks": [],
  "docstatus": 0,
@@ -131,8 +131,8 @@
    "type": "Link"
   }
  ],
- "modified": "2026-04-21 00:47:14.614909",
- "modified_by": "Administrator",
+ "modified": "2026-05-21 09:37:50.314950",
+ "modified_by": "muchemi@navari.co.ke",
  "module": "Frappoint",
  "name": "Frappoint",
  "number_cards": [
@@ -152,7 +152,23 @@
  "owner": "Administrator",
  "parent_page": "",
  "public": 1,
- "quick_lists": [],
+ "quick_lists": [
+  {
+   "document_type": "Service Appointment",
+   "label": "Draft Appointments",
+   "quick_list_filter": "[[\"Service Appointment\",\"docstatus\",\"=\",\"0\",false]]"
+  },
+  {
+   "document_type": "Service Appointment",
+   "label": "Completed Appointments",
+   "quick_list_filter": "[[\"Service Appointment\",\"status\",\"=\",\"Completed\",false]]"
+  },
+  {
+   "document_type": "Service Appointment",
+   "label": "Cancelled Appointments",
+   "quick_list_filter": "[[\"Service Appointment\",\"status\",\"=\",\"Cancelled\",false]]"
+  }
+ ],
  "roles": [],
  "sequence_id": 39.0,
  "shortcuts": [
