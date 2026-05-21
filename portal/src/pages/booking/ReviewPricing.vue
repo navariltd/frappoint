@@ -25,7 +25,7 @@
 					</p>
 				</div>
 				<div class="flex items-center gap-4 font-label-md text-label-md">
-					<span class="text-on-surface-variant">Cart</span>
+					<span class="text-on-surface-variant">Selection</span>
 					<span class="material-symbols-outlined text-[16px] text-outline"
 						>arrow_forward</span
 					>
