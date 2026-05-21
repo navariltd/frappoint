@@ -9,10 +9,21 @@ export function useCheckout() {
 	const {
 		bookingId,
 		summary,
+		bookingPricingSummary,
+		appointmentPricingBreakdown,
+		appliedBookingCoupon,
+		appliedAppointmentCoupons,
 		gateways,
 		selectedPaymentType,
 		selectedGatewayId,
 		depositAmount,
+		couponCode,
+		couponDraft,
+		couponValidation,
+		couponMessage,
+		couponError,
+		isValidatingCoupon,
+		isApplyingCoupon,
 		mpesaPhone,
 		paymentProgress,
 		statusMessage,
@@ -34,6 +45,9 @@ export function useCheckout() {
 	const calculatedDepositAmount = computed(() => store.calculatedDepositAmount);
 	const canSubmit = computed(() => store.canSubmit);
 	const currency = computed(() => store.currency);
+	const totalSavings = computed(() => store.totalSavings);
+	const discountedTotal = computed(() => store.discountedTotal);
+	const appliedCoupon = computed(() => store.appliedCoupon);
 
 	// Formatted financial summary
 	const financialSummary = computed(() => {
@@ -41,13 +55,25 @@ export function useCheckout() {
 		const p = payment.value;
 		return {
 			currency: curr,
-			totalAmount: Number(p.totalAmount || 0),
+			totalAmount: Number(bookingPricingSummary.value.totalAmount || p.totalAmount || 0),
+			finalAmount: Number(bookingPricingSummary.value.finalAmount || p.totalAmount || 0),
 			paidAmount: Number(p.paidAmount || 0),
 			outstandingAmount: Number(p.outstandingAmount || 0),
 			minimumDue: Number(p.minimumDue || 0),
 			payableAmount: payableAmount.value,
 			remainingAfterPayment: remainingAfterPayment.value,
-			formattedTotal: formatCurrency(Number(p.totalAmount || 0), curr),
+			totalSavings: totalSavings.value,
+			discountedTotal: discountedTotal.value,
+			formattedTotal: formatCurrency(
+				Number(bookingPricingSummary.value.totalAmount || p.totalAmount || 0),
+				curr
+			),
+			formattedFinal: formatCurrency(
+				Number(bookingPricingSummary.value.finalAmount || p.totalAmount || 0),
+				curr
+			),
+			formattedSavings: formatCurrency(totalSavings.value, curr),
+			formattedDiscountedTotal: formatCurrency(discountedTotal.value, curr),
 			formattedOutstanding: formatCurrency(Number(p.outstandingAmount || 0), curr),
 			formattedPayable: formatCurrency(payableAmount.value, curr),
 			formattedRemaining: formatCurrency(remainingAfterPayment.value, curr),
@@ -82,6 +108,22 @@ export function useCheckout() {
 		store.setDepositAmount(amount);
 	}
 
+	function setCouponDraft(code: string) {
+		store.setCouponDraft(code);
+	}
+
+	async function validateCoupon(code?: string) {
+		return store.validateCoupon(code);
+	}
+
+	async function applyCoupon(code?: string) {
+		return store.applyCoupon(code);
+	}
+
+	async function removeCoupon() {
+		return store.removeCoupon();
+	}
+
 	async function submitPayment() {
 		return store.initializePayment();
 	}
@@ -89,10 +131,21 @@ export function useCheckout() {
 	return {
 		// State refs
 		bookingId,
+		bookingPricingSummary,
+		appointmentPricingBreakdown,
+		appliedBookingCoupon,
+		appliedAppointmentCoupons,
 		gateways,
 		selectedPaymentType,
 		selectedGatewayId,
 		depositAmount,
+		couponCode,
+		couponDraft,
+		couponValidation,
+		couponMessage,
+		couponError,
+		isValidatingCoupon,
+		isApplyingCoupon,
 		mpesaPhone,
 		paymentProgress,
 		statusMessage,
@@ -112,6 +165,9 @@ export function useCheckout() {
 		calculatedDepositAmount,
 		canSubmit,
 		currency,
+		totalSavings,
+		discountedTotal,
+		appliedCoupon,
 		financialSummary,
 		payButtonLabel,
 		// Actions
@@ -120,8 +176,13 @@ export function useCheckout() {
 		selectGateway,
 		updateMpesaPhone,
 		updateDepositAmount,
+		setCouponDraft,
+		validateCoupon,
+		applyCoupon,
+		removeCoupon,
 		submitPayment,
 		refreshSummary: store.refreshSummary,
+		recalculateTotals: store.recalculateTotals,
 		clearCheckout: store.clearCheckout,
 		fetchPaymentGateways: store.fetchPaymentGateways,
 		handlePaymentRedirect: store.handlePaymentRedirect,
