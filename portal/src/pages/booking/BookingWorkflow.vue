@@ -1,50 +1,44 @@
 <template>
 	<main class="flex-grow bg-surface-bright">
-		<div class="max-w-[800px] mx-auto px-container-padding py-section-gap">
-			<div class="flex justify-center items-center mb-12 space-x-16">
-				<div class="flex flex-col items-center gap-2 relative">
-					<div
-						class="w-10 h-10 rounded-full bg-secondary-container text-on-secondary-container flex items-center justify-center"
-					>
-						<span
-							class="material-symbols-outlined"
-							style="font-variation-settings: 'FILL' 1"
-							>check</span
+		<div class="max-w-[1200px] mx-auto px-container-padding py-section-gap">
+			<div class="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-12">
+				<div>
+					<nav class="flex items-center gap-2 mb-2">
+						<router-link
+							:to="{ name: 'Bookings' }"
+							class="text-label-sm text-outline uppercase tracking-wider hover:text-primary transition-colors"
 						>
-					</div>
-					<span class="font-label-sm text-on-surface-variant">Selection</span>
-					<div
-						class="absolute top-5 left-full w-16 h-[2px] bg-secondary-container mx-2"
-					></div>
+							My Bookings
+						</router-link>
+						<span class="material-symbols-outlined text-[14px] text-outline"
+							>chevron_right</span
+						>
+						<span class="text-label-sm text-primary font-bold uppercase tracking-wider"
+							>Assign Guests</span
+						>
+					</nav>
+					<h1 class="font-headline-lg text-headline-lg text-on-surface mb-2">
+						Complete Your Payment
+					</h1>
+					<p class="text-on-surface-variant font-body-md">
+						Step 2 of 4 — Tell us who will be enjoying each service.
+					</p>
 				</div>
-				<div class="flex flex-col items-center gap-2 relative">
-					<div
-						class="w-10 h-10 rounded-full bg-primary text-on-primary flex items-center justify-center font-label-md"
+				<div class="flex items-center gap-4 font-label-md text-label-md">
+					<span class="text-on-surface-variant">Selection</span>
+					<span class="material-symbols-outlined text-[16px] text-outline"
+						>arrow_forward</span
 					>
-						2
-					</div>
-					<span class="font-label-md text-primary font-bold">Assign Guests</span>
-					<div
-						class="absolute top-5 left-full w-16 h-[2px] bg-outline-variant mx-2 opacity-50"
-					></div>
-				</div>
-				<div class="flex flex-col items-center gap-2">
-					<div
-						class="w-10 h-10 rounded-full border-2 border-outline-variant text-outline-variant flex items-center justify-center font-label-md"
+					<span class="text-primary">Guests</span>
+					<span class="material-symbols-outlined text-[16px] text-outline"
+						>arrow_forward</span
 					>
-						3
-					</div>
-					<span class="font-label-sm text-outline-variant">Confirmation</span>
+					<span class="text-on-surface-variant font-bold">Review</span>
+					<span class="material-symbols-outlined text-[16px] text-outline"
+						>arrow_forward</span
+					>
+					<span class="text-on-surface-variant">Checkout</span>
 				</div>
-			</div>
-
-			<div class="text-center mb-section-gap">
-				<h1 class="font-headline-lg text-headline-lg text-on-background mb-2">
-					Assign Guests
-				</h1>
-				<p class="font-body-md text-on-surface-variant max-w-md mx-auto">
-					Please tell us who will be enjoying each service.
-				</p>
 			</div>
 
 			<div v-if="pageLoading" class="flex items-center justify-center py-20">
@@ -186,7 +180,7 @@
 									</div>
 								</div>
 
-								<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+								<div class="grid grid-cols-1 md:grid-cols-3 gap-4">
 									<div class="relative">
 										<input
 											:value="assignment.guest_full_name"
@@ -215,6 +209,22 @@
 													email: ($event.target as HTMLInputElement)
 														.value,
 													mobile: assignment.guest_mobile,
+												})
+											"
+										/>
+									</div>
+									<div class="relative">
+										<input
+											:value="assignment.guest_mobile"
+											type="tel"
+											placeholder="Phone Number (Optional)"
+											class="w-full bg-surface-container-low border-none rounded-lg px-4 py-3 font-body-md text-on-surface focus:ring-2 focus:ring-primary transition-all"
+											@input="
+												onAssignGuest(assignment.id, {
+													fullName: assignment.guest_full_name,
+													email: assignment.guest_email,
+													mobile: ($event.target as HTMLInputElement)
+														.value,
 												})
 											"
 										/>
