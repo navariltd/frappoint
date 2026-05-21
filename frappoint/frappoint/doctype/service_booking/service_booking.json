@@ -28,6 +28,15 @@
   "grand_total",
   "confirmation_required_amount",
   "outstanding_amount",
+  "discount_section",
+  "coupon_code",
+  "coupon_scope",
+  "coupon_discount_type",
+  "coupon_discount_amount",
+  "coupon_applied",
+  "column_break_tadp",
+  "booking_discount_amount",
+  "appointment_discount_total",
   "dashboard_tab",
   "amended_from"
  ],
@@ -85,11 +94,59 @@
    "fieldtype": "Column Break"
   },
   {
+   "fieldname": "coupon_code",
+   "fieldtype": "Data",
+   "label": "Coupon Code"
+  },
+  {
+   "default": "booking",
+   "fieldname": "coupon_scope",
+   "fieldtype": "Select",
+   "label": "Coupon Scope",
+   "options": "\nbooking",
+   "read_only": 1
+  },
+  {
    "fieldname": "subtotal",
    "fieldtype": "Currency",
    "in_list_view": 1,
    "label": "Subtotal",
    "options": "currency"
+  },
+  {
+   "fieldname": "appointment_discount_total",
+   "fieldtype": "Currency",
+   "label": "Appointment Discount Total",
+   "options": "currency",
+   "read_only": 1
+  },
+  {
+   "fieldname": "booking_discount_amount",
+   "fieldtype": "Currency",
+   "label": "Booking Discount Amount",
+   "options": "currency",
+   "read_only": 1
+  },
+  {
+   "fieldname": "coupon_discount_type",
+   "fieldtype": "Select",
+   "label": "Coupon Discount Type",
+   "options": "\npercentage\nfixed",
+   "read_only": 1
+  },
+  {
+   "fieldname": "coupon_discount_amount",
+   "fieldtype": "Currency",
+   "label": "Coupon Discount Amount",
+   "options": "currency",
+   "read_only": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "coupon_applied",
+   "fieldtype": "Check",
+   "label": "Coupon Applied",
+   "read_only": 1
   },
   {
    "fieldname": "grand_total",
@@ -175,6 +232,15 @@
    "print_hide": 1,
    "read_only": 1,
    "search_index": 1
+  },
+  {
+   "fieldname": "discount_section",
+   "fieldtype": "Section Break",
+   "label": "Discount"
+  },
+  {
+   "fieldname": "column_break_tadp",
+   "fieldtype": "Column Break"
   }
  ],
  "grid_page_length": 50,
@@ -186,7 +252,7 @@
    "link_fieldname": "booking_id"
   }
  ],
- "modified": "2026-05-05 13:41:50.824405",
+ "modified": "2026-05-21 13:44:55.778802",
  "modified_by": "Administrator",
  "module": "Frappoint",
  "name": "Service Booking",

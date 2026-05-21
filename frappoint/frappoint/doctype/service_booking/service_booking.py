@@ -8,6 +8,10 @@ from frappe import _
 from frappe.model.document import Document
 from frappe.utils import cint, flt
 
+from frappoint.frappoint.services.pricing_service import (
+	sync_booking_pricing_fields,
+	validate_booking_coupon_assignment,
+)
 from frappoint.payments import get_confirmation_deposit_percent
 
 
@@ -23,9 +27,16 @@ class ServiceBooking(Document):
 		from frappoint.frappoint.doctype.service_booking_item.service_booking_item import ServiceBookingItem
 
 		amended_from: DF.Link | None
+		appointment_discount_total: DF.Currency
 		booking_date: DF.Date
+		booking_discount_amount: DF.Currency
 		booking_time: DF.Time
 		confirmation_required_amount: DF.Currency
+		coupon_applied: DF.Check
+		coupon_code: DF.Data | None
+		coupon_discount_amount: DF.Currency
+		coupon_discount_type: DF.Literal["", "percentage", "fixed"]
+		coupon_scope: DF.Literal["", "booking"]
 		currency: DF.Link | None
 		customer: DF.Link
 		email: DF.Data | None
@@ -44,7 +55,8 @@ class ServiceBooking(Document):
 		self.set_onload("appointment_list_html", self.get_appointment_table())
 
 	def validate(self):
-		self.recalculate_totals()
+		pricing = self.recalculate_totals()
+		validate_booking_coupon_assignment(self, pricing=pricing)
 
 	def before_submit(self):
 		self.validate_submission_readiness()
@@ -88,10 +100,12 @@ class ServiceBooking(Document):
 			total += flt(item.total_amount)
 			guests += cint(item.qty)
 
-		self.subtotal = total
 		self.total_guests = guests
-
-		self.grand_total = self.subtotal
+		pricing = sync_booking_pricing_fields(self)
+		if not flt(self.subtotal):
+			self.subtotal = total
+		if not flt(self.grand_total):
+			self.grand_total = flt(pricing.get("finalAmount") or total)
 
 		appointment_names = frappe.get_all(
 			"Service Appointment", filters={"booking_id": self.name}, pluck="name"
@@ -126,6 +140,7 @@ class ServiceBooking(Document):
 		self.outstanding_amount = max(0, flt(self.grand_total) - flt(total_paid))
 		self.set_confirmation_targets()
 		self.set_status_from_payments(total_paid)
+		return pricing
 
 	def set_confirmation_targets(self):
 		total_amount = flt(self.grand_total)
@@ -215,7 +230,14 @@ class ServiceBooking(Document):
 		self.recalculate_totals()
 		self.db_set(
 			{
+				"coupon_code": self.coupon_code,
+				"coupon_discount_type": self.coupon_discount_type,
+				"coupon_discount_amount": self.coupon_discount_amount,
+				"coupon_applied": self.coupon_applied,
+				"coupon_scope": self.coupon_scope,
 				"subtotal": self.subtotal,
+				"appointment_discount_total": self.appointment_discount_total,
+				"booking_discount_amount": self.booking_discount_amount,
 				"total_guests": self.total_guests,
 				"grand_total": self.grand_total,
 				"confirmation_required_amount": self.confirmation_required_amount,
