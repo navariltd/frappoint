@@ -243,7 +243,11 @@ export const useBookingReviewStore = defineStore("booking-review", {
 				const raw = await applyBookingCouponApi(this.bookingId, code);
 				if (!raw) { this.bookingCouponError = "Failed to apply coupon."; return; }
 				const n = normalizeCouponApplyResponse(raw);
-				if (n) this._syncFromNormalized(n);
+				if (n) {
+					this._syncFromNormalized(n);
+				} else {
+					await this.fetchPricingSummary(this.bookingId);
+				}
 				this.bookingCouponSuccess = raw?.message || "Coupon applied.";
 				this.bookingCouponDraft = "";
 			} catch (err: any) {
@@ -262,7 +266,11 @@ export const useBookingReviewStore = defineStore("booking-review", {
 				const raw = await removeBookingCouponApi(this.bookingId);
 				if (!raw) return;
 				const n = normalizeCouponApplyResponse(raw);
-				if (n) this._syncFromNormalized(n);
+				if (n) {
+					this._syncFromNormalized(n);
+				} else {
+					await this.fetchPricingSummary(this.bookingId);
+				}
 				this.bookingCouponCode = "";
 				this.bookingCouponDraft = "";
 			} catch (err: any) {
@@ -297,7 +305,11 @@ export const useBookingReviewStore = defineStore("booking-review", {
 					return;
 				}
 				const n = normalizeCouponApplyResponse(raw);
-				if (n) this._syncFromNormalized(n);
+				if (n) {
+					this._syncFromNormalized(n);
+				} else {
+					await this.fetchPricingSummary(this.bookingId);
+				}
 				this.appointmentCouponDrafts = { ...this.appointmentCouponDrafts, [appointmentId]: "" };
 			} catch (err: any) {
 				this.appointmentCouponErrors = {
@@ -317,7 +329,11 @@ export const useBookingReviewStore = defineStore("booking-review", {
 				const raw = await removeAppointmentCouponApi(this.bookingId, appointmentId);
 				if (!raw) return;
 				const n = normalizeCouponApplyResponse(raw);
-				if (n) this._syncFromNormalized(n);
+				if (n) {
+					this._syncFromNormalized(n);
+				} else {
+					await this.fetchPricingSummary(this.bookingId);
+				}
 			} catch (err: any) {
 				this.appointmentCouponErrors = {
 					...this.appointmentCouponErrors,

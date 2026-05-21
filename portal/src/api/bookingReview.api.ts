@@ -14,7 +14,20 @@ const removeBookingCouponResource = createResource({ url: ENDPOINTS.removeBookin
 const applyAppointmentCouponResource = createResource({ url: ENDPOINTS.applyAppointmentCoupon, auto: false });
 const removeAppointmentCouponResource = createResource({ url: ENDPOINTS.removeAppointmentCoupon, auto: false });
 
-const unwrap = (payload: any) => payload?.message ?? payload ?? null;
+const unwrap = (payload: any) => {
+	if (!payload) return null;
+
+	// Response can either be:
+	// 1) { message: {...actual payload...} }
+	// 2) { message: "OK", checkout: {...} }
+	// 3) { ...actual payload... }
+	const candidate = payload?.message ?? payload;
+
+	if (candidate && typeof candidate === "object") return candidate;
+	if (payload && typeof payload === "object") return payload;
+
+	return candidate ?? null;
+};
 
 export async function getBookingPricingSummaryApi(bookingId: string) {
 	const response = await pricingSummaryResource.fetch({ booking_id: bookingId });
