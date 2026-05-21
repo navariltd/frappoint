@@ -620,6 +620,8 @@ def create_checkout_payment_link(
 	payment_gateway: str | None = None,
 	redirect_to: str | None = None,
 	phone_number: str | None = None,
+	amount: float | None = None,
+	payment_type: str | None = None,
 ):
 	if not booking_id:
 		frappe.throw(_("Booking reference is required."))
@@ -627,11 +629,23 @@ def create_checkout_payment_link(
 	if phone_number:
 		frappe.db.set_value("Service Booking", booking_id, "mobile_no", phone_number)
 
+	frappe.logger("frappoint.checkout").info(
+		{
+			"event": "create_checkout_payment_link",
+			"booking_id": booking_id,
+			"payment_gateway": payment_gateway,
+			"payment_type": payment_type,
+			"amount": amount,
+		}
+	)
+
 	url = get_payment_link(
 		reference_doctype="Service Booking",
 		reference_docname=booking_id,
 		payment_gateway=payment_gateway or "",
 		redirect_to=redirect_to or "",
+		amount=amount,
+		payment_type=payment_type,
 	)
 
 	booking = frappe.get_doc("Service Booking", booking_id)

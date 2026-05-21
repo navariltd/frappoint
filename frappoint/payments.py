@@ -166,21 +166,30 @@ def get_payment_amount(reference_doctype, reference_docname, total_amount, doc=N
 
 
 @frappe.whitelist()
-def get_payment_link(reference_doctype: str, reference_docname: str, payment_gateway: str, redirect_to: str):
+def get_payment_link(
+	reference_doctype: str,
+	reference_docname: str,
+	payment_gateway: str,
+	redirect_to: str,
+	amount: float | None = None,
+	payment_type: str | None = None,
+):
 	"""
 	Handles both Service Booking and Service Appointment
 	"""
+	requested_amount = flt(amount) if amount is not None else 0
+	normalized_payment_type = (payment_type or "").strip().lower()
 	doc = frappe.get_cached_doc(reference_doctype, reference_docname)
 
 	if reference_doctype == "Service Booking":
-		amount = doc.grand_total
+		total_reference_amount = doc.grand_total
 		currency = doc.currency
 		customer = doc.customer
 		mobile_no = doc.mobile_no
 		service_type = None
 
 	elif reference_doctype == "Service Appointment":
-		amount = doc.total_amount
+		total_reference_amount = doc.total_amount
 		currency = doc.currency
 		customer = doc.customer
 		service_type = doc.appointment_type
@@ -201,8 +210,47 @@ def get_payment_link(reference_doctype: str, reference_docname: str, payment_gat
 
 		payment_gateway = gateways[0]
 
-	amount = get_payment_amount(reference_doctype, reference_docname, amount, doc=doc)
-	if flt(amount) <= 0:
+	total_amount = flt(total_reference_amount)
+	minimum_due = get_payment_amount(reference_doctype, reference_docname, total_amount, doc=doc)
+	paid_amount = get_paid_amount(reference_doctype, reference_docname, total_amount, doc=doc)
+	remaining_due = max(0, flt(total_amount) - flt(paid_amount))
+
+	if normalized_payment_type == "full":
+		amount_to_pay = remaining_due
+	elif normalized_payment_type == "deposit":
+		amount_to_pay = requested_amount if requested_amount > 0 else minimum_due
+	else:
+		if requested_amount > 0:
+			amount_to_pay = requested_amount
+		else:
+			amount_to_pay = minimum_due
+
+	if amount_to_pay < flt(minimum_due):
+		frappe.throw(
+			_("Selected payment amount cannot be less than the required minimum due of {0}.").format(
+				minimum_due
+			)
+		)
+
+	if amount_to_pay > flt(remaining_due):
+		frappe.throw(
+			_("Selected payment amount cannot exceed the outstanding balance of {0}.").format(remaining_due)
+		)
+
+	frappe.logger("frappoint.checkout").info(
+		{
+			"event": "get_payment_link_amount_resolution",
+			"reference_doctype": reference_doctype,
+			"reference_docname": reference_docname,
+			"payment_type": normalized_payment_type,
+			"requested_amount": requested_amount,
+			"minimum_due": minimum_due,
+			"remaining_due": remaining_due,
+			"amount_to_pay": amount_to_pay,
+		}
+	)
+
+	if flt(amount_to_pay) <= 0:
 		frappe.throw("No amount is due for this payment request")
 
 	validate_currency(payment_gateway, currency)
@@ -210,7 +258,7 @@ def get_payment_link(reference_doctype: str, reference_docname: str, payment_gat
 	payment = record_payment(
 		reference_doctype,
 		reference_docname,
-		amount,
+		amount_to_pay,
 		currency,
 		payment_gateway=payment_gateway,
 	)
@@ -219,7 +267,7 @@ def get_payment_link(reference_doctype: str, reference_docname: str, payment_gat
 	redirect_to = redirect_to
 
 	payment_details = {
-		"amount": amount,
+		"amount": amount_to_pay,
 		"title": f"Payment for: {reference_docname}",
 		"description": f"Payment for {reference_doctype} {reference_docname}",
 		"reference_doctype": reference_doctype,
