@@ -7,6 +7,13 @@
 			}}</span>
 		</div>
 
+		<div v-if="totalSavings > 0" class="flex justify-between items-center text-body-sm">
+			<span class="text-on-surface-variant">Coupon savings</span>
+			<span class="font-semibold text-secondary"
+				>-{{ formatCurrency(totalSavings, currency) }}</span
+			>
+		</div>
+
 		<div v-if="depositSelected" class="flex justify-between items-center text-body-sm">
 			<span class="text-on-surface-variant">Deposit ({{ depositPercent }}%)</span>
 			<span class="font-semibold text-on-surface">{{
@@ -46,6 +53,7 @@ const props = defineProps<{
 	remainingAfterPayment: number;
 	currency: string;
 	paymentType: "full" | "deposit";
+	totalSavings: number;
 }>();
 
 const depositSelected = computed(() => props.paymentType === "deposit");

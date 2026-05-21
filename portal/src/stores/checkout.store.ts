@@ -4,8 +4,16 @@ import {
 	fetchOnlineGateways,
 	initiateOnlinePayment,
 	createEmptyCheckoutSummary,
+	validateCheckoutCoupon,
+	applyCheckoutCoupon,
+	removeCheckoutCoupon,
+	type AppliedCoupon,
+	type AppointmentPricingBreakdown,
+	type BookingPricingSummary,
 	type CheckoutSummary,
+	type CheckoutCouponMeta,
 	type OnlineGateway,
+	type CheckoutCouponValidation,
 } from "@/services/checkout.service";
 
 export type PaymentType = "full" | "deposit";
@@ -20,16 +28,28 @@ export interface PersistedCheckoutSession {
 	selectedPaymentType: PaymentType;
 	selectedGatewayId: string;
 	mpesaPhone: string;
+	couponCode: string;
 }
 
 export const useCheckoutStore = defineStore("checkout", {
 	state: () => ({
 		bookingId: "",
 		summary: createEmptyCheckoutSummary() as CheckoutSummary,
+		bookingPricingSummary: createEmptyCheckoutSummary().pricing as BookingPricingSummary,
+		appointmentPricingBreakdown: [] as AppointmentPricingBreakdown[],
+		appliedBookingCoupon: null as CheckoutCouponMeta | null,
+		appliedAppointmentCoupons: [] as AppliedCoupon[],
 		gateways: [] as OnlineGateway[],
 		selectedPaymentType: "full" as PaymentType,
 		selectedGatewayId: "",
 		depositAmount: 0,
+		couponCode: "",
+		couponDraft: "",
+		couponValidation: null as CheckoutCouponValidation | null,
+		couponMessage: "",
+		couponError: "",
+		isValidatingCoupon: false,
+		isApplyingCoupon: false,
 		mpesaPhone: "",
 		paymentProgress: "idle" as PaymentProgress,
 		statusMessage: "",
@@ -50,6 +70,18 @@ export const useCheckoutStore = defineStore("checkout", {
 		},
 		selectedGateway(state): OnlineGateway | null {
 			return state.gateways.find((g) => g.id === state.selectedGatewayId) || null;
+		},
+		totalSavings(state): number {
+			return Number(
+				state.bookingPricingSummary.appointmentDiscountTotal
+					+ state.bookingPricingSummary.bookingDiscountAmount
+			);
+		},
+		discountedTotal(state): number {
+			return Number(state.bookingPricingSummary.finalAmount || 0);
+		},
+		appliedCoupon(state) {
+			return state.appliedBookingCoupon || state.appliedAppointmentCoupons[0] || null;
 		},
 		payableAmount(state): number {
 			const outstanding = Number(state.summary.payment.outstandingAmount || 0);
@@ -85,6 +117,7 @@ export const useCheckoutStore = defineStore("checkout", {
 		},
 		canSubmit(state): boolean {
 			if (state.isSubmitting || state.isLoading) return false;
+			if (state.isApplyingCoupon || state.isValidatingCoupon) return false;
 			if (!state.bookingId) return false;
 			if (!state.selectedGatewayId) return false;
 			if ((this as any).payableAmount <= 0) return false;
@@ -97,6 +130,14 @@ export const useCheckoutStore = defineStore("checkout", {
 	},
 
 	actions: {
+		syncPricingState(summary: CheckoutSummary) {
+			this.summary = summary;
+			this.bookingPricingSummary = summary.pricing;
+			this.appointmentPricingBreakdown = summary.pricing.appointmentBreakdown || [];
+			this.appliedBookingCoupon = summary.pricing.bookingCoupon;
+			this.appliedAppointmentCoupons = summary.pricing.appointmentCoupons || [];
+		},
+
 		persistSession() {
 			if (typeof window === "undefined") return;
 			const session: PersistedCheckoutSession = {
@@ -104,6 +145,7 @@ export const useCheckoutStore = defineStore("checkout", {
 				selectedPaymentType: this.selectedPaymentType,
 				selectedGatewayId: this.selectedGatewayId,
 				mpesaPhone: this.mpesaPhone,
+				couponCode: this.couponCode,
 			};
 			window.localStorage.setItem(STORAGE_KEY, JSON.stringify(session));
 		},
@@ -128,10 +170,21 @@ export const useCheckoutStore = defineStore("checkout", {
 		clearCheckout() {
 			this.bookingId = "";
 			this.summary = createEmptyCheckoutSummary();
+			this.bookingPricingSummary = createEmptyCheckoutSummary().pricing;
+			this.appointmentPricingBreakdown = [];
+			this.appliedBookingCoupon = null;
+			this.appliedAppointmentCoupons = [];
 			this.gateways = [];
 			this.selectedPaymentType = "full";
 			this.selectedGatewayId = "";
 			this.depositAmount = 0;
+			this.couponCode = "";
+			this.couponDraft = "";
+			this.couponValidation = null;
+			this.couponMessage = "";
+			this.couponError = "";
+			this.isValidatingCoupon = false;
+			this.isApplyingCoupon = false;
 			this.mpesaPhone = "";
 			this.paymentProgress = "idle";
 			this.statusMessage = "";
@@ -183,6 +236,98 @@ export const useCheckoutStore = defineStore("checkout", {
 			this.depositAmount = Number(amount || 0);
 		},
 
+		setCouponDraft(code: string) {
+			this.couponDraft = String(code || "").trim().toUpperCase();
+			this.couponError = "";
+			this.couponMessage = "";
+		},
+
+		async validateCoupon(code?: string) {
+			if (!this.bookingId) return null;
+			const value = String(code ?? this.couponDraft ?? "").trim().toUpperCase();
+			if (!value) {
+				this.couponError = "Enter a coupon code to continue.";
+				this.couponValidation = null;
+				return null;
+			}
+
+			this.isValidatingCoupon = true;
+			this.couponError = "";
+			this.couponMessage = "";
+			try {
+				const validation = await validateCheckoutCoupon(this.bookingId, value);
+				this.couponValidation = validation;
+				if (!validation.valid) {
+					this.couponError = validation.message || "Coupon is not valid for this booking.";
+				}
+				return validation;
+			} catch (error: any) {
+				this.couponValidation = null;
+				this.couponError = error?.message || "Coupon validation failed.";
+				return null;
+			} finally {
+				this.isValidatingCoupon = false;
+			}
+		},
+
+		async applyCoupon(code?: string) {
+			if (!this.bookingId) return;
+			const value = String(code ?? this.couponDraft ?? "").trim().toUpperCase();
+			if (!value) {
+				this.couponError = "Enter a coupon code to continue.";
+				return;
+			}
+
+			this.isApplyingCoupon = true;
+			this.couponError = "";
+			this.couponMessage = "";
+			try {
+				const validation = await this.validateCoupon(value);
+				if (!validation?.valid) {
+					return;
+				}
+
+				const response = await applyCheckoutCoupon(this.bookingId, value);
+				this.syncPricingState(response.checkout);
+				this.couponCode = value;
+				this.couponDraft = value;
+				this.couponValidation = validation;
+				this.couponMessage = response.message || "Coupon applied successfully.";
+				this.depositAmount = (this as any).calculatedDepositAmount;
+				this.persistSession();
+			} catch (error: any) {
+				this.couponError = error?.message || "Coupon could not be applied.";
+			} finally {
+				this.isApplyingCoupon = false;
+			}
+		},
+
+		async removeCoupon() {
+			if (!this.bookingId) return;
+			this.isApplyingCoupon = true;
+			this.couponError = "";
+			this.couponMessage = "";
+			try {
+				const response = await removeCheckoutCoupon(this.bookingId, this.couponCode || undefined);
+				this.syncPricingState(response.checkout);
+				this.couponCode = "";
+				this.couponDraft = "";
+				this.couponValidation = null;
+				this.couponMessage = response.message || "Coupon removed.";
+				this.depositAmount = (this as any).calculatedDepositAmount;
+				this.persistSession();
+			} catch (error: any) {
+				this.couponError = error?.message || "Coupon could not be removed.";
+			} finally {
+				this.isApplyingCoupon = false;
+			}
+		},
+
+		async recalculateTotals() {
+			await this.refreshSummary();
+			this.depositAmount = (this as any).calculatedDepositAmount;
+		},
+
 		async initializeCheckout(bookingId: string) {
 			this.bookingId = bookingId;
 			this.error = "";
@@ -197,6 +342,8 @@ export const useCheckoutStore = defineStore("checkout", {
 			if (saved?.bookingId === bookingId) {
 				this.selectedPaymentType = saved.selectedPaymentType || "full";
 				this.mpesaPhone = saved.mpesaPhone || this.mpesaPhone;
+				this.couponCode = saved.couponCode || "";
+				this.couponDraft = saved.couponCode || "";
 			}
 
 			try {
@@ -205,7 +352,7 @@ export const useCheckoutStore = defineStore("checkout", {
 					fetchOnlineGateways(bookingId),
 				]);
 
-				this.summary = summary;
+				this.syncPricingState(summary);
 				this.gateways = gatewayPayload.gateways;
 
 				// Pre-select gateway from session or default
@@ -233,7 +380,7 @@ export const useCheckoutStore = defineStore("checkout", {
 		async refreshSummary() {
 			if (!this.bookingId) return;
 			try {
-				this.summary = await fetchCheckoutSummary(this.bookingId);
+				this.syncPricingState(await fetchCheckoutSummary(this.bookingId));
 			} catch (error: any) {
 				this.error = error?.message || "Checkout summary could not be refreshed.";
 			}
@@ -296,6 +443,8 @@ export const useCheckoutStore = defineStore("checkout", {
 					phoneNumber: gateway.providerType === "mpesa" ? this.mpesaPhone : undefined,
 					amount,
 					paymentType,
+					couponCode: this.couponCode || undefined,
+					finalAmountReference: Number(this.bookingPricingSummary.finalAmount || 0),
 				});
 
 				const paymentUrl = result.paymentUrl || result.url || result.redirectUrl || "";
@@ -303,7 +452,7 @@ export const useCheckoutStore = defineStore("checkout", {
 				this.paymentSession = result;
 
 				if (result.checkout) {
-					this.summary = result.checkout;
+					this.syncPricingState(result.checkout);
 				}
 
 				if (!paymentUrl) {

@@ -173,6 +173,7 @@ def get_payment_link(
 	redirect_to: str,
 	amount: float | None = None,
 	payment_type: str | None = None,
+	coupon_code: str | None = None,
 ):
 	"""
 	Handles both Service Booking and Service Appointment
@@ -182,7 +183,7 @@ def get_payment_link(
 	doc = frappe.get_cached_doc(reference_doctype, reference_docname)
 
 	if reference_doctype == "Service Booking":
-		total_reference_amount = doc.grand_total
+		total_reference_amount = doc.final_amount or doc.grand_total
 		currency = doc.currency
 		customer = doc.customer
 		mobile_no = doc.mobile_no
@@ -243,6 +244,7 @@ def get_payment_link(
 			"reference_doctype": reference_doctype,
 			"reference_docname": reference_docname,
 			"payment_type": normalized_payment_type,
+			"coupon_code": coupon_code,
 			"requested_amount": requested_amount,
 			"minimum_due": minimum_due,
 			"remaining_due": remaining_due,

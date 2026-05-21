@@ -2,6 +2,9 @@ import json
 
 import frappe
 from frappe import _
+from frappe.utils import flt
+
+from frappoint.frappoint.services.pricing_service import calculate_booking_pricing
 
 
 @frappe.whitelist()
@@ -143,4 +146,34 @@ def create_booking_with_appointments(booking_payload=None):
 		"booking_id": booking.name,
 		"appointments": created,
 		"grand_total": getattr(booking, "grand_total", 0),
+	}
+
+
+@frappe.whitelist()
+def get_booking_pricing_summary(booking_id: str):
+	if not booking_id:
+		frappe.throw(_("Booking reference is required."))
+
+	booking = frappe.get_doc("Service Booking", booking_id)
+	pricing = calculate_booking_pricing(booking)
+
+	return {
+		"bookingId": booking.name,
+		"currency": booking.currency,
+		"subtotal": flt(pricing.get("subtotalAmount") or 0),
+		"appointmentDiscountTotal": flt(pricing.get("appointmentDiscountTotal") or 0),
+		"bookingDiscountAmount": flt(pricing.get("bookingDiscountAmount") or 0),
+		"intermediateTotal": flt(pricing.get("intermediateTotal") or 0),
+		"finalAmount": flt(pricing.get("finalAmount") or 0),
+		"coupon": {
+			"code": booking.coupon_code or "",
+			"applied": bool(booking.coupon_applied),
+			"discountType": booking.coupon_discount_type or "",
+			"discountAmount": flt(booking.coupon_discount_amount or 0),
+			"scope": booking.coupon_scope or "",
+			"validationMessage": pricing.get("bookingCouponMessage") or "",
+			"isValid": bool(pricing.get("bookingCoupon")),
+		},
+		"appointmentBreakdown": pricing.get("appointmentBreakdown") or [],
+		"appointmentCoupons": pricing.get("appointmentCoupons") or [],
 	}

@@ -25,8 +25,17 @@
 					</p>
 				</div>
 				<div class="text-right flex-shrink-0">
-					<p class="text-body-md font-semibold text-on-surface">
+					<p
+						v-if="apt.discountAmount > 0"
+						class="text-label-sm text-on-surface-variant line-through"
+					>
 						{{ formatCurrency(apt.price, apt.currency || currency) }}
+					</p>
+					<p class="text-body-md font-semibold text-on-surface">
+						{{ formatCurrency(apt.grandTotal || apt.price, apt.currency || currency) }}
+					</p>
+					<p v-if="apt.couponCode" class="text-label-xs text-secondary mt-0.5">
+						Coupon: {{ apt.couponCode }}
 					</p>
 					<p
 						v-if="apt.status"
