@@ -27,8 +27,6 @@ export async function createCheckoutPaymentLinkApi({
 		payment_type: paymentType || undefined,
 	};
 
-	console.debug("[BookingDeskAPI] createCheckoutPaymentLink payload", payload);
-
 	const response = await paymentLinkResource.fetch({
 		...payload,
 	});
