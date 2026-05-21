@@ -38,20 +38,13 @@
 					service.item_group
 				}}</span>
 			</div>
-			<div class="grid grid-cols-2 gap-2">
+			<div>
 				<button
 					type="button"
-					class="w-full bg-surface-container-low border border-outline-variant/30 text-on-surface py-2.5 rounded-full font-label-md text-label-md hover:bg-surface-container-high transition-all"
-					@click="$emit('view', service)"
-				>
-					View
-				</button>
-				<button
-					type="button"
-					class="w-full bg-primary text-on-primary py-2.5 rounded-full font-label-md text-label-md hover:opacity-90 active:scale-[0.98] transition-all"
+					class="w-full inline-flex items-center justify-center bg-primary text-on-primary px-4 py-3 rounded-full font-label-md text-label-md hover:opacity-90 hover:-translate-y-px active:scale-[0.98] transition-all"
 					@click="$emit('add', service)"
 				>
-					Add
+					Add to Booking
 				</button>
 			</div>
 		</div>

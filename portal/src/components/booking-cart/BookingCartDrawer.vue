@@ -9,7 +9,7 @@
 
 	<!-- Drawer Panel -->
 	<div
-		class="fixed right-0 top-0 bottom-0 z-50 w-full max-w-md bg-surface flex flex-col transition-transform duration-300 shadow-lg"
+		class="fixed right-0 top-0 bottom-0 z-50 w-full max-w-md bg-surface bg-white flex flex-col transition-transform duration-300 shadow-lg"
 		:class="{ 'translate-x-0': open, 'translate-x-full': !open }"
 	>
 		<!-- Header -->
