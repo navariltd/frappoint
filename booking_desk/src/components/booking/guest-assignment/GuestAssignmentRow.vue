@@ -218,7 +218,6 @@ watch(
 watch(
 	() => props.guest.providerGender,
 	(v) => {
-		console.log("DEBUG: GuestAssignmentRow providerGender: ");
 		localProviderGender.value = v || "";
 	}
 );
@@ -254,7 +253,6 @@ const onGenderChange = () => {
 	// Emit an event or you can handle this in the parent composable
 	// For now, the value is stored in localProviderGender
 	// The parent can access it when needed
-	console.log("DEBUG: Gender changed to:", localProviderGender.value);
 	if (props.guest.fullName) {
 		emit("quick-create", {
 			fullName: localName.value,

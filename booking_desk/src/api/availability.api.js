@@ -40,7 +40,6 @@ export async function fetchAvailableDatesApi({
 	gender,
 	daysAhead = 30,
 }) {
-	console.log("DEBUG: fetchAvailableDatesApi called with GENDER:", gender);
 	const params = { service_type: serviceType, duration, days_ahead: daysAhead };
 	if (provider) params.provider = provider;
 	if (gender) params.gender = gender;

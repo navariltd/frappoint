@@ -31,8 +31,6 @@ export const useAuthStore = defineStore("auth", {
 		userName: (state) => state.user?.userName || null,
 		userImage: (state) => state.user?.userImage || null,
 		canAccessDashboard: (state) => {
-			console.log("Checking dashboard access for roles:", state.roles);
-			console.log("Can access dashboard:", state.roles?.includes("Service Provider"), state.roles?.includes("System Manager"));
 			return (
 				state.roles?.includes("Service Provider") ||
 				state.roles?.includes("System Manager")

@@ -65,7 +65,6 @@ const normalizeSlot = (slot, date) => {
 };
 
 export async function fetchNormalizedAvailableDates({ serviceType, duration, provider, gender }) {
-	console.log("DEBUG: fetchNormalizedAvailableDates called with GENDER:", gender);
 	const response = await fetchAvailableDatesApi({ serviceType, duration, provider, gender });
 	const rows = Array.isArray(response) ? response : [];
 	return rows.map((date) => ({

@@ -101,7 +101,6 @@ export const useGuestAssignmentStore = defineStore("guestAssignment", {
 			guest.email = payload.email || "";
 			guest.mobileNo = payload.mobileNo || "";
 			guest.providerGender = payload.providerGender || "";
-			console.log("DEBUG: guest.providerGender", guest.providerGender);
 			guest.isInlineGuest = true;
 			syncGuestCompletion(guest);
 		},
