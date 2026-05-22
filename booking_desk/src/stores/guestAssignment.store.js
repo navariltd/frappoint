@@ -100,6 +100,8 @@ export const useGuestAssignmentStore = defineStore("guestAssignment", {
 			guest.fullName = payload.fullName || "";
 			guest.email = payload.email || "";
 			guest.mobileNo = payload.mobileNo || "";
+			guest.providerGender = payload.providerGender || "";
+			console.log("DEBUG: guest.providerGender", guest.providerGender);
 			guest.isInlineGuest = true;
 			syncGuestCompletion(guest);
 		},
@@ -145,6 +147,7 @@ export const useGuestAssignmentStore = defineStore("guestAssignment", {
 				const dates = await fetchNormalizedAvailableDates({
 					serviceType: service.serviceId,
 					duration: service.duration,
+					gender: service.guests[guestIndex].providerGender,
 				});
 				service.guests[guestIndex].availableDates = dates;
 			} catch (error) {
@@ -176,6 +179,7 @@ export const useGuestAssignmentStore = defineStore("guestAssignment", {
 				const slots = await fetchNormalizedAvailableSlots({
 					serviceType: service.serviceId,
 					duration: service.duration,
+					gender: guest.providerGender,
 					date,
 				});
 				guest.availableSlots = slots;
