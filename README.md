@@ -1,5 +1,5 @@
 <div align="center">
-	<img src="./frappoint/public/images/frappoint_logo.png" alt="Frappoint Logo" height="80px" width="200xp"/>
+	<img src="./frappoint/public/images/frappoint_logo.png" alt="Frappoint Logo" height="180px" width="200xp"/>
     <h2>Frappoint</h2>
     <p align="center">
         <p>Smart Appointment Management</p>
