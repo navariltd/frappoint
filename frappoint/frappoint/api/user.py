@@ -1,4 +1,5 @@
 import frappe
+from frappe.defaults import get_user_permissions
 from frappe.utils.password import update_password
 
 from ...utils import get_customer_contact_details
@@ -10,10 +11,13 @@ def get_user_details():
 		return {}
 
 	user = frappe.get_doc("User", frappe.session.user)
+	permissions = get_user_permissions(str(frappe.session.user))
+
 	return {
 		"full_name": user.full_name,
 		"email": user.email,
 		"phone": user.phone,
+		"permissions": permissions
 	}
 
 

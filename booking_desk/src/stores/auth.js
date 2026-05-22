@@ -19,6 +19,7 @@ function getSessionUser() {
 export const useAuthStore = defineStore("auth", {
 	state: () => ({
 		user: getSessionUser(),
+		permissions: {},
 		checked: false,
 		loading: false,
 	}),
@@ -28,6 +29,12 @@ export const useAuthStore = defineStore("auth", {
 		userId: (state) => state.user?.user || null,
 		userName: (state) => state.user?.userName || null,
 		userImage: (state) => state.user?.userImage || null,
+		canAccessDashboard: (state) => {
+			return (
+				state.permissions?.["Service Provider"]?.read === 1 ||
+				state.permissions?.["Service Provider"]?.select === 1
+			);
+		},
 	},
 
 	actions: {
@@ -35,11 +42,12 @@ export const useAuthStore = defineStore("auth", {
 			if (this.checked) return;
 
 			const resource = createResource({
-				url: "frappe.auth.get_logged_user",
+				url: "frappoint.frappoint.api.user.get_user_details",
 			});
 
 			try {
-				await resource.fetch();
+				const data = await resource.fetch();
+				this.permissions = data.permissions || {};
 				this.setUser();
 			} catch {
 				this.user = null;
