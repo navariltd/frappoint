@@ -12,12 +12,14 @@ def get_user_details():
 
 	user = frappe.get_doc("User", frappe.session.user)
 	permissions = get_user_permissions(str(frappe.session.user))
+	roles = frappe.get_roles(frappe.session.user)
 
 	return {
 		"full_name": user.full_name,
 		"email": user.email,
 		"phone": user.phone,
-		"permissions": permissions
+		"permissions": permissions,
+		"roles": roles,
 	}
 
 
