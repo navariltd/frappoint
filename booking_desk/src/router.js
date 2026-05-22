@@ -7,7 +7,7 @@ const routes = [
 		name: "Dashboard",
 		path: "/",
 		component: () => import("@/pages/dashboard/Dashboard.vue"),
-		meta: { requiresLogin: true },
+		meta: { requiresLogin: true, requiresServiceProvider: true },
 	},
 	{
 		path: "/services",
@@ -56,6 +56,12 @@ const routes = [
 		component: () => import("@/pages/bookings/AppointmentDetails.vue"),
 		meta: { requiresLogin: true },
 	},
+	{
+		name: "Forbidden",
+		path: "/forbidden",
+		component: () => import("@/pages/Forbidden.vue"),
+		meta: { requiresLogin: true },
+	},
 ];
 
 const router = createRouter({
@@ -75,6 +81,22 @@ router.beforeEach(async (to) => {
 
 	if (to.name === "Login" && auth.isLoggedIn) {
 		return { name: "Dashboard" };
+	}
+
+	// Check for Service Provider permission on protected routes
+	if (to.meta.requiresServiceProvider && !auth.canAccessDashboard) {
+		if (to.name !== "Forbidden") {
+			return { name: "Forbidden" };
+		}
+	}
+
+	if (
+		auth.isLoggedIn &&
+		!auth.canAccessDashboard &&
+		to.name !== "Forbidden" &&
+		to.name !== "Login"
+	) {
+		return { name: "Forbidden" };
 	}
 });
 
