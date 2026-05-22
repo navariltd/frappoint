@@ -3,42 +3,48 @@
   "docstatus": 0,
   "doctype": "Service Appointment Lost Reason",
   "lost_reason": "Schedule Conflict",
-  "modified": "2026-01-30 09:06:15.865408",
-  "name": "Schedule Conflict"
+  "modified": "2026-05-22 05:40:48.075480",
+  "name": "Schedule Conflict",
+  "portal_access": 1
  },
  {
   "docstatus": 0,
   "doctype": "Service Appointment Lost Reason",
   "lost_reason": "Personal Emergency",
-  "modified": "2026-01-30 09:06:25.613446",
-  "name": "Personal Emergency"
+  "modified": "2026-05-22 05:40:48.063486",
+  "name": "Personal Emergency",
+  "portal_access": 1
  },
  {
   "docstatus": 0,
   "doctype": "Service Appointment Lost Reason",
   "lost_reason": "Service No Longer Needed",
-  "modified": "2026-01-30 09:06:36.654294",
-  "name": "Service No Longer Needed"
+  "modified": "2026-05-22 05:40:48.050181",
+  "name": "Service No Longer Needed",
+  "portal_access": 1
  },
  {
   "docstatus": 0,
   "doctype": "Service Appointment Lost Reason",
   "lost_reason": "Found Better Price",
-  "modified": "2026-01-30 09:06:44.086207",
-  "name": "Found Better Price"
+  "modified": "2026-05-22 05:40:48.034858",
+  "name": "Found Better Price",
+  "portal_access": 1
  },
  {
   "docstatus": 0,
   "doctype": "Service Appointment Lost Reason",
   "lost_reason": "Booking Error",
-  "modified": "2026-01-30 09:06:51.362190",
-  "name": "Booking Error"
+  "modified": "2026-05-22 05:40:48.003722",
+  "name": "Booking Error",
+  "portal_access": 1
  },
  {
   "docstatus": 0,
   "doctype": "Service Appointment Lost Reason",
   "lost_reason": "Other",
-  "modified": "2026-01-30 09:06:56.873808",
-  "name": "Other"
+  "modified": "2026-05-22 05:40:48.021912",
+  "name": "Other",
+  "portal_access": 1
  }
 ]

@@ -1,8 +1,13 @@
 {
  "charts": [],
- "content": "[{\"id\":\"boWqkujk8K\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\">Frappoint</span>\",\"col\":12}},{\"id\":\"8BCzOHffzA\",\"type\":\"spacer\",\"data\":{\"col\":12}},{\"id\":\"kOIIwYzHXe\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Today's Appointments\",\"col\":4}},{\"id\":\"VSXQTSgD1E\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Pending Payments\",\"col\":4}},{\"id\":\"ApwvKSNGwc\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Revenue\",\"col\":4}},{\"id\":\"f_134su7Um\",\"type\":\"spacer\",\"data\":{\"col\":12}},{\"id\":\"ZW-WKDOrDx\",\"type\":\"quick_list\",\"data\":{\"quick_list_name\":\"Draft Appointments\",\"col\":4}},{\"id\":\"C7K0DCNqUs\",\"type\":\"quick_list\",\"data\":{\"quick_list_name\":\"Completed Appointments\",\"col\":4}},{\"id\":\"B-XoSjRUd2\",\"type\":\"quick_list\",\"data\":{\"quick_list_name\":\"Cancelled Appointments\",\"col\":4}},{\"id\":\"exZkckjiUN\",\"type\":\"spacer\",\"data\":{\"col\":12}},{\"id\":\"2dW0jtQkJj\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\">Quick Actions</span>\",\"col\":12}},{\"id\":\"XbFgs4gb_s\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"New Service Appointment\",\"col\":4}},{\"id\":\"B3486zmFsw\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Assign Services\",\"col\":4}},{\"id\":\"6sZvkkgHHp\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Manage Shifts\",\"col\":4}},{\"id\":\"Jc8Rf_Xf6N\",\"type\":\"spacer\",\"data\":{\"col\":12}},{\"id\":\"uIMQWeCDDa\",\"type\":\"card\",\"data\":{\"card_name\":\"Setup\",\"col\":4}},{\"id\":\"qJJpWdBNBx\",\"type\":\"card\",\"data\":{\"card_name\":\"Masters\",\"col\":4}},{\"id\":\"yhh22m4cxL\",\"type\":\"card\",\"data\":{\"card_name\":\"Operations\",\"col\":4}}]",
+ "content": "[{\"id\":\"boWqkujk8K\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\">Frappoint</span>\",\"col\":6}},{\"id\":\"FbUjPfCac_\",\"type\":\"custom_block\",\"data\":{\"custom_block_name\":\"Booking Desk\",\"col\":12}},{\"id\":\"8BCzOHffzA\",\"type\":\"spacer\",\"data\":{\"col\":12}},{\"id\":\"MI3-0E2ywU\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"New Service Booking\",\"col\":4}},{\"id\":\"B3486zmFsw\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Assign Services\",\"col\":4}},{\"id\":\"6sZvkkgHHp\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Manage Shifts\",\"col\":4}},{\"id\":\"exZkckjiUN\",\"type\":\"spacer\",\"data\":{\"col\":12}},{\"id\":\"kOIIwYzHXe\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Today's Appointments\",\"col\":4}},{\"id\":\"VSXQTSgD1E\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Pending Payments\",\"col\":4}},{\"id\":\"ApwvKSNGwc\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Revenue\",\"col\":4}},{\"id\":\"f_134su7Um\",\"type\":\"spacer\",\"data\":{\"col\":12}},{\"id\":\"ZW-WKDOrDx\",\"type\":\"quick_list\",\"data\":{\"quick_list_name\":\"Draft Appointments\",\"col\":4}},{\"id\":\"C7K0DCNqUs\",\"type\":\"quick_list\",\"data\":{\"quick_list_name\":\"Completed Appointments\",\"col\":4}},{\"id\":\"B-XoSjRUd2\",\"type\":\"quick_list\",\"data\":{\"quick_list_name\":\"Cancelled Appointments\",\"col\":4}},{\"id\":\"Jc8Rf_Xf6N\",\"type\":\"spacer\",\"data\":{\"col\":12}},{\"id\":\"uIMQWeCDDa\",\"type\":\"card\",\"data\":{\"card_name\":\"Setup\",\"col\":4}},{\"id\":\"qJJpWdBNBx\",\"type\":\"card\",\"data\":{\"card_name\":\"Masters\",\"col\":4}},{\"id\":\"yhh22m4cxL\",\"type\":\"card\",\"data\":{\"card_name\":\"Operations\",\"col\":4}}]",
  "creation": "2025-11-26 16:39:03.542220",
- "custom_blocks": [],
+ "custom_blocks": [
+  {
+   "custom_block_name": "Booking Desk",
+   "label": "Booking Desk"
+  }
+ ],
  "docstatus": 0,
  "doctype": "Workspace",
  "for_user": "",
@@ -13,84 +18,6 @@
  "is_hidden": 0,
  "label": "Frappoint",
  "links": [
-  {
-   "hidden": 0,
-   "is_query_report": 0,
-   "label": "Setup",
-   "link_count": 3,
-   "link_type": "DocType",
-   "onboard": 0,
-   "type": "Card Break"
-  },
-  {
-   "hidden": 0,
-   "is_query_report": 0,
-   "label": "Service Appointment Settings",
-   "link_count": 0,
-   "link_to": "Service Appointment Settings",
-   "link_type": "DocType",
-   "onboard": 0,
-   "type": "Link"
-  },
-  {
-   "hidden": 0,
-   "is_query_report": 0,
-   "label": "Service Unit Type",
-   "link_count": 0,
-   "link_to": "Service Unit Type",
-   "link_type": "DocType",
-   "onboard": 0,
-   "type": "Link"
-  },
-  {
-   "hidden": 0,
-   "is_query_report": 0,
-   "label": "Service Provider Shift Type",
-   "link_count": 0,
-   "link_to": "Service Provider Shift Type",
-   "link_type": "DocType",
-   "onboard": 0,
-   "type": "Link"
-  },
-  {
-   "hidden": 0,
-   "is_query_report": 0,
-   "label": "Masters",
-   "link_count": 3,
-   "link_type": "DocType",
-   "onboard": 0,
-   "type": "Card Break"
-  },
-  {
-   "hidden": 0,
-   "is_query_report": 0,
-   "label": "Service Providers",
-   "link_count": 0,
-   "link_to": "Service Provider",
-   "link_type": "DocType",
-   "onboard": 0,
-   "type": "Link"
-  },
-  {
-   "hidden": 0,
-   "is_query_report": 0,
-   "label": "Service Types",
-   "link_count": 0,
-   "link_to": "Service Type",
-   "link_type": "DocType",
-   "onboard": 0,
-   "type": "Link"
-  },
-  {
-   "hidden": 0,
-   "is_query_report": 0,
-   "label": "Service Units",
-   "link_count": 0,
-   "link_to": "Service Unit",
-   "link_type": "DocType",
-   "onboard": 0,
-   "type": "Link"
-  },
   {
    "hidden": 0,
    "is_query_report": 0,
@@ -129,10 +56,108 @@
    "link_type": "DocType",
    "onboard": 0,
    "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Setup",
+   "link_count": 4,
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Card Break"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Service Appointment Settings",
+   "link_count": 0,
+   "link_to": "Service Appointment Settings",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Service Unit Type",
+   "link_count": 0,
+   "link_to": "Service Unit Type",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Service Provider Shift Type",
+   "link_count": 0,
+   "link_to": "Service Provider Shift Type",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Service Provider Shift Assignment",
+   "link_count": 0,
+   "link_to": "Service Provider Shift Assignment",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Masters",
+   "link_count": 4,
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Card Break"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Service Providers",
+   "link_count": 0,
+   "link_to": "Service Provider",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Service Types",
+   "link_count": 0,
+   "link_to": "Service Type",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Service Units",
+   "link_count": 0,
+   "link_to": "Service Unit",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Coupon Code",
+   "link_count": 0,
+   "link_to": "Service Appointment Coupon Code",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
   }
  ],
- "modified": "2026-05-21 09:37:50.314950",
- "modified_by": "muchemi@navari.co.ke",
+ "modified": "2026-05-22 05:43:15.272191",
+ "modified_by": "Administrator",
  "module": "Frappoint",
  "name": "Frappoint",
  "number_cards": [
@@ -175,8 +200,8 @@
   {
    "color": "Grey",
    "doc_view": "New",
-   "label": "New Service Appointment",
-   "link_to": "Service Appointment",
+   "label": "New Service Booking",
+   "link_to": "Service Booking",
    "stats_filter": "[]",
    "type": "DocType"
   },
