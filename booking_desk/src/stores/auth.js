@@ -20,6 +20,7 @@ export const useAuthStore = defineStore("auth", {
 	state: () => ({
 		user: getSessionUser(),
 		permissions: {},
+		roles: [],
 		checked: false,
 		loading: false,
 	}),
@@ -30,9 +31,11 @@ export const useAuthStore = defineStore("auth", {
 		userName: (state) => state.user?.userName || null,
 		userImage: (state) => state.user?.userImage || null,
 		canAccessDashboard: (state) => {
+			console.log("Checking dashboard access for roles:", state.roles);
+			console.log("Can access dashboard:", state.roles?.includes("Service Provider"), state.roles?.includes("System Manager"));
 			return (
-				state.permissions?.["Service Provider"]?.read === 1 ||
-				state.permissions?.["Service Provider"]?.select === 1
+				state.roles?.includes("Service Provider") ||
+				state.roles?.includes("System Manager")
 			);
 		},
 	},
@@ -48,6 +51,7 @@ export const useAuthStore = defineStore("auth", {
 			try {
 				const data = await resource.fetch();
 				this.permissions = data.permissions || {};
+				this.roles = data.roles || [];
 				this.setUser();
 			} catch {
 				this.user = null;

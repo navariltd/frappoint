@@ -23,6 +23,7 @@
   "mobile_no",
   "user_details_section",
   "employee",
+  "gender",
   "column_break_ocid",
   "user",
   "section_break_idhg",
@@ -210,6 +211,12 @@
   {
    "fieldname": "column_break_dujg",
    "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "gender",
+   "fieldtype": "Link",
+   "label": "Gender",
+   "options": "Gender"
   }
  ],
  "grid_page_length": 50,
@@ -221,11 +228,11 @@
    "link_fieldname": "appointment_provider"
   }
  ],
- "modified": "2026-02-11 05:51:22.730382",
+ "modified": "2026-05-22 21:40:13.147215",
  "modified_by": "Administrator",
  "module": "Frappoint",
  "name": "Service Provider",
- "naming_rule": "Expression",
+ "naming_rule": "Expression (old style)",
  "owner": "Administrator",
  "permissions": [
   {
