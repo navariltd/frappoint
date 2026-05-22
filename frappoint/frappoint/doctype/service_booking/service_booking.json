@@ -252,7 +252,7 @@
    "link_fieldname": "booking_id"
   }
  ],
- "modified": "2026-05-21 13:44:55.778802",
+ "modified": "2026-05-22 05:54:01.108443",
  "modified_by": "Administrator",
  "module": "Frappoint",
  "name": "Service Booking",
@@ -279,6 +279,7 @@
    "create": 1,
    "email": 1,
    "export": 1,
+   "if_owner": 1,
    "print": 1,
    "read": 1,
    "report": 1,

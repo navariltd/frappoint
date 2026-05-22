@@ -193,7 +193,9 @@
   },
   {
    "fieldname": "section_break_tznz",
-   "fieldtype": "Section Break"
+   "fieldtype": "Section Break",
+   "hidden": 1,
+   "read_only": 1
   },
   {
    "fieldname": "column_break_dhhf",
@@ -208,7 +210,7 @@
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2026-02-11 11:37:35.922589",
+ "modified": "2026-05-22 05:57:35.213799",
  "modified_by": "Administrator",
  "module": "Frappoint",
  "name": "Service Appointment Settings",
@@ -221,6 +223,24 @@
    "print": 1,
    "read": 1,
    "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "role": "Operations Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "role": "Receptionist",
    "share": 1,
    "write": 1
   }

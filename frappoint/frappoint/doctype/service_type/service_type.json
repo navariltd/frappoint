@@ -261,15 +261,15 @@
    "fieldtype": "Section Break"
   },
   {
+   "description": "Enter each benefit as a separate list item.",
    "fieldname": "benefits",
    "fieldtype": "Text Editor",
-   "description": "Enter each benefit as a separate list item.",
    "label": "Benefits"
   },
   {
+   "description": "Enter each technique as a separate list item.",
    "fieldname": "techniques",
    "fieldtype": "Text Editor",
-   "description": "Enter each technique as a separate list item.",
    "label": "Techniques"
   },
   {
@@ -291,7 +291,7 @@
    "table_fieldname": "services"
   }
  ],
- "modified": "2026-05-20 22:55:22.004855",
+ "modified": "2026-05-22 05:50:08.891800",
  "modified_by": "Administrator",
  "module": "Frappoint",
  "name": "Service Type",
@@ -333,6 +333,18 @@
    "read": 1,
    "report": 1,
    "role": "Service Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Operations Manager",
    "share": 1,
    "write": 1
   }
