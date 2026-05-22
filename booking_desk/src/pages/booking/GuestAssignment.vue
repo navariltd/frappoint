@@ -107,6 +107,7 @@ const onSelectCustomer = async (serviceKey, guestKey, customerId) => {
 };
 
 const onQuickCreateGuest = async (serviceKey, guestKey, payload) => {
+	console.log("DEBUG: onQuickCreateGuest gender in payload: ", payload);
 	quickCreateGuest(serviceKey, guestKey, payload);
 	await fetchGuestDates(serviceKey, guestKey);
 };

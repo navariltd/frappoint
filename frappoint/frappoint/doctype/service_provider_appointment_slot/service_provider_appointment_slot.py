@@ -363,21 +363,32 @@ def service_type_requires_service_unit(service_type):
 
 
 @frappe.whitelist()
-def get_available_slots(appointment_type, duration, provider=None, date=None, days_ahead=30):
+def get_available_slots(appointment_type, duration, provider=None, date=None, gender=None, days_ahead=30):
 	"""
 	Get available slots for an appointment type
 
 	Args:
-			appointment_type: Name of the Appointment Type
-			duration: Duration of the appointment
-			provider: Optional - Filter by specific provider
-			date: Optional - Filter by specific date (YYYY-MM-DD)
-			days_ahead: Number of days to look ahead if no date specified
+	                                appointment_type: Name of the Appointment Type
+	                                duration: Duration of the appointment
+	                                provider: Optional - Filter by specific provider
+	                                date: Optional - Filter by specific date (YYYY-MM-DD)
+	                                gender: Optional - Filter providers by gender
+	                                days_ahead: Number of days to look ahead if no date specified
 
 	Returns:
-			List of available slots grouped by provider and date
+	                                List of available slots grouped by provider and date
 	"""
-
+	print(
+		"DEBUG: get_available_slots called with:",
+		{
+			"appointment_type": appointment_type,
+			"duration": duration,
+			"provider": provider,
+			"date": date,
+			"gender": gender,
+			"days_ahead": days_ahead,
+		},
+	)
 	apt_type = frappe.db.get_value(
 		"Service Type",
 		appointment_type,
@@ -403,14 +414,22 @@ def get_available_slots(appointment_type, duration, provider=None, date=None, da
 			frappe.throw(_("Provider {0} cannot provide service type {1}").format(provider, appointment_type))
 		providers = [provider]
 	else:
+		# Build the query to fetch providers
+		gender_filter = ""
+		if gender:
+			gender_filter = f" AND p.gender = {frappe.db.escape(gender)}"
+			print("\n\n")
+			print("DEBUG: Gender filter: ", gender_filter)
+
 		providers = frappe.db.sql(
-			"""
+			f"""
 			SELECT DISTINCT sps.parent
 			FROM `tabService Provider Service` sps
 			INNER JOIN `tabService Provider` p ON sps.parent = p.name
 			WHERE sps.service_type = %s
 			AND sps.disabled = 0
 			AND p.active = 1
+			{gender_filter}
 		""",
 			appointment_type,
 			pluck="parent",
@@ -525,16 +544,16 @@ def group_slots_by_duration_and_capacity(
 	Group consecutive slots that can accommodate the required duration plus buffers and capacity constraints
 
 	Args:
-			slots: List of slot dictionaries
-			required_duration: Required duration in minutes
-			buffer_before: Buffer time before appointment in minutes
-			buffer_after: Buffer time after appointment in minutes
-			appointment_type: Service being rendered
-			requires_unit: Does service require a physical/logical resource
+	                                slots: List of slot dictionaries
+	                                required_duration: Required duration in minutes
+	                                buffer_before: Buffer time before appointment in minutes
+	                                buffer_after: Buffer time after appointment in minutes
+	                                appointment_type: Service being rendered
+	                                requires_unit: Does service require a physical/logical resource
 
 
 	Returns:
-			List of available time slots with their component slots
+	                                List of available time slots with their component slots
 	"""
 
 	available_slots = []
@@ -869,11 +888,11 @@ def book_appointment_slot(appointment, provider, date, start_time, slot_ids):
 	Book slots for an appointment
 
 	Args:
-			appointment: Service Appointment name
-			provider: Provider ID
-			date: Appointment date
-			start_time: Start time
-			slot_ids: JSON array of slot IDs to book
+	                                appointment: Service Appointment name
+	                                provider: Provider ID
+	                                date: Appointment date
+	                                start_time: Start time
+	                                slot_ids: JSON array of slot IDs to book
 	"""
 
 	if isinstance(slot_ids, str):
@@ -912,7 +931,7 @@ def release_appointment_slots(appointment):
 	Release slots when appointment is cancelled
 
 	Args:
-			appointment: Service Appointment name
+	                                appointment: Service Appointment name
 	"""
 	frappe.db.sql(
 		"""

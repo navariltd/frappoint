@@ -3,18 +3,31 @@ import json
 import frappe
 from frappe import _
 
-from ..doctype.service_provider_appointment_slot.service_provider_appointment_slot import get_available_slots
+from ..doctype.service_provider_appointment_slot.service_provider_appointment_slot import (
+	get_available_slots,
+)
 
 
 @frappe.whitelist(allow_guest=True)
-def get_available_dates(service_type: str, duration: int, provider: str | None = None, days_ahead: int = 30):
+def get_available_dates(
+	service_type: str,
+	duration: int,
+	provider: str | None = None,
+	gender: str | None = None,
+	days_ahead: int = 30,
+):
 	"""
 	Get dates that have availability
 	Use case: Calendar view, date picker
 	"""
+	print("DEBUG: get_available_dates called with GENDER:", gender)
 
 	slots = get_available_slots(
-		appointment_type=service_type, duration=duration, provider=provider, days_ahead=days_ahead
+		appointment_type=service_type,
+		duration=duration,
+		provider=provider,
+		gender=gender,
+		days_ahead=days_ahead,
 	)
 
 	# Extract unique dates
@@ -24,14 +37,19 @@ def get_available_dates(service_type: str, duration: int, provider: str | None =
 
 
 @frappe.whitelist(allow_guest=True)
-def get_available_time_slots(service_type, duration, provider=None, date=None, days_ahead=30):
+def get_available_time_slots(service_type, duration, provider=None, date=None, gender=None, days_ahead=30):
 	"""
 	Get available time slots
 	Use case: Main booking interface
 	"""
 
 	return get_available_slots(
-		appointment_type=service_type, duration=duration, provider=provider, date=date, days_ahead=days_ahead
+		appointment_type=service_type,
+		duration=duration,
+		provider=provider,
+		date=date,
+		gender=gender,
+		days_ahead=days_ahead,
 	)
 
 

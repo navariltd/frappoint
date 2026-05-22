@@ -64,8 +64,9 @@ const normalizeSlot = (slot, date) => {
 	};
 };
 
-export async function fetchNormalizedAvailableDates({ serviceType, duration, provider }) {
-	const response = await fetchAvailableDatesApi({ serviceType, duration, provider });
+export async function fetchNormalizedAvailableDates({ serviceType, duration, provider, gender }) {
+	console.log("DEBUG: fetchNormalizedAvailableDates called with GENDER:", gender);
+	const response = await fetchAvailableDatesApi({ serviceType, duration, provider, gender });
 	const rows = Array.isArray(response) ? response : [];
 	return rows.map((date) => ({
 		date,
@@ -73,8 +74,20 @@ export async function fetchNormalizedAvailableDates({ serviceType, duration, pro
 	}));
 }
 
-export async function fetchNormalizedAvailableSlots({ serviceType, duration, provider, date }) {
-	const response = await fetchAvailableSlotsApi({ serviceType, duration, provider, date });
+export async function fetchNormalizedAvailableSlots({
+	serviceType,
+	duration,
+	provider,
+	date,
+	gender,
+}) {
+	const response = await fetchAvailableSlotsApi({
+		serviceType,
+		duration,
+		provider,
+		date,
+		gender,
+	});
 	const dateGroups = Array.isArray(response) ? response : [];
 	const targetGroup = dateGroups.find((group) => String(group.date) === String(date));
 	const rawSlots = targetGroup?.slots || [];

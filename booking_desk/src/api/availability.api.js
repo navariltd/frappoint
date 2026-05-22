@@ -33,9 +33,17 @@ const unwrapPayload = (payload) => {
 	return payload?.message ?? payload ?? null;
 };
 
-export async function fetchAvailableDatesApi({ serviceType, duration, provider, daysAhead = 30 }) {
+export async function fetchAvailableDatesApi({
+	serviceType,
+	duration,
+	provider,
+	gender,
+	daysAhead = 30,
+}) {
+	console.log("DEBUG: fetchAvailableDatesApi called with GENDER:", gender);
 	const params = { service_type: serviceType, duration, days_ahead: daysAhead };
 	if (provider) params.provider = provider;
+	if (gender) params.gender = gender;
 	const response = await availableDatesResource.fetch(params);
 	return unwrapPayload(response ?? availableDatesResource.data);
 }
@@ -45,10 +53,12 @@ export async function fetchAvailableSlotsApi({
 	duration,
 	provider,
 	date,
+	gender,
 	daysAhead = 30,
 }) {
 	const params = { service_type: serviceType, duration, date, days_ahead: daysAhead };
 	if (provider) params.provider = provider;
+	if (gender) params.gender = gender;
 	const response = await availableSlotsResource.fetch(params);
 	return unwrapPayload(response ?? availableSlotsResource.data);
 }
