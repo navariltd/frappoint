@@ -18,7 +18,7 @@
 						>
 					</nav>
 					<h1 class="font-headline-lg text-headline-lg text-on-surface mb-2">
-						Complete Your Payment
+						Assign Guests
 					</h1>
 					<p class="text-on-surface-variant font-body-md">
 						Step 2 of 4 — Tell us who will be enjoying each service.

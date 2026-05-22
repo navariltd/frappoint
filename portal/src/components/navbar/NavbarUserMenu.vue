@@ -1,13 +1,6 @@
 <template>
 	<div class="hidden md:flex items-center gap-4 relative z-[60]">
 		<RouterLink
-			class="bg-primary text-on-primary px-6 py-2.5 rounded-full font-label-md text-label-md hover:opacity-90 active:scale-95 transition-all"
-			:to="{ name: 'Services' }"
-		>
-			Book Now
-		</RouterLink>
-
-		<RouterLink
 			v-if="!isLoggedIn"
 			class="bg-primary/10 text-primary px-4 py-2 rounded-full font-label-md text-label-md hover:bg-primary/20 transition-colors"
 			:to="{ name: 'Login' }"

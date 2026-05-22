@@ -15,7 +15,7 @@ class ServiceAppointmentPaymentReference(Document):
 		from frappe.types import DF
 
 		allocated_amount: DF.Currency
-		currency: DF.Link | None
+		currency: DF.Link
 		grand_total: DF.Currency
 		outstanding_amount: DF.Currency
 		parent: DF.Data

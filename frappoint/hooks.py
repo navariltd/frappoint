@@ -19,7 +19,7 @@ before_tests = "frappoint.setup.utils.before_tests"
 add_to_apps_screen = [
 	{
 		"name": "frappoint",
-		"logo": "/assets/frappoint/images/logo_img.png",
+		"logo": "/assets/frappoint/images/frappoint_icon.png",
 		"title": "Frappoint",
 		"route": "/app/frappoint",
 		"has_permission": "frappoint.check_app_permission",
@@ -68,6 +68,7 @@ fixtures = [
 			]
 		],
 	},
+	{"doctype": "Custom HTML Block", "filters": [["name", "in", ["Booking Desk"]]]},
 ]
 
 # Includes in <head>
