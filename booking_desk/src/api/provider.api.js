@@ -60,4 +60,24 @@ export async function fetchProvidersByIds(providerIds = []) {
 	return unwrapListPayload(response ?? providerLookupResource.data);
 }
 
-export { providersListResource, providerLookupResource, PROVIDER_DOCTYPE };
+const genderResource = createResource({
+	url: "frappe.client.get_list",
+	auto: false,
+});
+
+export async function fetchAvailableGenders() {
+	const response = await genderResource.fetch({
+		doctype: "Gender",
+		fields: ["name"],
+		order_by: "name asc",
+		limit_page_length: 100,
+	});
+
+	const genders = unwrapListPayload(response ?? genderResource.data);
+	return genders.map((g) => ({
+		name: g.name,
+		label: g.name,
+	}));
+}
+
+export { providersListResource, providerLookupResource, genderResource, PROVIDER_DOCTYPE };

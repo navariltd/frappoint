@@ -90,6 +90,29 @@
 					</div>
 				</div>
 
+				<!-- Provider Gender Preference (Optional) -->
+				<div class="grid grid-cols-3 gap-2">
+					<div>
+						<label class="block text-[10px] text-on-surface-variant mb-1">
+							Provider Gender (Optional)
+						</label>
+						<select
+							v-model="localProviderGender"
+							class="w-full rounded-lg border border-outline-variant bg-surface px-3 py-2 text-[12px] outline-none focus:border-primary transition-colors"
+							@change="onGenderChange"
+						>
+							<option value="">— No preference</option>
+							<option
+								v-for="gender in availableGenders"
+								:key="gender.name"
+								:value="gender.name"
+							>
+								{{ gender.label }}
+							</option>
+						</select>
+					</div>
+				</div>
+
 				<p v-if="error" class="text-[11px] text-error">{{ error }}</p>
 			</div>
 
@@ -114,9 +137,10 @@
 </template>
 
 <script setup>
-import { ref, computed, watch } from "vue";
+import { ref, computed, watch, onMounted } from "vue";
 import DateSelectionSection from "./DateSelectionSection.vue";
 import SlotSelectionSection from "./SlotSelectionSection.vue";
+import { fetchAvailableGenders } from "@/api/provider.api";
 
 const emit = defineEmits([
 	"select-customer",
@@ -159,6 +183,18 @@ const isExpanded = ref(!props.guest.isComplete);
 const localName = ref(props.guest.fullName || "");
 const localEmail = ref(props.guest.email || "");
 const localPhone = ref(props.guest.mobileNo || "");
+const localProviderGender = ref(props.guest.providerGender || "");
+
+const availableGenders = ref([]);
+
+// Fetch available genders on mount
+onMounted(async () => {
+	try {
+		availableGenders.value = await fetchAvailableGenders();
+	} catch (error) {
+		console.error("Failed to fetch genders:", error);
+	}
+});
 
 // Sync from store when props change (e.g., after select-customer resolves)
 watch(
@@ -177,6 +213,12 @@ watch(
 	() => props.guest.mobileNo,
 	(v) => {
 		localPhone.value = v || "";
+	}
+);
+watch(
+	() => props.guest.providerGender,
+	(v) => {
+		localProviderGender.value = v || "";
 	}
 );
 
@@ -207,10 +249,25 @@ const onDetailChange = () => {
 	});
 };
 
+const onGenderChange = () => {
+	// Emit an event or you can handle this in the parent composable
+	// For now, the value is stored in localProviderGender
+	// The parent can access it when needed
+	if (props.guest.fullName) {
+		emit("quick-create", {
+			fullName: localName.value,
+			email: localEmail.value,
+			mobileNo: localPhone.value,
+			providerGender: localProviderGender.value,
+		});
+	}
+};
+
 const onClear = () => {
 	localName.value = "";
 	localEmail.value = "";
 	localPhone.value = "";
+	localProviderGender.value = "";
 	emit("clear-guest");
 };
 </script>
