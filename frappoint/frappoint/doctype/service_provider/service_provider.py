@@ -17,10 +17,7 @@ class ServiceProvider(Document):
 
 	if TYPE_CHECKING:
 		from frappe.types import DF
-
-		from frappoint.frappoint.doctype.service_provider_service.service_provider_service import (
-			ServiceProviderService,
-		)
+		from frappoint.frappoint.doctype.service_provider_service.service_provider_service import ServiceProviderService
 
 		active: DF.Check
 		branch: DF.Link | None
@@ -32,6 +29,7 @@ class ServiceProvider(Document):
 		email: DF.Data | None
 		employee: DF.Link | None
 		first_name: DF.Data
+		gender: DF.Link | None
 		google_calendar: DF.Link | None
 		grade: DF.Link | None
 		image: DF.AttachImage | None
