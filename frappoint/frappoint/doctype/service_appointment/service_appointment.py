@@ -86,12 +86,17 @@ class ServiceAppointment(Document):
 		is_group_booking: DF.Check
 		is_guest: DF.Check
 		mobile_no: DF.Data | None
-		naming_series: DF.Literal["SVC-APP-.MM.-.YY.-.###."]
+		naming_series: DF.Literal["SVC-APP-.MM.-.YY.-.###."]  # type: ignore[assignment]
 		notes: DF.Text | None
 		outstanding_amount: DF.Currency
 		payment_expires_at: DF.Datetime | None
 		payment_status: DF.Literal[
-			"Unpaid", "Paid", "Partly Paid", "Partly Refunded", "Refunded", "Cancellation"
+			"Unpaid",  # type: ignore[assignment]
+			"Paid",  # type: ignore[assignment]
+			"Partly Paid",  # type: ignore[assignment]
+			"Partly Refunded",  # type: ignore[assignment]
+			"Refunded",  # type: ignore[assignment]
+			"Cancellation",  # type: ignore[assignment]
 		]
 		reschedule_date: DF.Datetime | None
 		reschedule_notes: DF.Text | None
@@ -102,19 +107,19 @@ class ServiceAppointment(Document):
 		selected_slot_ids: DF.SmallText | None
 		service_provider_name: DF.Data | None
 		service_unit: DF.Link | None
-		source: DF.Literal["Desk", "Portal", "Booking Desk"]
+		source: DF.Literal["Desk", "Portal", "Booking Desk"]  # type: ignore[assignment]
 		start_time: DF.Time
 		status: DF.Literal[
-			"Open",
-			"Pending Payment",
-			"Confirmed",
-			"Checked In",
-			"In Progress",
-			"Rescheduled",
-			"Completed",
-			"Cancelled",
-			"Closed",
-			"No Show",
+			"Open",  # type: ignore[assignment]
+			"Pending Payment",  # type: ignore[assignment]
+			"Confirmed",  # type: ignore[assignment]
+			"Checked In",  # type: ignore[assignment]
+			"In Progress",  # type: ignore[assignment]
+			"Rescheduled",  # type: ignore[assignment]
+			"Completed",  # type: ignore[assignment]
+			"Cancelled",  # type: ignore[assignment]
+			"Closed",  # type: ignore[assignment]
+			"No Show",  # type: ignore[assignment]
 		]
 		total_amount: DF.Currency
 		total_guests: DF.Int
@@ -1698,7 +1703,10 @@ def reschedule_appointment(
 		# Move direct appointment payment records to the new appointment.
 		payment_rows = frappe.get_all(
 			"Service Appointment Payment",
-			filters={"reference_doctype": "Service Appointment", "reference_docname": old_appointment.name},
+			filters={
+				"reference_doctype": "Service Appointment",
+				"reference_docname": old_appointment.name,
+			},
 			fields=["name", "amount", "payment_received"],
 		)
 		paid_amount = 0
@@ -1714,7 +1722,10 @@ def reschedule_appointment(
 		# Move booking-allocation references so booking-paid balances follow the new appointment.
 		payment_reference_rows = frappe.get_all(
 			"Service Appointment Payment Reference",
-			filters={"reference_doctype": "Service Appointment", "reference_name": old_appointment.name},
+			filters={
+				"reference_doctype": "Service Appointment",
+				"reference_name": old_appointment.name,
+			},
 			fields=["name", "allocated_amount"],
 		)
 		allocated_paid_amount = 0
@@ -1727,7 +1738,10 @@ def reschedule_appointment(
 			)
 
 		# Fallback to old appointment paid state in case any payment links are stale.
-		old_paid_amount = max(0, flt(old_appointment.grand_total) - flt(old_appointment.outstanding_amount))
+		old_paid_amount = max(
+			0,
+			flt(old_appointment.grand_total) - flt(old_appointment.outstanding_amount),
+		)
 		paid_amount = max(paid_amount, allocated_paid_amount, old_paid_amount)
 
 		grand_total = flt(new_appointment.grand_total or new_appointment.total_amount)
