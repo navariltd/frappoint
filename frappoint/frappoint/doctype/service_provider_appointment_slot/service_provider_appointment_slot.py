@@ -368,27 +368,17 @@ def get_available_slots(appointment_type, duration, provider=None, date=None, ge
 	Get available slots for an appointment type
 
 	Args:
-	                                appointment_type: Name of the Appointment Type
-	                                duration: Duration of the appointment
-	                                provider: Optional - Filter by specific provider
-	                                date: Optional - Filter by specific date (YYYY-MM-DD)
-	                                gender: Optional - Filter providers by gender
-	                                days_ahead: Number of days to look ahead if no date specified
+		appointment_type: Name of the Appointment Type
+		duration: Duration of the appointment
+		provider: Optional - Filter by specific provider
+		date: Optional - Filter by specific date (YYYY-MM-DD)
+		gender: Optional - Filter providers by gender
+		days_ahead: Number of days to look ahead if no date specified
 
 	Returns:
-	                                List of available slots grouped by provider and date
+		List of available slots grouped by provider and date
 	"""
-	print(
-		"DEBUG: get_available_slots called with:",
-		{
-			"appointment_type": appointment_type,
-			"duration": duration,
-			"provider": provider,
-			"date": date,
-			"gender": gender,
-			"days_ahead": days_ahead,
-		},
-	)
+
 	apt_type = frappe.db.get_value(
 		"Service Type",
 		appointment_type,
