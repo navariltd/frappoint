@@ -42,9 +42,9 @@ export const useServicesStore = defineStore("services", {
 					service.category === state.selectedCategory;
 				const queryMatch =
 					!query ||
-					service.name.toLowerCase().includes(query) ||
-					service.description.toLowerCase().includes(query) ||
-					service.category.toLowerCase().includes(query);
+					String(service.name || "")
+						.toLowerCase()
+						.includes(query);
 				return categoryMatch && queryMatch;
 			});
 		},

@@ -86,7 +86,8 @@
 			v-if="statuses.length"
 			class="px-6 py-2 border-b border-outline-variant flex items-center gap-x-6 gap-y-1 flex-wrap bg-surface-container-lowest"
 		>
-			<span class="text-[11px] font-semibold text-on-surface-variant uppercase tracking-wider"
+			<span
+				class="text-[11px] font-semibold text-on-surface-variant uppercase tracking-wider"
 				>Legend</span
 			>
 			<span
