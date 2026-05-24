@@ -53,6 +53,187 @@ def get_global_max_advance_days():
 	return frappe.db.get_single_value("Service Appointment Settings", "max_advance_days")
 
 
+def _parse_slot_ids(slot_ids):
+	if not slot_ids:
+		return []
+
+	if isinstance(slot_ids, str):
+		return json.loads(slot_ids)
+
+	return list(slot_ids)
+
+
+def _get_current_booked_slot_ids(appointment_name):
+	return frappe.get_all(
+		"Service Provider Appointment Slot",
+		filters={"service_appointment": appointment_name},
+		pluck="name",
+		order_by="start_time asc, name asc",
+	)
+
+
+def _get_provider_change_options(appointment):
+	available_slots = get_available_slots(
+		appointment.appointment_type,
+		appointment.duration,
+		date=appointment.appointment_date,
+	)
+
+	for date_group in available_slots:
+		if str(date_group.get("date")) != str(appointment.appointment_date):
+			continue
+
+		for time_slot in date_group.get("slots", []):
+			if str(time_slot.get("start_time")) != str(appointment.start_time):
+				continue
+
+			if str(time_slot.get("end_time")) != str(appointment.end_time):
+				continue
+
+			return [
+				provider
+				for provider in time_slot.get("providers", [])
+				if provider.get("provider") != appointment.appointment_provider
+			]
+
+	return []
+
+
+def _validate_replacement_slots(appointment, slot_ids):
+	replacement_slots = []
+	provider_name = None
+
+	for slot_id in slot_ids:
+		slot = frappe.get_doc("Service Provider Appointment Slot", slot_id)
+
+		if not slot.is_available or slot.service_appointment:
+			frappe.throw(
+				_("Slot {0} is no longer available. Please select another provider.").format(slot_id),
+				title=_("Slot Not Available"),
+			)
+
+		if str(slot.posting_date) != str(appointment.appointment_date):
+			frappe.throw(_("Selected slot {0} does not match the appointment date.").format(slot_id))
+
+		if str(slot.start_time) < str(appointment.start_time) or str(slot.end_time) > str(
+			appointment.end_time
+		):
+			frappe.throw(_("Selected slot {0} does not match the appointment time window.").format(slot_id))
+
+		if provider_name is None:
+			provider_name = slot.provider
+		elif provider_name != slot.provider:
+			frappe.throw(_("All selected slots must belong to the same provider."))
+
+		replacement_slots.append(slot)
+
+	return provider_name, replacement_slots
+
+
+def _apply_provider_change(appointment, slot_ids):
+	current_slot_ids = _get_current_booked_slot_ids(appointment.name)
+	if not current_slot_ids:
+		frappe.throw(_("No booked slots were found for this appointment."))
+
+	if len(current_slot_ids) != len(slot_ids):
+		frappe.throw(
+			_("The selected provider must have the same number of slots as the current appointment.")
+		)
+
+	provider_name, replacement_slots = _validate_replacement_slots(appointment, slot_ids)
+
+	release_appointment_slots(appointment.name, commit=False)
+
+	appointment.selected_slot_ids = json.dumps(slot_ids)
+	appointment.appointment_provider = provider_name
+	appointment.service_unit = replacement_slots[0].service_unit if replacement_slots else None
+	appointment.book_selected_slots()
+
+	provider_label = frappe.db.get_value("Service Provider", provider_name, "provider_name")
+	frappe.db.set_value(
+		"Service Appointment",
+		appointment.name,
+		{
+			"selected_slot_ids": json.dumps(slot_ids),
+			"appointment_provider": provider_name,
+			"service_unit": appointment.service_unit,
+			"service_provider_name": provider_label,
+		},
+	)
+
+	return {
+		"provider": provider_name,
+		"provider_name": provider_label,
+		"slot_ids": slot_ids,
+	}
+
+
+@frappe.whitelist()
+def change_appointment_provider(appointment_name, slot_ids=None):
+	appointment = frappe.get_doc("Service Appointment", appointment_name)
+	current_slot_ids = _get_current_booked_slot_ids(appointment.name)
+
+	if appointment.docstatus == 2 or appointment.status in [
+		"Cancelled",
+		"Closed",
+		"Completed",
+		"No Show",
+	]:
+		frappe.throw(_("This appointment cannot be changed."))
+
+	if not current_slot_ids and not slot_ids:
+		return {
+			"success": True,
+			"appointment": appointment.name,
+			"current_provider": appointment.appointment_provider,
+			"provider_change_options": [],
+		}
+
+	provider_options = _get_provider_change_options(appointment)
+
+	if not slot_ids:
+		return {
+			"success": True,
+			"appointment": appointment.name,
+			"current_provider": appointment.appointment_provider,
+			"provider_change_options": provider_options,
+		}
+
+	slot_ids = _parse_slot_ids(slot_ids)
+	if not slot_ids:
+		frappe.throw(_("At least one replacement slot must be selected."))
+
+	selected_option = None
+	for provider in provider_options:
+		if provider.get("slot_ids") == slot_ids:
+			selected_option = provider
+			break
+
+	if not selected_option:
+		frappe.throw(_("The selected slot combination is no longer available."))
+
+	if selected_option is not None and selected_option.get("provider") == appointment.appointment_provider:
+		return {
+			"success": True,
+			"appointment": appointment.name,
+			"current_provider": appointment.appointment_provider,
+			"provider_change_options": provider_options,
+		}
+
+	change_result = _apply_provider_change(appointment, slot_ids)
+	frappe.db.commit()
+
+	return {
+		"success": True,
+		"message": _("Appointment provider changed successfully."),
+		"appointment": appointment.name,
+		"current_provider": change_result.get("provider"),
+		"provider_name": change_result.get("provider_name"),
+		"slot_ids": change_result.get("slot_ids"),
+		"provider_change_options": provider_options,
+	}
+
+
 def insert_slot(provider, slot_date, start_time, end_time, shift_assignment):
 	exists = frappe.db.exists(
 		"Service Provider Appointment Slot",
@@ -368,15 +549,15 @@ def get_available_slots(appointment_type, duration, provider=None, date=None, ge
 	Get available slots for an appointment type
 
 	Args:
-		appointment_type: Name of the Appointment Type
-		duration: Duration of the appointment
-		provider: Optional - Filter by specific provider
-		date: Optional - Filter by specific date (YYYY-MM-DD)
-		gender: Optional - Filter providers by gender
-		days_ahead: Number of days to look ahead if no date specified
+			appointment_type: Name of the Appointment Type
+			duration: Duration of the appointment
+			provider: Optional - Filter by specific provider
+			date: Optional - Filter by specific date (YYYY-MM-DD)
+			gender: Optional - Filter providers by gender
+			days_ahead: Number of days to look ahead if no date specified
 
 	Returns:
-		List of available slots grouped by provider and date
+			List of available slots grouped by provider and date
 	"""
 
 	apt_type = frappe.db.get_value(
@@ -534,16 +715,16 @@ def group_slots_by_duration_and_capacity(
 	Group consecutive slots that can accommodate the required duration plus buffers and capacity constraints
 
 	Args:
-	                                slots: List of slot dictionaries
-	                                required_duration: Required duration in minutes
-	                                buffer_before: Buffer time before appointment in minutes
-	                                buffer_after: Buffer time after appointment in minutes
-	                                appointment_type: Service being rendered
-	                                requires_unit: Does service require a physical/logical resource
+									slots: List of slot dictionaries
+									required_duration: Required duration in minutes
+									buffer_before: Buffer time before appointment in minutes
+									buffer_after: Buffer time after appointment in minutes
+									appointment_type: Service being rendered
+									requires_unit: Does service require a physical/logical resource
 
 
 	Returns:
-	                                List of available time slots with their component slots
+									List of available time slots with their component slots
 	"""
 
 	available_slots = []
@@ -878,11 +1059,11 @@ def book_appointment_slot(appointment, provider, date, start_time, slot_ids):
 	Book slots for an appointment
 
 	Args:
-	                                appointment: Service Appointment name
-	                                provider: Provider ID
-	                                date: Appointment date
-	                                start_time: Start time
-	                                slot_ids: JSON array of slot IDs to book
+									appointment: Service Appointment name
+									provider: Provider ID
+									date: Appointment date
+									start_time: Start time
+									slot_ids: JSON array of slot IDs to book
 	"""
 
 	if isinstance(slot_ids, str):
@@ -916,12 +1097,12 @@ def book_appointment_slot(appointment, provider, date, start_time, slot_ids):
 
 
 @frappe.whitelist()
-def release_appointment_slots(appointment):
+def release_appointment_slots(appointment, commit=True):
 	"""
 	Release slots when appointment is cancelled
 
 	Args:
-	                                appointment: Service Appointment name
+									appointment: Service Appointment name
 	"""
 	frappe.db.sql(
 		"""
@@ -933,6 +1114,7 @@ def release_appointment_slots(appointment):
 		appointment,
 	)
 
-	frappe.db.commit()
+	if commit:
+		frappe.db.commit()
 
 	return {"success": True, "message": _("Appointment slots released")}

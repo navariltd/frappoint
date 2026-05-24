@@ -52,7 +52,7 @@
 				type="button"
 				@click="$emit('reassign-provider')"
 			>
-				Reassign provider
+				Change Service Provider
 			</button>
 		</div>
 	</section>

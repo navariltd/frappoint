@@ -35,6 +35,67 @@
 								@reassign-provider="handleReassignProvider"
 							/>
 							<section
+								v-if="isProviderChangePanelOpen"
+								class="rounded-lg border border-outline-variant/40 bg-surface-container-lowest p-4 lg:p-5 space-y-4"
+							>
+								<div class="flex items-center justify-between gap-3">
+									<div>
+										<p
+											class="text-[11px] font-semibold uppercase tracking-[0.08em] text-outline"
+										>
+											Change provider
+										</p>
+										<h3
+											class="text-sm font-semibold text-on-surface tracking-tight"
+										>
+											Select a replacement provider for the same time
+										</h3>
+									</div>
+									<button
+										type="button"
+										class="px-3 py-1.5 rounded-md border border-outline-variant/60 text-on-surface-variant hover:bg-surface-container-high hover:border-outline transition-colors text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+										@click="closeProviderChangePanel"
+									>
+										Close
+									</button>
+								</div>
+								<div v-if="providerChangeError" class="text-sm text-error">
+									{{ providerChangeError }}
+								</div>
+								<div
+									v-else-if="providerChangeLoading"
+									class="text-sm text-on-surface-variant"
+								>
+									Loading available providers...
+								</div>
+								<div
+									v-else-if="providerChangeOptions.length"
+									class="grid grid-cols-1 md:grid-cols-2 gap-3"
+								>
+									<button
+										v-for="option in providerChangeOptions"
+										:key="option.slot_ids.join('-')"
+										type="button"
+										class="rounded-xl border border-outline-variant/60 px-4 py-3 text-left transition-colors hover:bg-surface-container-high hover:border-outline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+										@click="applyProviderChange(option)"
+									>
+										<div class="flex items-center justify-between gap-3">
+											<div>
+												<p class="font-semibold text-on-surface">
+													{{ option.provider_name || option.provider }}
+												</p>
+											</div>
+											<span class="material-symbols-outlined text-primary"
+												>swap_horiz</span
+											>
+										</div>
+									</button>
+								</div>
+								<div v-else class="text-sm text-on-surface-variant">
+									No replacement providers are available for this time.
+								</div>
+							</section>
+							<section
 								v-if="isReschedulePanelOpen"
 								class="rounded-lg border border-outline-variant/40 bg-surface-container-lowest p-4 lg:p-5 space-y-4"
 							>
@@ -140,6 +201,10 @@ const route = useRoute();
 const router = useRouter();
 const appointmentId = computed(() => String(route.params.appointmentId || ""));
 const isReschedulePanelOpen = ref(false);
+const isProviderChangePanelOpen = ref(false);
+const providerChangeLoading = ref(false);
+const providerChangeOptions = ref([]);
+const providerChangeError = ref("");
 const eventLogsStore = useAppointmentEventLogsStore();
 const { timelineSegments, activeSession, currentDuration, totalPauseSeconds } =
 	storeToRefs(eventLogsStore);
@@ -199,6 +264,41 @@ const closeReschedulePanel = () => {
 	isReschedulePanelOpen.value = false;
 };
 
+const closeProviderChangePanel = () => {
+	isProviderChangePanelOpen.value = false;
+	providerChangeLoading.value = false;
+	providerChangeOptions.value = [];
+	providerChangeError.value = "";
+};
+
+const handleReassignProvider = async () => {
+	providerChangeError.value = "";
+	providerChangeLoading.value = true;
+	try {
+		const response = await reassignProvider();
+		providerChangeOptions.value = response?.providerChangeOptions || [];
+		isProviderChangePanelOpen.value = true;
+	} catch (error) {
+		providerChangeError.value = error?.message || "Could not load replacement providers.";
+		isProviderChangePanelOpen.value = true;
+	} finally {
+		providerChangeLoading.value = false;
+	}
+};
+
+const applyProviderChange = async (option) => {
+	if (!option?.slot_ids?.length) {
+		return;
+	}
+
+	await reassignProvider({
+		provider: option.provider,
+		slotIds: option.slot_ids,
+		serviceUnit: option.service_unit,
+	});
+	closeProviderChangePanel();
+};
+
 const applySelectedSlot = async () => {
 	const response = await applySelectedSlotAction();
 	const nextAppointmentId = response?.nextAppointmentId || response?.appointment?.appointmentId;
@@ -230,11 +330,5 @@ const completeAppointment = async () => {
 
 const cancelAppointment = async () => {
 	await cancel();
-};
-
-const handleReassignProvider = async () => {
-	await reassignProvider(
-		selectedSlot.value?.providers?.[0]?.provider || appointment.value.provider
-	);
 };
 </script>
