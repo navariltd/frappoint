@@ -70,7 +70,7 @@
 				:disabled="busy || !actions.canReassignProvider"
 				@click="$emit('reassign-provider')"
 			>
-				Reassign provider
+				Change Service Provider
 			</button>
 			<button
 				class="px-4 py-2.5 rounded-md border border-error/70 text-error bg-transparent hover:bg-error/10 hover:border-error transition-colors shadow-sm hover:shadow focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-error/30 disabled:opacity-45 disabled:cursor-not-allowed"

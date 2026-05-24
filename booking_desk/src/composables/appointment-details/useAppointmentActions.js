@@ -42,14 +42,20 @@ export function useAppointmentActions() {
 			newServiceUnit: payload.newServiceUnit,
 		});
 
-	const reassignProvider = (provider) =>
-		reschedule({
+	const reassignProvider = (payload = null) => {
+		const normalizedPayload =
+			typeof payload === "string" ? { provider: payload } : payload || {};
+
+		return reschedule({
 			action: "reassign_provider",
 			newAppointmentDate: store.appointment.appointmentDate,
 			newStartTime: store.appointment.startTime,
 			newEndTime: store.appointment.endTime,
-			newProvider: provider,
+			newProvider: normalizedPayload.provider,
+			newSlotIds: normalizedPayload.slotIds,
+			newServiceUnit: normalizedPayload.serviceUnit,
 		});
+	};
 
 	const editTimeSlot = ({ date, startTime, endTime, provider, slotIds, serviceUnit }) =>
 		reschedule({
