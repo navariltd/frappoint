@@ -17,7 +17,10 @@ class ServiceProvider(Document):
 
 	if TYPE_CHECKING:
 		from frappe.types import DF
-		from frappoint.frappoint.doctype.service_provider_service.service_provider_service import ServiceProviderService
+
+		from frappoint.frappoint.doctype.service_provider_service.service_provider_service import (
+			ServiceProviderService,
+		)
 
 		active: DF.Check
 		branch: DF.Link | None

@@ -58,7 +58,6 @@
 					@changeView="onCalendarChangeView"
 				/>
 			</main>
-
 		</div>
 	</div>
 </template>
@@ -122,7 +121,6 @@ const {
 const { openBooking, collectPayment, checkIn, reschedule, cancelBooking } = useBookingActions();
 
 const { goPrev, goNext, goToday, setView: setCalendarView } = useCalendarWorkspace();
-
 
 const views = [
 	{ value: BOOKING_VIEWS.BOOKINGS, label: "Bookings" },
