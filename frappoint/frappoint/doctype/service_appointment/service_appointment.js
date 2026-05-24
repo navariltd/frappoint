@@ -173,6 +173,10 @@ frappe.ui.form.on("Service Appointment", {
 				reschedule_appointment(frm);
 			});
 
+			frm.add_custom_button(__("Change Service Provider"), function () {
+				show_change_service_provider_dialog(frm);
+			});
+
 			if (frm.page.btn_secondary) {
 				frm.page.btn_secondary.hide();
 			}
@@ -718,6 +722,172 @@ function update_slot_display(dialog, frm) {
 	html += `</div>`;
 
 	dialog.fields_dict.slot_display.$wrapper.html(html);
+}
+
+function show_change_service_provider_dialog(frm) {
+	if (!frm.doc.name) {
+		frappe.msgprint(__("Save the appointment before changing the service provider."));
+		return;
+	}
+
+	frappe.dom.freeze(__("Loading available providers..."));
+	frappe.call({
+		method: "frappoint.frappoint.doctype.service_provider_appointment_slot.service_provider_appointment_slot.change_appointment_provider",
+		args: {
+			appointment_name: frm.doc.name,
+		},
+		callback: function (r) {
+			frappe.dom.unfreeze();
+
+			const response = r.message || {};
+			const provider_options = response.provider_change_options || [];
+
+			if (!provider_options.length) {
+				frappe.msgprint(
+					__("No replacement providers are available for this appointment time.")
+				);
+				return;
+			}
+
+			const dialog = new frappe.ui.Dialog({
+				title: __("Change Service Provider"),
+				fields: [
+					{
+						fieldname: "provider_intro",
+						fieldtype: "HTML",
+					},
+					{
+						fieldname: "provider_list",
+						fieldtype: "HTML",
+					},
+				],
+				primary_action_label: __("Change Provider"),
+				primary_action: function () {
+					const selected_option = dialog.selected_provider_option;
+					if (!selected_option) {
+						frappe.msgprint(__("Please select a replacement provider."));
+						return;
+					}
+
+					dialog.hide();
+					frappe.dom.freeze(__("Updating service provider..."));
+					frappe.call({
+						method: "frappoint.frappoint.doctype.service_provider_appointment_slot.service_provider_appointment_slot.change_appointment_provider",
+						args: {
+							appointment_name: frm.doc.name,
+							slot_ids: JSON.stringify(selected_option.slot_ids || []),
+						},
+						callback: function (update_response) {
+							frappe.dom.unfreeze();
+							const update_result = update_response.message || {};
+							if (!update_result.success) {
+								frappe.msgprint(
+									update_result.message ||
+										__(
+											"Failed to change the service provider. Please try again."
+										)
+								);
+								return;
+							}
+
+							frappe.show_alert({
+								message: __("Service provider updated successfully."),
+								indicator: "green",
+							});
+							frm.reload_doc();
+						},
+						error: function () {
+							frappe.dom.unfreeze();
+							frappe.msgprint({
+								title: __("Error"),
+								message: __(
+									"Failed to change the service provider. Please try again."
+								),
+								indicator: "red",
+							});
+						},
+					});
+				},
+			});
+
+			dialog.fields_dict.provider_intro.$wrapper.html(`
+				<div class="text-sm text-muted" style="margin-bottom: 12px;">
+					${__("Select a replacement provider for this appointment's current time slot.")}
+				</div>
+			`);
+
+			const provider_list_html = provider_options
+				.map((option, index) => {
+					const provider_name = option.provider_name || option.provider;
+					const service_unit_name =
+						option.service_unit_name || option.service_unit || "";
+					const slot_count = (option.slot_ids || []).length;
+
+					return `
+						<button
+							type="button"
+							class="provider-change-option"
+							data-index="${index}"
+							style="width:100%; text-align:left; padding:12px 14px; border:1px solid var(--border-color); border-radius:10px; background:var(--card-bg); margin-bottom:10px; transition:all 0.15s ease;"
+						>
+							<div style="display:flex; align-items:center; justify-content:space-between; gap:12px;">
+								<div>
+									<div style="font-weight:600; color:var(--text-color);">${provider_name}</div>
+									<div style="font-size:12px; color:var(--text-muted); margin-top:4px;">
+										${service_unit_name ? `${service_unit_name} · ` : ""}${slot_count} slot${
+						slot_count === 1 ? "" : "s"
+					}
+									</div>
+								</div>
+								<span class="material-symbols-outlined" style="color:var(--primary);">swap_horiz</span>
+							</div>
+						</button>
+					`;
+				})
+				.join("");
+
+			dialog.fields_dict.provider_list.$wrapper.html(`
+				<div class="provider-change-options">${provider_list_html}</div>
+			`);
+
+			dialog.selected_provider_option = provider_options[0] || null;
+			dialog.fields_dict.provider_list.$wrapper.find(".provider-change-option").first().css({
+				borderColor: "var(--primary)",
+				background: "var(--primary-extra-light)",
+			});
+
+			dialog.fields_dict.provider_list.$wrapper.on(
+				"click",
+				".provider-change-option",
+				function () {
+					const index = Number($(this).attr("data-index"));
+					const option = provider_options[index];
+					if (!option) return;
+
+					dialog.selected_provider_option = option;
+					dialog.fields_dict.provider_list.$wrapper.find(".provider-change-option").css({
+						borderColor: "var(--border-color)",
+						background: "var(--card-bg)",
+					});
+					$(this).css({
+						borderColor: "var(--primary)",
+						background: "var(--primary-extra-light)",
+					});
+				}
+			);
+
+			dialog.show();
+		},
+		error: function () {
+			frappe.dom.unfreeze();
+			frappe.msgprint({
+				title: __("Error"),
+				message: __("Failed to load replacement providers. Please try again."),
+				indicator: "red",
+			});
+		},
+	});
+	return;
 }
 
 function select_slot(frm, selected_slot, dialog) {
