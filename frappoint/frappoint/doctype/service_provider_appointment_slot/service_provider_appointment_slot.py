@@ -904,21 +904,21 @@ def check_service_unit_capacity(
 	if capacity is None:
 		capacity = service_unit_doc.capacity or 1
 
-	# If allow_overlap is true, capacity can be higher
+	# If overlap is disabled, enforce single occupancy regardless of configured capacities.
 	if service_unit_doc.allow_overlap:
 		# Use max_clients_per_slot if specified, otherwise use capacity
 		effective_capacity = max(capacity, max_clients_per_slot)
 	else:
-		effective_capacity = min(capacity, max_clients_per_slot)
+		effective_capacity = 1
 
 	filters = {
 		"service_unit": service_unit,
 		"appointment_date": date,
 		"status": ["not in", ["Cancelled", "No Show", "Closed"]],
 		"docstatus": ["!=", 2],  # Not cancelled
-		# Check for time overlap
-		"start_time": ["<=", end_time],
-		"end_time": [">=", start_time],
+		# Half-open interval overlap: existing.start < new.end AND existing.end > new.start
+		"start_time": ["<", end_time],
+		"end_time": [">", start_time],
 	}
 
 	if exclude_appointment:
