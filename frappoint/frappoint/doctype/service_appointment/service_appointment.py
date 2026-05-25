@@ -400,14 +400,30 @@ class ServiceAppointment(Document):
 		"""
 		Validate that the appointment does not overlap with existing appointments
 		for the same provider on the same date and time range.
+
+		For capacity-enabled services, overlap is handled by capacity validation
+		instead of hard-blocking here.
 		"""
 		if not self.appointment_provider or not all([self.appointment_date, self.start_time, self.end_time]):
 			return
 
-		# The overlap logic checks three conditions:
-		# 1. Existing appointment starts before and ends during this appointment
-		# 2. Existing appointment starts during this appointment
-		# 3. Existing appointment has exact same start time
+		if not self.appointment_type:
+			return
+
+		requires_unit, _unit_types = service_type_requires_service_unit(self.appointment_type)
+		apt_type = frappe.get_doc("Service Type", self.appointment_type)
+		max_clients = apt_type.max_clients_per_slot or 1
+
+		if requires_unit and self.service_unit:
+			allow_overlap = frappe.db.get_value("Service Unit", self.service_unit, "allow_overlap")
+			# Service unit overlap-enabled bookings are governed by capacity checks.
+			if allow_overlap:
+				return
+		elif max_clients > 1:
+			# For services without service units, service-level capacity governs overlap.
+			return
+
+		# Half-open interval overlap: existing.start < new.end AND existing.end > new.start
 		overlapping_appointments = frappe.db.sql(
 			"""
 			SELECT
@@ -422,11 +438,8 @@ class ServiceAppointment(Document):
 				AND appointment_provider = %(appointment_provider)s
 				AND start_time IS NOT NULL
 				AND end_time IS NOT NULL
-				AND (
-					(start_time < %(start_time)s AND end_time > %(start_time)s) OR
-					(start_time >= %(start_time)s AND start_time < %(end_time)s) OR
-					(start_time = %(start_time)s)
-				)
+				AND start_time < %(end_time)s
+				AND end_time > %(start_time)s
 			""",
 			{
 				"appointment_date": self.appointment_date,
