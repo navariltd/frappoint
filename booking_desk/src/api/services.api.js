@@ -24,13 +24,17 @@ const serviceTypeDetailsResource = createResource({
 	auto: false,
 });
 
+const customerSearchResource = createResource({
+	url: "frappe.client.get_list",
+	auto: false,
+});
+
 const customersResource = createListResource({
 	doctype: CUSTOMER_DOCTYPE,
 	fields: ["name", "customer_name"],
 	orderBy: "customer_name asc",
-	pageLength: 500,
+	pageLength: 5000,
 	auto: false,
-	cache: ["services", "customers"],
 });
 
 const customerAppointmentsResource = createResource({
@@ -96,9 +100,31 @@ export async function fetchCustomers() {
 		doctype: CUSTOMER_DOCTYPE,
 		fields: ["name", "customer_name"],
 		order_by: "customer_name asc",
-		limit_page_length: 500,
+		limit_page_length: 5000,
 	});
 	return unwrapListPayload(fallback ?? fallbackListResource.data);
+}
+
+export async function searchCustomers(query = "", pageLength = 50) {
+	const term = String(query || "").trim();
+	const normalizedPageLength = Math.max(1, Math.min(Number(pageLength) || 50, 100));
+	const orFilters = [];
+
+	if (term) {
+		const needle = `%${term}%`;
+		orFilters.push(["name", "like", needle], ["customer_name", "like", needle]);
+	}
+
+	const response = await customerSearchResource.fetch({
+		doctype: CUSTOMER_DOCTYPE,
+		fields: ["name", "customer_name"],
+		or_filters: orFilters.length ? orFilters : undefined,
+		order_by: "customer_name asc",
+		limit_start: 0,
+		limit_page_length: normalizedPageLength,
+	});
+
+	return unwrapListPayload(response ?? customerSearchResource.data);
 }
 
 export async function fetchCustomerRecentAppointments(customerId) {
@@ -133,6 +159,7 @@ export {
 	APPOINTMENT_DOCTYPE,
 	serviceTypesResource,
 	serviceTypeDetailsResource,
+	customerSearchResource,
 	customersResource,
 	customerAppointmentsResource,
 };

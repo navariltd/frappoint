@@ -3,6 +3,7 @@ import {
 	fetchCustomers,
 	fetchServiceTypeDetails,
 	fetchServiceTypes,
+	searchCustomers,
 } from "@/api/services.api";
 
 const toAmount = (value) => {
@@ -96,6 +97,14 @@ export function buildServiceCategories(services) {
 
 export async function fetchNormalizedCustomers() {
 	const customers = await fetchCustomers();
+	return customers.map((row) => ({
+		id: row.name,
+		name: row.customer_name || row.name,
+	}));
+}
+
+export async function searchNormalizedCustomers(query = "", pageLength = 50) {
+	const customers = await searchCustomers(query, pageLength);
 	return customers.map((row) => ({
 		id: row.name,
 		name: row.customer_name || row.name,

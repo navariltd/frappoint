@@ -32,6 +32,7 @@ export const useGuestAssignmentStore = defineStore("guestAssignment", {
 		errorByGuest: {},
 		customers: [],
 		selectedCustomerId: "",
+		selectedCustomer: null,
 	}),
 	getters: {
 		progress(state) {
@@ -52,15 +53,18 @@ export const useGuestAssignmentStore = defineStore("guestAssignment", {
 			cartItems = [],
 			customers = [],
 			selectedCustomerId = "",
+			selectedCustomer = null,
 			appointmentsByGuestKey = {},
 		}) {
 			this.customers = customers;
 			this.selectedCustomerId = selectedCustomerId;
-			const selectedCustomer =
-				customers.find((item) => item.id === selectedCustomerId) || null;
+			const resolvedSelectedCustomer =
+				selectedCustomer ||
+				customers.find((item) => item.id === selectedCustomerId) ||
+				null;
 			this.assignments = buildAssignmentsFromCart(
 				cartItems,
-				selectedCustomer,
+				resolvedSelectedCustomer,
 				appointmentsByGuestKey
 			);
 			this.activeServiceIndex = 0;
