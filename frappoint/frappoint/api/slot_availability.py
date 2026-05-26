@@ -11,7 +11,7 @@ def get_available_dates(
 	duration: int,
 	provider: str | None = None,
 	gender: str | None = None,
-	days_ahead: int = 30,
+	days_ahead: int | str | None = None,
 ):
 	"""
 	Get dates that have availability
@@ -32,7 +32,7 @@ def get_available_dates(
 
 
 @frappe.whitelist(allow_guest=True)
-def get_available_time_slots(service_type, duration, provider=None, date=None, gender=None, days_ahead=30):
+def get_available_time_slots(service_type, duration, provider=None, date=None, gender=None, days_ahead=None):
 	"""
 	Get available time slots
 	Use case: Main booking interface

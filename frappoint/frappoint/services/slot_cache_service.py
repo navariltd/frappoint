@@ -38,6 +38,26 @@ def _get_all_dates_for_window(days_ahead: int):
 	return [add_days(start, idx) for idx in range((end - start).days + 1)]
 
 
+def _resolve_horizon_days(days_ahead=None) -> int:
+	"""Resolve requested horizon using Service Appointment Settings.max_advance_days."""
+	settings_horizon = int(
+		frappe.db.get_single_value("Service Appointment Settings", "max_advance_days") or 30
+	)
+
+	if days_ahead in (None, ""):
+		return settings_horizon
+
+	try:
+		requested_horizon = int(days_ahead)
+	except (TypeError, ValueError):
+		return settings_horizon
+
+	if requested_horizon <= 0:
+		return settings_horizon
+
+	return min(requested_horizon, settings_horizon)
+
+
 def _get_service_durations(service_type: str) -> list[int]:
 	rows = frappe.get_all(
 		"Service Type Price",
@@ -114,7 +134,7 @@ def get_cached_available_slots(
 	provider=None,
 	date=None,
 	gender=None,
-	days_ahead=30,
+	days_ahead=None,
 	compute_day_fn=None,
 ):
 	"""
@@ -131,7 +151,7 @@ def get_cached_available_slots(
 	if date:
 		target_dates = [getdate(date)]
 	else:
-		target_dates = _get_all_dates_for_window(days_ahead)
+		target_dates = _get_all_dates_for_window(_resolve_horizon_days(days_ahead))
 
 	results = []
 	for target_date in target_dates:

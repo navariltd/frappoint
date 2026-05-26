@@ -53,6 +53,25 @@ def get_global_max_advance_days():
 	return frappe.db.get_single_value("Service Appointment Settings", "max_advance_days")
 
 
+def get_effective_max_advance_days(days_ahead=None):
+	"""Resolve requested horizon against Service Appointment Settings.max_advance_days."""
+	settings_horizon = int(get_global_max_advance_days() or 30)
+
+	if days_ahead in (None, ""):
+		return settings_horizon
+
+	try:
+		requested_horizon = int(days_ahead)
+	except (TypeError, ValueError):
+		return settings_horizon
+
+	if requested_horizon <= 0:
+		return settings_horizon
+
+	# Prevent unbounded scans while still honoring explicit smaller caller windows.
+	return min(requested_horizon, settings_horizon)
+
+
 def _parse_slot_ids(slot_ids):
 	if not slot_ids:
 		return []
@@ -558,8 +577,10 @@ def service_type_requires_service_unit(service_type):
 
 
 @frappe.whitelist()
-def get_available_slots(appointment_type, duration, provider=None, date=None, gender=None, days_ahead=30):
+def get_available_slots(appointment_type, duration, provider=None, date=None, gender=None, days_ahead=None):
 	from ...services.slot_cache_service import get_cached_available_slots
+
+	effective_days_ahead = get_effective_max_advance_days(days_ahead)
 
 	def _compute_for_day(day_date):
 		return _get_available_slots_db(
@@ -578,7 +599,7 @@ def get_available_slots(appointment_type, duration, provider=None, date=None, ge
 			provider=provider,
 			date=date,
 			gender=gender,
-			days_ahead=days_ahead,
+			days_ahead=effective_days_ahead,
 			compute_day_fn=_compute_for_day,
 		)
 	except Exception:
@@ -589,11 +610,13 @@ def get_available_slots(appointment_type, duration, provider=None, date=None, ge
 			provider=provider,
 			date=date,
 			gender=gender,
-			days_ahead=days_ahead,
+			days_ahead=effective_days_ahead,
 		)
 
 
-def _get_available_slots_db(appointment_type, duration, provider=None, date=None, gender=None, days_ahead=30):
+def _get_available_slots_db(
+	appointment_type, duration, provider=None, date=None, gender=None, days_ahead=None
+):
 	"""
 	Get available slots for an appointment type
 
@@ -661,8 +684,8 @@ def _get_available_slots_db(appointment_type, duration, provider=None, date=None
 		end_date = start_date
 	else:
 		start_date = getdate(nowdate())
-		days_ahead = settings.max_advance_days or days_ahead
-		end_date = add_days(start_date, days_ahead)
+		effective_days_ahead = get_effective_max_advance_days(days_ahead)
+		end_date = add_days(start_date, effective_days_ahead)
 
 	past_booking_filter = ""
 	if not allow_past_booking:

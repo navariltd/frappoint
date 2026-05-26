@@ -33,14 +33,36 @@ const unwrapPayload = (payload) => {
 	return payload?.message ?? payload ?? null;
 };
 
+const getValidDaysAhead = (value) => {
+	if (value === undefined || value === null || value === "") {
+		return null;
+	}
+
+	if (typeof value === "string") {
+		const normalized = value.trim().toLowerCase();
+		if (!normalized || normalized === "undefined" || normalized === "null") {
+			return null;
+		}
+	}
+
+	const parsed = Number(value);
+	if (!Number.isFinite(parsed) || parsed <= 0) {
+		return null;
+	}
+
+	return Math.floor(parsed);
+};
+
 export async function fetchAvailableDatesApi({
 	serviceType,
 	duration,
 	provider,
 	gender,
-	daysAhead = 30,
+	daysAhead,
 }) {
-	const params = { service_type: serviceType, duration, days_ahead: daysAhead };
+	const params = { service_type: serviceType, duration };
+	const sanitizedDaysAhead = getValidDaysAhead(daysAhead);
+	if (sanitizedDaysAhead) params.days_ahead = sanitizedDaysAhead;
 	if (provider) params.provider = provider;
 	if (gender) params.gender = gender;
 	const response = await availableDatesResource.fetch(params);
@@ -53,9 +75,11 @@ export async function fetchAvailableSlotsApi({
 	provider,
 	date,
 	gender,
-	daysAhead = 30,
+	daysAhead,
 }) {
-	const params = { service_type: serviceType, duration, date, days_ahead: daysAhead };
+	const params = { service_type: serviceType, duration, date };
+	const sanitizedDaysAhead = getValidDaysAhead(daysAhead);
+	if (sanitizedDaysAhead) params.days_ahead = sanitizedDaysAhead;
 	if (provider) params.provider = provider;
 	if (gender) params.gender = gender;
 	const response = await availableSlotsResource.fetch(params);
