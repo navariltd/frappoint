@@ -198,6 +198,7 @@ scheduler_events = {
 	"daily": [
 		"frappoint.utils.purge_old_slots",
 		"frappoint.utils.replenish_slot_window",
+		"frappoint.utils.nightly_slot_cache_pregeneration",
 	],
 	# "hourly": [
 	# 	"frappoint.tasks.hourly"

@@ -4,6 +4,10 @@ from frappe.utils import add_days, date_diff, getdate, now_datetime
 from .frappoint.doctype.service_provider_appointment_slot.service_provider_appointment_slot import (
 	generate_slots_for_specific_days,
 )
+from .frappoint.services.slot_cache_service import (
+	enqueue_nightly_slot_cache_pregeneration,
+	purge_slot_cache_before_date,
+)
 
 
 def purge_old_slots():
@@ -16,6 +20,7 @@ def purge_old_slots():
 		purge_date = today
 
 	frappe.db.delete("Service Provider Appointment Slot", {"posting_date": ["<", purge_date]})
+	purge_slot_cache_before_date(purge_date)
 
 	frappe.db.commit()
 	return f"Purged slots older than {purge_date}"
@@ -52,6 +57,11 @@ def replenish_slot_window():
 		generate_slots_for_specific_days(
 			shift_assignment=shift.name, weekdays=weekdays, start_date=gen_start, end_date=shift_end
 		)
+
+
+def nightly_slot_cache_pregeneration():
+	"""Enqueue Redis slot-cache pre-generation for the active booking horizon."""
+	enqueue_nightly_slot_cache_pregeneration()
 
 
 def expire_pending_payment_holds():

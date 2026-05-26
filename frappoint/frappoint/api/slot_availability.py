@@ -1,7 +1,4 @@
-import json
-
 import frappe
-from frappe import _
 
 from ..doctype.service_provider_appointment_slot.service_provider_appointment_slot import (
 	get_available_slots,
@@ -20,8 +17,6 @@ def get_available_dates(
 	Get dates that have availability
 	Use case: Calendar view, date picker
 	"""
-	print("DEBUG: get_available_dates called with GENDER:", gender)
-
 	slots = get_available_slots(
 		appointment_type=service_type,
 		duration=duration,
