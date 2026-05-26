@@ -33,6 +33,7 @@ class ServiceAppointmentSettings(Document):
 		default_google_calendar: DF.Link | None
 		default_item_group: DF.Link | None
 		default_slot_size: DF.Int
+		enable_appointment_confirmation_without_payment: DF.Check
 		enable_partial_confirmation: DF.Check
 		lead_time_hours: DF.Int
 		max_advance_days: DF.Int

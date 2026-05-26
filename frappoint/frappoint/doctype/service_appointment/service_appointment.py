@@ -21,6 +21,7 @@ from frappe.utils import (
 	now_datetime,
 	today,
 )
+from frappe.utils.user import is_website_user
 
 from ..service_provider_appointment_slot.service_provider_appointment_slot import (
 	check_provider_slot_capacity,
@@ -266,6 +267,9 @@ class ServiceAppointment(Document):
 		required_amount = flt(self.confirmation_required_amount)
 
 		if paid_amount < required_amount:
+			if self._can_confirm_without_payment_from_desk():
+				return
+
 			expiry_text = ""
 			if self.payment_expires_at:
 				expiry_text = _("Payment hold expires at {0}.").format(
@@ -279,6 +283,17 @@ class ServiceAppointment(Document):
 				),
 				title=_("Payment Required"),
 			)
+
+	def _can_confirm_without_payment_from_desk(self):
+		"""Allow unpaid confirmation only for desk-side users when enabled in settings."""
+		settings = frappe.get_cached_doc("Service Appointment Settings")
+		if not settings.enable_appointment_confirmation_without_payment:
+			return False
+
+		if frappe.session.user == "Guest":
+			return False
+
+		return not is_website_user()
 
 	def on_cancel(self):
 		"""Release slots when appointment is cancelled"""
