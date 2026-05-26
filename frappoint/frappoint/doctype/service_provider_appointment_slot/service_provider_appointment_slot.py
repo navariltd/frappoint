@@ -261,6 +261,8 @@ def insert_slot(provider, slot_date, start_time, end_time, shift_assignment):
 
 @frappe.whitelist()
 def generate_for_shift(shift_assignment):
+	from ...services.slot_cache_service import invalidate_provider_date_range_cache
+
 	sa = frappe.get_doc("Service Provider Shift Assignment", shift_assignment)
 	st = frappe.get_doc("Service Provider Shift Type", sa.shift_type)
 
@@ -272,6 +274,9 @@ def generate_for_shift(shift_assignment):
 			0,
 		)
 		frappe.db.commit()
+		invalidate_provider_date_range_cache(
+			sa.provider, sa.start_date, sa.end_date or add_days(nowdate(), 365)
+		)
 		return "Slots marked as unavailable"
 
 	frappe.db.delete(
@@ -391,11 +396,15 @@ def generate_for_shift(shift_assignment):
 			frappe.get_doc(slot).insert(ignore_permissions=True)
 		frappe.db.commit()
 
+	invalidate_provider_date_range_cache(sa.provider, start_date, end_date)
+
 	return f"Slots generated: {len(slots_to_insert)}"
 
 
 def generate_slots_for_specific_days(shift_assignment, weekdays, start_date, end_date):
 	"""Generate slots only for specific weekdays"""
+	from ...services.slot_cache_service import invalidate_provider_date_range_cache
+
 	sa = frappe.get_doc("Service Provider Shift Assignment", shift_assignment)
 	st = frappe.get_doc("Service Provider Shift Type", sa.shift_type)
 
@@ -490,11 +499,15 @@ def generate_slots_for_specific_days(shift_assignment, weekdays, start_date, end
 			frappe.get_doc(slot).insert(ignore_permissions=True)
 		frappe.db.commit()
 
+	invalidate_provider_date_range_cache(sa.provider, start_date, end_date)
+
 	return f"Generated {len(slots_to_insert)} new slots for {', '.join(weekdays)}"
 
 
 def delete_slots_for_specific_days(shift_assignment, weekdays):
 	"""Delete slots only for specific weekdays (only unbooked slots)"""
+	from ...services.slot_cache_service import invalidate_provider_date_range_cache
+
 	sa = frappe.get_doc("Service Provider Shift Assignment", shift_assignment)
 
 	start_date = sa.start_date
@@ -524,6 +537,7 @@ def delete_slots_for_specific_days(shift_assignment, weekdays):
 	)
 
 	frappe.db.commit()
+	invalidate_provider_date_range_cache(sa.provider, start_date, end_date)
 
 	count = deleted_count if isinstance(deleted_count, int) else len(dates_to_delete)
 	return f"Deleted slots for {', '.join(weekdays)} ({count} dates processed)"
@@ -545,6 +559,41 @@ def service_type_requires_service_unit(service_type):
 
 @frappe.whitelist()
 def get_available_slots(appointment_type, duration, provider=None, date=None, gender=None, days_ahead=30):
+	from ...services.slot_cache_service import get_cached_available_slots
+
+	def _compute_for_day(day_date):
+		return _get_available_slots_db(
+			appointment_type=appointment_type,
+			duration=duration,
+			provider=None,
+			date=day_date,
+			gender=None,
+			days_ahead=0,
+		)
+
+	try:
+		return get_cached_available_slots(
+			appointment_type=appointment_type,
+			duration=duration,
+			provider=provider,
+			date=date,
+			gender=gender,
+			days_ahead=days_ahead,
+			compute_day_fn=_compute_for_day,
+		)
+	except Exception:
+		# Fallback to DB path on cache layer failures.
+		return _get_available_slots_db(
+			appointment_type=appointment_type,
+			duration=duration,
+			provider=provider,
+			date=date,
+			gender=gender,
+			days_ahead=days_ahead,
+		)
+
+
+def _get_available_slots_db(appointment_type, duration, provider=None, date=None, gender=None, days_ahead=30):
 	"""
 	Get available slots for an appointment type
 
@@ -589,8 +638,6 @@ def get_available_slots(appointment_type, duration, provider=None, date=None, ge
 		gender_filter = ""
 		if gender:
 			gender_filter = f" AND p.gender = {frappe.db.escape(gender)}"
-			print("\n\n")
-			print("DEBUG: Gender filter: ", gender_filter)
 
 		providers = frappe.db.sql(
 			f"""
@@ -1069,23 +1116,7 @@ def book_appointment_slot(appointment, provider, date, start_time, slot_ids):
 	if isinstance(slot_ids, str):
 		slot_ids = json.loads(slot_ids)
 
-	# Validate all slots are still available
-	for slot_id in slot_ids:
-		slot = frappe.get_doc("Service Provider Appointment Slot", slot_id)
-
-		if not slot.is_available or slot.service_appointment:
-			frappe.throw(
-				_("Slot {0} is no longer available. Please select another time.").format(slot_id),
-				title=_("Slot Not Available"),
-			)
-
-	# Book all slots
-	for slot_id in slot_ids:
-		frappe.db.set_value(
-			"Service Provider Appointment Slot",
-			slot_id,
-			{"service_appointment": appointment, "is_available": 0},
-		)
+	reserve_slots_atomically(appointment=appointment, slot_ids=slot_ids)
 
 	frappe.db.commit()
 
@@ -1096,6 +1127,51 @@ def book_appointment_slot(appointment, provider, date, start_time, slot_ids):
 	}
 
 
+def reserve_slots_atomically(appointment, slot_ids):
+	"""
+	Concurrency-safe reservation using row-level locks.
+	DB locking is the source of truth; cache is updated by invalidation after write paths.
+	"""
+	if not slot_ids:
+		return
+
+	if isinstance(slot_ids, str):
+		slot_ids = json.loads(slot_ids)
+
+	slot_ids = list(dict.fromkeys(slot_ids))
+	if not slot_ids:
+		return
+
+	locked_rows = frappe.db.sql(
+		"""
+		SELECT name
+		FROM `tabService Provider Appointment Slot`
+		WHERE name IN %(slot_ids)s
+		AND is_available = 1
+		AND (service_appointment IS NULL OR service_appointment = '')
+		FOR UPDATE
+	""",
+		{"slot_ids": tuple(slot_ids)},
+		as_dict=True,
+	)
+
+	if len(locked_rows) != len(slot_ids):
+		frappe.throw(
+			_("One or more slots are no longer available. Please select another time."),
+			title=_("Slot Not Available"),
+		)
+
+	frappe.db.sql(
+		"""
+		UPDATE `tabService Provider Appointment Slot`
+		SET service_appointment = %(appointment)s,
+			is_available = 0
+		WHERE name IN %(slot_ids)s
+	""",
+		{"appointment": appointment, "slot_ids": tuple(slot_ids)},
+	)
+
+
 @frappe.whitelist()
 def release_appointment_slots(appointment, commit=True):
 	"""
@@ -1104,6 +1180,13 @@ def release_appointment_slots(appointment, commit=True):
 	Args:
 									appointment: Service Appointment name
 	"""
+	appointment_meta = frappe.db.get_value(
+		"Service Appointment",
+		appointment,
+		["appointment_type", "appointment_date"],
+		as_dict=True,
+	)
+
 	frappe.db.sql(
 		"""
 		UPDATE `tabService Provider Appointment Slot`
@@ -1114,7 +1197,26 @@ def release_appointment_slots(appointment, commit=True):
 		appointment,
 	)
 
+	# Commit BEFORE cache operations so any warm job that runs on a separate
+	# DB connection already sees the released (available) slot state.
 	if commit:
 		frappe.db.commit()
+
+	if (
+		commit
+		and appointment_meta
+		and appointment_meta.appointment_type
+		and appointment_meta.appointment_date
+	):
+		from ...services.slot_cache_service import invalidate_service_date_cache, queue_warm_service_date
+
+		invalidate_service_date_cache(
+			appointment_meta.appointment_type,
+			appointment_meta.appointment_date,
+		)
+		queue_warm_service_date(
+			appointment_meta.appointment_type,
+			appointment_meta.appointment_date,
+		)
 
 	return {"success": True, "message": _("Appointment slots released")}
