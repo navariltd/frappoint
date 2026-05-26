@@ -95,8 +95,8 @@ export function buildServiceCategories(services) {
 	return ["All", ...Array.from(categorySet).sort((a, b) => a.localeCompare(b))];
 }
 
-export async function fetchNormalizedCustomers() {
-	const customers = await fetchCustomers();
+export async function fetchNormalizedCustomers(pageLength = 100) {
+	const customers = await fetchCustomers(pageLength);
 	return customers.map((row) => ({
 		id: row.name,
 		name: row.customer_name || row.name,

@@ -4,6 +4,9 @@ import { useBookingWorkflowStore } from "@/stores/bookingWorkflow.store";
 export function useBookingWorkflow() {
 	const store = useBookingWorkflowStore();
 	store.hydrateFromStorage();
+	if (store.hydrationRequiresRevalidation && store.bookingId && !store.isHydratingBooking) {
+		store.reloadDraftBookingSession().catch(() => store.clearWorkflow());
+	}
 
 	const {
 		draftBooking,

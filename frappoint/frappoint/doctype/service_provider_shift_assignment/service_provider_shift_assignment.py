@@ -5,7 +5,7 @@ from datetime import timedelta
 import frappe
 from frappe import _
 from frappe.model.document import Document
-from frappe.utils import get_link_to_form, nowdate
+from frappe.utils import add_days, get_link_to_form, nowdate
 
 from ..service_provider_appointment_slot.service_provider_appointment_slot import (
 	generate_for_shift,
@@ -79,15 +79,29 @@ class ServiceProviderShiftAssignment(Document):
 				self.validate_weekday_changes(old_doc)
 
 	def on_submit(self):
+		from ...services.slot_cache_service import invalidate_provider_date_range_cache
+
 		generate_for_shift(self.name)
+		invalidate_provider_date_range_cache(
+			self.provider,
+			self.start_date,
+			self._cache_end_date(),
+		)
 
 	def on_update_after_submit(self):
+		from ...services.slot_cache_service import invalidate_provider_date_range_cache
+
 		if self.end_date:
 			self.validate_from_to_dates("start_date", "end_date")
 		self.validate_overlapping_shifts()
 
 		if self.status == "Inactive":
 			self.deactivate_slots()
+			invalidate_provider_date_range_cache(
+				self.provider,
+				self.start_date,
+				self._cache_end_date(),
+			)
 			return
 
 		if (
@@ -97,6 +111,11 @@ class ServiceProviderShiftAssignment(Document):
 		):
 			frappe.msgprint(_("Shift reactivated."), indicator="green", alert=True)
 			self.reactivate_slots()
+			invalidate_provider_date_range_cache(
+				self.provider,
+				self.start_date,
+				self._cache_end_date(),
+			)
 			return
 
 		regeneration_type = self.check_for_slot_regeneration()
@@ -110,12 +129,36 @@ class ServiceProviderShiftAssignment(Document):
 				timeout=300,
 				is_async=True,
 			)
+			invalidate_provider_date_range_cache(
+				self.provider,
+				self.start_date,
+				self._cache_end_date(),
+			)
 		elif regeneration_type == "partial":
 			# Partial regeneration (only weekdays changed)
 			self.handle_weekday_changes()
+			invalidate_provider_date_range_cache(
+				self.provider,
+				self.start_date,
+				self._cache_end_date(),
+			)
 
 	def on_cancel(self):
+		from ...services.slot_cache_service import invalidate_provider_date_range_cache
+
 		self.handle_slot_cleanup_on_cancel()
+		invalidate_provider_date_range_cache(
+			self.provider,
+			self.start_date,
+			self._cache_end_date(),
+		)
+
+	def _cache_end_date(self):
+		if self.end_date:
+			return self.end_date
+
+		horizon = int(frappe.db.get_single_value("Service Appointment Settings", "max_advance_days") or 30)
+		return add_days(nowdate(), horizon)
 
 	def validate_active_provider(self):
 		if self.provider and frappe.db.get_value("Service Provider", self.provider, "active") == 0:

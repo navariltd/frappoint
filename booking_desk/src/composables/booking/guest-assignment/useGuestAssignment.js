@@ -55,7 +55,9 @@ export function useGuestAssignment() {
 
 	const initialize = async () => {
 		await servicesStore.loadCustomers();
-		if (workflowStore.bookingId && !workflowStore.draftBooking.items.length) {
+		if (workflowStore.bookingId && workflowStore.hydrationRequiresRevalidation) {
+			await workflowStore.reloadDraftBookingSession().catch(() => null);
+		} else if (workflowStore.bookingId && !workflowStore.draftBooking.items.length) {
 			await workflowStore.reloadDraftBookingSession().catch(() => null);
 		}
 		guestStore.initialize({
