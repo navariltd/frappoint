@@ -32,7 +32,6 @@ export const useServicesStore = defineStore("services", {
 		isLoadingCustomers: false,
 		isLoadingCustomerSummary: false,
 		error: null,
-		taxRate: 0.085,
 	}),
 	getters: {
 		filteredServices(state) {
@@ -52,11 +51,8 @@ export const useServicesStore = defineStore("services", {
 		subtotal(state) {
 			return state.cartItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
 		},
-		taxAmount() {
-			return this.subtotal * this.taxRate;
-		},
 		grandTotal() {
-			return this.subtotal + this.taxAmount;
+			return this.subtotal;
 		},
 		cartCount(state) {
 			return state.cartItems.reduce((sum, item) => sum + item.quantity, 0);

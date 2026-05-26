@@ -271,10 +271,6 @@
 						<span class="text-on-surface-variant">Subtotal</span>
 						<span>{{ formatMoney(subtotal) }}</span>
 					</div>
-					<div class="flex justify-between">
-						<span class="text-on-surface-variant">Tax</span>
-						<span>{{ formatMoney(taxAmount) }}</span>
-					</div>
 					<div
 						class="flex justify-between pt-2 border-t border-outline-variant font-semibold text-[13px]"
 					>
@@ -343,7 +339,6 @@ const {
 	customerSummary,
 	cartItems,
 	subtotal,
-	taxAmount,
 	grandTotal,
 	cartCount,
 	canContinue,
