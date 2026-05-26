@@ -28,6 +28,7 @@ class ServiceAppointmentSettings(Document):
 		auto_issue_consumables: DF.Check
 		buffer_after: DF.Int
 		buffer_before: DF.Int
+		confirmation_message_provider: DF.SmallText | None
 		default_confirmation_deposit_percent: DF.Percent
 		default_google_calendar: DF.Link | None
 		default_item_group: DF.Link | None

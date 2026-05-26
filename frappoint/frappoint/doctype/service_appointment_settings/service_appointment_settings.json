@@ -28,6 +28,7 @@
   "alerts_tab",
   "appointment_confirmation",
   "appointment_confirmation_msg",
+  "confirmation_message_provider",
   "column_break_wnne",
   "appointment_reminder",
   "appointment_reminder_msg",
@@ -204,13 +205,19 @@
   {
    "fieldname": "column_break_tgkw",
    "fieldtype": "Column Break"
+  },
+  {
+   "default": "Hello {{ doc.service_provider_name }},\n\nAn appointment with {{ doc.full_name }} has been successfully scheduled for {{ doc.appointment_date }}, from {{ doc.start_time }} to {{ doc.end_time }}, at {{ doc.company }}.\n\nHave a great day!",
+   "fieldname": "confirmation_message_provider",
+   "fieldtype": "Small Text",
+   "label": "Confirmation Message Provider"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2026-05-22 05:57:35.213799",
+ "modified": "2026-05-26 08:25:42.571397",
  "modified_by": "Administrator",
  "module": "Frappoint",
  "name": "Service Appointment Settings",

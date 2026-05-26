@@ -245,6 +245,7 @@ class ServiceAppointment(Document):
 
 		self.validate_confirmation_before_submit()
 
+		self.send_confirmation_msg()
 		if self.status != "Confirmed":
 			self.db_set("status", "Confirmed")
 
@@ -984,9 +985,16 @@ class ServiceAppointment(Document):
 			message = frappe.db.get_single_value(
 				"Service Appointment Settings", "appointment_confirmation_msg"
 			)
+			provider_msg = frappe.db.get_single_value(
+				"Service Appointment Settings", "confirmation_message_provider"
+			)
+
+			provider_number = self.get_service_provider_number()
 
 			try:
-				self.send_message(message)
+				self.send_message(self.mobile_no, message)
+				self.send_message(provider_number, provider_msg)
+
 			except Exception:
 				frappe.log_error(
 					_("Appointment Confirmation Message Not Sent"),
@@ -994,19 +1002,27 @@ class ServiceAppointment(Document):
 				)
 				frappe.msgprint(_("Appointment Confirmation Message Not Sent"), indicator="orange")
 
-	@staticmethod
-	def send_message(self, message):
+	def send_message(self, mobile_number, message):
 		context = {"doc": self, "alert": self, "comments": None}
 		if self.get("_comments"):
 			context["comments"] = json.loads(self.get("_comments"))
 
 		# jinja to string convertion happens here
 		message = frappe.render_template(message, context)
-		number = [self.mobile_no]
+		# provider_number = self.get_service_provider_number()
+
+		number = [mobile_number]
+
 		try:
 			send_sms(number, message)
 		except Exception:
 			frappe.msgprint(_("SMS not sent, please check SMS Settings"), alert=True)
+
+	def get_service_provider_number(self):
+		if self.appointment_provider:
+			return frappe.db.get_value("Service Provider", self.appointment_provider, "mobile_no")
+
+		return None
 
 	def _slots_already_booked(self):
 		"""Check if slots are already booked for this appointment"""
@@ -1087,6 +1103,8 @@ class ServiceAppointment(Document):
 		"""Handle actions based on status change"""
 		if self.status == "Cancelled":
 			self.handle_cancellation()
+		# if self.status == "Confirmed":
+		# 	self.send_confirmation_msg()
 
 	def complete_appointment(self):
 		self.auto_issue_consumables()
