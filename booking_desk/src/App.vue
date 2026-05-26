@@ -15,15 +15,4 @@
 <script setup>
 import Sidebar from "./components/common/Sidebar.vue";
 import Topbar from "./components/common/Topbar.vue";
-import { useBookingStore } from "./stores/bookingStore";
-
-const booking = useBookingStore();
-booking.loadFromStorage();
-
-booking.$subscribe(
-	(mutation, state) => {
-		booking.saveToStorage();
-	},
-	{ detached: true }
-);
 </script>

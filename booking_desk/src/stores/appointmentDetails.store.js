@@ -6,6 +6,7 @@ import {
 	fetchAppointmentDetails,
 	performAppointmentAction,
 } from "@/services/appointmentDetails.service";
+import { CACHE_TAGS, invalidateMemoryCacheByTag } from "@/utils/cachePolicy";
 
 const createEmptyBookingContext = () => ({
 	bookingId: "",
@@ -187,6 +188,8 @@ export const useAppointmentDetailsStore = defineStore("appointmentDetails", {
 				}
 				this.paymentSummary = response?.paymentSummary || this.paymentSummary;
 				this.actionState = response?.actions || this.actionState;
+				invalidateMemoryCacheByTag(CACHE_TAGS.DASHBOARD);
+				invalidateMemoryCacheByTag(CACHE_TAGS.BOOKINGS);
 				eventLogsStore.hydrateFromPayload(
 					response?.eventLogs || [],
 					response?.timeTracking || {}

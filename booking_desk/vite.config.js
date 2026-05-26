@@ -41,6 +41,7 @@ export default defineConfig({
 			"highlight.js/lib/core",
 			"engine.io-client",
 		],
+		exclude: ["frappe-ui"],
 	},
 	server: {
 		allowedHosts: true,

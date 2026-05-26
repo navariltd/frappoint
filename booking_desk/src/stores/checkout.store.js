@@ -8,6 +8,7 @@ import {
 } from "@/services/paymentMethod.service";
 import { createEmptyCheckoutSummary } from "@/types/checkout";
 import { PAYMENT_CHANNELS, PAYMENT_PROGRESS, PAYMENT_TYPES } from "@/types/payment";
+import { CACHE_TAGS, invalidateMemoryCacheByTag } from "@/utils/cachePolicy";
 
 const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
 
@@ -258,6 +259,8 @@ export const useCheckoutStore = defineStore("checkout", {
 				this.paymentGatewaySession = payload || null;
 				if (payload?.checkout) {
 					this.summary = payload.checkout;
+					invalidateMemoryCacheByTag(CACHE_TAGS.BOOKINGS);
+					invalidateMemoryCacheByTag(CACHE_TAGS.DASHBOARD);
 				}
 
 				if (this.selectedMethod.providerType === "mpesa") {
@@ -300,6 +303,8 @@ export const useCheckoutStore = defineStore("checkout", {
 
 				if (payload?.checkout) {
 					this.summary = payload.checkout;
+					invalidateMemoryCacheByTag(CACHE_TAGS.BOOKINGS);
+					invalidateMemoryCacheByTag(CACHE_TAGS.DASHBOARD);
 				}
 
 				this.paymentProgress = PAYMENT_PROGRESS.SUCCESS;
