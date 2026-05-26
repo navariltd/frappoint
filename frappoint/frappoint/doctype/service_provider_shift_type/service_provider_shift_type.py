@@ -32,6 +32,35 @@ class ServiceProviderShiftType(Document):
 		self.validate_same_start_and_end(start, end)
 		self.validate_circular_shift(start, end)
 
+	def on_update(self):
+		old_doc = self.get_doc_before_save()
+		if not old_doc:
+			return
+
+		changed_fields = [
+			"start_time",
+			"end_time",
+			"break_start_time",
+			"break_end_time",
+			"holiday_list",
+		]
+
+		if not any(str(old_doc.get(field)) != str(self.get(field)) for field in changed_fields):
+			return
+
+		from ...services.slot_cache_service import invalidate_provider_date_range_cache
+
+		settings_horizon = int(
+			frappe.db.get_single_value("Service Appointment Settings", "max_advance_days") or 30
+		)
+		for assignment in frappe.get_all(
+			"Service Provider Shift Assignment",
+			filters={"shift_type": self.name, "docstatus": 1},
+			fields=["provider", "start_date", "end_date"],
+		):
+			end_date = assignment.end_date or add_days(getdate(), settings_horizon)
+			invalidate_provider_date_range_cache(assignment.provider, assignment.start_date, end_date)
+
 	def validate_same_start_and_end(self, start_time: datetime.time, end_time: datetime.time):
 		if start_time == end_time:
 			frappe.throw(

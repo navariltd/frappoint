@@ -1051,28 +1051,22 @@ class ServiceAppointment(Document):
 
 	def book_selected_slots(self):
 		"""Book the selected slots"""
+		from ...services.slot_cache_service import invalidate_on_appointment_mutation
+		from ..service_provider_appointment_slot.service_provider_appointment_slot import (
+			reserve_slots_atomically,
+		)
+
 		try:
 			slot_ids = json.loads(self.selected_slot_ids)
 		except (json.JSONDecodeError, TypeError):
 			frappe.throw(_("Invalid slot selection data"))
 
-		# Validate all slots are still available
-		for slot_id in slot_ids:
-			slot = frappe.get_doc("Service Provider Appointment Slot", slot_id)
-
-			if not slot.is_available or (slot.service_appointment and slot.service_appointment != self.name):
-				frappe.throw(
-					_("Slot {0} is no longer available. Please select another time slot.").format(slot_id),
-					title=_("Slot Not Available"),
-				)
-
-		# Book all slots
-		for slot_id in slot_ids:
-			frappe.db.set_value(
-				"Service Provider Appointment Slot",
-				slot_id,
-				{"service_appointment": self.name, "is_available": 0},
-			)
+		reserve_slots_atomically(appointment=self.name, slot_ids=slot_ids)
+		# Invalidation is deferred to after the transaction commits via
+		# frappe.db.after_commit.  Do NOT enqueue a warm job here — the
+		# warm job runs on a separate DB connection and would race the
+		# uncommitted UPDATE, causing it to re-cache the slot as available.
+		invalidate_on_appointment_mutation(self)
 
 	def release_slots(self):
 		"""Release all booked slots for this appointment"""
