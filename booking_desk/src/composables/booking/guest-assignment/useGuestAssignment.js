@@ -21,7 +21,8 @@ export function useGuestAssignment() {
 		isComplete,
 		summaryRows,
 	} = storeToRefs(guestStore);
-	const { cartItems, customers, selectedCustomerId, grandTotal } = storeToRefs(servicesStore);
+	const { cartItems, customers, selectedCustomerId, selectedCustomer, grandTotal } =
+		storeToRefs(servicesStore);
 	const { draftBooking, appointmentsByGuestKey } = storeToRefs(workflowStore);
 
 	const sourceCartItems = computed(() => {
@@ -34,14 +35,26 @@ export function useGuestAssignment() {
 		return workflowStore.customerSnapshot?.customer || selectedCustomerId.value;
 	});
 
+	const workflowSelectedCustomer = computed(() => {
+		if (workflowStore.customerSnapshot?.customer) {
+			return {
+				id: workflowStore.customerSnapshot.customer,
+				name:
+					workflowStore.customerSnapshot.fullName ||
+					workflowStore.customerSnapshot.name ||
+					workflowStore.customerSnapshot.customer,
+			};
+		}
+
+		return selectedCustomer.value || null;
+	});
+
 	const activeServiceKey = computed(
 		() => assignments.value[activeServiceIndex.value]?.serviceKey || ""
 	);
 
 	const initialize = async () => {
-		if (!customers.value.length) {
-			await servicesStore.loadCustomers();
-		}
+		await servicesStore.loadCustomers();
 		if (workflowStore.bookingId && !workflowStore.draftBooking.items.length) {
 			await workflowStore.reloadDraftBookingSession().catch(() => null);
 		}
@@ -49,6 +62,7 @@ export function useGuestAssignment() {
 			cartItems: sourceCartItems.value,
 			customers: customers.value,
 			selectedCustomerId: workflowSelectedCustomerId.value,
+			selectedCustomer: workflowSelectedCustomer.value,
 			appointmentsByGuestKey: appointmentsByGuestKey.value,
 		});
 	};
