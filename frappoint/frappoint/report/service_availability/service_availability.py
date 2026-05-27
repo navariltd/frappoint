@@ -91,7 +91,7 @@ def get_columns():
 		},
 		{
 			"fieldname": "slot_ids_count",
-			"label": _("Component Slots"),
+			"label": _("Available Slots"),
 			"fieldtype": "Int",
 			"width": 100,
 		},
