@@ -17,6 +17,17 @@ def execute(filters=None):
 	columns = get_columns()
 	data = get_data(filters)
 
+	# Debug log, print all service_type values in the data
+	service_types_in_data = set(row.get("service_type") for row in data)
+	service_unit_names_in_data = set()
+	for row in data:
+		service_units = row.get("service_units", "")
+		for unit in service_units.split(", "):
+			if unit:
+				service_unit_names_in_data.add(unit)
+	print(f"Debug: Service Types in Data - {service_types_in_data}")
+	print(f"Debug: Service Unit Names in Data - {service_unit_names_in_data}")
+
 	return columns, data
 
 
