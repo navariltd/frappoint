@@ -102,7 +102,7 @@ export async function fetchAvailableDatesApi({
 	serviceType,
 	duration,
 	provider,
-	daysAhead = 30,
+	daysAhead,
 }: {
 	serviceType: string;
 	duration: number;
@@ -112,8 +112,10 @@ export async function fetchAvailableDatesApi({
 	const params: Record<string, any> = {
 		service_type: serviceType,
 		duration,
-		days_ahead: daysAhead,
 	};
+	if (typeof daysAhead === "number" && Number.isFinite(daysAhead) && daysAhead > 0) {
+		params.days_ahead = daysAhead;
+	}
 	if (provider) params.provider = provider;
 	const response = await availableDatesResource.fetch(params);
 	return unwrapPayload<string[]>(response ?? availableDatesResource.data);
@@ -124,7 +126,7 @@ export async function fetchAvailableSlotsApi({
 	duration,
 	provider,
 	date,
-	daysAhead = 30,
+	daysAhead,
 }: {
 	serviceType: string;
 	duration: number;
@@ -136,8 +138,10 @@ export async function fetchAvailableSlotsApi({
 		service_type: serviceType,
 		duration,
 		date,
-		days_ahead: daysAhead,
 	};
+	if (typeof daysAhead === "number" && Number.isFinite(daysAhead) && daysAhead > 0) {
+		params.days_ahead = daysAhead;
+	}
 	if (provider) params.provider = provider;
 	const response = await availableSlotsResource.fetch(params);
 	return unwrapPayload<Array<Record<string, any>>>(response ?? availableSlotsResource.data);

@@ -124,24 +124,12 @@ export const useBookingStore = defineStore("booking", {
 		},
 
 		saveToStorage() {
-			const data = {
-				customer: this.customer,
-				guests: this.guests,
-				selectedPaymentGateway: this.selectedPaymentGateway,
-			};
-			localStorage.setItem("booking_desk_draft", JSON.stringify(data));
+			// Legacy store persistence retired in favor of workflow store.
 		},
 
 		loadFromStorage() {
-			const saved = localStorage.getItem("booking_desk_draft");
-			if (saved) {
-				const parsed = JSON.parse(saved);
-				this.customer = parsed.customer;
-				this.guests = parsed.guests;
-				// this.selectedPaymentGateway = parsed.selectedPaymentGateway;
-			} else {
-				this.guests = [];
-			}
+			// Legacy store persistence retired in favor of workflow store.
+			this.guests = this.guests || [];
 		},
 
 		async submitBooking() {
@@ -175,7 +163,6 @@ export const useBookingStore = defineStore("booking", {
 			this.customer = { fullName: "", email: "", mobileNo: "" };
 			this.guests = [];
 			this.currentStep = 1;
-			localStorage.removeItem("booking_desk_draft");
 		},
 	},
 });

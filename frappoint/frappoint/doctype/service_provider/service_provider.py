@@ -209,7 +209,10 @@ class ServiceProvider(Document):
 
 	def mark_future_slots_unavailable(self):
 		"""Mark all future unbooked slots as unavailable when provider is deactivated"""
+		from ...services.slot_cache_service import invalidate_provider_date_range_cache
+
 		today = frappe.utils.nowdate()
+		horizon = int(frappe.db.get_single_value("Service Appointment Settings", "max_advance_days") or 30)
 
 		frappe.db.sql(
 			"""
@@ -223,10 +226,14 @@ class ServiceProvider(Document):
 		)
 
 		frappe.msgprint(_("Marked future unbooked slots as unavailable"), indicator="blue", alert=True)
+		invalidate_provider_date_range_cache(self.name, today, frappe.utils.add_days(today, horizon))
 
 	def reactivate_future_slots(self):
 		"""Reactivate future slots when provider is activated again"""
+		from ...services.slot_cache_service import invalidate_provider_date_range_cache
+
 		today = frappe.utils.nowdate()
+		horizon = int(frappe.db.get_single_value("Service Appointment Settings", "max_advance_days") or 30)
 
 		# Get active shift assignments for this provider
 		active_shifts = frappe.get_all(
@@ -252,6 +259,7 @@ class ServiceProvider(Document):
 			frappe.msgprint(
 				_("Reactivated future slots for active shift assignments"), indicator="green", alert=True
 			)
+			invalidate_provider_date_range_cache(self.name, today, frappe.utils.add_days(today, horizon))
 
 
 @frappe.whitelist()

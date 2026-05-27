@@ -1574,6 +1574,22 @@ def get_service_bookings_workspace(
 	}
 
 
+def _get_doctype_latest_modified(doctype: str) -> str:
+	latest = frappe.db.get_value(doctype, filters={}, fieldname="MAX(modified)")
+	return str(latest or "")
+
+
+@frappe.whitelist()
+def get_booking_desk_cache_version():
+	return {
+		"serviceTypesVersion": _get_doctype_latest_modified("Service Type"),
+		"providersVersion": _get_doctype_latest_modified("Service Provider"),
+		"customersVersion": _get_doctype_latest_modified("Customer"),
+		"bookingsVersion": _get_doctype_latest_modified("Service Booking"),
+		"generatedAt": str(now_datetime()),
+	}
+
+
 @frappe.whitelist()
 def create_booking(customer: str, guests: list):
 	if isinstance(customer, str):

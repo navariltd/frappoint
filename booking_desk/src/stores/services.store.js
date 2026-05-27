@@ -179,7 +179,7 @@ export const useServicesStore = defineStore("services", {
 			this.isLoadingCustomers = true;
 			this.error = null;
 			try {
-				this.customers = await fetchNormalizedCustomers();
+				this.customers = await fetchNormalizedCustomers(100);
 				if (!this.selectedCustomerId && this.customers.length) {
 					this.selectedCustomerId = this.customers[0].id;
 					this.selectedCustomerRecord = this.customers[0];
