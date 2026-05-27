@@ -7,6 +7,7 @@ const SERVICE_TYPE_DETAILS_ENDPOINT =
 	"frappoint.frappoint.api.service_type.get_service_type_details";
 const CUSTOMER_DOCTYPE = "Customer";
 const APPOINTMENT_DOCTYPE = "Service Appointment";
+const BOOKING_DESK_CUSTOMER_FILTER = [["visible_on_booking_desk", "=", 1]];
 
 const serviceTypesResource = createResource({
 	url: SERVICE_TYPE_ENDPOINT,
@@ -109,6 +110,7 @@ export async function searchCustomers(query = "", pageLength = 50) {
 	const response = await customerSearchResource.fetch({
 		doctype: CUSTOMER_DOCTYPE,
 		fields: ["name", "customer_name"],
+		filters: BOOKING_DESK_CUSTOMER_FILTER,
 		or_filters: orFilters.length ? orFilters : undefined,
 		order_by: "customer_name asc",
 		limit_start: 0,

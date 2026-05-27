@@ -69,6 +69,10 @@ fixtures = [
 		],
 	},
 	{"doctype": "Custom HTML Block", "filters": [["name", "in", ["Booking Desk"]]]},
+	{
+		"doctype": "Custom Field",
+		"filters": [["name", "in", ["Customer-custom_visible_on_booking_desk"]]],
+	},
 ]
 
 # Includes in <head>
