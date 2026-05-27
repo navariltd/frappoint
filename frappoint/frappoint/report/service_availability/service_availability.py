@@ -115,6 +115,7 @@ def get_data(filters):
 		end_date = start_date
 
 	provider_filter = filters.get("provider") or None
+	shift_assignment_filter = filters.get("shift_assignment") or None
 	gender = filters.get("gender") or None
 	rows = []
 
@@ -131,6 +132,16 @@ def get_data(filters):
 			date_value = date_group.get("date") or current_date
 			for slot in date_group.get("slots", []):
 				provider_rows = slot.get("providers") or []
+				if shift_assignment_filter:
+					provider_rows = [
+						provider_row
+						for provider_row in provider_rows
+						if provider_row.get("shift_assignment") == shift_assignment_filter
+					]
+
+				if not provider_rows:
+					continue
+
 				provider_names = _unique_values(
 					provider_row.get("provider_name") or provider_row.get("provider")
 					for provider_row in provider_rows

@@ -33,6 +33,12 @@ frappe.query_reports["Service Availability"] = {
 			options: "Service Provider",
 		},
 		{
+			fieldname: "shift_assignment",
+			label: __("Shift Assignment"),
+			fieldtype: "Link",
+			options: "Service Provider Shift Assignment",
+		},
+		{
 			fieldname: "gender",
 			label: __("Provider Gender"),
 			fieldtype: "Data",
