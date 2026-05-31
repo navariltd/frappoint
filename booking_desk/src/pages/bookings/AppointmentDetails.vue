@@ -74,7 +74,9 @@
 								>
 									<button
 										v-for="option in providerChangeOptions"
-										:key="option.slot_ids.join('-')"
+										:key="`${option.provider || 'provider'}-${
+											option.service_unit || option.serviceUnit || 'unit'
+										}`"
 										type="button"
 										class="rounded-xl border border-outline-variant/60 px-4 py-3 text-left transition-colors hover:bg-surface-container-high hover:border-outline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
 										@click="applyProviderChange(option)"
@@ -287,14 +289,13 @@ const handleReassignProvider = async () => {
 };
 
 const applyProviderChange = async (option) => {
-	if (!option?.slot_ids?.length) {
+	if (!option?.provider) {
 		return;
 	}
 
 	await reassignProvider({
 		provider: option.provider,
-		slotIds: option.slot_ids,
-		serviceUnit: option.service_unit,
+		serviceUnit: option.service_unit || option.serviceUnit,
 	});
 	closeProviderChangePanel();
 };

@@ -31,7 +31,6 @@ export function createEmptyAppointmentDetails() {
 		details: "",
 		notes: "",
 		source: "",
-		selectedSlotIds: [],
 		allAvailableProviders: [],
 		modified: "",
 		creation: "",
