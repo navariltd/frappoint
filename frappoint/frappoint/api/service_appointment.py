@@ -1,8 +1,17 @@
+import json
 from datetime import datetime, timedelta
 
 import frappe
 from frappe import _
 from frappe.utils import add_to_date, get_time, getdate, nowtime
+
+from frappoint.frappoint.services.appointment_state_service import (
+	cancel_appointment,
+	confirm_appointment_allocations,
+	reschedule_appointment,
+	transition_appointment_status,
+)
+from frappoint.frappoint.services.booking_transaction_service import reserve_and_create_allocations
 
 
 @frappe.whitelist(allow_guest=True)  # nosemgrep: guest-whitelisted-method
@@ -128,3 +137,60 @@ def get_cancellation_reasons() -> list[dict]:
 	)
 
 	return reasons
+
+
+@frappe.whitelist()
+def reserve_appointment_allocations(appointment_name: str, allocations, booking_name: str | None = None):
+	"""Reserve capacity atomically and create resource allocations for an appointment."""
+	if isinstance(allocations, str):
+		allocations = json.loads(allocations)
+
+	allocation_names = reserve_and_create_allocations(
+		appointment_name=appointment_name,
+		booking_name=booking_name,
+		allocations=allocations,
+		allocation_status="Held",
+	)
+
+	return {"appointment": appointment_name, "allocations": allocation_names}
+
+
+@frappe.whitelist()
+def confirm_allocations(appointment_name: str):
+	"""Confirm held allocations and mark appointment confirmed where allowed."""
+	return confirm_appointment_allocations(appointment_name)
+
+
+@frappe.whitelist()
+def change_appointment_status(appointment_name: str, to_status: str, reason: str | None = None):
+	"""Validate and apply appointment status transition via state machine."""
+	return transition_appointment_status(
+		appointment_name=appointment_name, to_status=to_status, reason=reason
+	)
+
+
+@frappe.whitelist()
+def cancel_appointment_with_release(appointment_name: str, reason: str | None = None):
+	"""Cancel appointment and release resource allocations atomically."""
+	return cancel_appointment(appointment_name=appointment_name, reason=reason)
+
+
+@frappe.whitelist()
+def reschedule_appointment_with_allocations(
+	appointment_name: str,
+	new_appointment_data,
+	new_allocations,
+	reason: str | None = None,
+):
+	"""Reschedule appointment while releasing/re-reserving resource allocations atomically."""
+	if isinstance(new_appointment_data, str):
+		new_appointment_data = json.loads(new_appointment_data)
+	if isinstance(new_allocations, str):
+		new_allocations = json.loads(new_allocations)
+
+	return reschedule_appointment(
+		appointment_name=appointment_name,
+		new_appointment_data=new_appointment_data,
+		new_allocations=new_allocations,
+		reason=reason,
+	)
