@@ -9,8 +9,6 @@ const UPSERT_DRAFT_APPOINTMENT_ENDPOINT =
 const AVAILABLE_DATES_ENDPOINT = "frappoint.frappoint.api.slot_availability.get_available_dates";
 const AVAILABLE_SLOTS_ENDPOINT =
 	"frappoint.frappoint.api.slot_availability.get_available_time_slots";
-const CHECK_SLOT_AVAILABILITY_ENDPOINT =
-	"frappoint.frappoint.api.slot_availability.check_slot_availability";
 const GET_LOGGED_IN_CUSTOMER_ENDPOINT =
 	"frappoint.frappoint.api.user.get_logged_in_customer";
 
@@ -38,11 +36,6 @@ const availableDatesResource = createResource({
 const availableSlotsResource = createResource({
 	url: AVAILABLE_SLOTS_ENDPOINT,
 	method: "GET",
-	auto: false,
-});
-
-const checkSlotAvailabilityResource = createResource({
-	url: CHECK_SLOT_AVAILABILITY_ENDPOINT,
 	auto: false,
 });
 
@@ -145,13 +138,6 @@ export async function fetchAvailableSlotsApi({
 	if (provider) params.provider = provider;
 	const response = await availableSlotsResource.fetch(params);
 	return unwrapPayload<Array<Record<string, any>>>(response ?? availableSlotsResource.data);
-}
-
-export async function checkSlotAvailabilityApi(slotIds: string[]) {
-	const response = await checkSlotAvailabilityResource.fetch({
-		slot_ids: slotIds,
-	});
-	return unwrapPayload<Record<string, any>>(response ?? checkSlotAvailabilityResource.data);
 }
 
 export async function getLoggedInCustomerApi() {
