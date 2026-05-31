@@ -33,7 +33,11 @@ export function useAppointmentScheduling() {
 			newStartTime: selectedSlot.value.startTime,
 			newEndTime: selectedSlot.value.endTime,
 			newProvider: selectedSlot.value.providers?.[0]?.provider || store.appointment.provider,
-			newSlotIds: selectedSlot.value.slotIds,
+			newSlotIds:
+				Array.isArray(selectedSlot.value.providers?.[0]?.slotIds) &&
+				selectedSlot.value.providers[0].slotIds.length
+					? selectedSlot.value.providers[0].slotIds
+					: undefined,
 			newServiceUnit:
 				selectedSlot.value.providers?.[0]?.serviceUnit || store.appointment.serviceUnit,
 		});
