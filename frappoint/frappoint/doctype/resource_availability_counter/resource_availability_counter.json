@@ -1,0 +1,206 @@
+{
+ "actions": [],
+ "allow_rename": 0,
+ "autoname": "hash",
+ "creation": "2026-05-28 00:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "counter_section",
+  "counter_date",
+  "counter_slot_time",
+  "resource_type",
+  "resource_reference",
+  "column_break_1",
+  "slot_duration_minutes",
+  "capacity_section",
+  "max_capacity",
+  "consumed_capacity",
+  "remaining_capacity",
+  "column_break_2",
+  "is_blocked",
+  "block_reason",
+  "blocking_section",
+  "source_type",
+  "source_reference",
+  "audit_section",
+  "last_updated_at",
+  "created_at",
+  "column_break_3"
+ ],
+ "fields": [
+  {
+   "fieldname": "counter_section",
+   "fieldtype": "Section Break",
+   "label": "Counter Details"
+  },
+  {
+   "fieldname": "counter_date",
+   "fieldtype": "Date",
+   "label": "Counter Date",
+   "reqd": 1
+  },
+  {
+   "fieldname": "counter_slot_time",
+   "fieldtype": "Time",
+   "label": "Counter Slot Time",
+   "help": "Start time of this slot (e.g., 09:00, 09:15)",
+   "reqd": 1
+  },
+  {
+   "fieldname": "resource_type",
+   "fieldtype": "Select",
+   "label": "Resource Type",
+    "options": "Service Provider\nService Unit\nEquipment",
+   "reqd": 1
+  },
+  {
+   "fieldname": "resource_reference",
+   "fieldtype": "Dynamic Link",
+   "label": "Resource Reference",
+   "options": "resource_type",
+   "reqd": 1
+  },
+  {
+   "fieldname": "column_break_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "slot_duration_minutes",
+   "fieldtype": "Int",
+   "label": "Slot Duration (minutes)",
+   "help": "Slot granularity (e.g., 15, 30, 60)",
+   "default": "15",
+   "reqd": 1
+  },
+  {
+   "fieldname": "capacity_section",
+   "fieldtype": "Section Break",
+   "label": "Capacity"
+  },
+  {
+   "fieldname": "max_capacity",
+   "fieldtype": "Float",
+   "label": "Max Capacity",
+   "help": "Maximum concurrent capacity (e.g., 1 for provider, 2 for room)",
+   "precision": 2,
+   "reqd": 1
+  },
+  {
+   "fieldname": "consumed_capacity",
+   "fieldtype": "Float",
+   "label": "Consumed Capacity",
+   "help": "Currently occupied capacity (sum of allocations covering this slot)",
+   "precision": 2,
+   "default": "0.0",
+   "reqd": 1
+  },
+  {
+   "fieldname": "remaining_capacity",
+   "fieldtype": "Float",
+   "fieldtype_": "Formula",
+   "label": "Remaining Capacity",
+   "help": "max_capacity - consumed_capacity (read-only)",
+   "precision": 2,
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_2",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "is_blocked",
+   "fieldtype": "Check",
+   "label": "Is Blocked",
+   "help": "Manual block flag (maintenance, break, holiday)"
+  },
+  {
+   "fieldname": "block_reason",
+   "fieldtype": "Text",
+   "label": "Block Reason",
+   "help": "Why this slot is blocked"
+  },
+  {
+   "fieldname": "blocking_section",
+   "fieldtype": "Section Break",
+   "label": "Source"
+  },
+  {
+   "fieldname": "source_type",
+   "fieldtype": "Select",
+   "label": "Source Type",
+   "options": "Shift\nAppointment\nMaintenance\nBreak",
+   "help": "What caused this counter to exist"
+  },
+  {
+   "fieldname": "source_reference",
+   "fieldtype": "Text",
+   "label": "Source Reference",
+   "help": "ID of shift/maintenance/break (for traceability)"
+  },
+  {
+   "fieldname": "audit_section",
+   "fieldtype": "Section Break",
+   "label": "Audit"
+  },
+  {
+   "fieldname": "last_updated_at",
+   "fieldtype": "Datetime",
+   "label": "Last Updated At",
+   "read_only": 1
+  },
+  {
+   "fieldname": "created_at",
+   "fieldtype": "Datetime",
+   "label": "Created At",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_3",
+   "fieldtype": "Column Break"
+  }
+ ],
+ "indexes": [
+  {
+   "fields": ["counter_date", "resource_type", "resource_reference", "counter_slot_time"],
+   "name": "idx_availability_search",
+   "unique": 1
+  },
+  {
+   "fields": ["counter_date", "remaining_capacity"],
+   "name": "idx_availability_by_date_capacity"
+  },
+  {
+   "fields": ["resource_type", "resource_reference", "counter_date"],
+   "name": "idx_resource_centric"
+  },
+  {
+   "fields": ["counter_date", "is_blocked"],
+   "name": "idx_blocked_slots"
+  }
+ ],
+ "links": [],
+ "modified": "2026-05-28 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Frappoint",
+ "name": "Resource Availability Counter",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1
+}
