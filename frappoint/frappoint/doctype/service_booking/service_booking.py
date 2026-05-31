@@ -8,6 +8,7 @@ from frappe import _
 from frappe.model.document import Document
 from frappe.utils import cint, flt
 
+from frappoint.frappoint.services.booking_transaction_service import confirm_held_allocations
 from frappoint.frappoint.services.pricing_service import (
 	sync_booking_pricing_fields,
 	validate_booking_coupon_assignment,
@@ -63,6 +64,11 @@ class ServiceBooking(Document):
 		self.validate_confirmation_before_submit()
 
 	def on_submit(self):
+		if frappe.db.exists("DocType", "Service Resource Allocation"):
+			for appointment_name in frappe.get_all(
+				"Service Appointment", filters={"booking_id": self.name}, pluck="name"
+			):
+				confirm_held_allocations(appointment_name)
 		self.sync_financial_snapshot()
 
 	def on_cancel(self):
