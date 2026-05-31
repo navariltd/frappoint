@@ -1,0 +1,124 @@
+{
+ "actions": [],
+ "allow_rename": 0,
+ "autoname": "naming_series:",
+ "creation": "2026-05-28 00:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "event_section",
+  "appointment",
+  "event_type",
+  "column_break_1",
+  "changed_by",
+  "changed_at",
+  "changes_section",
+  "old_value",
+  "new_value",
+  "column_break_2",
+  "notes"
+ ],
+ "fields": [
+  {
+   "fieldname": "event_section",
+   "fieldtype": "Section Break",
+   "label": "Event Details"
+  },
+  {
+   "fieldname": "appointment",
+   "fieldtype": "Link",
+   "label": "Service Appointment",
+   "options": "Service Appointment",
+   "reqd": 1
+  },
+  {
+   "fieldname": "event_type",
+   "fieldtype": "Select",
+   "label": "Event Type",
+   "options": "Status Changed\nProvider Changed\nUnit Changed\nPaused\nResumed\nCancelled\nRescheduled",
+   "reqd": 1
+  },
+  {
+   "fieldname": "column_break_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "changed_by",
+   "fieldtype": "Link",
+   "label": "Changed By",
+   "options": "User",
+   "read_only": 1
+  },
+  {
+   "fieldname": "changed_at",
+   "fieldtype": "Datetime",
+   "label": "Changed At",
+   "read_only": 1
+  },
+  {
+   "fieldname": "changes_section",
+   "fieldtype": "Section Break",
+   "label": "Changes"
+  },
+  {
+   "fieldname": "old_value",
+   "fieldtype": "JSON",
+   "label": "Old Value (JSON)",
+   "help": "Previous value (can be JSON for complex fields)"
+  },
+  {
+   "fieldname": "new_value",
+   "fieldtype": "JSON",
+   "label": "New Value (JSON)",
+   "help": "New value (can be JSON for complex fields)"
+  },
+  {
+   "fieldname": "column_break_2",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "notes",
+   "fieldtype": "Text",
+   "label": "Notes",
+   "help": "Additional context or notes about this event"
+  }
+ ],
+ "indexes": [
+  {
+   "fields": ["appointment"],
+   "name": "idx_by_appointment"
+  },
+  {
+   "fields": ["changed_at"],
+   "name": "idx_by_changed_at"
+  },
+  {
+   "fields": ["event_type"],
+   "name": "idx_by_event_type"
+  }
+ ],
+ "links": [],
+ "modified": "2026-05-28 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Frappoint",
+ "name": "Service Appointment Event Log V2",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "changed_at",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1
+}
