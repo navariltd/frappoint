@@ -72,108 +72,107 @@ def get_effective_max_advance_days(days_ahead=None):
 	return min(requested_horizon, settings_horizon)
 
 
-def _parse_slot_ids(slot_ids):
-	if not slot_ids:
-		return []
+def _get_active_allocation_count(appointment_name):
+	if not frappe.db.exists("DocType", "Service Resource Allocation"):
+		return 0
 
-	if isinstance(slot_ids, str):
-		return json.loads(slot_ids)
-
-	return list(slot_ids)
-
-
-def _get_current_booked_slot_ids(appointment_name):
-	return frappe.get_all(
-		"Service Provider Appointment Slot",
-		filters={"service_appointment": appointment_name},
-		pluck="name",
-		order_by="start_time asc, name asc",
+	return frappe.db.count(
+		"Service Resource Allocation",
+		{
+			"service_appointment": appointment_name,
+			"allocation_status": ["in", ["Draft", "Held", "Confirmed"]],
+		},
 	)
 
 
 def _get_provider_change_options(appointment):
-	available_slots = get_available_slots(
-		appointment.appointment_type,
-		appointment.duration,
-		date=appointment.appointment_date,
+	from frappoint.frappoint.services.availability_projector import (
+		get_available_slots as get_projected_available_slots,
 	)
 
-	for date_group in available_slots:
-		if str(date_group.get("date")) != str(appointment.appointment_date):
+	rows = get_projected_available_slots(
+		service_type_id=appointment.appointment_type,
+		start_date=appointment.appointment_date,
+		end_date=appointment.appointment_date,
+		required_duration_minutes=appointment.duration,
+	)
+
+	options = []
+	seen = set()
+	for row in rows:
+		provider = row.get("provider")
+		if not provider or provider == appointment.appointment_provider:
+			continue
+		if str(row.get("date")) != str(appointment.appointment_date):
+			continue
+		if str(row.get("start_time")) != str(appointment.start_time):
+			continue
+		if str(row.get("end_time")) != str(appointment.end_time):
 			continue
 
-		for time_slot in date_group.get("slots", []):
-			if str(time_slot.get("start_time")) != str(appointment.start_time):
-				continue
+		service_unit = row.get("service_unit") or ""
+		key = (provider, service_unit)
+		if key in seen:
+			continue
+		seen.add(key)
 
-			if str(time_slot.get("end_time")) != str(appointment.end_time):
-				continue
-
-			return [
-				provider
-				for provider in time_slot.get("providers", [])
-				if provider.get("provider") != appointment.appointment_provider
-			]
-
-	return []
-
-
-def _validate_replacement_slots(appointment, slot_ids):
-	replacement_slots = []
-	provider_name = None
-
-	for slot_id in slot_ids:
-		slot = frappe.get_doc("Service Provider Appointment Slot", slot_id)
-
-		if not slot.is_available or slot.service_appointment:
-			frappe.throw(
-				_("Slot {0} is no longer available. Please select another provider.").format(slot_id),
-				title=_("Slot Not Available"),
-			)
-
-		if str(slot.posting_date) != str(appointment.appointment_date):
-			frappe.throw(_("Selected slot {0} does not match the appointment date.").format(slot_id))
-
-		if str(slot.start_time) < str(appointment.start_time) or str(slot.end_time) > str(
-			appointment.end_time
-		):
-			frappe.throw(_("Selected slot {0} does not match the appointment time window.").format(slot_id))
-
-		if provider_name is None:
-			provider_name = slot.provider
-		elif provider_name != slot.provider:
-			frappe.throw(_("All selected slots must belong to the same provider."))
-
-		replacement_slots.append(slot)
-
-	return provider_name, replacement_slots
-
-
-def _apply_provider_change(appointment, slot_ids):
-	current_slot_ids = _get_current_booked_slot_ids(appointment.name)
-	if not current_slot_ids:
-		frappe.throw(_("No booked slots were found for this appointment."))
-
-	if len(current_slot_ids) != len(slot_ids):
-		frappe.throw(
-			_("The selected provider must have the same number of slots as the current appointment.")
+		options.append(
+			{
+				"provider": provider,
+				"provider_name": row.get("provider_name") or provider,
+				"service_unit": row.get("service_unit"),
+				"service_unit_name": row.get("service_unit_name") or row.get("service_unit"),
+				"shift_assignment": None,
+			}
 		)
 
-	provider_name, replacement_slots = _validate_replacement_slots(appointment, slot_ids)
+	return options
 
-	release_appointment_slots(appointment.name, commit=False)
 
-	appointment.selected_slot_ids = json.dumps(slot_ids)
-	appointment.appointment_provider = provider_name
-	appointment.service_unit = replacement_slots[0].service_unit if replacement_slots else None
-	appointment.book_selected_slots()
+def _find_provider_change_option(provider_options, provider_name=None, service_unit=None):
+	for option in provider_options:
+		if option.get("provider") != provider_name:
+			continue
+		if service_unit and option.get("service_unit") != service_unit:
+			continue
+		return option
 
+	return None
+
+
+def _apply_provider_change(appointment, provider_name, service_unit=None):
 	provider_label = frappe.db.get_value("Service Provider", provider_name, "provider_name")
+	active_allocations = _get_active_allocation_count(appointment.name)
+	from ...services.booking_transaction_service import (
+		release_capacity_for_allocations,
+		reserve_and_create_allocations,
+	)
+
+	if active_allocations:
+		release_capacity_for_allocations(appointment_name=appointment.name, target_status="Released")
+
+	appointment.appointment_provider = provider_name
+	appointment.service_unit = service_unit or appointment.service_unit
+	appointment.selected_slot_ids = None
+
+	allocation_status = (
+		"Confirmed"
+		if appointment.status in ["Confirmed", "Checked In", "In Progress", "Completed"]
+		else "Held"
+	)
+	reserve_and_create_allocations(
+		appointment_name=appointment.name,
+		booking_name=appointment.booking_id,
+		allocations=appointment._build_allocation_payloads(),
+		allocation_status=allocation_status,
+		extra_metadata={"provider_change": True},
+	)
+
 	frappe.db.set_value(
 		"Service Appointment",
 		appointment.name,
 		{
-			"selected_slot_ids": json.dumps(slot_ids),
+			"selected_slot_ids": None,
 			"appointment_provider": provider_name,
 			"service_unit": appointment.service_unit,
 			"service_provider_name": provider_label,
@@ -183,14 +182,13 @@ def _apply_provider_change(appointment, slot_ids):
 	return {
 		"provider": provider_name,
 		"provider_name": provider_label,
-		"slot_ids": slot_ids,
 	}
 
 
 @frappe.whitelist()
-def change_appointment_provider(appointment_name, slot_ids=None):
+def change_appointment_provider(appointment_name, target_provider=None, target_service_unit=None):
 	appointment = frappe.get_doc("Service Appointment", appointment_name)
-	current_slot_ids = _get_current_booked_slot_ids(appointment.name)
+	active_allocations = _get_active_allocation_count(appointment.name)
 
 	if appointment.docstatus == 2 or appointment.status in [
 		"Cancelled",
@@ -200,7 +198,7 @@ def change_appointment_provider(appointment_name, slot_ids=None):
 	]:
 		frappe.throw(_("This appointment cannot be changed."))
 
-	if not current_slot_ids and not slot_ids:
+	if not active_allocations and not target_provider:
 		return {
 			"success": True,
 			"appointment": appointment.name,
@@ -210,7 +208,7 @@ def change_appointment_provider(appointment_name, slot_ids=None):
 
 	provider_options = _get_provider_change_options(appointment)
 
-	if not slot_ids:
+	if not target_provider:
 		return {
 			"success": True,
 			"appointment": appointment.name,
@@ -218,18 +216,17 @@ def change_appointment_provider(appointment_name, slot_ids=None):
 			"provider_change_options": provider_options,
 		}
 
-	slot_ids = _parse_slot_ids(slot_ids)
-	if not slot_ids:
-		frappe.throw(_("At least one replacement slot must be selected."))
+	target_provider = target_provider or None
+	target_service_unit = target_service_unit or None
 
-	selected_option = None
-	for provider in provider_options:
-		if provider.get("slot_ids") == slot_ids:
-			selected_option = provider
-			break
+	selected_option = _find_provider_change_option(
+		provider_options,
+		provider_name=target_provider,
+		service_unit=target_service_unit,
+	)
 
-	if not selected_option:
-		frappe.throw(_("The selected slot combination is no longer available."))
+	if not selected_option and target_provider:
+		frappe.throw(_("The selected provider option is no longer available."))
 
 	if selected_option is not None and selected_option.get("provider") == appointment.appointment_provider:
 		return {
@@ -239,7 +236,13 @@ def change_appointment_provider(appointment_name, slot_ids=None):
 			"provider_change_options": provider_options,
 		}
 
-	change_result = _apply_provider_change(appointment, slot_ids)
+	change_result = _apply_provider_change(
+		appointment,
+		provider_name=selected_option.get("provider")
+		if selected_option
+		else appointment.appointment_provider,
+		service_unit=selected_option.get("service_unit") if selected_option else appointment.service_unit,
+	)
 	frappe.db.commit()
 
 	return {
@@ -248,7 +251,6 @@ def change_appointment_provider(appointment_name, slot_ids=None):
 		"appointment": appointment.name,
 		"current_provider": change_result.get("provider"),
 		"provider_name": change_result.get("provider_name"),
-		"slot_ids": change_result.get("slot_ids"),
 		"provider_change_options": provider_options,
 	}
 
@@ -578,40 +580,10 @@ def service_type_requires_service_unit(service_type):
 
 @frappe.whitelist()
 def get_available_slots(appointment_type, duration, provider=None, date=None, gender=None, days_ahead=None):
-	from ...services.slot_cache_service import get_cached_available_slots
-
-	effective_days_ahead = get_effective_max_advance_days(days_ahead)
-
-	def _compute_for_day(day_date):
-		return _get_available_slots_db(
-			appointment_type=appointment_type,
-			duration=duration,
-			provider=None,
-			date=day_date,
-			gender=None,
-			days_ahead=0,
-		)
-
-	try:
-		return get_cached_available_slots(
-			appointment_type=appointment_type,
-			duration=duration,
-			provider=provider,
-			date=date,
-			gender=gender,
-			days_ahead=effective_days_ahead,
-			compute_day_fn=_compute_for_day,
-		)
-	except Exception:
-		# Fallback to DB path on cache layer failures.
-		return _get_available_slots_db(
-			appointment_type=appointment_type,
-			duration=duration,
-			provider=provider,
-			date=date,
-			gender=gender,
-			days_ahead=effective_days_ahead,
-		)
+	frappe.throw(
+		_("Legacy slot availability search has been removed. Use counter-based availability APIs."),
+		title=_("Removed Availability Path"),
+	)
 
 
 def _get_available_slots_db(
@@ -959,15 +931,22 @@ def check_service_unit_capacity(
 	service_unit_doc = frappe.get_doc("Service Unit", service_unit)
 
 	# Determine effective capacity
-	# Priority: Service Type > Service Unit
+	# Service Type Unit Type currently does not define per-type capacity.
+	# Capacity is sourced from the selected Service Unit document.
 	apt_type = frappe.get_doc("Service Type", appointment_type)
 	capacity = None
 
-	# Check if capacity is specified in Service Type's service_unit_types
+	# Keep type-match check for future compatibility if per-type capacity is introduced.
 	for row in apt_type.service_unit_types:
 		if row.service_unit_type == service_unit_doc.unit_type:
-			if row.capacity:
-				capacity = row.capacity
+			row_capacity = getattr(row, "capacity", None)
+			if row_capacity not in (None, ""):
+				try:
+					row_capacity = int(row_capacity)
+				except (TypeError, ValueError):
+					row_capacity = None
+			if row_capacity and row_capacity > 0:
+				capacity = row_capacity
 			break
 
 	# Fallback to Service Unit's capacity
@@ -1135,19 +1114,7 @@ def book_appointment_slot(appointment, provider, date, start_time, slot_ids):
 									start_time: Start time
 									slot_ids: JSON array of slot IDs to book
 	"""
-
-	if isinstance(slot_ids, str):
-		slot_ids = json.loads(slot_ids)
-
-	reserve_slots_atomically(appointment=appointment, slot_ids=slot_ids)
-
-	frappe.db.commit()
-
-	return {
-		"success": True,
-		"message": _("Appointment slots booked successfully"),
-		"slots_booked": len(slot_ids),
-	}
+	frappe.throw("Legacy slot booking endpoint has been removed. Use allocation booking APIs.")
 
 
 def reserve_slots_atomically(appointment, slot_ids):
@@ -1155,44 +1122,7 @@ def reserve_slots_atomically(appointment, slot_ids):
 	Concurrency-safe reservation using row-level locks.
 	DB locking is the source of truth; cache is updated by invalidation after write paths.
 	"""
-	if not slot_ids:
-		return
-
-	if isinstance(slot_ids, str):
-		slot_ids = json.loads(slot_ids)
-
-	slot_ids = list(dict.fromkeys(slot_ids))
-	if not slot_ids:
-		return
-
-	locked_rows = frappe.db.sql(
-		"""
-		SELECT name
-		FROM `tabService Provider Appointment Slot`
-		WHERE name IN %(slot_ids)s
-		AND is_available = 1
-		AND (service_appointment IS NULL OR service_appointment = '')
-		FOR UPDATE
-	""",
-		{"slot_ids": tuple(slot_ids)},
-		as_dict=True,
-	)
-
-	if len(locked_rows) != len(slot_ids):
-		frappe.throw(
-			_("One or more slots are no longer available. Please select another time."),
-			title=_("Slot Not Available"),
-		)
-
-	frappe.db.sql(
-		"""
-		UPDATE `tabService Provider Appointment Slot`
-		SET service_appointment = %(appointment)s,
-			is_available = 0
-		WHERE name IN %(slot_ids)s
-	""",
-		{"appointment": appointment, "slot_ids": tuple(slot_ids)},
-	)
+	frappe.throw("Legacy slot reservation has been removed. Use allocation booking APIs.")
 
 
 @frappe.whitelist()
@@ -1203,43 +1133,4 @@ def release_appointment_slots(appointment, commit=True):
 	Args:
 									appointment: Service Appointment name
 	"""
-	appointment_meta = frappe.db.get_value(
-		"Service Appointment",
-		appointment,
-		["appointment_type", "appointment_date"],
-		as_dict=True,
-	)
-
-	frappe.db.sql(
-		"""
-		UPDATE `tabService Provider Appointment Slot`
-		SET service_appointment = NULL,
-			is_available = 1
-		WHERE service_appointment = %s
-	""",
-		appointment,
-	)
-
-	# Commit BEFORE cache operations so any warm job that runs on a separate
-	# DB connection already sees the released (available) slot state.
-	if commit:
-		frappe.db.commit()
-
-	if (
-		commit
-		and appointment_meta
-		and appointment_meta.appointment_type
-		and appointment_meta.appointment_date
-	):
-		from ...services.slot_cache_service import invalidate_service_date_cache, queue_warm_service_date
-
-		invalidate_service_date_cache(
-			appointment_meta.appointment_type,
-			appointment_meta.appointment_date,
-		)
-		queue_warm_service_date(
-			appointment_meta.appointment_type,
-			appointment_meta.appointment_date,
-		)
-
-	return {"success": True, "message": _("Appointment slots released")}
+	frappe.throw("Legacy slot release endpoint has been removed. Use allocation release APIs.")
