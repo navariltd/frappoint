@@ -37,6 +37,8 @@
   "column_break_tadp",
   "booking_discount_amount",
   "appointment_discount_total",
+  "booking_hold_section",
+  "booking_held_until",
   "dashboard_tab",
   "amended_from"
  ],
@@ -78,6 +80,18 @@
    "label": "Status",
    "options": "Draft\nPayment Pending\nPartly Paid\nConfirmed\nClosed\nCancelled"
   },
+  {
+     "fieldname": "booking_hold_section",
+     "fieldtype": "Section Break",
+     "label": "Booking Hold"
+    },
+    {
+     "fieldname": "booking_held_until",
+     "fieldtype": "Datetime",
+     "label": "Booking Held Until",
+     "read_only": 1,
+     "help": "When booking hold expires if booking is in Draft state"
+    },
   {
    "fieldname": "section_break_kkut",
    "fieldtype": "Section Break"

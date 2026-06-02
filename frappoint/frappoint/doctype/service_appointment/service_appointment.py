@@ -13,6 +13,7 @@ from frappe.desk.reportview import build_match_conditions
 from frappe.model.document import Document
 from frappe.utils import (
 	add_to_date,
+	cint,
 	flt,
 	get_datetime,
 	get_link_to_form,
@@ -23,6 +24,11 @@ from frappe.utils import (
 )
 from frappe.utils.user import is_website_user
 
+from ...services.booking_transaction_service import (
+	confirm_held_allocations,
+	release_capacity_for_allocations,
+	reserve_and_create_allocations,
+)
 from ..service_provider_appointment_slot.service_provider_appointment_slot import (
 	check_provider_slot_capacity,
 	check_service_unit_capacity,
@@ -144,6 +150,7 @@ class ServiceAppointment(Document):
 
 	def after_insert(self):
 		self.insert_calendar_event()
+		self.sync_resource_allocations(force=True)
 
 	def before_save(self):
 		"""Assign provider if multiple options exist then, book slots"""
@@ -256,6 +263,10 @@ class ServiceAppointment(Document):
 			coupon = frappe.get_doc("Service Appointment Coupon Code", self.coupon_code)
 			coupon.db_set("times_used", coupon.get_usage_count())
 
+		# Phase 4 integration: confirm held allocations when appointment is confirmed.
+		if frappe.db.exists("DocType", "Service Resource Allocation"):
+			confirm_held_allocations(self.name)
+
 	def validate_confirmation_before_submit(self):
 		if self.status in ["Closed", "Cancelled"]:
 			frappe.throw(_("This appointment is closed and cannot be confirmed."))
@@ -303,6 +314,9 @@ class ServiceAppointment(Document):
 		"""Handle appointment confirmations"""
 		self.update_payment_and_workflow_status()
 
+		if self._has_allocation_relevant_changes():
+			self.sync_resource_allocations(replace_existing=True)
+
 		if self.has_value_changed("status"):
 			self.handle_status_change()
 
@@ -326,6 +340,8 @@ class ServiceAppointment(Document):
 		"""Release slots when appointment is deleted and prevent deletion if billing exists"""
 		self.check_linked_documents_before_delete()
 		self.delete_linked_event()
+		if frappe.db.exists("DocType", "Service Resource Allocation"):
+			release_capacity_for_allocations(appointment_name=self.name, target_status="Released")
 		self.release_slots()
 
 	def on_payment_authorized(self, payment_status):
@@ -1040,9 +1056,20 @@ class ServiceAppointment(Document):
 		return None
 
 	def _slots_already_booked(self):
-		"""Check if slots are already booked for this appointment"""
+		"""Check if this appointment already owns active resource capacity."""
 		if not self.name:
 			return False
+
+		if frappe.db.exists("DocType", "Service Resource Allocation"):
+			active_allocations = frappe.db.count(
+				"Service Resource Allocation",
+				{
+					"service_appointment": self.name,
+					"allocation_status": ["in", ["Draft", "Held", "Confirmed"]],
+				},
+			)
+			if active_allocations:
+				return True
 
 		booked_count = frappe.db.count(
 			"Service Provider Appointment Slot", {"service_appointment": self.name}
@@ -1050,31 +1077,12 @@ class ServiceAppointment(Document):
 		return booked_count > 0
 
 	def book_selected_slots(self):
-		"""Book the selected slots"""
-		from ...services.slot_cache_service import invalidate_on_appointment_mutation
-		from ..service_provider_appointment_slot.service_provider_appointment_slot import (
-			reserve_slots_atomically,
-		)
-
-		try:
-			slot_ids = json.loads(self.selected_slot_ids)
-		except (json.JSONDecodeError, TypeError):
-			frappe.throw(_("Invalid slot selection data"))
-
-		reserve_slots_atomically(appointment=self.name, slot_ids=slot_ids)
-		# Invalidation is deferred to after the transaction commits via
-		# frappe.db.after_commit.  Do NOT enqueue a warm job here — the
-		# warm job runs on a separate DB connection and would race the
-		# uncommitted UPDATE, causing it to re-cache the slot as available.
-		invalidate_on_appointment_mutation(self)
+		"""Reserve capacity through allocation ledger instead of slot-table ownership."""
+		self.sync_resource_allocations(force=True, replace_existing=self._slots_already_booked())
 
 	def release_slots(self):
-		"""Release all booked slots for this appointment"""
-		from frappoint.frappoint.doctype.service_provider_appointment_slot.service_provider_appointment_slot import (
-			release_appointment_slots,
-		)
-
-		release_appointment_slots(self.name)
+		"""Release allocation-ledger capacity."""
+		release_capacity_for_allocations(appointment_name=self.name, target_status="Released")
 
 	def _perform_provider_assignment(self):
 		"""
@@ -1323,11 +1331,133 @@ class ServiceAppointment(Document):
 		self.db_set("status", "Cancelled")
 		self.db_set("cancellation_date", now_datetime())
 		self.cancel_linked_event()
+		if frappe.db.exists("DocType", "Service Resource Allocation"):
+			release_capacity_for_allocations(appointment_name=self.name, target_status="Cancelled")
 		self.release_slots()
 
 		if not getattr(self.flags, "is_rescheduling", False):
 			if self.booking_id:
 				self.sync_parent_booking()
+
+	def _has_allocation_relevant_changes(self):
+		if self.is_new():
+			return True
+
+		old_doc = self.get_doc_before_save()
+		if not old_doc:
+			return False
+
+		tracked_fields = [
+			"appointment_date",
+			"start_time",
+			"end_time",
+			"appointment_provider",
+			"service_unit",
+			"booking_id",
+		]
+
+		return any(str(old_doc.get(field)) != str(self.get(field)) for field in tracked_fields)
+
+	def _get_buffer_minutes(self):
+		buffer_before = cint(self.get("buffer_before_minutes") or 0)
+		buffer_after = cint(self.get("buffer_after_minutes") or 0)
+
+		if buffer_before or buffer_after:
+			return buffer_before, buffer_after
+
+		if self.appointment_type and frappe.db.exists("Service Type", self.appointment_type):
+			service_type = frappe.db.get_value(
+				"Service Type",
+				self.appointment_type,
+				["buffer_before", "buffer_after"],
+				as_dict=True,
+			)
+			if service_type:
+				return cint(service_type.get("buffer_before") or 0), cint(
+					service_type.get("buffer_after") or 0
+				)
+
+		settings = frappe.get_cached_doc("Service Appointment Settings")
+		return cint(settings.buffer_before or 0), cint(settings.buffer_after or 0)
+
+	def _build_allocation_payloads(self):
+		buffer_before, buffer_after = self._get_buffer_minutes()
+
+		allocation_payloads = [
+			{
+				"resource_type": "Service Provider",
+				"resource_reference": self.appointment_provider,
+				"allocation_date": self.appointment_date,
+				"start_time": self.start_time,
+				"end_time": self.end_time,
+				"appointment_start_time": self.start_time,
+				"appointment_end_time": self.end_time,
+				"capacity_consumed": 1.0,
+				"buffer_before_minutes": buffer_before,
+				"buffer_after_minutes": buffer_after,
+			}
+		]
+
+		if self.service_unit:
+			allocation_payloads.append(
+				{
+					"resource_type": "Service Unit",
+					"resource_reference": self.service_unit,
+					"allocation_date": self.appointment_date,
+					"start_time": self.start_time,
+					"end_time": self.end_time,
+					"appointment_start_time": self.start_time,
+					"appointment_end_time": self.end_time,
+					"capacity_consumed": 1.0,
+					"buffer_before_minutes": buffer_before,
+					"buffer_after_minutes": buffer_after,
+				}
+			)
+
+		return allocation_payloads
+
+	def sync_resource_allocations(self, force=False, replace_existing=False):
+		"""Sync allocation ledger for legacy slot-based workflows.
+
+		This keeps allocation/counter architecture in sync while old slot ownership still exists.
+		"""
+		if not frappe.db.exists("DocType", "Service Resource Allocation"):
+			return
+
+		if not self.name or not self.appointment_date or not self.start_time or not self.end_time:
+			return
+
+		if not self.appointment_provider:
+			return
+
+		if self.status in ["Cancelled", "Closed", "No Show"]:
+			return
+
+		active_allocations = frappe.db.count(
+			"Service Resource Allocation",
+			{
+				"service_appointment": self.name,
+				"allocation_status": ["in", ["Draft", "Held", "Confirmed"]],
+			},
+		)
+
+		if active_allocations and not force and not replace_existing:
+			return
+
+		if replace_existing and active_allocations:
+			release_capacity_for_allocations(appointment_name=self.name, target_status="Released")
+
+		allocation_status = (
+			"Confirmed" if self.status in ["Confirmed", "Checked In", "In Progress", "Completed"] else "Held"
+		)
+
+		reserve_and_create_allocations(
+			appointment_name=self.name,
+			booking_name=self.booking_id,
+			allocations=self._build_allocation_payloads(),
+			allocation_status=allocation_status,
+			extra_metadata={"source": "service_appointment.sync_resource_allocations"},
+		)
 
 	def sync_parent_booking(self):
 		"""Adjust the Service Booking items based on the new operational state"""
@@ -1517,12 +1647,10 @@ def get_appointment_slots(appointment_type, duration, provider=None, date=None, 
 	Wrapper method for getting available slots
 	Can be called from frontend
 	"""
-	from frappoint.frappoint.doctype.service_provider_appointment_slot.service_provider_appointment_slot import (
-		get_available_slots,
-	)
+	from frappoint.frappoint.api.slot_availability import get_available_time_slots
 
-	return get_available_slots(
-		appointment_type=appointment_type,
+	return get_available_time_slots(
+		service_type=appointment_type,
 		duration=duration,
 		provider=provider,
 		date=date,

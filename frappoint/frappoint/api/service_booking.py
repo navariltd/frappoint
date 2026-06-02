@@ -28,6 +28,12 @@ def create_booking_with_appointments(booking_payload=None):
 
 	data = frappe._dict(data or {})
 
+	def _first(*values):
+		for value in values:
+			if value is not None and value != "":
+				return value
+		return None
+
 	# Accept either `items` or the legacy `guests` payload key
 	items = data.get("items") or data.get("guests") or []
 	if not items:
@@ -55,13 +61,21 @@ def create_booking_with_appointments(booking_payload=None):
 
 	for it in items:
 		it = frappe._dict(it or {})
+		service_type = _first(it.get("service_type"), it.get("serviceType"), it.get("appointment_type"))
+		price_id = _first(
+			it.get("price_id"),
+			it.get("priceId"),
+			it.get("price_name"),
+			it.get("appointment_price"),
+		)
+		total_amount = _first(it.get("amount"), it.get("price"), it.get("total_amount"), 0)
 		booking.append(
 			"items",
 			{
-				"service_type": it.get("service_type") or it.get("appointment_type"),
-				"price_id": it.get("price_id") or it.get("price_name") or it.get("appointment_price"),
+				"service_type": service_type,
+				"price_id": price_id,
 				"qty": it.get("qty", 1),
-				"total_amount": it.get("amount") or it.get("price") or it.get("total_amount") or 0,
+				"total_amount": total_amount,
 				"currency": it.get("currency") or data.get("currency"),
 			},
 		)
@@ -72,21 +86,45 @@ def create_booking_with_appointments(booking_payload=None):
 	for it in items:
 		try:
 			it = frappe._dict(it or {})
+			slot = frappe._dict(it.get("slot") or {})
+			provider = _first(it.get("provider"), slot.get("provider"))
+			service_unit = _first(
+				it.get("service_unit"),
+				it.get("serviceUnit"),
+				slot.get("service_unit"),
+				slot.get("serviceUnit"),
+			)
+			start_time = _first(
+				it.get("start_time"), it.get("startTime"), slot.get("start_time"), slot.get("startTime")
+			)
+			end_time = _first(
+				it.get("end_time"), it.get("endTime"), slot.get("end_time"), slot.get("endTime")
+			)
+			slot_ids = (
+				_first(slot.get("slot_ids"), slot.get("slotIds"), it.get("slot_ids"), it.get("slotIds")) or []
+			)
 			appt = frappe.get_doc(
 				{
 					"doctype": "Service Appointment",
 					"booking_id": booking.name,
-					"appointment_type": it.get("service_type") or it.get("appointment_type"),
-					"appointment_date": it.get("date"),
-					"start_time": it.get("start_time")
-					or (it.get("slot") and it.get("slot").get("start_time")),
-					"end_time": it.get("end_time") or (it.get("slot") and it.get("slot").get("end_time")),
-					"appointment_price": it.get("price_id")
-					or it.get("price_name")
-					or it.get("appointment_price"),
-					"total_amount": it.get("amount") or it.get("price") or it.get("total_amount") or 0,
+					"appointment_type": _first(
+						it.get("service_type"), it.get("serviceType"), it.get("appointment_type")
+					),
+					"appointment_date": _first(
+						it.get("date"), it.get("appointment_date"), it.get("appointmentDate")
+					),
+					"start_time": start_time,
+					"end_time": end_time,
+					"appointment_price": _first(
+						it.get("price_id"),
+						it.get("priceId"),
+						it.get("price_name"),
+						it.get("appointment_price"),
+					),
+					"total_amount": _first(it.get("amount"), it.get("price"), it.get("total_amount"), 0),
 					"currency": it.get("currency") or data.get("currency"),
-					"appointment_provider": it.get("provider"),
+					"appointment_provider": provider,
+					"service_unit": service_unit,
 					"customer": (
 						data.get("customer")
 						if not isinstance(data.get("customer"), dict)
@@ -97,14 +135,10 @@ def create_booking_with_appointments(booking_payload=None):
 				}
 			)
 
-			# selected_slot_ids if present in slot or slot_ids
+			# selected_slot_ids are optional in allocation-first flows.
 			try:
-				slot = it.get("slot") or {}
-				slot_ids = slot.get("slot_ids") if isinstance(slot, dict) else None
 				if slot_ids:
 					appt.set("selected_slot_ids", json.dumps(slot_ids))
-				elif it.get("slot_ids"):
-					appt.set("selected_slot_ids", json.dumps(it.get("slot_ids")))
 			except Exception:
 				pass
 

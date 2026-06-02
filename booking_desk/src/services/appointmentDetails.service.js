@@ -117,7 +117,6 @@ function normalizeAppointment(raw = {}) {
 		details: raw.details || appointment.details,
 		notes: raw.notes || appointment.notes,
 		source: raw.source || appointment.source,
-		selectedSlotIds: Array.isArray(raw.selectedSlotIds) ? raw.selectedSlotIds : [],
 		allAvailableProviders: Array.isArray(raw.allAvailableProviders)
 			? raw.allAvailableProviders
 			: [],

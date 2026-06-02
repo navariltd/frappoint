@@ -8,7 +8,6 @@ import {
 import {
 	fetchNormalizedAvailableDates,
 	fetchNormalizedAvailableSlots,
-	validateSlotAvailability,
 } from "@/services/availability.service";
 import { useBookingWorkflowStore } from "@/stores/bookingWorkflow.store";
 
@@ -205,16 +204,6 @@ export const useGuestAssignmentStore = defineStore("guestAssignment", {
 			const guest = service.guests[guestIndex];
 			const slot = guest.availableSlots.find((row) => row.id === slotId);
 			if (!slot) return;
-
-			const validation = await validateSlotAvailability(slot.slotIds || []);
-			if (!validation.available) {
-				this.errorByGuest = {
-					...this.errorByGuest,
-					[guestKey]:
-						"Selected slot is no longer available. Please choose another slot.",
-				};
-				return;
-			}
 
 			this.isLoadingSlots = { ...this.isLoadingSlots, [guestKey]: true };
 			this.errorByGuest = { ...this.errorByGuest, [guestKey]: "" };

@@ -109,7 +109,7 @@ const buildDraftAppointmentPayload = ({ service, guest, date, slot }) => ({
 		endTime: slot.endTime,
 		provider: slot.providers?.[0]?.provider || "",
 		providerSummary: slot.providerSummary,
-		slotIds: slot.slotIds || [],
+		slotIds: slot.providers?.[0]?.slotIds || [],
 		providers: slot.providers || [],
 	},
 });

@@ -5,6 +5,9 @@ export function useAppointmentActions() {
 	const store = useAppointmentDetailsStore();
 	const busy = computed(() => store.isSubmittingAction);
 
+	const normalizeSlotIds = (slotIds) =>
+		Array.isArray(slotIds) && slotIds.length ? slotIds : undefined;
+
 	const checkIn = (appointmentId = store.appointment.appointmentId) =>
 		store.performAction({ appointmentId, action: "check_in" });
 
@@ -38,7 +41,7 @@ export function useAppointmentActions() {
 			newStartTime: payload.newStartTime,
 			newEndTime: payload.newEndTime,
 			newProvider: payload.newProvider,
-			newSlotIds: payload.newSlotIds,
+			newSlotIds: normalizeSlotIds(payload.newSlotIds),
 			newServiceUnit: payload.newServiceUnit,
 		});
 
@@ -52,7 +55,6 @@ export function useAppointmentActions() {
 			newStartTime: store.appointment.startTime,
 			newEndTime: store.appointment.endTime,
 			newProvider: normalizedPayload.provider,
-			newSlotIds: normalizedPayload.slotIds,
 			newServiceUnit: normalizedPayload.serviceUnit,
 		});
 	};
@@ -64,7 +66,7 @@ export function useAppointmentActions() {
 			newStartTime: startTime,
 			newEndTime: endTime,
 			newProvider: provider,
-			newSlotIds: slotIds,
+			newSlotIds: normalizeSlotIds(slotIds),
 			newServiceUnit: serviceUnit,
 		});
 

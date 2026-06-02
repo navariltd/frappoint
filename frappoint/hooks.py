@@ -199,14 +199,13 @@ scheduler_events = {
 	"all": [
 		"frappoint.utils.expire_pending_payment_holds",
 	],
+	"hourly": [
+		"frappoint.frappoint.scheduler.refresh_availability_counters.execute",
+	],
 	"daily": [
 		"frappoint.utils.purge_old_slots",
 		"frappoint.utils.replenish_slot_window",
-		"frappoint.utils.nightly_slot_cache_pregeneration",
 	],
-	# "hourly": [
-	# 	"frappoint.tasks.hourly"
-	# ],
 	# "weekly": [
 	# 	"frappoint.tasks.weekly"
 	# ],

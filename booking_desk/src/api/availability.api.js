@@ -3,8 +3,6 @@ import { createResource } from "frappe-ui";
 const AVAILABLE_DATES_ENDPOINT = "frappoint.frappoint.api.slot_availability.get_available_dates";
 const AVAILABLE_SLOTS_ENDPOINT =
 	"frappoint.frappoint.api.slot_availability.get_available_time_slots";
-const CHECK_SLOT_AVAILABILITY_ENDPOINT =
-	"frappoint.frappoint.api.slot_availability.check_slot_availability";
 
 const availableDatesResource = createResource({
 	url: AVAILABLE_DATES_ENDPOINT,
@@ -15,11 +13,6 @@ const availableDatesResource = createResource({
 const availableSlotsResource = createResource({
 	url: AVAILABLE_SLOTS_ENDPOINT,
 	method: "GET",
-	auto: false,
-});
-
-const checkSlotAvailabilityResource = createResource({
-	url: CHECK_SLOT_AVAILABILITY_ENDPOINT,
 	auto: false,
 });
 
@@ -76,28 +69,21 @@ export async function fetchAvailableSlotsApi({
 	date,
 	gender,
 	daysAhead,
+	useCounterEngine,
 }) {
 	const params = { service_type: serviceType, duration, date };
 	const sanitizedDaysAhead = getValidDaysAhead(daysAhead);
 	if (sanitizedDaysAhead) params.days_ahead = sanitizedDaysAhead;
 	if (provider) params.provider = provider;
 	if (gender) params.gender = gender;
+	if (useCounterEngine) params.use_counter_engine = 1;
 	const response = await availableSlotsResource.fetch(params);
 	return unwrapPayload(response ?? availableSlotsResource.data);
-}
-
-export async function checkSlotAvailabilityApi(slotIds = []) {
-	const response = await checkSlotAvailabilityResource.fetch({
-		slot_ids: slotIds,
-	});
-	return unwrapPayload(response ?? checkSlotAvailabilityResource.data);
 }
 
 export {
 	AVAILABLE_DATES_ENDPOINT,
 	AVAILABLE_SLOTS_ENDPOINT,
-	CHECK_SLOT_AVAILABILITY_ENDPOINT,
 	availableDatesResource,
 	availableSlotsResource,
-	checkSlotAvailabilityResource,
 };

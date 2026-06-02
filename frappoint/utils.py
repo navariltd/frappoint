@@ -5,7 +5,6 @@ from .frappoint.doctype.service_provider_appointment_slot.service_provider_appoi
 	generate_slots_for_specific_days,
 )
 from .frappoint.services.slot_cache_service import (
-	enqueue_nightly_slot_cache_pregeneration,
 	purge_slot_cache_before_date,
 )
 
@@ -59,16 +58,9 @@ def replenish_slot_window():
 		)
 
 
-def nightly_slot_cache_pregeneration():
-	"""Enqueue Redis slot-cache pre-generation for the active booking horizon."""
-	enqueue_nightly_slot_cache_pregeneration()
-
-
 def expire_pending_payment_holds():
-	"""Close unpaid draft appointments whose payment hold has expired and release slots."""
-	from .frappoint.doctype.service_provider_appointment_slot.service_provider_appointment_slot import (
-		release_appointment_slots,
-	)
+	"""Close unpaid draft appointments whose payment hold has expired and release reserved capacity."""
+	from .frappoint.services.booking_transaction_service import release_capacity_for_allocations
 
 	now = now_datetime()
 	expired_appointments = frappe.get_all(
@@ -93,7 +85,10 @@ def expire_pending_payment_holds():
 				appointment.update_payment_and_workflow_status()
 				continue
 
-			release_appointment_slots(appointment.name)
+			release_capacity_for_allocations(
+				appointment_name=appointment.name,
+				target_status="Expired",
+			)
 			appointment.db_set(
 				{
 					"status": "Closed",

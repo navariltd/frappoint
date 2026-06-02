@@ -21,7 +21,7 @@ function normalizeAppointment(appointment) {
 		fullName: appointment.fullName || "Guest",
 		email: appointment.email || "",
 		mobileNo: appointment.mobileNo || "",
-		slotIds: appointment.slotIds || [],
+		slotIds: [],
 	};
 }
 

@@ -90,7 +90,7 @@ const afternoonSlots = computed(() =>
 );
 
 function isSlotDisabled(slot: AvailableSlot) {
-	return slot.availability === "unavailable" || slot.slotIds.length === 0;
+	return slot.availability === "unavailable";
 }
 
 function buttonStateClass(slot: AvailableSlot) {

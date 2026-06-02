@@ -5,8 +5,8 @@ import frappe
 from frappe import _
 from frappe.utils import add_days, getdate, nowdate
 
-from frappoint.frappoint.doctype.service_provider_appointment_slot.service_provider_appointment_slot import (
-	get_available_slots,
+from frappoint.frappoint.services.availability_projector import (
+	get_available_slots as get_projected_available_slots,
 )
 
 
@@ -116,77 +116,41 @@ def get_data(filters):
 
 	provider_filter = filters.get("provider") or None
 	service_unit_filter = filters.get("service_unit") or None
-	shift_assignment_filter = filters.get("shift_assignment") or None
 	gender = filters.get("gender") or None
-	rows = []
+	rows = get_projected_available_slots(
+		service_type_id=service_type,
+		start_date=start_date,
+		end_date=end_date,
+		provider_id=provider_filter,
+		service_unit_id=service_unit_filter,
+		required_duration_minutes=duration,
+	)
 
-	for current_date in _date_range(start_date, end_date):
-		available_slots = get_available_slots(
-			service_type,
-			duration,
-			provider=provider_filter,
-			date=current_date,
-			gender=gender,
+	if gender:
+		allowed = set(
+			frappe.get_all(
+				"Service Provider",
+				filters={"gender": gender},
+				pluck="name",
+			)
 		)
+		rows = [row for row in rows if row.get("provider") in allowed]
 
-		for date_group in available_slots:
-			date_value = date_group.get("date") or current_date
-			for slot in date_group.get("slots", []):
-				provider_rows = slot.get("providers") or []
-				if service_unit_filter:
-					provider_rows = [
-						provider_row
-						for provider_row in provider_rows
-						if provider_row.get("service_unit") == service_unit_filter
-					]
-				if shift_assignment_filter:
-					provider_rows = [
-						provider_row
-						for provider_row in provider_rows
-						if provider_row.get("shift_assignment") == shift_assignment_filter
-					]
-
-				if not provider_rows:
-					continue
-
-				provider_names = _unique_values(
-					provider_row.get("provider_name") or provider_row.get("provider")
-					for provider_row in provider_rows
-				)
-				service_units = _unique_values(
-					provider_row.get("service_unit_name") or provider_row.get("service_unit")
-					for provider_row in provider_rows
-				)
-				shift_assignments = _unique_values(
-					provider_row.get("shift_assignment") for provider_row in provider_rows
-				)
-				slot_ids = []
-				for provider_row in provider_rows:
-					slot_ids.extend(provider_row.get("slot_ids") or [])
-
-				rows.append(
-					{
-						"service_type": service_type,
-						"date": date_value,
-						"start_time": slot.get("start_time"),
-						"end_time": slot.get("end_time"),
-						"duration_minutes": slot.get("duration") or 0,
-						"provider_count": len(provider_rows),
-						"providers": ", ".join(provider_names),
-						"service_units": ", ".join(service_units),
-						"shift_assignments": ", ".join(shift_assignments),
-						"slot_ids_count": len(slot_ids),
-					}
-				)
-
-	return rows
-
-
-def _date_range(start_date, end_date):
-	current_date = start_date
-	while current_date <= end_date:
-		yield current_date
-		current_date = add_days(current_date, 1)
+	return [
+		{
+			"service_type": service_type,
+			"date": row.get("date"),
+			"start_time": row.get("start_time"),
+			"end_time": row.get("end_time"),
+			"duration_minutes": row.get("duration") or 0,
+			"provider_count": 1,
+			"providers": row.get("provider_name") or row.get("provider") or "",
+			"service_units": row.get("service_unit_name") or row.get("service_unit") or "",
+			"shift_assignments": "",
+			"slot_ids_count": 0,
+		}
+		for row in rows
+	]
 
 
 def _unique_values(values):

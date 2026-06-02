@@ -5,10 +5,10 @@ from datetime import timedelta
 import frappe
 from frappe import _
 from frappe.model.document import Document
-from frappe.utils import add_days, get_link_to_form, nowdate
+from frappe.utils import add_days, get_link_to_form, getdate, nowdate
 
+from ...services.availability_projector import enqueue_targeted_counter_refresh
 from ..service_provider_appointment_slot.service_provider_appointment_slot import (
-	generate_for_shift,
 	service_type_requires_service_unit,
 )
 
@@ -67,6 +67,8 @@ class ServiceProviderShiftAssignment(Document):
 			self.flags.old_end_date = old_doc.end_date
 			self.flags.old_repeat_type = old_doc.repeat_type
 			self.flags.old_status = old_doc.status
+			self.flags.old_provider = old_doc.provider
+			self.flags.old_service_unit = old_doc.service_unit
 
 			if old_doc.repeat_type == "Weekly":
 				day_fields = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"]
@@ -81,12 +83,12 @@ class ServiceProviderShiftAssignment(Document):
 	def on_submit(self):
 		from ...services.slot_cache_service import invalidate_provider_date_range_cache
 
-		generate_for_shift(self.name)
 		invalidate_provider_date_range_cache(
 			self.provider,
 			self.start_date,
 			self._cache_end_date(),
 		)
+		self._enqueue_targeted_counter_refreshes()
 
 	def on_update_after_submit(self):
 		from ...services.slot_cache_service import invalidate_provider_date_range_cache
@@ -96,12 +98,12 @@ class ServiceProviderShiftAssignment(Document):
 		self.validate_overlapping_shifts()
 
 		if self.status == "Inactive":
-			self.deactivate_slots()
 			invalidate_provider_date_range_cache(
 				self.provider,
 				self.start_date,
 				self._cache_end_date(),
 			)
+			self._enqueue_targeted_counter_refreshes()
 			return
 
 		if (
@@ -110,48 +112,40 @@ class ServiceProviderShiftAssignment(Document):
 			and self.flags.old_status == "Inactive"
 		):
 			frappe.msgprint(_("Shift reactivated."), indicator="green", alert=True)
-			self.reactivate_slots()
 			invalidate_provider_date_range_cache(
 				self.provider,
 				self.start_date,
 				self._cache_end_date(),
 			)
+			self._enqueue_targeted_counter_refreshes()
 			return
 
 		regeneration_type = self.check_for_slot_regeneration()
 
 		if regeneration_type == "full":
-			# Full regeneration needed (shift type, dates changed)
-			frappe.enqueue(
-				"frappoint.frappoint.doctype.service_provider_appointment_slot.service_provider_appointment_slot.generate_for_shift",
-				shift_assignment=self.name,
-				queue="default",
-				timeout=300,
-				is_async=True,
-			)
 			invalidate_provider_date_range_cache(
 				self.provider,
 				self.start_date,
 				self._cache_end_date(),
 			)
 		elif regeneration_type == "partial":
-			# Partial regeneration (only weekdays changed)
-			self.handle_weekday_changes()
 			invalidate_provider_date_range_cache(
 				self.provider,
 				self.start_date,
 				self._cache_end_date(),
 			)
 
+		self._enqueue_targeted_counter_refreshes()
+
 	def on_cancel(self):
 		from ...services.slot_cache_service import invalidate_provider_date_range_cache
 
-		self.handle_slot_cleanup_on_cancel()
 		invalidate_provider_date_range_cache(
 			self.provider,
 			self.start_date,
 			self._cache_end_date(),
 		)
+		self._enqueue_targeted_counter_refreshes()
 
 	def _cache_end_date(self):
 		if self.end_date:
@@ -159,6 +153,51 @@ class ServiceProviderShiftAssignment(Document):
 
 		horizon = int(frappe.db.get_single_value("Service Appointment Settings", "max_advance_days") or 30)
 		return add_days(nowdate(), horizon)
+
+	def _range_end_for(self, end_date_value):
+		if end_date_value:
+			return getdate(end_date_value)
+		horizon = int(frappe.db.get_single_value("Service Appointment Settings", "max_advance_days") or 30)
+		return getdate(add_days(nowdate(), horizon))
+
+	def _enqueue_targeted_counter_refreshes(self):
+		resources = []
+
+		resources.append(
+			(
+				self.provider,
+				self.service_unit,
+				getdate(self.start_date),
+				self._range_end_for(self.end_date),
+			)
+		)
+
+		if hasattr(self.flags, "old_start_date") and getattr(self.flags, "old_start_date", None):
+			resources.append(
+				(
+					getattr(self.flags, "old_provider", self.provider),
+					getattr(self.flags, "old_service_unit", None),
+					getdate(self.flags.old_start_date),
+					self._range_end_for(getattr(self.flags, "old_end_date", None)),
+				)
+			)
+
+		seen = set()
+		for provider, service_unit, start, end in resources:
+			if end < start:
+				start, end = end, start
+
+			key = (provider, service_unit or "", str(start), str(end))
+			if key in seen:
+				continue
+			seen.add(key)
+
+			enqueue_targeted_counter_refresh(
+				start_date=start,
+				end_date=end,
+				provider=provider,
+				service_unit=service_unit,
+			)
 
 	def validate_active_provider(self):
 		if self.provider and frappe.db.get_value("Service Provider", self.provider, "active") == 0:
@@ -514,16 +553,6 @@ class ServiceProviderShiftAssignment(Document):
 	def reactivate_slots(self):
 		"""Mark all unbooked future slots as available when shift is reactivated"""
 		today = nowdate()
-
-		slot_count = frappe.db.count(
-			"Service Provider Appointment Slot",
-			{"shift_assignment": self.name, "posting_date": [">=", today]},
-		)
-
-		if slot_count == 0:
-			# No slots exist, need to generate them
-			generate_for_shift(self.name)
-			return
 
 		frappe.db.sql(
 			"""

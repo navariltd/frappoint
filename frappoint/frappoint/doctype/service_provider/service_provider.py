@@ -8,6 +8,8 @@ from frappe import _
 from frappe.model.document import Document
 from frappe.utils import get_link_to_form
 
+from ...services.availability_projector import enqueue_targeted_counter_refresh
+
 
 class ServiceProvider(Document):
 	# begin: auto-generated types
@@ -227,6 +229,11 @@ class ServiceProvider(Document):
 
 		frappe.msgprint(_("Marked future unbooked slots as unavailable"), indicator="blue", alert=True)
 		invalidate_provider_date_range_cache(self.name, today, frappe.utils.add_days(today, horizon))
+		enqueue_targeted_counter_refresh(
+			start_date=today,
+			end_date=frappe.utils.add_days(today, horizon),
+			provider=self.name,
+		)
 
 	def reactivate_future_slots(self):
 		"""Reactivate future slots when provider is activated again"""
@@ -260,6 +267,11 @@ class ServiceProvider(Document):
 				_("Reactivated future slots for active shift assignments"), indicator="green", alert=True
 			)
 			invalidate_provider_date_range_cache(self.name, today, frappe.utils.add_days(today, horizon))
+			enqueue_targeted_counter_refresh(
+				start_date=today,
+				end_date=frappe.utils.add_days(today, horizon),
+				provider=self.name,
+			)
 
 
 @frappe.whitelist()

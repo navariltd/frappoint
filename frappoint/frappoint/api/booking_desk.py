@@ -17,6 +17,9 @@ from frappoint.frappoint.doctype.service_appointment_event_log.service_appointme
 from frappoint.frappoint.doctype.service_provider_appointment_slot.service_provider_appointment_slot import (
 	change_appointment_provider,
 )
+from frappoint.frappoint.services.availability_projector import (
+	get_available_slots as get_projected_available_slots,
+)
 from frappoint.frappoint.services.pricing_service import (
 	calculate_booking_pricing,
 	coupon_scope_label,
@@ -177,9 +180,7 @@ def _serialize_booking(booking, pricing=None):
 				"fullName": appointment.full_name,
 				"email": appointment.email,
 				"mobileNo": appointment.mobile_no,
-				"slotIds": (
-					json.loads(appointment.selected_slot_ids) if appointment.selected_slot_ids else []
-				),
+				"slotIds": [],
 			}
 			for appointment in appointments
 		],
@@ -241,7 +242,7 @@ def _serialize_appointment(appointment):
 		"details": appointment.details,
 		"notes": appointment.notes,
 		"source": appointment.source,
-		"selectedSlotIds": _safe_json_loads(getattr(appointment, "selected_slot_ids", None), []),
+		"selectedSlotIds": [],
 		"allAvailableProviders": _safe_json_loads(getattr(appointment, "all_available_providers", None), []),
 		"modified": appointment.modified,
 		"creation": appointment.creation,
@@ -279,6 +280,60 @@ def _serialize_appointment_payment(payment):
 		"orderId": payment.order_id,
 		"modified": payment.modified,
 	}
+
+
+def _time_key(value):
+	if value is None:
+		return ""
+	return str(value).split(".")[0]
+
+
+def _get_allocation_provider_change_options(appointment):
+	if not appointment.appointment_type or not appointment.appointment_date:
+		return []
+
+	rows = get_projected_available_slots(
+		service_type_id=appointment.appointment_type,
+		start_date=appointment.appointment_date,
+		end_date=appointment.appointment_date,
+		required_duration_minutes=appointment.duration,
+	)
+	if not rows:
+		return []
+
+	target_start = _time_key(appointment.start_time)
+	target_end = _time_key(appointment.end_time)
+	seen = set()
+	options = []
+
+	for row in rows:
+		provider = row.get("provider")
+		if not provider or provider == appointment.appointment_provider:
+			continue
+
+		if _time_key(row.get("start_time")) != target_start:
+			continue
+		if _time_key(row.get("end_time")) != target_end:
+			continue
+
+		service_unit = row.get("service_unit")
+		provider_key = (provider, service_unit or "")
+		if provider_key in seen:
+			continue
+		seen.add(provider_key)
+
+		options.append(
+			{
+				"provider": provider,
+				"provider_name": row.get("provider_name") or provider,
+				"service_unit": service_unit,
+				"service_unit_name": row.get("service_unit_name") or service_unit,
+				"slot_ids": row.get("slot_ids") or [],
+			}
+		)
+
+	options.sort(key=lambda row: (row.get("provider_name") or "", row.get("provider") or ""))
+	return options
 
 
 def _build_appointment_timeline(appointment, payments, event_logs):
@@ -1177,8 +1232,16 @@ def create_draft_service_booking(customer=None, items=None):
 
 
 @frappe.whitelist()
-def upsert_draft_service_appointment(booking_id: str, assignment=None, appointment_id: str | None = None):
+def upsert_draft_service_appointment(
+	booking_id: str | None = None,
+	assignment=None,
+	appointment_id: str | None = None,
+	bookingId: str | None = None,
+):
 	assignment = _parse_json_payload(assignment, {})
+	booking_id = (
+		booking_id or bookingId or frappe.form_dict.get("booking_id") or frappe.form_dict.get("bookingId")
+	)
 	if not booking_id:
 		frappe.throw(_("Booking reference is required to reserve an appointment."))
 
@@ -1188,6 +1251,18 @@ def upsert_draft_service_appointment(booking_id: str, assignment=None, appointme
 	slot = assignment.get("slot") or {}
 	service_item = assignment.get("service") or {}
 	service_payload = {**assignment, **service_item}
+	slot_start_time = slot.get("startTime") or slot.get("start_time")
+	slot_end_time = slot.get("endTime") or slot.get("end_time")
+	slot_providers = slot.get("providers") or []
+	provider = slot.get("provider") or slot.get("appointment_provider")
+	if not provider and slot_providers:
+		provider = (slot_providers[0] or {}).get("provider")
+	service_unit = slot.get("serviceUnit") or slot.get("service_unit")
+	if not service_unit and slot_providers:
+		service_unit = (slot_providers[0] or {}).get("serviceUnit") or (slot_providers[0] or {}).get(
+			"service_unit"
+		)
+	slot_ids = slot.get("slotIds") or slot.get("slot_ids") or []
 
 	if not service_type:
 		frappe.throw(_("Service type is required to create an appointment."))
@@ -1195,9 +1270,9 @@ def upsert_draft_service_appointment(booking_id: str, assignment=None, appointme
 		frappe.throw(_("Guest full name is required before reserving a slot."))
 	if not assignment.get("date"):
 		frappe.throw(_("Appointment date is required before reserving a slot."))
-	if not slot.get("startTime") or not slot.get("endTime"):
+	if not slot_start_time or not slot_end_time:
 		frappe.throw(_("Selected slot is incomplete."))
-	if not slot.get("provider"):
+	if not provider:
 		frappe.throw(_("Provider is required for slot reservation."))
 
 	price_id = service_payload.get("priceId") or service_payload.get("packageId")
@@ -1229,14 +1304,15 @@ def upsert_draft_service_appointment(booking_id: str, assignment=None, appointme
 	appointment.customer = booking.customer
 	appointment.appointment_type = service_type
 	appointment.appointment_date = assignment.get("date")
-	appointment.appointment_provider = slot.get("provider")
+	appointment.appointment_provider = provider
+	appointment.service_unit = service_unit
 	appointment.duration = duration
 	appointment.appointment_price = resolved_price_name
 	appointment.currency = currency
-	appointment.start_time = slot.get("startTime")
-	appointment.end_time = slot.get("endTime")
-	appointment.selected_slot_ids = json.dumps(slot.get("slotIds") or [])
-	appointment.all_available_providers = json.dumps(slot.get("providers") or [])
+	appointment.start_time = slot_start_time
+	appointment.end_time = slot_end_time
+	appointment.selected_slot_ids = json.dumps(slot_ids) if slot_ids else None
+	appointment.all_available_providers = json.dumps(slot_providers)
 	appointment.full_name = guest.get("fullName")
 	appointment.email = guest.get("email") or booking.email
 	appointment.mobile_no = guest.get("mobileNo") or booking.mobile_no
@@ -1330,6 +1406,14 @@ def perform_appointment_action(
 	action = action.strip().lower()
 	appointment = frappe.get_doc("Service Appointment", appointment_id)
 
+	if isinstance(new_slot_ids, str):
+		try:
+			parsed_slot_ids = json.loads(new_slot_ids)
+			if isinstance(parsed_slot_ids, list):
+				new_slot_ids = parsed_slot_ids
+		except Exception:
+			pass
+
 	if action in {"check_in", "start", "pause", "resume"}:
 		apply_appointment_event_action(
 			appointment,
@@ -1380,21 +1464,40 @@ def perform_appointment_action(
 
 	if action in {"reassign_provider", "edit_time_slot"}:
 		if action == "reassign_provider":
-			result = change_appointment_provider(appointment_id, slot_ids=new_slot_ids)
-			provider_change_options = result.get("provider_change_options") or []
-
-			if not new_slot_ids:
+			# Allocation-first path: provider/service unit updates are provider-option driven.
+			if new_provider or new_service_unit:
+				result = change_appointment_provider(
+					appointment_id,
+					target_provider=new_provider or appointment.appointment_provider,
+					target_service_unit=new_service_unit or appointment.service_unit,
+				)
+				appointment.reload()
 				booking = (
 					frappe.get_doc("Service Booking", appointment.booking_id)
 					if appointment.booking_id
 					else None
 				)
 				response = _build_appointment_response(appointment, booking)
-				response["providerChangeOptions"] = provider_change_options
+				response["providerChangeOptions"] = []
 				response["operationResult"] = result
 				return response
 
-			appointment.reload()
+			provider_change_options = _get_allocation_provider_change_options(appointment)
+			result = {
+				"success": True,
+				"appointment": appointment.name,
+				"current_provider": appointment.appointment_provider,
+				"provider_change_options": provider_change_options,
+			}
+
+			# Fallback for legacy slot-backed appointments where projector options are empty.
+			if not provider_change_options:
+				try:
+					result = change_appointment_provider(appointment_id)
+					provider_change_options = result.get("provider_change_options") or []
+				except Exception:
+					provider_change_options = []
+
 			booking = (
 				frappe.get_doc("Service Booking", appointment.booking_id) if appointment.booking_id else None
 			)
@@ -1417,9 +1520,10 @@ def perform_appointment_action(
 		appointment.appointment_provider = new_provider or appointment.appointment_provider
 		appointment.service_unit = new_service_unit or appointment.service_unit
 		if new_slot_ids is not None:
-			appointment.selected_slot_ids = (
-				json.dumps(new_slot_ids) if isinstance(new_slot_ids, list) else new_slot_ids
-			)
+			if isinstance(new_slot_ids, list):
+				appointment.selected_slot_ids = json.dumps(new_slot_ids) if new_slot_ids else None
+			else:
+				appointment.selected_slot_ids = new_slot_ids
 
 		appointment.save(ignore_permissions=True)
 		frappe.db.commit()
@@ -1441,13 +1545,19 @@ def perform_appointment_action(
 			new_start_time = appointment.start_time
 		if not new_end_time:
 			new_end_time = appointment.end_time
+		normalized_new_slot_ids = None
+		if isinstance(new_slot_ids, list):
+			normalized_new_slot_ids = json.dumps(new_slot_ids) if new_slot_ids else None
+		elif new_slot_ids:
+			normalized_new_slot_ids = new_slot_ids
+
 		result = reschedule_appointment(
 			appointment_name=appointment_id,
 			new_appointment_date=new_appointment_date,
 			new_start_time=new_start_time,
 			new_end_time=new_end_time,
 			new_provider=new_provider or appointment.appointment_provider,
-			new_slot_ids=(json.dumps(new_slot_ids) if isinstance(new_slot_ids, list) else new_slot_ids),
+			new_slot_ids=normalized_new_slot_ids,
 			new_service_unit=new_service_unit or appointment.service_unit,
 		)
 		response = {"operationResult": result}

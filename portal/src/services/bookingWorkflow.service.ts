@@ -1,6 +1,5 @@
 import type { CartItem } from "@/stores/bookingCart.store";
 import {
-	checkSlotAvailabilityApi,
 	createDraftServiceBookingApi,
 	fetchAvailableDatesApi,
 	fetchAvailableSlotsApi,
@@ -31,7 +30,6 @@ export interface AvailableSlot {
 	availability: "available" | "partial" | "unavailable";
 	providers: AvailableSlotProvider[];
 	providerSummary: string;
-	slotIds: string[];
 }
 
 export interface LoggedInCustomerProfile {
@@ -103,7 +101,6 @@ const normalizeProviders = (providers: any[] = []): AvailableSlotProvider[] => {
 
 const normalizeSlot = (slot: any, date: string): AvailableSlot => {
 	const providers = normalizeProviders(slot.providers || []);
-	const slotIds = providers.flatMap((provider) => provider.slotIds);
 	return {
 		id: `${date}:${slot.start_time}-${slot.end_time}`,
 		date,
@@ -113,7 +110,6 @@ const normalizeSlot = (slot: any, date: string): AvailableSlot => {
 		availability: providers.length > 1 ? "partial" : providers.length ? "available" : "unavailable",
 		providers,
 		providerSummary: toProviderSummary(providers),
-		slotIds,
 	};
 };
 
@@ -225,19 +221,6 @@ export async function fetchNormalizedAvailableSlots(params: {
 	return rawSlots.map((slot: any) => normalizeSlot(slot, params.date));
 }
 
-export async function validateSlotAvailability(slotIds: string[]) {
-	if (!slotIds.length) {
-		return { available: false, unavailableSlots: [] as string[] };
-	}
-	const response = await checkSlotAvailabilityApi(slotIds);
-	return {
-		available: Boolean(response?.available),
-		unavailableSlots: Array.isArray(response?.unavailable_slots)
-			? response.unavailable_slots
-			: [],
-	};
-}
-
 export async function upsertDraftServiceAppointment(params: {
 	bookingId: string;
 	appointmentId?: string;
@@ -299,7 +282,7 @@ export async function upsertDraftServiceAppointment(params: {
 				endTime: params.slot.endTime,
 				provider: params.slot.providers?.[0]?.provider || "",
 				providerSummary: params.slot.providerSummary,
-				slotIds: params.slot.slotIds || [],
+				slotIds: params.slot.providers?.[0]?.slotIds || [],
 				providers: params.slot.providers || [],
 			},
 		};

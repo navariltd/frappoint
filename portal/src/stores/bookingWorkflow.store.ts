@@ -383,13 +383,6 @@ export const useBookingWorkflowStore = defineStore("booking-workflow", {
 			};
 			this.clearAssignmentError(assignmentId);
 			try {
-				console.log(`[BookingStore] Validating slot availability for slot IDs:`, assignment.selected_slot.slotIds);
-				const slotValidation = await validateSlotAvailability(assignment.selected_slot.slotIds || []);
-				console.log(`[BookingStore] Slot validation result:`, slotValidation);
-				if (!slotValidation.available) {
-					throw new Error("Selected slot is no longer available. Please choose another slot.");
-				}
-
 				const result = await upsertDraftServiceAppointment({
 					bookingId: this.draftBooking.id,
 					appointmentId: assignment.appointment_id || undefined,

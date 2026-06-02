@@ -8,6 +8,8 @@ from frappe import _
 from frappe.model.document import Document
 from frappe.utils import add_days, get_time, getdate, time_diff
 
+from ...services.availability_projector import enqueue_targeted_counter_refresh
+
 
 class ServiceProviderShiftType(Document):
 	# begin: auto-generated types
@@ -56,10 +58,16 @@ class ServiceProviderShiftType(Document):
 		for assignment in frappe.get_all(
 			"Service Provider Shift Assignment",
 			filters={"shift_type": self.name, "docstatus": 1},
-			fields=["provider", "start_date", "end_date"],
+			fields=["provider", "service_unit", "start_date", "end_date"],
 		):
 			end_date = assignment.end_date or add_days(getdate(), settings_horizon)
 			invalidate_provider_date_range_cache(assignment.provider, assignment.start_date, end_date)
+			enqueue_targeted_counter_refresh(
+				start_date=assignment.start_date,
+				end_date=end_date,
+				provider=assignment.provider,
+				service_unit=assignment.service_unit,
+			)
 
 	def validate_same_start_and_end(self, start_time: datetime.time, end_time: datetime.time):
 		if start_time == end_time:
