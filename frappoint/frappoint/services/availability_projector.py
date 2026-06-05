@@ -444,6 +444,7 @@ def _apply_provider_unavailability_blocks(
 		filters={
 			"provider": ["in", list(provider_ids)],
 			"status": "Active",
+			"docstatus": 1,
 			"from_date": ["<=", target_date],
 			"to_date": [">=", target_date],
 		},

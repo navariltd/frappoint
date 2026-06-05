@@ -59,11 +59,19 @@ def sync_leave_application_unavailability(doc, method: str | None = None):
 
 	if existing:
 		unavailability = frappe.get_doc("Service Provider Unavailability", existing)
-		unavailability.update(values)
-		unavailability.save(ignore_permissions=True)
+		if unavailability.docstatus == 1:
+			unavailability.cancel()
+			unavailability = frappe.get_doc({"doctype": "Service Provider Unavailability", **values})
+			unavailability.insert(ignore_permissions=True)
+			unavailability.submit()
+		else:
+			unavailability.update(values)
+			unavailability.save(ignore_permissions=True)
+			unavailability.submit()
 	else:
 		unavailability = frappe.get_doc({"doctype": "Service Provider Unavailability", **values})
 		unavailability.insert(ignore_permissions=True)
+		unavailability.submit()
 
 
 def _cancel_leave_unavailability(leave_application_name: str):
@@ -80,8 +88,11 @@ def _cancel_leave_unavailability(leave_application_name: str):
 		return
 
 	unavailability = frappe.get_doc("Service Provider Unavailability", existing)
-	unavailability.status = "Cancelled"
-	unavailability.save(ignore_permissions=True)
+	if unavailability.docstatus == 1:
+		unavailability.cancel()
+	elif unavailability.docstatus == 0:
+		unavailability.status = "Cancelled"
+		unavailability.save(ignore_permissions=True)
 
 
 def _leave_notes(doc) -> str:

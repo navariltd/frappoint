@@ -171,6 +171,7 @@ def _filter_all_day_provider_unavailability(rows):
 		filters={
 			"provider": ["in", provider_ids],
 			"status": "Active",
+			"docstatus": 1,
 			"all_day": 1,
 			"from_date": ["<=", max(dates)],
 			"to_date": [">=", min(dates)],

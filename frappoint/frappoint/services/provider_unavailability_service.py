@@ -103,6 +103,7 @@ def get_reassignment_preview(
 
 	if unavailability_name:
 		unavailability = frappe.get_doc("Service Provider Unavailability", unavailability_name)
+		_assert_unavailability_is_actionable(unavailability)
 		appointments = get_affected_appointments_for_unavailability(unavailability_name)
 		context = _serialize_unavailability_context(unavailability)
 	else:
@@ -149,6 +150,7 @@ def reassign_affected_appointments(
 		frappe.throw(_("Unavailability is required."))
 
 	unavailability = frappe.get_doc("Service Provider Unavailability", unavailability_name)
+	_assert_unavailability_is_actionable(unavailability)
 	assignment_map = _normalize_assignment_map(assignments)
 	affected = get_affected_appointments_for_unavailability(unavailability.name)
 	results = []
@@ -286,3 +288,8 @@ def _assert_can_manage_unavailability() -> None:
 		frappe.throw(
 			_("You do not have permission to manage provider unavailability."), frappe.PermissionError
 		)
+
+
+def _assert_unavailability_is_actionable(unavailability) -> None:
+	if unavailability.docstatus != 1 or unavailability.status != "Active":
+		frappe.throw(_("Only submitted active unavailability records can be reassigned."))
