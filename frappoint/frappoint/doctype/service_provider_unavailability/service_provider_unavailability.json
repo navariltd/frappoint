@@ -1,9 +1,8 @@
 {
  "actions": [],
  "allow_import": 1,
- "allow_rename": 0,
- "autoname": "format:FPU-.#####",
- "creation": "2026-06-05 00:00:00.000000",
+ "autoname": "FPU-.YYYY.-.#####",
+ "creation": "2026-06-05 00:00:00",
  "doctype": "DocType",
  "engine": "InnoDB",
  "field_order": [
@@ -158,25 +157,12 @@
    "label": "Notes"
   }
  ],
- "indexes": [
-  {
-   "fields": ["provider", "from_date", "to_date", "status"],
-   "name": "idx_provider_period"
-  },
-  {
-   "fields": ["employee", "from_date", "to_date", "status"],
-   "name": "idx_employee_period"
-  },
-  {
-   "fields": ["source_doctype", "source_name"],
-   "name": "idx_source"
-  }
- ],
  "links": [],
- "modified": "2026-06-05 00:00:00.000000",
+ "modified": "2026-06-05 14:44:17.427033",
  "modified_by": "Administrator",
  "module": "Frappoint",
  "name": "Service Provider Unavailability",
+ "naming_rule": "Expression",
  "owner": "Administrator",
  "permissions": [
   {
@@ -215,6 +201,7 @@
    "write": 1
   }
  ],
+ "row_format": "Dynamic",
  "sort_field": "from_date",
  "sort_order": "DESC",
  "states": [],

@@ -9,6 +9,30 @@ from frappoint.frappoint.services.availability_projector import enqueue_targeted
 
 
 class ServiceProviderUnavailability(Document):
+	# begin: auto-generated types
+	# This code is auto-generated. Do not modify anything in this block.
+
+	from typing import TYPE_CHECKING
+
+	if TYPE_CHECKING:
+		from frappe.types import DF
+
+		all_day: DF.Check
+		employee: DF.Link | None
+		from_date: DF.Date
+		from_time: DF.Time | None
+		notes: DF.SmallText | None
+		provider: DF.Link
+		provider_name: DF.Data | None
+		reason: DF.Literal["Sick", "Off Day", "Training", "Emergency", "Leave", "Other"]
+		source: DF.Literal["Manual", "HRMS Leave Application", "HRMS Attendance"]
+		source_doctype: DF.Link | None
+		source_name: DF.DynamicLink | None
+		status: DF.Literal["Active", "Cancelled"]
+		to_date: DF.Date
+		to_time: DF.Time | None
+	# end: auto-generated types
+
 	def validate(self):
 		self._set_employee_from_provider()
 		self._validate_dates()
