@@ -29,6 +29,10 @@ from ...services.booking_transaction_service import (
 	release_capacity_for_allocations,
 	reserve_and_create_allocations,
 )
+from ...services.provider_assignment_service import (
+	select_provider_for_assignment,
+	throw_no_provider_available,
+)
 from ..service_provider_appointment_slot.service_provider_appointment_slot import (
 	check_provider_slot_capacity,
 	check_service_unit_capacity,
@@ -1089,32 +1093,21 @@ class ServiceAppointment(Document):
 		Decides which provider gets the appointment based on the
 		list of available options sent from the booking wizard.
 		"""
-		try:
-			options = json.loads(self.all_available_providers)
-		except Exception:
-			frappe.throw(_("No providers available for the selected time."))
+		preferred_gender = self.get("preferred_provider_gender")
+		winner_data = select_provider_for_assignment(
+			self.all_available_providers,
+			appointment_date=self.appointment_date,
+			service_type=self.appointment_type,
+			preferred_gender=preferred_gender,
+		)
+		if not winner_data:
+			throw_no_provider_available(preferred_gender)
 
-		provider_loads = {}
-		for option in options:
-			count = frappe.db.count(
-				"Service Appointment",
-				{
-					"appointment_provider": option["provider"],
-					"appointment_date": self.appointment_date,
-					"status": [
-						"not in",
-						["Cancelled", "No Show", "Rescheduled", "Closed"],
-					],
-				},
-			)
-			provider_loads[option["provider"]] = count
-
-		best_provider_id = min(provider_loads, key=provider_loads.get)
-
-		winner_data = next(opt for opt in options if opt["provider"] == best_provider_id)
 		self.appointment_provider = winner_data["provider"]
-		self.service_provider_name = winner_data["provider_name"]
-		self.selected_slot_ids = json.dumps(winner_data["slot_ids"])
+		self.service_provider_name = winner_data.get("provider_name")
+		if winner_data.get("service_unit"):
+			self.service_unit = winner_data.get("service_unit")
+		self.selected_slot_ids = json.dumps(winner_data.get("slot_ids") or [])
 
 	def handle_status_change(self):
 		"""Handle actions based on status change"""

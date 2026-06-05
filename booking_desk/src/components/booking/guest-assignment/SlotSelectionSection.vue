@@ -3,19 +3,23 @@
 		<p class="text-[11px] font-semibold uppercase tracking-wide text-on-surface">
 			3. Select Slot
 		</p>
-		<p v-if="isLoading" class="text-[11px] text-on-surface-variant">
+		<p v-if="isLoading && !slots.length" class="text-[11px] text-on-surface-variant">
 			Loading available slots...
 		</p>
 		<p v-else-if="error" class="text-[11px] text-error">{{ error }}</p>
 		<p v-else-if="!slots.length" class="text-[11px] text-on-surface-variant">
 			No slots available for this date.
 		</p>
-		<AvailableSlotsGrid
-			v-else
-			:slots="slots"
-			:selectedSlotId="selectedSlotId"
-			@select-slot="$emit('select-slot', $event)"
-		/>
+		<div v-else class="space-y-2">
+			<p v-if="isReserving" class="text-[11px] text-primary">Reserving selected slot...</p>
+			<AvailableSlotsGrid
+				:slots="slots"
+				:selectedSlotId="selectedSlotId"
+				:pendingSlotId="reservingSlotId"
+				:disabled="isReserving"
+				@select-slot="$emit('select-slot', $event)"
+			/>
+		</div>
 	</div>
 </template>
 
@@ -34,6 +38,14 @@ defineProps({
 	isLoading: {
 		type: Boolean,
 		default: false,
+	},
+	isReserving: {
+		type: Boolean,
+		default: false,
+	},
+	reservingSlotId: {
+		type: String,
+		default: "",
 	},
 	error: {
 		type: String,

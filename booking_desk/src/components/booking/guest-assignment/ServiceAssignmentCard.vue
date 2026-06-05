@@ -47,8 +47,11 @@
 				:guests="service.guests"
 				:quantity="service.quantity"
 				:customers="customers"
+				:providerOptions="service.providerOptions || []"
 				:isLoadingDates="isLoadingDates"
 				:isLoadingSlots="isLoadingSlots"
+				:isReservingSlots="isReservingSlots"
+				:reservingSlotIdByGuest="reservingSlotIdByGuest"
 				:errorByGuest="errorByGuest"
 				@select-customer="
 					(guestKey, customerId) =>
@@ -57,6 +60,10 @@
 				@quick-create="
 					(guestKey, payload) =>
 						$emit('quick-create', service.serviceKey, guestKey, payload)
+				"
+				@provider-preference="
+					(guestKey, providerId) =>
+						$emit('provider-preference', service.serviceKey, guestKey, providerId)
 				"
 				@clear-guest="(guestKey) => $emit('clear-guest', service.serviceKey, guestKey)"
 				@load-dates="(guestKey) => $emit('load-dates', service.serviceKey, guestKey)"
@@ -93,6 +100,14 @@ const props = defineProps({
 		type: Object,
 		default: () => ({}),
 	},
+	isReservingSlots: {
+		type: Object,
+		default: () => ({}),
+	},
+	reservingSlotIdByGuest: {
+		type: Object,
+		default: () => ({}),
+	},
 	errorByGuest: {
 		type: Object,
 		default: () => ({}),
@@ -106,6 +121,7 @@ const props = defineProps({
 defineEmits([
 	"select-customer",
 	"quick-create",
+	"provider-preference",
 	"clear-guest",
 	"load-dates",
 	"select-date",

@@ -28,6 +28,13 @@ const normalizePackage = (row) => ({
 	guestCount: Number(row.guest_count) || null,
 });
 
+const normalizeProvider = (row) => ({
+	id: row.name || row.provider || "",
+	name: row.provider_name || row.providerName || row.name || row.provider || "",
+	gender: row.gender || "",
+	designation: row.designation || "",
+});
+
 const findPriceForDuration = (prices, targetDuration) => {
 	if (!prices || !prices.length) {
 		return null;
@@ -83,7 +90,9 @@ export async function fetchServicePackages(serviceId, preferredDuration = 0) {
 		serviceId,
 		packages,
 		defaultPackage,
-		providers: Array.isArray(details?.providers) ? details.providers : [],
+		providers: Array.isArray(details?.providers)
+			? details.providers.map(normalizeProvider).filter((provider) => provider.id)
+			: [],
 		paymentGateways: Array.isArray(details?.payment_gateways) ? details.payment_gateways : [],
 		minGuests: Number(details?.min_guests) || null,
 		maxGuests: Number(details?.max_guests) || null,

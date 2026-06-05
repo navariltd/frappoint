@@ -5,6 +5,10 @@ from frappe import _
 from frappe.utils import flt
 
 from frappoint.frappoint.services.pricing_service import calculate_booking_pricing
+from frappoint.frappoint.services.provider_assignment_service import (
+	select_provider_for_assignment,
+	throw_no_provider_available,
+)
 
 
 @frappe.whitelist()
@@ -88,12 +92,47 @@ def create_booking_with_appointments(booking_payload=None):
 			it = frappe._dict(it or {})
 			slot = frappe._dict(it.get("slot") or {})
 			provider = _first(it.get("provider"), slot.get("provider"))
+			slot_providers = _first(slot.get("providers"), it.get("providers")) or []
+			if not provider and slot_providers:
+				preferred_gender = _first(
+					it.get("provider_gender"),
+					it.get("providerGender"),
+					slot.get("provider_gender"),
+					slot.get("providerGender"),
+				)
+				selected_provider = select_provider_for_assignment(
+					slot_providers,
+					appointment_date=_first(
+						it.get("date"), it.get("appointment_date"), it.get("appointmentDate")
+					),
+					service_type=_first(
+						it.get("service_type"), it.get("serviceType"), it.get("appointment_type")
+					),
+					preferred_gender=preferred_gender,
+				)
+				if not selected_provider:
+					throw_no_provider_available(preferred_gender)
+				provider = selected_provider.get("provider")
 			service_unit = _first(
 				it.get("service_unit"),
 				it.get("serviceUnit"),
 				slot.get("service_unit"),
 				slot.get("serviceUnit"),
 			)
+			if not service_unit and slot_providers:
+				matching_provider = next(
+					(
+						row
+						for row in slot_providers
+						if (row or {}).get("provider") == provider
+						and ((row or {}).get("serviceUnit") or (row or {}).get("service_unit"))
+					),
+					None,
+				)
+				if matching_provider:
+					service_unit = (matching_provider or {}).get("serviceUnit") or (
+						matching_provider or {}
+					).get("service_unit")
 			start_time = _first(
 				it.get("start_time"), it.get("startTime"), slot.get("start_time"), slot.get("startTime")
 			)

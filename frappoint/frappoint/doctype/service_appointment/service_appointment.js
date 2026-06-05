@@ -62,6 +62,8 @@ frappe.ui.form.on("Service Appointment", {
 
 		if (frm.doc.docstatus === 1 && frm.doc.status === "Completed") {
 			button_state = "completed";
+		} else if (["Checked In", "In Progress"].includes(frm.doc.status)) {
+			button_state = "ongoing";
 		} else if (frm.doc.status === "Confirmed") {
 			button_state = "confirmed";
 		} else if (frm.doc.appointment_type && !frm._slot_selected && frm.doc.docstatus === 0) {
@@ -152,6 +154,25 @@ frappe.ui.form.on("Service Appointment", {
 					__("Stock")
 				);
 			}
+
+			if (frm.page.btn_secondary) {
+				frm.page.btn_secondary.hide();
+			}
+			return;
+		}
+
+		if (button_state === "ongoing") {
+			frm.page.set_primary_action(__("Complete Appointment"), function () {
+				show_complete_appointment_dialog(frm);
+			});
+
+			frm.add_custom_button(__("Handover Provider"), function () {
+				show_ongoing_provider_handover_dialog(frm);
+			});
+
+			frm.add_custom_button(__("Cancel Appointment"), function () {
+				show_cancellation_dialog(frm);
+			});
 
 			if (frm.page.btn_secondary) {
 				frm.page.btn_secondary.hide();
@@ -888,6 +909,127 @@ function show_change_service_provider_dialog(frm) {
 		},
 	});
 	return;
+}
+
+function show_ongoing_provider_handover_dialog(frm) {
+	if (!frm.doc.name) {
+		frappe.msgprint(__("Save the appointment before handing over the provider."));
+		return;
+	}
+
+	frappe.dom.freeze(__("Loading available handover providers..."));
+	frappe.call({
+		method: "frappoint.frappoint.services.ongoing_provider_reassignment_service.get_ongoing_reassignment_options",
+		args: {
+			appointment_name: frm.doc.name,
+		},
+		callback: function (r) {
+			frappe.dom.unfreeze();
+			const response = r.message || {};
+			const provider_options = response.provider_change_options || [];
+
+			if (!provider_options.length) {
+				frappe.msgprint(
+					__(
+						"No replacement providers are available for the remaining appointment time."
+					)
+				);
+				return;
+			}
+
+			const dialog = new frappe.ui.Dialog({
+				title: __("Handover Provider"),
+				fields: [
+					{
+						fieldname: "handover_intro",
+						fieldtype: "HTML",
+					},
+					{
+						fieldname: "handover_provider",
+						fieldtype: "Select",
+						label: __("Replacement Provider"),
+						options: provider_options.map((option, index) => {
+							const provider_name = option.provider_name || option.provider;
+							const handover_time = option.handover_time || response.handover_time;
+							return {
+								label: `${provider_name} (${handover_time})`,
+								value: String(index),
+							};
+						}),
+						default: "0",
+						reqd: 1,
+					},
+					{
+						fieldname: "reason",
+						fieldtype: "Small Text",
+						label: __("Reason"),
+						description: __("Optional note for the appointment event log."),
+					},
+				],
+				primary_action_label: __("Handover Provider"),
+				primary_action: function (values) {
+					const selected_option =
+						provider_options[Number(values.handover_provider || 0)];
+					if (!selected_option || !selected_option.provider) {
+						frappe.msgprint(__("Please select a replacement provider."));
+						return;
+					}
+
+					dialog.hide();
+					frappe.dom.freeze(__("Handing over provider..."));
+					frappe.call({
+						method: "frappoint.frappoint.services.ongoing_provider_reassignment_service.reassign_ongoing_appointment",
+						args: {
+							appointment_name: frm.doc.name,
+							target_provider: selected_option.provider,
+							handover_time: selected_option.handover_time || response.handover_time,
+							reason: values.reason,
+						},
+						callback: function (handover_response) {
+							frappe.dom.unfreeze();
+							const result = handover_response.message || {};
+							if (!result.success) {
+								frappe.msgprint(
+									result.message ||
+										__("Failed to hand over the provider. Please try again.")
+								);
+								return;
+							}
+
+							frappe.show_alert({
+								message: __("Provider handed over successfully."),
+								indicator: "green",
+							});
+							frm.reload_doc();
+						},
+						error: function () {
+							frappe.dom.unfreeze();
+							frappe.msgprint({
+								title: __("Error"),
+								message: __("Failed to hand over the provider. Please try again."),
+								indicator: "red",
+							});
+						},
+					});
+				},
+			});
+
+			dialog.fields_dict.handover_intro.$wrapper.html(`
+				<div class="text-sm text-muted" style="margin-bottom: 12px;">
+					${__("Select a provider to continue this appointment from the handover time onward.")}
+				</div>
+			`);
+			dialog.show();
+		},
+		error: function () {
+			frappe.dom.unfreeze();
+			frappe.msgprint({
+				title: __("Error"),
+				message: __("Failed to load handover providers. Please try again."),
+				indicator: "red",
+			});
+		},
+	});
 }
 
 function select_slot(frm, selected_slot, dialog) {

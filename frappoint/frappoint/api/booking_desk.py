@@ -20,11 +20,20 @@ from frappoint.frappoint.doctype.service_provider_appointment_slot.service_provi
 from frappoint.frappoint.services.availability_projector import (
 	get_available_slots as get_projected_available_slots,
 )
+from frappoint.frappoint.services.ongoing_provider_reassignment_service import (
+	get_ongoing_reassignment_options,
+	reassign_ongoing_appointment,
+)
 from frappoint.frappoint.services.pricing_service import (
 	calculate_booking_pricing,
 	coupon_scope_label,
 	is_booking_level_coupon,
 	resolve_coupon_doc,
+)
+from frappoint.frappoint.services.provider_assignment_service import (
+	rank_provider_options,
+	select_provider_for_assignment,
+	throw_no_provider_available,
 )
 from frappoint.payments import (
 	get_confirmation_deposit_percent,
@@ -111,6 +120,7 @@ def _serialize_booking(booking, pricing=None):
 			"start_time",
 			"end_time",
 			"appointment_provider",
+			"service_provider_name",
 			"status",
 			"payment_status",
 			"total_amount",
@@ -125,6 +135,8 @@ def _serialize_booking(booking, pricing=None):
 		],
 		order_by="creation asc",
 	)
+	provider_ids = [row.appointment_provider for row in appointments if row.get("appointment_provider")]
+	provider_names = _get_provider_name_map(provider_ids)
 
 	return {
 		"name": booking.name,
@@ -169,7 +181,11 @@ def _serialize_booking(booking, pricing=None):
 				"date": appointment.appointment_date,
 				"startTime": appointment.start_time,
 				"endTime": appointment.end_time,
-				"provider": appointment.appointment_provider,
+				"provider": appointment.service_provider_name
+				or provider_names.get(appointment.appointment_provider)
+				or appointment.appointment_provider,
+				"providerId": appointment.appointment_provider,
+				"serviceProviderName": appointment.service_provider_name,
 				"status": appointment.status,
 				"paymentStatus": appointment.payment_status,
 				"totalAmount": appointment.total_amount,
@@ -209,6 +225,21 @@ def _safe_json_loads(value, fallback):
 	return value
 
 
+def _get_provider_name_map(provider_ids):
+	provider_ids = sorted({provider for provider in provider_ids if provider})
+	if not provider_ids:
+		return {}
+
+	return {
+		row["name"]: row["provider_name"] or row["name"]
+		for row in frappe.get_all(
+			"Service Provider",
+			filters={"name": ["in", provider_ids]},
+			fields=["name", "provider_name"],
+		)
+	}
+
+
 def _serialize_appointment(appointment):
 	return {
 		"name": appointment.name,
@@ -233,7 +264,10 @@ def _serialize_appointment(appointment):
 		"actualEndTime": appointment.actual_end_time,
 		"duration": appointment.duration,
 		"serviceUnit": appointment.service_unit,
-		"provider": appointment.appointment_provider,
+		"provider": appointment.service_provider_name
+		or _get_provider_name_map([appointment.appointment_provider]).get(appointment.appointment_provider)
+		or appointment.appointment_provider,
+		"providerId": appointment.appointment_provider,
 		"serviceProviderName": appointment.service_provider_name,
 		"appointmentPrice": appointment.appointment_price,
 		"totalAmount": flt(appointment.total_amount),
@@ -332,8 +366,12 @@ def _get_allocation_provider_change_options(appointment):
 			}
 		)
 
-	options.sort(key=lambda row: (row.get("provider_name") or "", row.get("provider") or ""))
-	return options
+	return rank_provider_options(
+		options,
+		appointment_date=appointment.appointment_date,
+		service_type=appointment.appointment_type,
+		exclude_provider=appointment.appointment_provider,
+	)
 
 
 def _build_appointment_timeline(appointment, payments, event_logs):
@@ -544,7 +582,7 @@ def _build_appointment_response(appointment, booking=None):
 			and appointment.status not in ["Completed", "Cancelled", "Closed", "No Show"],
 			"canCancel": appointment.status not in ["Cancelled", "Closed", "Completed", "No Show"],
 			"canReassignProvider": appointment.status
-			in ["Open", "Pending Payment", "Confirmed", "Checked In"]
+			in ["Open", "Pending Payment", "Confirmed", "Checked In", "In Progress"]
 			and appointment.status not in ["Completed", "Cancelled", "Closed", "No Show"],
 			"canEditTimeSlot": appointment.status in ["Open", "Pending Payment", "Confirmed", "Checked In"]
 			and appointment.status not in ["Completed", "Cancelled", "Closed", "No Show"],
@@ -1255,13 +1293,33 @@ def upsert_draft_service_appointment(
 	slot_end_time = slot.get("endTime") or slot.get("end_time")
 	slot_providers = slot.get("providers") or []
 	provider = slot.get("provider") or slot.get("appointment_provider")
-	if not provider and slot_providers:
-		provider = (slot_providers[0] or {}).get("provider")
 	service_unit = slot.get("serviceUnit") or slot.get("service_unit")
-	if not service_unit and slot_providers:
-		service_unit = (slot_providers[0] or {}).get("serviceUnit") or (slot_providers[0] or {}).get(
-			"service_unit"
+	if not provider and slot_providers:
+		preferred_gender = guest.get("providerGender") or assignment.get("providerGender")
+		selected_provider = select_provider_for_assignment(
+			slot_providers,
+			appointment_date=assignment.get("date"),
+			service_type=service_type,
+			preferred_gender=preferred_gender,
 		)
+		if not selected_provider:
+			throw_no_provider_available(preferred_gender)
+		provider = selected_provider.get("provider")
+		service_unit = service_unit or selected_provider.get("service_unit")
+	if not service_unit and slot_providers:
+		matching_provider = next(
+			(
+				row
+				for row in slot_providers
+				if (row or {}).get("provider") == provider
+				and ((row or {}).get("serviceUnit") or (row or {}).get("service_unit"))
+			),
+			None,
+		)
+		if matching_provider:
+			service_unit = (matching_provider or {}).get("serviceUnit") or (matching_provider or {}).get(
+				"service_unit"
+			)
 	slot_ids = slot.get("slotIds") or slot.get("slot_ids") or []
 
 	if not service_type:
@@ -1386,8 +1444,8 @@ def get_appointment_details(appointment_id: str):
 
 @frappe.whitelist()
 def perform_appointment_action(
-	appointment_id: str,
-	action: str,
+	appointment_id: str | None = None,
+	action: str | None = None,
 	new_appointment_date: str | None = None,
 	new_start_time: str | None = None,
 	new_end_time: str | None = None,
@@ -1397,7 +1455,27 @@ def perform_appointment_action(
 	actual_start_time: str | None = None,
 	actual_end_time: str | None = None,
 	cancellation_reasons=None,
+	**kwargs,
 ):
+	appointment_id = (
+		appointment_id
+		or kwargs.get("appointment")
+		or kwargs.get("appointment_name")
+		or kwargs.get("appointmentId")
+	)
+	action = action or kwargs.get("action")
+	new_appointment_date = new_appointment_date or kwargs.get("newAppointmentDate")
+	new_start_time = new_start_time or kwargs.get("newStartTime")
+	new_end_time = new_end_time or kwargs.get("newEndTime")
+	new_provider = new_provider or kwargs.get("newProvider") or kwargs.get("target_provider")
+	new_slot_ids = new_slot_ids if new_slot_ids is not None else kwargs.get("newSlotIds")
+	new_service_unit = new_service_unit or kwargs.get("newServiceUnit") or kwargs.get("target_service_unit")
+	actual_start_time = actual_start_time or kwargs.get("actualStartTime") or kwargs.get("handover_time")
+	actual_end_time = actual_end_time or kwargs.get("actualEndTime")
+	cancellation_reasons = (
+		cancellation_reasons if cancellation_reasons is not None else kwargs.get("cancellationReasons")
+	)
+
 	if not appointment_id:
 		frappe.throw(_("Appointment reference is required."))
 	if not action:
@@ -1464,6 +1542,38 @@ def perform_appointment_action(
 
 	if action in {"reassign_provider", "edit_time_slot"}:
 		if action == "reassign_provider":
+			if appointment.status in {"Checked In", "In Progress"}:
+				if new_provider:
+					result = reassign_ongoing_appointment(
+						appointment_name=appointment_id,
+						target_provider=new_provider,
+						handover_time=actual_start_time,
+					)
+					appointment.reload()
+					booking = (
+						frappe.get_doc("Service Booking", appointment.booking_id)
+						if appointment.booking_id
+						else None
+					)
+					response = _build_appointment_response(appointment, booking)
+					response["providerChangeOptions"] = []
+					response["operationResult"] = result
+					return response
+
+				result = get_ongoing_reassignment_options(
+					appointment_name=appointment_id,
+					handover_time=actual_start_time,
+				)
+				booking = (
+					frappe.get_doc("Service Booking", appointment.booking_id)
+					if appointment.booking_id
+					else None
+				)
+				response = _build_appointment_response(appointment, booking)
+				response["providerChangeOptions"] = result.get("provider_change_options") or []
+				response["operationResult"] = result
+				return response
+
 			# Allocation-first path: provider/service unit updates are provider-option driven.
 			if new_provider or new_service_unit:
 				result = change_appointment_provider(

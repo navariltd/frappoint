@@ -15,6 +15,8 @@ export function useGuestAssignment() {
 		activeGuestIndex,
 		isLoadingDates,
 		isLoadingSlots,
+		isReservingSlots,
+		reservingSlotIdByGuest,
 		errorByGuest,
 		progress,
 		validationIssues,
@@ -67,6 +69,11 @@ export function useGuestAssignment() {
 			selectedCustomer: workflowSelectedCustomer.value,
 			appointmentsByGuestKey: appointmentsByGuestKey.value,
 		});
+		await Promise.all(
+			guestStore.assignments.map((service) =>
+				guestStore.ensureServiceProviders(service.serviceKey).catch(() => [])
+			)
+		);
 	};
 
 	onMounted(initialize);
@@ -78,6 +85,8 @@ export function useGuestAssignment() {
 		activeServiceKey,
 		isLoadingDates,
 		isLoadingSlots,
+		isReservingSlots,
+		reservingSlotIdByGuest,
 		errorByGuest,
 		progress,
 		validationIssues,
@@ -89,6 +98,7 @@ export function useGuestAssignment() {
 		setActiveIndices: guestStore.setActiveIndices,
 		updateGuestFromCustomer: guestStore.updateGuestFromCustomer,
 		quickCreateGuest: guestStore.quickCreateGuest,
+		updateProviderPreference: guestStore.updateProviderPreference,
 		clearGuest: guestStore.clearGuest,
 		fetchGuestDates: guestStore.fetchGuestDates,
 		selectGuestDate: guestStore.selectGuestDate,

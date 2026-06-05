@@ -33,7 +33,12 @@ function normalizeBooking(raw = {}) {
 					appointmentId: appointment.name || appointment.appointmentId || "",
 					serviceType:
 						appointment.serviceType || appointment.appointmentType || "Service",
-					provider: appointment.provider || "Unassigned",
+					provider:
+						appointment.serviceProviderName ||
+						appointment.providerName ||
+						appointment.provider ||
+						"Unassigned",
+					providerId: appointment.providerId || appointment.provider || "",
 					date: appointment.date || appointment.appointmentDate || "",
 					startTime: appointment.startTime || "",
 					endTime: appointment.endTime || "",
@@ -108,7 +113,9 @@ function normalizeAppointment(raw = {}) {
 		actualEndTime: raw.actualEndTime || appointment.actualEndTime,
 		duration: Number(raw.duration || appointment.duration),
 		serviceUnit: raw.serviceUnit || appointment.serviceUnit,
-		provider: raw.provider || appointment.provider,
+		provider:
+			raw.serviceProviderName || raw.providerName || raw.provider || appointment.provider,
+		providerId: raw.providerId || raw.provider || appointment.providerId,
 		serviceProviderName: raw.serviceProviderName || appointment.serviceProviderName,
 		appointmentPrice: raw.appointmentPrice || appointment.appointmentPrice,
 		totalAmount: toNumber(raw.totalAmount),

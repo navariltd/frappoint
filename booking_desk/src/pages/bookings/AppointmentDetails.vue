@@ -78,7 +78,8 @@
 											option.service_unit || option.serviceUnit || 'unit'
 										}`"
 										type="button"
-										class="rounded-xl border border-outline-variant/60 px-4 py-3 text-left transition-colors hover:bg-surface-container-high hover:border-outline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+										class="rounded-xl border border-outline-variant/60 px-4 py-3 text-left transition-colors hover:bg-surface-container-high hover:border-outline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 disabled:opacity-60 disabled:cursor-wait"
+										:disabled="Boolean(applyingProviderKey)"
 										@click="applyProviderChange(option)"
 									>
 										<div class="flex items-center justify-between gap-3">
@@ -86,8 +87,26 @@
 												<p class="font-semibold text-on-surface">
 													{{ option.provider_name || option.provider }}
 												</p>
+												<p
+													v-if="
+														getProviderOptionKey(option) ===
+														applyingProviderKey
+													"
+													class="mt-1 text-xs text-primary"
+												>
+													Switching provider...
+												</p>
 											</div>
-											<span class="material-symbols-outlined text-primary"
+											<span
+												v-if="
+													getProviderOptionKey(option) ===
+													applyingProviderKey
+												"
+												class="h-4 w-4 rounded-full border-2 border-primary/30 border-t-primary animate-spin"
+											/>
+											<span
+												v-else
+												class="material-symbols-outlined text-primary"
 												>swap_horiz</span
 											>
 										</div>
@@ -207,6 +226,7 @@ const isProviderChangePanelOpen = ref(false);
 const providerChangeLoading = ref(false);
 const providerChangeOptions = ref([]);
 const providerChangeError = ref("");
+const applyingProviderKey = ref("");
 const eventLogsStore = useAppointmentEventLogsStore();
 const { timelineSegments, activeSession, currentDuration, totalPauseSeconds } =
 	storeToRefs(eventLogsStore);
@@ -271,18 +291,22 @@ const closeProviderChangePanel = () => {
 	providerChangeLoading.value = false;
 	providerChangeOptions.value = [];
 	providerChangeError.value = "";
+	applyingProviderKey.value = "";
 };
+
+const getProviderOptionKey = (option) =>
+	`${option?.provider || "provider"}-${option?.service_unit || option?.serviceUnit || "unit"}`;
 
 const handleReassignProvider = async () => {
 	providerChangeError.value = "";
+	providerChangeOptions.value = [];
+	isProviderChangePanelOpen.value = true;
 	providerChangeLoading.value = true;
 	try {
 		const response = await reassignProvider();
 		providerChangeOptions.value = response?.providerChangeOptions || [];
-		isProviderChangePanelOpen.value = true;
 	} catch (error) {
 		providerChangeError.value = error?.message || "Could not load replacement providers.";
-		isProviderChangePanelOpen.value = true;
 	} finally {
 		providerChangeLoading.value = false;
 	}
@@ -293,11 +317,19 @@ const applyProviderChange = async (option) => {
 		return;
 	}
 
-	await reassignProvider({
-		provider: option.provider,
-		serviceUnit: option.service_unit || option.serviceUnit,
-	});
-	closeProviderChangePanel();
+	providerChangeError.value = "";
+	applyingProviderKey.value = getProviderOptionKey(option);
+	try {
+		await reassignProvider({
+			provider: option.provider,
+			serviceUnit: option.service_unit || option.serviceUnit,
+		});
+		closeProviderChangePanel();
+	} catch (error) {
+		providerChangeError.value = error?.message || "Could not switch provider.";
+	} finally {
+		applyingProviderKey.value = "";
+	}
 };
 
 const applySelectedSlot = async () => {
