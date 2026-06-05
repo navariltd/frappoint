@@ -14,6 +14,7 @@ def get_providers_for_service(service_type, company=None):
 	providers = frappe.db.sql(
 		"""
 		SELECT DISTINCT
+			sp.name,
 			sp.provider_name,
 			sp.designation,
 			sp.color_code,

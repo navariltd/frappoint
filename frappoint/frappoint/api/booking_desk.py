@@ -116,6 +116,7 @@ def _serialize_booking(booking, pricing=None):
 			"start_time",
 			"end_time",
 			"appointment_provider",
+			"service_provider_name",
 			"status",
 			"payment_status",
 			"total_amount",
@@ -130,6 +131,8 @@ def _serialize_booking(booking, pricing=None):
 		],
 		order_by="creation asc",
 	)
+	provider_ids = [row.appointment_provider for row in appointments if row.get("appointment_provider")]
+	provider_names = _get_provider_name_map(provider_ids)
 
 	return {
 		"name": booking.name,
@@ -174,7 +177,11 @@ def _serialize_booking(booking, pricing=None):
 				"date": appointment.appointment_date,
 				"startTime": appointment.start_time,
 				"endTime": appointment.end_time,
-				"provider": appointment.appointment_provider,
+				"provider": appointment.service_provider_name
+				or provider_names.get(appointment.appointment_provider)
+				or appointment.appointment_provider,
+				"providerId": appointment.appointment_provider,
+				"serviceProviderName": appointment.service_provider_name,
 				"status": appointment.status,
 				"paymentStatus": appointment.payment_status,
 				"totalAmount": appointment.total_amount,
@@ -214,6 +221,21 @@ def _safe_json_loads(value, fallback):
 	return value
 
 
+def _get_provider_name_map(provider_ids):
+	provider_ids = sorted({provider for provider in provider_ids if provider})
+	if not provider_ids:
+		return {}
+
+	return {
+		row["name"]: row["provider_name"] or row["name"]
+		for row in frappe.get_all(
+			"Service Provider",
+			filters={"name": ["in", provider_ids]},
+			fields=["name", "provider_name"],
+		)
+	}
+
+
 def _serialize_appointment(appointment):
 	return {
 		"name": appointment.name,
@@ -238,7 +260,10 @@ def _serialize_appointment(appointment):
 		"actualEndTime": appointment.actual_end_time,
 		"duration": appointment.duration,
 		"serviceUnit": appointment.service_unit,
-		"provider": appointment.appointment_provider,
+		"provider": appointment.service_provider_name
+		or _get_provider_name_map([appointment.appointment_provider]).get(appointment.appointment_provider)
+		or appointment.appointment_provider,
+		"providerId": appointment.appointment_provider,
 		"serviceProviderName": appointment.service_provider_name,
 		"appointmentPrice": appointment.appointment_price,
 		"totalAmount": flt(appointment.total_amount),
