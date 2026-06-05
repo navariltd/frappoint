@@ -41,8 +41,18 @@ class ServiceProviderUnavailability(Document):
 	def after_insert(self):
 		self._enqueue_counter_refresh()
 
+	def on_submit(self):
+		self.status = "Active"
+		self.db_set("status", "Active", update_modified=False)
+		self._enqueue_counter_refresh()
+
 	def on_update(self):
 		self._enqueue_previous_counter_refresh()
+		self._enqueue_counter_refresh()
+
+	def on_cancel(self):
+		self.status = "Cancelled"
+		self.db_set("status", "Cancelled", update_modified=False)
 		self._enqueue_counter_refresh()
 
 	def on_trash(self):

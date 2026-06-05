@@ -157,6 +157,7 @@
    "label": "Notes"
   }
  ],
+ "is_submittable": 1,
  "links": [],
  "modified": "2026-06-05 14:44:17.427033",
  "modified_by": "Administrator",
@@ -166,6 +167,7 @@
  "owner": "Administrator",
  "permissions": [
   {
+   "cancel": 1,
    "create": 1,
    "delete": 1,
    "email": 1,
@@ -175,9 +177,11 @@
    "report": 1,
    "role": "System Manager",
    "share": 1,
+   "submit": 1,
    "write": 1
   },
   {
+   "cancel": 1,
    "create": 1,
    "delete": 1,
    "email": 1,
@@ -187,9 +191,11 @@
    "report": 1,
    "role": "HR Manager",
    "share": 1,
+   "submit": 1,
    "write": 1
   },
   {
+   "cancel": 1,
    "create": 1,
    "email": 1,
    "export": 1,
@@ -198,6 +204,7 @@
    "report": 1,
    "role": "Service Manager",
    "share": 1,
+   "submit": 1,
    "write": 1
   }
  ],
