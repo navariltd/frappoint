@@ -129,6 +129,8 @@
 				:slots="guest.availableSlots"
 				:selectedSlotId="guest.slot?.id || ''"
 				:isLoading="isLoadingSlots"
+				:isReserving="isReservingSlot"
+				:reservingSlotId="reservingSlotId"
 				:error="!guest.date ? '' : error"
 				@select-slot="$emit('select-slot', $event)"
 			/>
@@ -171,6 +173,14 @@ const props = defineProps({
 	isLoadingSlots: {
 		type: Boolean,
 		default: false,
+	},
+	isReservingSlot: {
+		type: Boolean,
+		default: false,
+	},
+	reservingSlotId: {
+		type: String,
+		default: "",
 	},
 	error: {
 		type: String,

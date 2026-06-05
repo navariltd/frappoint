@@ -36,6 +36,8 @@
 						:customers="customers"
 						:isLoadingDates="isLoadingDates"
 						:isLoadingSlots="isLoadingSlots"
+						:isReservingSlots="isReservingSlots"
+						:reservingSlotIdByGuest="reservingSlotIdByGuest"
 						:errorByGuest="errorByGuest"
 						:isActive="serviceIndex === activeServiceIndex"
 						@select-customer="onSelectCustomer"
@@ -77,6 +79,8 @@ const {
 	activeServiceIndex,
 	isLoadingDates,
 	isLoadingSlots,
+	isReservingSlots,
+	reservingSlotIdByGuest,
 	errorByGuest,
 	progress,
 	validationIssues,

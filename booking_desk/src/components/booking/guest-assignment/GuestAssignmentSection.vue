@@ -8,6 +8,8 @@
 			:customers="customers"
 			:isLoadingDates="Boolean(isLoadingDates[guest.guestKey])"
 			:isLoadingSlots="Boolean(isLoadingSlots[guest.guestKey])"
+			:isReservingSlot="Boolean(isReservingSlots[guest.guestKey])"
+			:reservingSlotId="reservingSlotIdByGuest[guest.guestKey] || ''"
 			:error="errorByGuest[guest.guestKey] || ''"
 			@select-customer="$emit('select-customer', guest.guestKey, $event)"
 			@quick-create="$emit('quick-create', guest.guestKey, $event)"
@@ -40,6 +42,14 @@ defineProps({
 		default: () => ({}),
 	},
 	isLoadingSlots: {
+		type: Object,
+		default: () => ({}),
+	},
+	isReservingSlots: {
+		type: Object,
+		default: () => ({}),
+	},
+	reservingSlotIdByGuest: {
 		type: Object,
 		default: () => ({}),
 	},

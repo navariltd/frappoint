@@ -49,6 +49,8 @@
 				:customers="customers"
 				:isLoadingDates="isLoadingDates"
 				:isLoadingSlots="isLoadingSlots"
+				:isReservingSlots="isReservingSlots"
+				:reservingSlotIdByGuest="reservingSlotIdByGuest"
 				:errorByGuest="errorByGuest"
 				@select-customer="
 					(guestKey, customerId) =>
@@ -90,6 +92,14 @@ const props = defineProps({
 		default: () => ({}),
 	},
 	isLoadingSlots: {
+		type: Object,
+		default: () => ({}),
+	},
+	isReservingSlots: {
+		type: Object,
+		default: () => ({}),
+	},
+	reservingSlotIdByGuest: {
 		type: Object,
 		default: () => ({}),
 	},

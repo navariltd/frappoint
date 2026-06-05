@@ -28,6 +28,8 @@ export const useGuestAssignmentStore = defineStore("guestAssignment", {
 		activeGuestIndex: 0,
 		isLoadingDates: {},
 		isLoadingSlots: {},
+		isReservingSlots: {},
+		reservingSlotIdByGuest: {},
 		errorByGuest: {},
 		customers: [],
 		selectedCustomerId: "",
@@ -70,6 +72,8 @@ export const useGuestAssignmentStore = defineStore("guestAssignment", {
 			this.activeGuestIndex = 0;
 			this.isLoadingDates = {};
 			this.isLoadingSlots = {};
+			this.isReservingSlots = {};
+			this.reservingSlotIdByGuest = {};
 			this.errorByGuest = {};
 		},
 		setActiveIndices(serviceIndex, guestIndex) {
@@ -205,7 +209,8 @@ export const useGuestAssignmentStore = defineStore("guestAssignment", {
 			const slot = guest.availableSlots.find((row) => row.id === slotId);
 			if (!slot) return;
 
-			this.isLoadingSlots = { ...this.isLoadingSlots, [guestKey]: true };
+			this.isReservingSlots = { ...this.isReservingSlots, [guestKey]: true };
+			this.reservingSlotIdByGuest = { ...this.reservingSlotIdByGuest, [guestKey]: slotId };
 			this.errorByGuest = { ...this.errorByGuest, [guestKey]: "" };
 
 			try {
@@ -226,6 +231,7 @@ export const useGuestAssignmentStore = defineStore("guestAssignment", {
 						fullName: guest.fullName,
 						email: guest.email,
 						mobileNo: guest.mobileNo,
+						providerGender: guest.providerGender,
 						notes: guest.notes,
 					},
 					date: guest.date,
@@ -242,7 +248,8 @@ export const useGuestAssignmentStore = defineStore("guestAssignment", {
 					[guestKey]: error?.message || "Appointment could not be reserved.",
 				};
 			} finally {
-				this.isLoadingSlots = { ...this.isLoadingSlots, [guestKey]: false };
+				this.isReservingSlots = { ...this.isReservingSlots, [guestKey]: false };
+				this.reservingSlotIdByGuest = { ...this.reservingSlotIdByGuest, [guestKey]: "" };
 			}
 		},
 		moveToNextPendingGuest() {
