@@ -2,6 +2,27 @@
 	<div class="h-full flex flex-col">
 		<CheckoutLoadingState v-if="isLoading" />
 
+		<div
+			v-else-if="isRedirectingToBooking"
+			class="h-full flex items-center justify-center bg-surface-container-lowest px-4"
+		>
+			<div class="w-full max-w-sm text-center space-y-3">
+				<span
+					class="material-symbols-outlined inline-flex text-[32px] text-primary animate-spin"
+				>
+					progress_activity
+				</span>
+				<div class="space-y-1">
+					<h1 class="text-[18px] font-semibold text-on-surface">
+						Redirecting to booking
+					</h1>
+					<p class="text-[13px] text-on-surface-variant">
+						Payment confirmed. Opening {{ redirectingBookingId || "booking" }}...
+					</p>
+				</div>
+			</div>
+		</div>
+
 		<template v-else>
 			<header class="px-4 py-4 border-b border-outline-variant bg-surface-container-lowest">
 				<div class="flex items-center gap-2 text-on-surface-variant mb-1">
@@ -215,6 +236,8 @@ const routeBookingId = String(route.query.booking_id || "");
 const bookingWorkflowStore = useBookingWorkflowStore();
 const servicesStore = useServicesStore();
 const hasCompletedCheckout = ref(false);
+const isRedirectingToBooking = ref(false);
+const redirectingBookingId = ref("");
 
 const {
 	summary,
@@ -386,9 +409,12 @@ async function completeBookingCheckout() {
 		return;
 	}
 	hasCompletedCheckout.value = true;
+	isRedirectingToBooking.value = true;
+	redirectingBookingId.value = bookingId;
 
 	servicesStore.clearCart();
 	bookingWorkflowStore.clearWorkflow();
+	await new Promise((resolve) => window.setTimeout(resolve, 350));
 
 	await router.replace({
 		name: "BookingDetails",
