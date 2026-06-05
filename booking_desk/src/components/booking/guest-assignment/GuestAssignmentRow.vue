@@ -122,7 +122,7 @@
 						>
 							<option value="">Any available provider</option>
 							<option
-								v-for="provider in providerOptions"
+								v-for="provider in filteredProviderOptions"
 								:key="provider.id"
 								:value="provider.id"
 							>
@@ -264,6 +264,20 @@ watch(
 );
 
 const datalistId = computed(() => `dl-${props.guest.guestKey.replace(/[^a-z0-9]/gi, "-")}`);
+const filteredProviderOptions = computed(() => {
+	const selectedGender = String(localProviderGender.value || "")
+		.trim()
+		.toLowerCase();
+	if (!selectedGender) {
+		return props.providerOptions;
+	}
+	return props.providerOptions.filter(
+		(provider) =>
+			String(provider.gender || "")
+				.trim()
+				.toLowerCase() === selectedGender
+	);
+});
 
 const onNameChange = () => {
 	const trimmed = localName.value.trim();
@@ -295,6 +309,14 @@ const onDetailChange = () => {
 };
 
 const onGenderChange = () => {
+	const selectedProviderStillAvailable = filteredProviderOptions.value.some(
+		(provider) => provider.id === localProviderPreference.value
+	);
+	if (localProviderPreference.value && !selectedProviderStillAvailable) {
+		localProviderPreference.value = "";
+		emit("provider-preference", "");
+	}
+
 	// Emit an event or you can handle this in the parent composable
 	// For now, the value is stored in localProviderGender
 	// The parent can access it when needed

@@ -31,6 +31,7 @@ const normalizePackage = (row) => ({
 const normalizeProvider = (row) => ({
 	id: row.name || row.provider || "",
 	name: row.provider_name || row.providerName || row.name || row.provider || "",
+	gender: row.gender || "",
 	designation: row.designation || "",
 });
 

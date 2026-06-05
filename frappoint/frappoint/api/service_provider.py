@@ -16,6 +16,7 @@ def get_providers_for_service(service_type, company=None):
 		SELECT DISTINCT
 			sp.name,
 			sp.provider_name,
+			sp.gender,
 			sp.designation,
 			sp.color_code,
 			sp.image,
