@@ -26,6 +26,11 @@ from frappoint.frappoint.services.pricing_service import (
 	is_booking_level_coupon,
 	resolve_coupon_doc,
 )
+from frappoint.frappoint.services.provider_assignment_service import (
+	rank_provider_options,
+	select_provider_for_assignment,
+	throw_no_provider_available,
+)
 from frappoint.payments import (
 	get_confirmation_deposit_percent,
 	get_payment_amount,
@@ -332,8 +337,12 @@ def _get_allocation_provider_change_options(appointment):
 			}
 		)
 
-	options.sort(key=lambda row: (row.get("provider_name") or "", row.get("provider") or ""))
-	return options
+	return rank_provider_options(
+		options,
+		appointment_date=appointment.appointment_date,
+		service_type=appointment.appointment_type,
+		exclude_provider=appointment.appointment_provider,
+	)
 
 
 def _build_appointment_timeline(appointment, payments, event_logs):
@@ -1255,13 +1264,33 @@ def upsert_draft_service_appointment(
 	slot_end_time = slot.get("endTime") or slot.get("end_time")
 	slot_providers = slot.get("providers") or []
 	provider = slot.get("provider") or slot.get("appointment_provider")
-	if not provider and slot_providers:
-		provider = (slot_providers[0] or {}).get("provider")
 	service_unit = slot.get("serviceUnit") or slot.get("service_unit")
-	if not service_unit and slot_providers:
-		service_unit = (slot_providers[0] or {}).get("serviceUnit") or (slot_providers[0] or {}).get(
-			"service_unit"
+	if not provider and slot_providers:
+		preferred_gender = guest.get("providerGender") or assignment.get("providerGender")
+		selected_provider = select_provider_for_assignment(
+			slot_providers,
+			appointment_date=assignment.get("date"),
+			service_type=service_type,
+			preferred_gender=preferred_gender,
 		)
+		if not selected_provider:
+			throw_no_provider_available(preferred_gender)
+		provider = selected_provider.get("provider")
+		service_unit = service_unit or selected_provider.get("service_unit")
+	if not service_unit and slot_providers:
+		matching_provider = next(
+			(
+				row
+				for row in slot_providers
+				if (row or {}).get("provider") == provider
+				and ((row or {}).get("serviceUnit") or (row or {}).get("service_unit"))
+			),
+			None,
+		)
+		if matching_provider:
+			service_unit = (matching_provider or {}).get("serviceUnit") or (matching_provider or {}).get(
+				"service_unit"
+			)
 	slot_ids = slot.get("slotIds") or slot.get("slot_ids") or []
 
 	if not service_type:

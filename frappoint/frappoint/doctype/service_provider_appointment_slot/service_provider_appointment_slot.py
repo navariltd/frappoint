@@ -14,6 +14,8 @@ from frappe.utils import (
 	nowdate,
 )
 
+from ...services.provider_assignment_service import rank_provider_options
+
 
 class ServiceProviderAppointmentSlot(Document):
 	# begin: auto-generated types
@@ -126,7 +128,12 @@ def _get_provider_change_options(appointment):
 			}
 		)
 
-	return options
+	return rank_provider_options(
+		options,
+		appointment_date=appointment.appointment_date,
+		service_type=appointment.appointment_type,
+		exclude_provider=appointment.appointment_provider,
+	)
 
 
 def _find_provider_change_option(provider_options, provider_name=None, service_unit=None):
