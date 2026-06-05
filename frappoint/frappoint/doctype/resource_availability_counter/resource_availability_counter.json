@@ -129,7 +129,7 @@
    "fieldname": "source_type",
    "fieldtype": "Select",
    "label": "Source Type",
-   "options": "Shift\nAppointment\nMaintenance\nBreak",
+   "options": "Shift\nAppointment\nMaintenance\nBreak\nUnavailability",
    "help": "What caused this counter to exist"
   },
   {

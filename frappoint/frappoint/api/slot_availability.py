@@ -35,6 +35,7 @@ def get_available_dates(
 		provider_id=provider,
 		required_duration_minutes=duration,
 	)
+	rows = _filter_all_day_provider_unavailability(rows)
 
 	if gender:
 		gender_by_provider = {
@@ -151,3 +152,43 @@ def _resolve_duration(service_type: str, duration) -> int:
 
 	default_duration = frappe.db.get_value("Service Type", service_type, "default_duration_in_minutes") or 0
 	return cint_safe(default_duration)
+
+
+def _filter_all_day_provider_unavailability(rows):
+	if not rows or not frappe.db.table_exists("Service Provider Unavailability"):
+		return rows
+
+	provider_ids = sorted({row.get("provider") for row in rows if row.get("provider")})
+	if not provider_ids:
+		return rows
+
+	dates = [getdate(row.get("date")) for row in rows if row.get("date")]
+	if not dates:
+		return rows
+
+	unavailability_rows = frappe.get_all(
+		"Service Provider Unavailability",
+		filters={
+			"provider": ["in", provider_ids],
+			"status": "Active",
+			"all_day": 1,
+			"from_date": ["<=", max(dates)],
+			"to_date": [">=", min(dates)],
+		},
+		fields=["provider", "from_date", "to_date"],
+	)
+	if not unavailability_rows:
+		return rows
+
+	target_dates = sorted(set(dates))
+	blocked_provider_dates = set()
+	for unavailable in unavailability_rows:
+		from_date = getdate(unavailable.from_date)
+		to_date = getdate(unavailable.to_date)
+		for target_date in target_dates:
+			if from_date <= target_date <= to_date:
+				blocked_provider_dates.add((unavailable.provider, target_date))
+
+	return [
+		row for row in rows if (row.get("provider"), getdate(row.get("date"))) not in blocked_provider_dates
+	]
