@@ -130,8 +130,6 @@ def get_available_slots(
 	exclude_appointment_id: str | None = None,
 ) -> list[dict[str, Any]]:
 	"""Return availability windows using precomputed counter rows only."""
-	del exclude_appointment_id
-
 	if not _counter_table_ready():
 		frappe.throw(
 			"Availability counters are not initialized for this site. Run bench migrate for this site."
@@ -192,9 +190,11 @@ def get_available_slots(
 			"counter_date": ["between", [start, end]],
 		},
 		fields=[
+			"resource_type",
 			"counter_date",
 			"counter_slot_time",
 			"resource_reference",
+			"max_capacity",
 			"remaining_capacity",
 			"is_blocked",
 		],
@@ -226,9 +226,11 @@ def get_available_slots(
 				"counter_date": ["between", [start, end]],
 			},
 			fields=[
+				"resource_type",
 				"counter_date",
 				"counter_slot_time",
 				"resource_reference",
+				"max_capacity",
 				"remaining_capacity",
 				"is_blocked",
 			],
@@ -236,6 +238,20 @@ def get_available_slots(
 
 	provider_slot_map = _build_available_slot_map(provider_counters)
 	unit_slot_map = _build_available_slot_map(unit_counters) if requires_unit else {}
+
+	if exclude_appointment_id:
+		excluded_capacity = _build_excluded_appointment_capacity_map(
+			appointment_name=exclude_appointment_id,
+			slot_size_minutes=slot_size,
+			start=start,
+			end=end,
+		)
+		if excluded_capacity:
+			_apply_excluded_capacity(provider_counters, excluded_capacity)
+			if unit_counters:
+				_apply_excluded_capacity(unit_counters, excluded_capacity)
+			provider_slot_map = _build_available_slot_map(provider_counters)
+			unit_slot_map = _build_available_slot_map(unit_counters) if requires_unit else {}
 
 	results: list[dict[str, Any]] = []
 	for provider in provider_ids:
@@ -584,6 +600,74 @@ def _build_consumption_map(
 			consumption[key] += flt(allocation.get("capacity_consumed") or 0.0)
 
 	return consumption
+
+
+def _build_excluded_appointment_capacity_map(
+	appointment_name: str,
+	slot_size_minutes: int,
+	start,
+	end,
+) -> dict[tuple[str, str, Any, str], float]:
+	if not appointment_name or not frappe.db.table_exists("Service Resource Allocation"):
+		return {}
+
+	allocations = frappe.get_all(
+		"Service Resource Allocation",
+		filters={
+			"service_appointment": appointment_name,
+			"allocation_date": ["between", [start, end]],
+			"allocation_status": ["in", ACTIVE_ALLOCATION_STATUSES],
+		},
+		fields=[
+			"resource_type",
+			"resource_reference",
+			"allocation_date",
+			"start_time",
+			"end_time",
+			"capacity_consumed",
+		],
+	)
+
+	excluded_capacity: dict[tuple[str, str, Any, str], float] = defaultdict(float)
+	for allocation in allocations:
+		allocation_date = getdate(allocation["allocation_date"])
+		slot_times = _interval_to_slot_times(
+			allocation_date,
+			allocation["start_time"],
+			allocation["end_time"],
+			slot_size_minutes,
+		)
+		for slot_time in slot_times:
+			key = (
+				allocation["resource_type"],
+				allocation["resource_reference"],
+				allocation_date,
+				slot_time,
+			)
+			excluded_capacity[key] += flt(allocation.get("capacity_consumed") or 0.0)
+
+	return excluded_capacity
+
+
+def _apply_excluded_capacity(
+	counter_rows: list[dict[str, Any]],
+	excluded_capacity: dict[tuple[str, str, Any, str], float],
+) -> None:
+	for row in counter_rows:
+		key = (
+			row["resource_type"],
+			row["resource_reference"],
+			getdate(row["counter_date"]),
+			get_time(row["counter_slot_time"]).strftime("%H:%M:%S"),
+		)
+		capacity_to_restore = flt(excluded_capacity.get(key) or 0)
+		if capacity_to_restore <= 0:
+			continue
+
+		row["remaining_capacity"] = min(
+			flt(row.get("max_capacity") or 0),
+			flt(row.get("remaining_capacity") or 0) + capacity_to_restore,
+		)
 
 
 def _delete_existing_counters(target_date, resource_type: str | None, resource_reference: str | None) -> None:
