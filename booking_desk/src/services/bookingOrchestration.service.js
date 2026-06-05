@@ -101,15 +101,22 @@ const buildDraftAppointmentPayload = ({ service, guest, date, slot }) => ({
 		fullName: guest.fullName,
 		email: guest.email || "",
 		mobileNo: guest.mobileNo || "",
+		providerGender: guest.providerGender || "",
+		providerPreference: guest.providerPreference || "",
 		notes: guest.notes || "",
 	},
 	slot: {
 		id: slot.id,
 		startTime: slot.startTime,
 		endTime: slot.endTime,
-		provider: slot.providers?.[0]?.provider || "",
+		provider: guest.providerPreference || "",
 		providerSummary: slot.providerSummary,
-		slotIds: slot.providers?.[0]?.slotIds || [],
+		slotIds:
+			slot.providers?.find((provider) => provider.provider === guest.providerPreference)
+				?.slotIds ||
+			(!guest.providerPreference && slot.providers?.length === 1
+				? slot.providers[0]?.slotIds || []
+				: []),
 		providers: slot.providers || [],
 	},
 });

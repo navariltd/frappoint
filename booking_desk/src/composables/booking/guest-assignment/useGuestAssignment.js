@@ -69,6 +69,11 @@ export function useGuestAssignment() {
 			selectedCustomer: workflowSelectedCustomer.value,
 			appointmentsByGuestKey: appointmentsByGuestKey.value,
 		});
+		await Promise.all(
+			guestStore.assignments.map((service) =>
+				guestStore.ensureServiceProviders(service.serviceKey).catch(() => [])
+			)
+		);
 	};
 
 	onMounted(initialize);
@@ -93,6 +98,7 @@ export function useGuestAssignment() {
 		setActiveIndices: guestStore.setActiveIndices,
 		updateGuestFromCustomer: guestStore.updateGuestFromCustomer,
 		quickCreateGuest: guestStore.quickCreateGuest,
+		updateProviderPreference: guestStore.updateProviderPreference,
 		clearGuest: guestStore.clearGuest,
 		fetchGuestDates: guestStore.fetchGuestDates,
 		selectGuestDate: guestStore.selectGuestDate,

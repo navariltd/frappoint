@@ -111,6 +111,25 @@
 							</option>
 						</select>
 					</div>
+					<div>
+						<label class="block text-[10px] text-on-surface-variant mb-1">
+							Provider (Optional)
+						</label>
+						<select
+							v-model="localProviderPreference"
+							class="w-full rounded-lg border border-outline-variant bg-surface px-3 py-2 text-[12px] outline-none focus:border-primary transition-colors"
+							@change="onProviderPreferenceChange"
+						>
+							<option value="">Any available provider</option>
+							<option
+								v-for="provider in providerOptions"
+								:key="provider.id"
+								:value="provider.id"
+							>
+								{{ provider.name }}
+							</option>
+						</select>
+					</div>
 				</div>
 
 				<p v-if="error" class="text-[11px] text-error">{{ error }}</p>
@@ -147,6 +166,7 @@ import { fetchAvailableGenders } from "@/api/provider.api";
 const emit = defineEmits([
 	"select-customer",
 	"quick-create",
+	"provider-preference",
 	"clear-guest",
 	"load-dates",
 	"select-date",
@@ -163,6 +183,10 @@ const props = defineProps({
 		default: 1,
 	},
 	customers: {
+		type: Array,
+		default: () => [],
+	},
+	providerOptions: {
 		type: Array,
 		default: () => [],
 	},
@@ -194,6 +218,7 @@ const localName = ref(props.guest.fullName || "");
 const localEmail = ref(props.guest.email || "");
 const localPhone = ref(props.guest.mobileNo || "");
 const localProviderGender = ref(props.guest.providerGender || "");
+const localProviderPreference = ref(props.guest.providerPreference || "");
 
 const availableGenders = ref([]);
 
@@ -231,6 +256,12 @@ watch(
 		localProviderGender.value = v || "";
 	}
 );
+watch(
+	() => props.guest.providerPreference,
+	(v) => {
+		localProviderPreference.value = v || "";
+	}
+);
 
 const datalistId = computed(() => `dl-${props.guest.guestKey.replace(/[^a-z0-9]/gi, "-")}`);
 
@@ -245,6 +276,8 @@ const onNameChange = () => {
 			fullName: trimmed,
 			email: localEmail.value,
 			mobileNo: localPhone.value,
+			providerGender: localProviderGender.value,
+			providerPreference: localProviderPreference.value,
 		});
 	}
 };
@@ -256,6 +289,8 @@ const onDetailChange = () => {
 		fullName: trimmed,
 		email: localEmail.value,
 		mobileNo: localPhone.value,
+		providerGender: localProviderGender.value,
+		providerPreference: localProviderPreference.value,
 	});
 };
 
@@ -269,8 +304,13 @@ const onGenderChange = () => {
 			email: localEmail.value,
 			mobileNo: localPhone.value,
 			providerGender: localProviderGender.value,
+			providerPreference: localProviderPreference.value,
 		});
 	}
+};
+
+const onProviderPreferenceChange = () => {
+	emit("provider-preference", localProviderPreference.value);
 };
 
 const onClear = () => {
@@ -278,6 +318,7 @@ const onClear = () => {
 	localEmail.value = "";
 	localPhone.value = "";
 	localProviderGender.value = "";
+	localProviderPreference.value = "";
 	emit("clear-guest");
 };
 </script>

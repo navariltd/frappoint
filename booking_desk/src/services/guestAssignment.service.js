@@ -28,6 +28,8 @@ export function buildAssignmentsFromCart(
 					(useSelectedCustomer ? selectedCustomer.name : ""),
 				email: persistedAppointment?.guest?.email || "",
 				mobileNo: persistedAppointment?.guest?.mobileNo || "",
+				providerGender: persistedAppointment?.guest?.providerGender || "",
+				providerPreference: persistedAppointment?.guest?.providerPreference || "",
 				isInlineGuest:
 					Boolean(persistedAppointment?.guest?.fullName) || !useSelectedCustomer,
 				isComplete: Boolean(persistedAppointment?.slot && persistedAppointment?.date),
@@ -48,6 +50,7 @@ export function buildAssignmentsFromCart(
 			price: toNumber(item.price),
 			packageId: item.packageId || null,
 			currency: item.currency || "KES",
+			providerOptions: Array.isArray(item.providers) ? item.providers : [],
 			guests,
 		};
 	});

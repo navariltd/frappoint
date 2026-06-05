@@ -215,6 +215,8 @@ export const useBookingWorkflowStore = defineStore("bookingWorkflow", {
 							fullName: guest.fullName,
 							email: guest.email || "",
 							mobileNo: guest.mobileNo || "",
+							providerGender: guest.providerGender || "",
+							providerPreference: guest.providerPreference || "",
 						},
 					},
 				};
