@@ -92,11 +92,14 @@ def _get_provider_change_options(appointment):
 		get_available_slots as get_projected_available_slots,
 	)
 
+	appointment_start = _normalize_time_string(appointment.start_time)
+	appointment_end = _normalize_time_string(appointment.end_time)
 	rows = get_projected_available_slots(
 		service_type_id=appointment.appointment_type,
 		start_date=appointment.appointment_date,
 		end_date=appointment.appointment_date,
 		required_duration_minutes=appointment.duration,
+		exclude_appointment_id=appointment.name,
 	)
 
 	options = []
@@ -107,9 +110,9 @@ def _get_provider_change_options(appointment):
 			continue
 		if str(row.get("date")) != str(appointment.appointment_date):
 			continue
-		if str(row.get("start_time")) != str(appointment.start_time):
+		if _normalize_time_string(row.get("start_time")) != appointment_start:
 			continue
-		if str(row.get("end_time")) != str(appointment.end_time):
+		if _normalize_time_string(row.get("end_time")) != appointment_end:
 			continue
 
 		service_unit = row.get("service_unit") or ""
@@ -134,6 +137,12 @@ def _get_provider_change_options(appointment):
 		service_type=appointment.appointment_type,
 		exclude_provider=appointment.appointment_provider,
 	)
+
+
+def _normalize_time_string(value):
+	if not value:
+		return ""
+	return get_time(value).strftime("%H:%M:%S")
 
 
 def _find_provider_change_option(provider_options, provider_name=None, service_unit=None):
