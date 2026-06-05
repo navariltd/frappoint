@@ -20,6 +20,10 @@ from frappoint.frappoint.doctype.service_provider_appointment_slot.service_provi
 from frappoint.frappoint.services.availability_projector import (
 	get_available_slots as get_projected_available_slots,
 )
+from frappoint.frappoint.services.ongoing_provider_reassignment_service import (
+	get_ongoing_reassignment_options,
+	reassign_ongoing_appointment,
+)
 from frappoint.frappoint.services.pricing_service import (
 	calculate_booking_pricing,
 	coupon_scope_label,
@@ -578,7 +582,7 @@ def _build_appointment_response(appointment, booking=None):
 			and appointment.status not in ["Completed", "Cancelled", "Closed", "No Show"],
 			"canCancel": appointment.status not in ["Cancelled", "Closed", "Completed", "No Show"],
 			"canReassignProvider": appointment.status
-			in ["Open", "Pending Payment", "Confirmed", "Checked In"]
+			in ["Open", "Pending Payment", "Confirmed", "Checked In", "In Progress"]
 			and appointment.status not in ["Completed", "Cancelled", "Closed", "No Show"],
 			"canEditTimeSlot": appointment.status in ["Open", "Pending Payment", "Confirmed", "Checked In"]
 			and appointment.status not in ["Completed", "Cancelled", "Closed", "No Show"],
@@ -1440,8 +1444,8 @@ def get_appointment_details(appointment_id: str):
 
 @frappe.whitelist()
 def perform_appointment_action(
-	appointment_id: str,
-	action: str,
+	appointment_id: str | None = None,
+	action: str | None = None,
 	new_appointment_date: str | None = None,
 	new_start_time: str | None = None,
 	new_end_time: str | None = None,
@@ -1451,7 +1455,27 @@ def perform_appointment_action(
 	actual_start_time: str | None = None,
 	actual_end_time: str | None = None,
 	cancellation_reasons=None,
+	**kwargs,
 ):
+	appointment_id = (
+		appointment_id
+		or kwargs.get("appointment")
+		or kwargs.get("appointment_name")
+		or kwargs.get("appointmentId")
+	)
+	action = action or kwargs.get("action")
+	new_appointment_date = new_appointment_date or kwargs.get("newAppointmentDate")
+	new_start_time = new_start_time or kwargs.get("newStartTime")
+	new_end_time = new_end_time or kwargs.get("newEndTime")
+	new_provider = new_provider or kwargs.get("newProvider") or kwargs.get("target_provider")
+	new_slot_ids = new_slot_ids if new_slot_ids is not None else kwargs.get("newSlotIds")
+	new_service_unit = new_service_unit or kwargs.get("newServiceUnit") or kwargs.get("target_service_unit")
+	actual_start_time = actual_start_time or kwargs.get("actualStartTime") or kwargs.get("handover_time")
+	actual_end_time = actual_end_time or kwargs.get("actualEndTime")
+	cancellation_reasons = (
+		cancellation_reasons if cancellation_reasons is not None else kwargs.get("cancellationReasons")
+	)
+
 	if not appointment_id:
 		frappe.throw(_("Appointment reference is required."))
 	if not action:
@@ -1518,6 +1542,38 @@ def perform_appointment_action(
 
 	if action in {"reassign_provider", "edit_time_slot"}:
 		if action == "reassign_provider":
+			if appointment.status in {"Checked In", "In Progress"}:
+				if new_provider:
+					result = reassign_ongoing_appointment(
+						appointment_name=appointment_id,
+						target_provider=new_provider,
+						handover_time=actual_start_time,
+					)
+					appointment.reload()
+					booking = (
+						frappe.get_doc("Service Booking", appointment.booking_id)
+						if appointment.booking_id
+						else None
+					)
+					response = _build_appointment_response(appointment, booking)
+					response["providerChangeOptions"] = []
+					response["operationResult"] = result
+					return response
+
+				result = get_ongoing_reassignment_options(
+					appointment_name=appointment_id,
+					handover_time=actual_start_time,
+				)
+				booking = (
+					frappe.get_doc("Service Booking", appointment.booking_id)
+					if appointment.booking_id
+					else None
+				)
+				response = _build_appointment_response(appointment, booking)
+				response["providerChangeOptions"] = result.get("provider_change_options") or []
+				response["operationResult"] = result
+				return response
+
 			# Allocation-first path: provider/service unit updates are provider-option driven.
 			if new_provider or new_service_unit:
 				result = change_appointment_provider(
