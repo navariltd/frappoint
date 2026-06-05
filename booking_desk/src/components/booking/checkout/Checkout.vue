@@ -194,8 +194,8 @@
 	</div>
 </template>
 <script setup>
-import { computed } from "vue";
-import { useRoute } from "vue-router";
+import { computed, ref, watch } from "vue";
+import { useRoute, useRouter } from "vue-router";
 import CheckoutLoadingState from "@/components/booking/checkout/CheckoutLoadingState.vue";
 import CheckoutValidationBanner from "@/components/booking/checkout/CheckoutValidationBanner.vue";
 import PaymentStatusBanner from "@/components/booking/checkout/PaymentStatusBanner.vue";
@@ -206,9 +206,15 @@ import PaymentSummarySidebar from "@/components/booking/checkout/PaymentSummaryS
 import { useCheckout } from "@/composables/booking/checkout/useCheckout";
 import { usePaymentWorkflow } from "@/composables/booking/checkout/usePaymentWorkflow";
 import { useMpesaPayment } from "@/composables/booking/checkout/useMpesaPayment";
+import { useBookingWorkflowStore } from "@/stores/bookingWorkflow.store";
+import { useServicesStore } from "@/stores/services.store";
 
 const route = useRoute();
+const router = useRouter();
 const routeBookingId = String(route.query.booking_id || "");
+const bookingWorkflowStore = useBookingWorkflowStore();
+const servicesStore = useServicesStore();
+const hasCompletedCheckout = ref(false);
 
 const {
 	summary,
@@ -264,6 +270,24 @@ const guestCount = computed(() => {
 
 const serviceCount = computed(() =>
 	Number((booking.value.items || []).length || appointments.value.length)
+);
+
+watch(
+	() => [
+		isLoading.value,
+		isSubmitting.value,
+		booking.value.name,
+		financialSummary.value.outstandingAmount,
+		financialSummary.value.totalAmount,
+	],
+	async ([loading, submitting, bookingName, outstandingAmount, totalAmount]) => {
+		if (hasCompletedCheckout.value || loading || submitting || !bookingName) {
+			return;
+		}
+		if (Number(totalAmount || 0) > 0 && Number(outstandingAmount || 0) <= 0) {
+			await completeBookingCheckout();
+		}
+	}
 );
 
 const combinedIssues = computed(() => {
@@ -338,13 +362,37 @@ async function submitCheckoutPayment() {
 	try {
 		await submitPayment({ redirectTo: window.location.href });
 		if (selectedMethod.value?.providerType === "mpesa") {
-			startPolling();
+			startPolling({ onConfirmed: completeBookingCheckout });
 		} else {
 			stopPolling();
+			if (selectedPaymentChannel.value === "offline") {
+				await refreshSummary();
+				await completeBookingCheckout();
+				return;
+			}
 		}
 		await refreshSummary();
 	} catch {
 		stopPolling();
 	}
+}
+
+async function completeBookingCheckout() {
+	if (hasCompletedCheckout.value) {
+		return;
+	}
+	const bookingId = booking.value.name || routeBookingId;
+	if (!bookingId) {
+		return;
+	}
+	hasCompletedCheckout.value = true;
+
+	servicesStore.clearCart();
+	bookingWorkflowStore.clearWorkflow();
+
+	await router.replace({
+		name: "BookingDetails",
+		params: { bookingId },
+	});
 }
 </script>

@@ -12,7 +12,7 @@ export function useMpesaPayment() {
 		}
 	};
 
-	const startPolling = (intervalMs = 8000) => {
+	const startPolling = ({ intervalMs = 8000, onConfirmed = null } = {}) => {
 		stopPolling();
 		pollingId.value = window.setInterval(async () => {
 			await store.refreshSummary();
@@ -20,6 +20,9 @@ export function useMpesaPayment() {
 				store.paymentProgress = "success";
 				store.statusMessage = "Payment confirmed.";
 				stopPolling();
+				if (typeof onConfirmed === "function") {
+					await onConfirmed();
+				}
 			}
 		}, intervalMs);
 	};
