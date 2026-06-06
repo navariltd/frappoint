@@ -1119,22 +1119,18 @@ class ServiceAppointment(Document):
 	def complete_appointment(self):
 		self.auto_issue_consumables()
 		self.complete_linked_event()
-
-		# TODO: Move this to the service Booking
-		invoice_name = self.create_sales_invoice()
-
-		return invoice_name
+		if self.booking_id:
+			booking = frappe.get_doc("Service Booking", self.booking_id)
+			booking.sync_financial_snapshot()
 
 	@frappe.whitelist()
-	def complete_and_invoice(self, actual_start_time: str, actual_end_time: str) -> str:
+	def complete_and_invoice(self, actual_start_time: str, actual_end_time: str):
 		self.actual_start_time = actual_start_time
 		self.actual_end_time = actual_end_time
 		self.status = "Completed"
 		self.save()
 
-		invoice_name = self.complete_appointment()
-
-		return invoice_name
+		self.complete_appointment()
 
 	def get_linked_document(self, doctype, fields=None):
 		"""Generic method to get linked document"""
@@ -1150,7 +1146,7 @@ class ServiceAppointment(Document):
 
 		docs = frappe.get_all(
 			doctype,
-			filters={"service_appointment": self.name, "docstatus": 1},
+			filters={"service_appointment": self.name, "docstatus": ["!=", 2]},
 			fields=fields,
 			limit=1,
 		)
@@ -1267,11 +1263,21 @@ class ServiceAppointment(Document):
 
 	def create_sales_invoice(self):
 		"""Create Sales Invoice when appointment is completed"""
+		if self.booking_id:
+			booking = frappe.get_doc("Service Booking", self.booking_id)
+			if booking.get_linked_sales_invoice():
+				frappe.throw(
+					_(
+						"Booking {0} already has a Sales Invoice. Cancel it before creating appointment invoices."
+					).format(self.booking_id),
+					title=_("Already Invoiced"),
+				)
+
 		sales_invoice = self.get_linked_document("Sales Invoice")
 
 		if sales_invoice:
 			self.show_already_exists_message("Sales Invoice", sales_invoice.name)
-			return
+			return sales_invoice.name
 
 		item_code = frappe.db.get_value("Service Type", self.appointment_type, "item")
 		price_record = self.get_selected_price_record()
