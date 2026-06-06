@@ -32,6 +32,34 @@ frappe.ui.form.on("Service Booking", {
 				__("Create")
 			);
 		}
+
+		if (!frm.is_new()) {
+			if (frm.doc.sales_invoice) {
+				frm.add_custom_button(
+					__("Sales Invoice"),
+					function () {
+						frappe.set_route("Form", "Sales Invoice", frm.doc.sales_invoice);
+					},
+					__("View")
+				);
+			} else {
+				frm.add_custom_button(
+					__("Booking Sales Invoice"),
+					function () {
+						frm.trigger("make_sales_invoice");
+					},
+					__("Create")
+				);
+
+				frm.add_custom_button(
+					__("Appointment Sales Invoices"),
+					function () {
+						frm.trigger("make_appointment_sales_invoices");
+					},
+					__("Create")
+				);
+			}
+		}
 	},
 
 	render_appointment_list: function (frm) {
@@ -59,7 +87,166 @@ frappe.ui.form.on("Service Booking", {
 			frappe.set_route("Form", "Service Appointment Payment", payment.name);
 		});
 	},
+
+	make_sales_invoice: function (frm) {
+		frappe.call({
+			doc: frm.doc,
+			method: "create_sales_invoice",
+			freeze: true,
+			freeze_message: __("Creating Sales Invoice..."),
+			callback: function (r) {
+				if (r.message) {
+					frm.reload_doc();
+					frappe.set_route("Form", "Sales Invoice", r.message);
+				}
+			},
+		});
+	},
+
+	make_appointment_sales_invoices: function (frm) {
+		frappe.call({
+			doc: frm.doc,
+			method: "get_appointment_invoice_options",
+			freeze: true,
+			freeze_message: __("Loading appointments..."),
+			callback: function (r) {
+				const data = r.message || {};
+				if (data.booking_invoice) {
+					frappe.msgprint({
+						title: __("Already Invoiced"),
+						message: __("This booking already has Sales Invoice {0}.", [
+							data.booking_invoice.name,
+						]),
+						indicator: "orange",
+					});
+					return;
+				}
+
+				show_appointment_invoice_dialog(frm, data.appointments || []);
+			},
+		});
+	},
 });
+
+function show_appointment_invoice_dialog(frm, appointments) {
+	const rows = appointments
+		.map((appointment) => {
+			const disabled = appointment.can_invoice ? "" : "disabled";
+			const invoiceLink = appointment.sales_invoice
+				? `<a href="/app/sales-invoice/${encodeURIComponent(
+						appointment.sales_invoice
+				  )}">${frappe.utils.escape_html(appointment.sales_invoice)}</a>`
+				: "";
+			const reason = appointment.sales_invoice
+				? __("Already invoiced")
+				: appointment.status !== "Completed"
+				? __("Not completed")
+				: "";
+
+			return `
+				<tr>
+					<td style="width: 32px;">
+						<input type="checkbox" class="appointment-invoice-check" data-name="${frappe.utils.escape_html(
+							appointment.name
+						)}" ${disabled}>
+					</td>
+					<td>
+						<div><strong>${frappe.utils.escape_html(appointment.guest_name || "")}</strong></div>
+						<div class="text-muted small">${frappe.utils.escape_html(appointment.name)}</div>
+					</td>
+					<td>
+						<div>${frappe.utils.escape_html(appointment.appointment_type || "")}</div>
+						<div class="text-muted small">${frappe.utils.escape_html(appointment.provider || "")}</div>
+					</td>
+					<td>
+						<div>${frappe.datetime.str_to_user(appointment.appointment_date || "")}</div>
+						<div class="text-muted small">${frappe.utils.escape_html(
+							appointment.start_time || ""
+						)} - ${frappe.utils.escape_html(appointment.end_time || "")}</div>
+					</td>
+					<td>${frappe.utils.escape_html(appointment.status || "")}</td>
+					<td class="text-right">${frappe.format(appointment.total_amount || 0, {
+						fieldtype: "Currency",
+						options: appointment.currency || frm.doc.currency,
+					})}</td>
+					<td>${invoiceLink || frappe.utils.escape_html(reason)}</td>
+				</tr>
+			`;
+		})
+		.join("");
+
+	const dialog = new frappe.ui.Dialog({
+		title: __("Create Appointment Sales Invoices"),
+		size: "extra-large",
+		fields: [
+			{
+				fieldname: "appointments_html",
+				fieldtype: "HTML",
+				options: `
+					<div class="table-responsive">
+						<table class="table table-bordered">
+							<thead>
+								<tr>
+									<th></th>
+									<th>${__("Guest")}</th>
+									<th>${__("Service / Provider")}</th>
+									<th>${__("Date & Time")}</th>
+									<th>${__("Status")}</th>
+									<th class="text-right">${__("Amount")}</th>
+									<th>${__("Invoice")}</th>
+								</tr>
+							</thead>
+							<tbody>
+								${rows || `<tr><td colspan="7" class="text-muted">${__("No appointments found.")}</td></tr>`}
+							</tbody>
+						</table>
+					</div>
+				`,
+			},
+		],
+		primary_action_label: __("Create Invoices"),
+		primary_action: function () {
+			const selected = [];
+			dialog.$wrapper.find(".appointment-invoice-check:checked").each(function () {
+				selected.push($(this).data("name"));
+			});
+
+			if (!selected.length) {
+				frappe.msgprint({
+					message: __("Select at least one completed appointment."),
+					indicator: "orange",
+				});
+				return;
+			}
+
+			frappe.call({
+				doc: frm.doc,
+				method: "create_appointment_sales_invoices",
+				args: { appointment_names: selected },
+				freeze: true,
+				freeze_message: __("Creating Sales Invoices..."),
+				callback: function (r) {
+					const invoices = r.message || [];
+					dialog.hide();
+					frm.reload_doc();
+
+					if (invoices.length === 1) {
+						frappe.set_route("Form", "Sales Invoice", invoices[0].sales_invoice);
+						return;
+					}
+
+					frappe.msgprint({
+						title: __("Sales Invoices Created"),
+						message: __("Created {0} Sales Invoices.", [invoices.length]),
+						indicator: "green",
+					});
+				},
+			});
+		},
+	});
+
+	dialog.show();
+}
 
 class GuestBookingWizard {
 	constructor(frm) {

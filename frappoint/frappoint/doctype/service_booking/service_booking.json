@@ -28,6 +28,7 @@
   "grand_total",
   "confirmation_required_amount",
   "outstanding_amount",
+  "sales_invoice",
   "discount_section",
   "coupon_code",
   "coupon_scope",
@@ -180,6 +181,13 @@
    "fieldtype": "Currency",
    "label": "Outstanding Amount",
    "options": "currency",
+   "read_only": 1
+  },
+  {
+   "fieldname": "sales_invoice",
+   "fieldtype": "Link",
+   "label": "Sales Invoice",
+   "options": "Sales Invoice",
    "read_only": 1
   },
   {
