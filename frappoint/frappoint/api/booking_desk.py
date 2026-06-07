@@ -1511,15 +1511,13 @@ def perform_appointment_action(
 			"complete",
 			action_time=actual_end_time or now_datetime(),
 		)
-		invoice_name = appointment.complete_appointment()
+		appointment.complete_appointment()
 		appointment.reload()
 		frappe.db.commit()
-		response = _build_appointment_response(
+		return _build_appointment_response(
 			appointment,
 			(frappe.get_doc("Service Booking", appointment.booking_id) if appointment.booking_id else None),
 		)
-		response["invoiceName"] = invoice_name
-		return response
 
 	if action == "confirm":
 		appointment.confirm_appointment()

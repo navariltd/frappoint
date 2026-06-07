@@ -20,6 +20,7 @@
   "references_section",
   "references",
   "section_break_ddck",
+  "payment_entry",
   "payment_id",
   "order_id",
   "column_break_qhhd",
@@ -75,6 +76,13 @@
    "fieldname": "payment_id",
    "fieldtype": "Data",
    "label": "Reference No"
+  },
+  {
+   "fieldname": "payment_entry",
+   "fieldtype": "Link",
+   "label": "Payment Entry",
+   "options": "Payment Entry",
+   "read_only": 1
   },
   {
    "fieldname": "order_id",

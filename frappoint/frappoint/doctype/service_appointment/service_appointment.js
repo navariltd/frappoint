@@ -1376,7 +1376,7 @@ function show_complete_appointment_dialog(frm) {
 				`,
 			},
 		],
-		primary_action_label: __("Complete & Create Invoice"),
+		primary_action_label: __("Complete Appointment"),
 		primary_action: function (values) {
 			frappe.dom.freeze(__("Completing appointment..."));
 
@@ -1392,9 +1392,7 @@ function show_complete_appointment_dialog(frm) {
 					frappe.dom.unfreeze();
 					d.hide();
 
-					if (res.message) {
-						frappe.set_route("Form", "Sales Invoice", res.message);
-					}
+					frm.reload_doc();
 				},
 				error: function () {
 					frappe.dom.unfreeze();

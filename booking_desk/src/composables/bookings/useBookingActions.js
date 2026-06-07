@@ -12,7 +12,7 @@ export function useBookingActions() {
 	};
 
 	const collectPayment = (booking) => {
-		openBooking(booking);
+		router.push({ name: "Checkout", query: { booking_id: booking.bookingId } });
 	};
 
 	const checkIn = (booking) => {
