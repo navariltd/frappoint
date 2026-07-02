@@ -25,7 +25,7 @@ class ServiceProviderServiceAssignmentTool(Document):
 			ServiceProviderServiceAssignmentServiceDetail,
 		)
 
-		action: DF.Literal["Assign Service to Providers", "Assign Services to Provider"]
+		action: DF.Literal["Assign Service to Providers", "Assign Services to Provider"] # type:ignore
 		branch: DF.Link | None
 		company: DF.Link
 		department: DF.Link | None
@@ -35,7 +35,7 @@ class ServiceProviderServiceAssignmentTool(Document):
 		service_provider: DF.Link | None
 		service_type: DF.Link | None
 		services: DF.Table[ServiceProviderServiceAssignmentServiceDetail]
-		status: DF.Literal["Active", "Inactive"]
+		status: DF.Literal["Active", "Inactive"] # type:ignore
 	# end: auto-generated types
 
 	_table_fieldnames: ClassVar[list] = []
@@ -256,20 +256,20 @@ class ServiceProviderServiceAssignmentTool(Document):
 				frappe.db.savepoint("before_service_assignment")
 
 				if self.status == "Active":
-					self._add_service_to_provider(self.service_provider, row.service_type)
-					success.append({"service_type": row.service_type, "action": "assigned"})
+					self._add_service_to_provider(self.service_provider, row.get("service_type"))
+					success.append({"service_type": row.get("service_type"), "action": "assigned"})
 				elif self.status == "Inactive":
-					self._remove_service_from_provider(self.service_provider, row.service_type)
-					success.append({"service_type": row.service_type, "action": "removed"})
+					self._remove_service_from_provider(self.service_provider, row.get("service_type"))
+					success.append({"service_type": row.get("service_type"), "action": "removed"})
 
 			except Exception as e:
 				frappe.db.rollback(save_point="before_service_assignment")
 				frappe.log_error(
-					f"Service assignment failed for service {row.service_type}",
-					f"Service assignment failed for service {row.service_type}: {e}",
+					f"Service assignment failed for service {row.get('service_type')}",
+					f"Service assignment failed for service {row.get('service_type')}: {e}",
 					reference_doctype="Service Provider Service",
 				)
-				failure.append({"service_type": row.service_type, "error": str(e)})
+				failure.append({"service_type": row.get("service_type"), "error": str(e)})
 
 		frappe.clear_messages()
 		if success:
