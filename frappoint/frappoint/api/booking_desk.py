@@ -1793,7 +1793,7 @@ def get_service_bookings_workspace(
 
 
 def _get_doctype_latest_modified(doctype: str) -> str:
-	latest = frappe.db.get_value(doctype, filters={}, fieldname="MAX(modified)")
+	latest = frappe.db.get_value(doctype, filters={}, fieldname={"MAX": "modified"})
 	return str(latest or "")
 
 

@@ -43,7 +43,7 @@ def replenish_slot_window():
 		last_slot_date = frappe.db.get_value(
 			"Service Provider Appointment Slot",
 			{"shift_assignment": shift.name},
-			"MAX(posting_date)",
+			{"MAX": "posting_date"},
 		)
 
 		gen_start = add_days(last_slot_date, 1) if last_slot_date else shift_start
