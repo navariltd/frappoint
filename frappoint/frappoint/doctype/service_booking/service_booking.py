@@ -1,12 +1,13 @@
 # Copyright (c) 2026, Navari LTD and contributors
 # For license information, please see license.txt
 
+import frappe
 import json
 
-import frappe
 from frappe import _
 from frappe.model.document import Document
 from frappe.utils import cint, flt, today
+from frappe.query_builder.functions import Sum
 
 from frappoint.frappoint.services.booking_transaction_service import confirm_held_allocations
 from frappoint.frappoint.services.pricing_service import (
@@ -36,8 +37,8 @@ class ServiceBooking(Document):
 		coupon_applied: DF.Check
 		coupon_code: DF.Data | None
 		coupon_discount_amount: DF.Currency
-		coupon_discount_type: DF.Literal["", "percentage", "fixed"]
-		coupon_scope: DF.Literal["", "booking"]
+		coupon_discount_type: DF.Literal["", "percentage", "fixed"] #type: ignore[assignment]
+		coupon_scope: DF.Literal["", "booking"] #type: ignore[assignment]
 		currency: DF.Link | None
 		customer: DF.Link
 		email: DF.Data | None
@@ -45,10 +46,10 @@ class ServiceBooking(Document):
 		grand_total: DF.Currency
 		items: DF.Table[ServiceBookingItem]
 		mobile_no: DF.Data | None
-		naming_series: DF.Literal["BK-.DD./.MM./.YY.-.####"]
+		naming_series: DF.Literal["BK-.DD./.MM./.YY.-.####"] #type: ignore[assignment]
 		outstanding_amount: DF.Currency
 		sales_invoice: DF.Link | None
-		status: DF.Literal["Draft", "Payment Pending", "Partly Paid", "Confirmed", "Closed", "Cancelled"]
+		status: DF.Literal["Draft", "Payment Pending", "Partly Paid", "Confirmed", "Closed", "Cancelled"] #type: ignore[assignment]
 		subtotal: DF.Currency
 		total_guests: DF.Int
 	# end: auto-generated types
