@@ -36,10 +36,13 @@
 						:customers="customers"
 						:isLoadingDates="isLoadingDates"
 						:isLoadingSlots="isLoadingSlots"
+						:isReservingSlots="isReservingSlots"
+						:reservingSlotIdByGuest="reservingSlotIdByGuest"
 						:errorByGuest="errorByGuest"
 						:isActive="serviceIndex === activeServiceIndex"
 						@select-customer="onSelectCustomer"
 						@quick-create="onQuickCreateGuest"
+						@provider-preference="onProviderPreferenceChange"
 						@clear-guest="onClearGuest"
 						@load-dates="onLoadGuestDates"
 						@select-date="onSelectGuestDate"
@@ -77,6 +80,8 @@ const {
 	activeServiceIndex,
 	isLoadingDates,
 	isLoadingSlots,
+	isReservingSlots,
+	reservingSlotIdByGuest,
 	errorByGuest,
 	progress,
 	validationIssues,
@@ -87,6 +92,7 @@ const {
 	customers,
 	updateGuestFromCustomer,
 	quickCreateGuest,
+	updateProviderPreference,
 	clearGuest,
 	fetchGuestDates,
 	selectGuestDate,
@@ -109,6 +115,10 @@ const onSelectCustomer = async (serviceKey, guestKey, customerId) => {
 const onQuickCreateGuest = async (serviceKey, guestKey, payload) => {
 	quickCreateGuest(serviceKey, guestKey, payload);
 	await fetchGuestDates(serviceKey, guestKey);
+};
+
+const onProviderPreferenceChange = async (serviceKey, guestKey, providerId) => {
+	await updateProviderPreference(serviceKey, guestKey, providerId);
 };
 
 const onClearGuest = (serviceKey, guestKey) => {

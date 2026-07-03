@@ -14,8 +14,6 @@ class ServiceTypeUnitType(Document):
 	if TYPE_CHECKING:
 		from frappe.types import DF
 
-		auto_assign: DF.Check
-		capacity: DF.Int
 		parent: DF.Data
 		parentfield: DF.Data
 		parenttype: DF.Data

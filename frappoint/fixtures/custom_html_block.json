@@ -1,0 +1,13 @@
+[
+ {
+  "docstatus": 0,
+  "doctype": "Custom HTML Block",
+  "html": "<a href=\"/booking_desk\" class=\"custom-booking-link d-flex align-items-center px-4 border-bottom text-decoration-none group\">\n    <div class=\"logo-container d-flex align-items-center justify-content-center bg-white p-1 rounded shadow-sm ring-border\">\n        <img class=\"logo-img object-contain\" src=\"/assets/frappoint/images/frappoint_icon.png\" alt=\"Logo\" style=\"width: 40px; height: 40px;\">\n    </div>\n\n    <div class=\"text-container d-flex flex-column ml-3\">\n        <h1 class=\"booking-title text-lg font-weight-black mb-0 tracking-tight\">\n            Booking<span class=\"booking-subtitle font-weight-medium\">Desk</span>\n        </h1>\n    </div>\n</a>\n",
+  "modified": "2026-05-22 05:38:17.672254",
+  "name": "Booking Desk",
+  "private": 0,
+  "roles": [],
+  "script": null,
+  "style": "/* Base link styling */\n.custom-booking-link {\n    height: 80px; /* Equivalent to h-20 */\n    border-color: var(--border-color, #e2e8f0) !important; /* Matches Frappe's native border */\n    transition: all 0.2s ease-in-out;\n}\n\n/* Simulated custom border ring around the image */\n.ring-border {\n    box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.05), 0 1px 2px 0 rgba(0, 0, 0, 0.05);\n}\n\n/* Precise Text colors matching your screenshot */\n.booking-title {\n    color: #006672 !important; /* Teal-blue primary from image */\n    font-size: 1.125rem; /* text-lg */\n    line-height: 1.25;\n    letter-spacing: -0.025em;\n}\n\n.booking-subtitle {\n    color: #007f8c !important; /* Slightly distinct or standard desk color */\n}\n\n/* Hover effects matching Tailwind's group-hover:scale-105 */\n.custom-booking-link:hover .logo-container,\n.custom-booking-link:hover .text-container {\n    transform: scale(1.05);\n}\n\n.logo-container, .text-container {\n    transition: transform 0.2s ease-in-out;\n}\n\n/* Frappe Dark Mode overrides */\n[data-theme=\"dark\"] .custom-booking-link {\n    border-color: var(--dark-border-color, #2d3748) !important;\n}\n[data-theme=\"dark\"] .logo-container {\n    background-color: #1a202c !important;\n    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.1);\n}"
+ }
+]

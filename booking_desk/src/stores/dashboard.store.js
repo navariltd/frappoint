@@ -5,6 +5,13 @@ import {
 	toIsoDate,
 } from "@/services/dashboard.service";
 import { fetchTimelineDataset } from "@/services/timeline.service";
+import {
+	CACHE_MAX_AGE,
+	CACHE_TAGS,
+	getMemoryCache,
+	setMemoryCache,
+	sweepExpiredMemoryCache,
+} from "@/utils/cachePolicy";
 
 const defaultMetrics = () => ({
 	todayAppointments: 0,
@@ -29,7 +36,7 @@ export const useDashboardStore = defineStore("dashboard", {
 		isLoading: false,
 		error: null,
 		lastFetchedAt: null,
-		_cache: {},
+		cacheMaxAge: CACHE_MAX_AGE.DASHBOARD,
 	}),
 	actions: {
 		setDate(date) {
@@ -42,12 +49,26 @@ export const useDashboardStore = defineStore("dashboard", {
 			this.appointments = nextAppointments;
 		},
 		async refresh({ force = false } = {}) {
+			sweepExpiredMemoryCache();
 			const key = makeCacheKey(this.view, this.selectedDate);
+			const cacheKey = `dashboard:${key}`;
 
-			if (!force && this._cache[key]) {
-				this.metrics = this._cache[key].metrics;
-				this.providers = this._cache[key].providers;
-				this.appointments = this._cache[key].appointments;
+			if (!force) {
+				const snapshot = getMemoryCache(cacheKey);
+				if (snapshot) {
+					this.metrics = snapshot.metrics;
+					this.providers = snapshot.providers;
+					this.appointments = snapshot.appointments;
+					this.lastFetchedAt = new Date(snapshot.createdAt).toISOString();
+					return;
+				}
+			}
+
+			if (force) {
+				this.lastFetchedAt = null;
+			}
+
+			if (!force && this.isLoading) {
 				return;
 			}
 
@@ -64,12 +85,21 @@ export const useDashboardStore = defineStore("dashboard", {
 				this.metrics = metrics;
 				this.providers = timeline.providers;
 				this.appointments = timeline.appointments;
-				this.lastFetchedAt = new Date().toISOString();
-				this._cache[key] = {
-					metrics,
-					providers: timeline.providers,
-					appointments: timeline.appointments,
-				};
+				const createdAt = Date.now();
+				this.lastFetchedAt = new Date(createdAt).toISOString();
+				setMemoryCache(
+					cacheKey,
+					{
+						metrics,
+						providers: timeline.providers,
+						appointments: timeline.appointments,
+						createdAt,
+					},
+					{
+						maxAge: this.cacheMaxAge,
+						tags: [CACHE_TAGS.DASHBOARD, CACHE_TAGS.BOOKINGS],
+					}
+				);
 			} catch (error) {
 				this.error = error?.message || "Failed to load dashboard data";
 			} finally {

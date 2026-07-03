@@ -6,6 +6,7 @@ import {
 	fetchAppointmentDetails,
 	performAppointmentAction,
 } from "@/services/appointmentDetails.service";
+import { CACHE_TAGS, invalidateMemoryCacheByTag } from "@/utils/cachePolicy";
 
 const createEmptyBookingContext = () => ({
 	bookingId: "",
@@ -116,7 +117,7 @@ export const useAppointmentDetailsStore = defineStore("appointmentDetails", {
 		async refreshAvailability() {
 			const serviceType = this.appointment.appointmentType;
 			const duration = Number(this.appointment.duration || 0);
-			const provider = this.appointment.provider || "";
+			const provider = this.appointment.providerId || this.appointment.provider || "";
 			const date = this.selectedAvailabilityDate || this.appointment.appointmentDate;
 			if (!serviceType || !date) {
 				this.availabilityDates = [];
@@ -187,6 +188,8 @@ export const useAppointmentDetailsStore = defineStore("appointmentDetails", {
 				}
 				this.paymentSummary = response?.paymentSummary || this.paymentSummary;
 				this.actionState = response?.actions || this.actionState;
+				invalidateMemoryCacheByTag(CACHE_TAGS.DASHBOARD);
+				invalidateMemoryCacheByTag(CACHE_TAGS.BOOKINGS);
 				eventLogsStore.hydrateFromPayload(
 					response?.eventLogs || [],
 					response?.timeTracking || {}
@@ -194,7 +197,9 @@ export const useAppointmentDetailsStore = defineStore("appointmentDetails", {
 				this.selectedAvailabilityDate =
 					response?.availability?.date || this.selectedAvailabilityDate;
 				this.selectedAvailabilitySlotId = "";
-				await this.refreshAvailability();
+				if (["edit_time_slot", "reschedule"].includes(actionPayload.action)) {
+					await this.refreshAvailability();
+				}
 				return {
 					...response,
 					nextAppointmentId,

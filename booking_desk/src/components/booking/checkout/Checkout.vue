@@ -2,6 +2,27 @@
 	<div class="h-full flex flex-col">
 		<CheckoutLoadingState v-if="isLoading" />
 
+		<div
+			v-else-if="isRedirectingToBooking"
+			class="h-full flex items-center justify-center bg-surface-container-lowest px-4"
+		>
+			<div class="w-full max-w-sm text-center space-y-3">
+				<span
+					class="material-symbols-outlined inline-flex text-[32px] text-primary animate-spin"
+				>
+					progress_activity
+				</span>
+				<div class="space-y-1">
+					<h1 class="text-[18px] font-semibold text-on-surface">
+						Redirecting to booking
+					</h1>
+					<p class="text-[13px] text-on-surface-variant">
+						Payment confirmed. Opening {{ redirectingBookingId || "booking" }}...
+					</p>
+				</div>
+			</div>
+		</div>
+
 		<template v-else>
 			<header class="px-4 py-4 border-b border-outline-variant bg-surface-container-lowest">
 				<div class="flex items-center gap-2 text-on-surface-variant mb-1">
@@ -194,8 +215,8 @@
 	</div>
 </template>
 <script setup>
-import { computed } from "vue";
-import { useRoute } from "vue-router";
+import { computed, ref, watch } from "vue";
+import { useRoute, useRouter } from "vue-router";
 import CheckoutLoadingState from "@/components/booking/checkout/CheckoutLoadingState.vue";
 import CheckoutValidationBanner from "@/components/booking/checkout/CheckoutValidationBanner.vue";
 import PaymentStatusBanner from "@/components/booking/checkout/PaymentStatusBanner.vue";
@@ -206,9 +227,17 @@ import PaymentSummarySidebar from "@/components/booking/checkout/PaymentSummaryS
 import { useCheckout } from "@/composables/booking/checkout/useCheckout";
 import { usePaymentWorkflow } from "@/composables/booking/checkout/usePaymentWorkflow";
 import { useMpesaPayment } from "@/composables/booking/checkout/useMpesaPayment";
+import { useBookingWorkflowStore } from "@/stores/bookingWorkflow.store";
+import { useServicesStore } from "@/stores/services.store";
 
 const route = useRoute();
+const router = useRouter();
 const routeBookingId = String(route.query.booking_id || "");
+const bookingWorkflowStore = useBookingWorkflowStore();
+const servicesStore = useServicesStore();
+const hasCompletedCheckout = ref(false);
+const isRedirectingToBooking = ref(false);
+const redirectingBookingId = ref("");
 
 const {
 	summary,
@@ -264,6 +293,24 @@ const guestCount = computed(() => {
 
 const serviceCount = computed(() =>
 	Number((booking.value.items || []).length || appointments.value.length)
+);
+
+watch(
+	() => [
+		isLoading.value,
+		isSubmitting.value,
+		booking.value.name,
+		financialSummary.value.outstandingAmount,
+		financialSummary.value.totalAmount,
+	],
+	async ([loading, submitting, bookingName, outstandingAmount, totalAmount]) => {
+		if (hasCompletedCheckout.value || loading || submitting || !bookingName) {
+			return;
+		}
+		if (Number(totalAmount || 0) > 0 && Number(outstandingAmount || 0) <= 0) {
+			await completeBookingCheckout();
+		}
+	}
 );
 
 const combinedIssues = computed(() => {
@@ -338,13 +385,40 @@ async function submitCheckoutPayment() {
 	try {
 		await submitPayment({ redirectTo: window.location.href });
 		if (selectedMethod.value?.providerType === "mpesa") {
-			startPolling();
+			startPolling({ onConfirmed: completeBookingCheckout });
 		} else {
 			stopPolling();
+			if (selectedPaymentChannel.value === "offline") {
+				await refreshSummary();
+				await completeBookingCheckout();
+				return;
+			}
 		}
 		await refreshSummary();
 	} catch {
 		stopPolling();
 	}
+}
+
+async function completeBookingCheckout() {
+	if (hasCompletedCheckout.value) {
+		return;
+	}
+	const bookingId = booking.value.name || routeBookingId;
+	if (!bookingId) {
+		return;
+	}
+	hasCompletedCheckout.value = true;
+	isRedirectingToBooking.value = true;
+	redirectingBookingId.value = bookingId;
+
+	servicesStore.clearCart();
+	bookingWorkflowStore.clearWorkflow();
+	await new Promise((resolve) => window.setTimeout(resolve, 350));
+
+	await router.replace({
+		name: "BookingDetails",
+		params: { bookingId },
+	});
 }
 </script>

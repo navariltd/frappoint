@@ -1,23 +1,12 @@
-import { createListResource, createResource } from "frappe-ui";
+import { createResource } from "frappe-ui";
+import { fetchBookingDeskCacheVersion } from "@/api/cacheVersion.api";
+import { CACHE_MAX_AGE, CACHE_TAGS, getMemoryCache, setMemoryCache } from "@/utils/cachePolicy";
 
 const PROVIDER_DOCTYPE = "Service Provider";
 
-const providersListResource = createListResource({
-	doctype: PROVIDER_DOCTYPE,
-	fields: [
-		"name",
-		"provider_name",
-		"first_name",
-		"last_name",
-		"designation",
-		"active",
-		"color_code",
-	],
-	filters: { active: 1 },
-	orderBy: "provider_name asc",
-	pageLength: 500,
+const providersListResource = createResource({
+	url: "frappe.client.get_list",
 	auto: false,
-	cache: ["dashboard", "providers"],
 });
 
 const providerLookupResource = createResource({
@@ -35,9 +24,41 @@ const unwrapListPayload = (payload) => {
 	return [];
 };
 
+const PROVIDERS_CACHE_KEY = "reference:providers";
+const GENDERS_CACHE_KEY = "reference:genders";
+
 export async function fetchProviders() {
-	await providersListResource.fetch();
-	return unwrapListPayload(providersListResource.data);
+	const versions = await fetchBookingDeskCacheVersion();
+	const cached = getMemoryCache(PROVIDERS_CACHE_KEY, {
+		version: versions.providersVersion,
+	});
+
+	if (cached) {
+		return cached;
+	}
+
+	const response = await providersListResource.fetch({
+		doctype: PROVIDER_DOCTYPE,
+		fields: [
+			"name",
+			"provider_name",
+			"first_name",
+			"last_name",
+			"designation",
+			"active",
+			"color_code",
+		],
+		filters: { active: 1 },
+		order_by: "provider_name asc",
+		limit_page_length: 500,
+	});
+
+	const rows = unwrapListPayload(response ?? providersListResource.data);
+	return setMemoryCache(PROVIDERS_CACHE_KEY, rows, {
+		maxAge: 2 * 60 * 1000,
+		tags: [CACHE_TAGS.PROVIDERS],
+		version: versions.providersVersion,
+	});
 }
 
 export async function fetchProvidersByIds(providerIds = []) {
@@ -60,4 +81,33 @@ export async function fetchProvidersByIds(providerIds = []) {
 	return unwrapListPayload(response ?? providerLookupResource.data);
 }
 
-export { providersListResource, providerLookupResource, PROVIDER_DOCTYPE };
+const genderResource = createResource({
+	url: "frappe.client.get_list",
+	auto: false,
+});
+
+export async function fetchAvailableGenders() {
+	const cached = getMemoryCache(GENDERS_CACHE_KEY);
+	if (cached) {
+		return cached;
+	}
+
+	const response = await genderResource.fetch({
+		doctype: "Gender",
+		fields: ["name"],
+		order_by: "name asc",
+		limit_page_length: 100,
+	});
+
+	const genders = unwrapListPayload(response ?? genderResource.data).map((g) => ({
+		name: g.name,
+		label: g.name,
+	}));
+
+	return setMemoryCache(GENDERS_CACHE_KEY, genders, {
+		maxAge: CACHE_MAX_AGE.MEDIUM,
+		tags: [CACHE_TAGS.PROVIDERS],
+	});
+}
+
+export { providersListResource, providerLookupResource, genderResource, PROVIDER_DOCTYPE };

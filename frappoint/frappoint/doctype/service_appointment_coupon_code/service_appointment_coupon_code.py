@@ -21,7 +21,12 @@ class ServiceAppointmentCouponCode(Document):
 		)
 
 		applicable_for: DF.Literal[
-			"Service Type", "Service Appointment", "Customer", "Customer Group", "Booking Source"
+			"Service Type",
+			"Service Appointment",
+			"Service Booking",
+			"Customer",
+			"Customer Group",
+			"Booking Source",
 		]
 		booking_source: DF.Literal["", "Portal", "Desk"]
 		code: DF.Data | None
@@ -87,10 +92,20 @@ class ServiceAppointmentCouponCode(Document):
 				return False, _("Coupon is not valid for this service")
 			return True, ""
 
+		if self.applicable_for == "Service Appointment":
+			# No appointment-specific selector field exists on the coupon doctype,
+			# so treat this scope as appointment-level usage without extra filtering.
+			return True, ""
+
+		if self.applicable_for == "Service Booking":
+			return False, _("Coupon is only valid at booking level")
+
 		if self.applicable_for == "Booking Source":
 			if appointment.source != self.booking_source:
 				return False, _("Coupon is not valid for this portal")
 			return True, ""
+
+		return True, ""
 
 	def is_usage_available(self):
 		usage = self.get_usage_count()
@@ -123,4 +138,6 @@ class ServiceAppointmentCouponCode(Document):
 		return True, ""
 
 	def get_usage_count(self):
-		return frappe.db.count("Service Appointment", {"coupon_code": self.name, "docstatus": 1})
+		appointment_usage = frappe.db.count("Service Appointment", {"coupon_code": self.name, "docstatus": 1})
+		booking_usage = frappe.db.count("Service Booking", {"coupon_code": self.name, "docstatus": 1})
+		return appointment_usage + booking_usage

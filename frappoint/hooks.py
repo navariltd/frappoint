@@ -19,7 +19,7 @@ before_tests = "frappoint.setup.utils.before_tests"
 add_to_apps_screen = [
 	{
 		"name": "frappoint",
-		"logo": "/assets/frappoint/images/logo_img.png",
+		"logo": "/assets/frappoint/images/frappoint_icon.png",
 		"title": "Frappoint",
 		"route": "/app/frappoint",
 		"has_permission": "frappoint.check_app_permission",
@@ -29,6 +29,7 @@ add_to_apps_screen = [
 website_route_rules = [
 	{"from_route": "/frappoint/<path:app_path>", "to_route": "frappoint"},
 	{"from_route": "/portal/<path:app_path>", "to_route": "portal"},
+	{"from_route": "/booking_desk/<path:app_path>", "to_route": "booking_desk"},
 ]
 
 fixtures = [
@@ -66,6 +67,11 @@ fixtures = [
 				],
 			]
 		],
+	},
+	{"doctype": "Custom HTML Block", "filters": [["name", "in", ["Booking Desk"]]]},
+	{
+		"doctype": "Custom Field",
+		"filters": [["name", "in", ["Customer-custom_visible_on_booking_desk"]]],
 	},
 ]
 
@@ -184,6 +190,13 @@ after_install = "frappoint.setup.setup.execute"
 # Document Events
 # ---------------
 # Hook on document methods and events
+doc_events = {
+	"Leave Application": {
+		"on_submit": "frappoint.frappoint.services.hrms_integration.sync_leave_application_unavailability",
+		"on_update_after_submit": "frappoint.frappoint.services.hrms_integration.sync_leave_application_unavailability",
+		"on_cancel": "frappoint.frappoint.services.hrms_integration.sync_leave_application_unavailability",
+	}
+}
 
 
 # Scheduled Tasks
@@ -193,13 +206,13 @@ scheduler_events = {
 	"all": [
 		"frappoint.utils.expire_pending_payment_holds",
 	],
+	"hourly": [
+		"frappoint.frappoint.scheduler.refresh_availability_counters.execute",
+	],
 	"daily": [
 		"frappoint.utils.purge_old_slots",
 		"frappoint.utils.replenish_slot_window",
 	],
-	# "hourly": [
-	# 	"frappoint.tasks.hourly"
-	# ],
 	# "weekly": [
 	# 	"frappoint.tasks.weekly"
 	# ],

@@ -8,6 +8,7 @@ import {
 } from "@/services/paymentMethod.service";
 import { createEmptyCheckoutSummary } from "@/types/checkout";
 import { PAYMENT_CHANNELS, PAYMENT_PROGRESS, PAYMENT_TYPES } from "@/types/payment";
+import { CACHE_TAGS, invalidateMemoryCacheByTag } from "@/utils/cachePolicy";
 
 const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
 
@@ -241,18 +242,25 @@ export const useCheckoutStore = defineStore("checkout", {
 			this.statusMessage = "Initiating payment gateway request...";
 
 			try {
+				const paymentType = this.selectedPaymentType;
+				const amount = Number(this.payableAmount || 0);
+
 				const payload = await createHostedCheckoutPayment({
 					bookingId: this.bookingId,
 					paymentGateway: this.selectedMethod.gateway,
 					redirectTo,
 					phoneNumber:
 						this.selectedMethod.providerType === "mpesa" ? this.mpesaPhone : "",
+					amount,
+					paymentType,
 				});
 
 				this.hostedPaymentUrl = payload?.url || "";
 				this.paymentGatewaySession = payload || null;
 				if (payload?.checkout) {
 					this.summary = payload.checkout;
+					invalidateMemoryCacheByTag(CACHE_TAGS.BOOKINGS);
+					invalidateMemoryCacheByTag(CACHE_TAGS.DASHBOARD);
 				}
 
 				if (this.selectedMethod.providerType === "mpesa") {
@@ -295,6 +303,8 @@ export const useCheckoutStore = defineStore("checkout", {
 
 				if (payload?.checkout) {
 					this.summary = payload.checkout;
+					invalidateMemoryCacheByTag(CACHE_TAGS.BOOKINGS);
+					invalidateMemoryCacheByTag(CACHE_TAGS.DASHBOARD);
 				}
 
 				this.paymentProgress = PAYMENT_PROGRESS.SUCCESS;

@@ -14,6 +14,27 @@ from frappoint.frappoint.doctype.service_appointment_event_log.service_appointme
 	compute_appointment_time_summary,
 	get_appointment_event_logs,
 )
+from frappoint.frappoint.doctype.service_provider_appointment_slot.service_provider_appointment_slot import (
+	change_appointment_provider,
+)
+from frappoint.frappoint.services.availability_projector import (
+	get_available_slots as get_projected_available_slots,
+)
+from frappoint.frappoint.services.ongoing_provider_reassignment_service import (
+	get_ongoing_reassignment_options,
+	reassign_ongoing_appointment,
+)
+from frappoint.frappoint.services.pricing_service import (
+	calculate_booking_pricing,
+	coupon_scope_label,
+	is_booking_level_coupon,
+	resolve_coupon_doc,
+)
+from frappoint.frappoint.services.provider_assignment_service import (
+	rank_provider_options,
+	select_provider_for_assignment,
+	throw_no_provider_available,
+)
 from frappoint.payments import (
 	get_confirmation_deposit_percent,
 	get_payment_amount,
@@ -87,7 +108,8 @@ def _get_price_doc(
 	return candidates[0]
 
 
-def _serialize_booking(booking):
+def _serialize_booking(booking, pricing=None):
+	pricing = pricing or calculate_booking_pricing(booking)
 	appointments = frappe.get_all(
 		"Service Appointment",
 		filters={"booking_id": booking.name, "docstatus": ["!=", 2]},
@@ -98,10 +120,14 @@ def _serialize_booking(booking):
 			"start_time",
 			"end_time",
 			"appointment_provider",
+			"service_provider_name",
 			"status",
 			"payment_status",
 			"total_amount",
 			"outstanding_amount",
+			"coupon_code",
+			"discount_amount",
+			"grand_total",
 			"full_name",
 			"email",
 			"mobile_no",
@@ -109,6 +135,8 @@ def _serialize_booking(booking):
 		],
 		order_by="creation asc",
 	)
+	provider_ids = [row.appointment_provider for row in appointments if row.get("appointment_provider")]
+	provider_names = _get_provider_name_map(provider_ids)
 
 	return {
 		"name": booking.name,
@@ -119,6 +147,19 @@ def _serialize_booking(booking):
 		"mobileNo": booking.mobile_no,
 		"currency": booking.currency,
 		"subtotal": booking.subtotal,
+		"subtotalAmount": flt(pricing.get("subtotalAmount") or booking.subtotal),
+		"appointmentDiscountTotal": flt(
+			booking.appointment_discount_total or pricing.get("appointmentDiscountTotal") or 0
+		),
+		"bookingDiscountAmount": flt(
+			booking.booking_discount_amount or pricing.get("bookingDiscountAmount") or 0
+		),
+		"totalAmount": flt(pricing.get("totalAmount") or booking.grand_total),
+		"finalAmount": flt(pricing.get("finalAmount") or booking.grand_total),
+		"couponCode": booking.coupon_code,
+		"couponDiscountType": booking.coupon_discount_type,
+		"couponDiscountAmount": flt(booking.coupon_discount_amount or 0),
+		"couponScope": booking.coupon_scope,
 		"grandTotal": booking.grand_total,
 		"outstandingAmount": booking.outstanding_amount,
 		"totalGuests": booking.total_guests,
@@ -140,18 +181,36 @@ def _serialize_booking(booking):
 				"date": appointment.appointment_date,
 				"startTime": appointment.start_time,
 				"endTime": appointment.end_time,
-				"provider": appointment.appointment_provider,
+				"provider": appointment.service_provider_name
+				or provider_names.get(appointment.appointment_provider)
+				or appointment.appointment_provider,
+				"providerId": appointment.appointment_provider,
+				"serviceProviderName": appointment.service_provider_name,
 				"status": appointment.status,
 				"paymentStatus": appointment.payment_status,
 				"totalAmount": appointment.total_amount,
+				"grandTotal": appointment.grand_total,
+				"discountAmount": appointment.discount_amount,
+				"couponCode": appointment.coupon_code,
 				"outstandingAmount": appointment.outstanding_amount,
 				"fullName": appointment.full_name,
 				"email": appointment.email,
 				"mobileNo": appointment.mobile_no,
-				"slotIds": json.loads(appointment.selected_slot_ids) if appointment.selected_slot_ids else [],
+				"slotIds": [],
 			}
 			for appointment in appointments
 		],
+		"pricing": {
+			"subtotalAmount": flt(pricing.get("subtotalAmount") or 0),
+			"appointmentDiscountTotal": flt(pricing.get("appointmentDiscountTotal") or 0),
+			"bookingDiscountAmount": flt(pricing.get("bookingDiscountAmount") or 0),
+			"totalAmount": flt(pricing.get("totalAmount") or 0),
+			"finalAmount": flt(pricing.get("finalAmount") or 0),
+			"intermediateTotal": flt(pricing.get("intermediateTotal") or 0),
+			"appointmentBreakdown": pricing.get("appointmentBreakdown") or [],
+			"bookingCoupon": pricing.get("bookingCoupon"),
+			"appointmentCoupons": pricing.get("appointmentCoupons") or [],
+		},
 	}
 
 
@@ -164,6 +223,21 @@ def _safe_json_loads(value, fallback):
 		except Exception:
 			return fallback
 	return value
+
+
+def _get_provider_name_map(provider_ids):
+	provider_ids = sorted({provider for provider in provider_ids if provider})
+	if not provider_ids:
+		return {}
+
+	return {
+		row["name"]: row["provider_name"] or row["name"]
+		for row in frappe.get_all(
+			"Service Provider",
+			filters={"name": ["in", provider_ids]},
+			fields=["name", "provider_name"],
+		)
+	}
 
 
 def _serialize_appointment(appointment):
@@ -190,7 +264,10 @@ def _serialize_appointment(appointment):
 		"actualEndTime": appointment.actual_end_time,
 		"duration": appointment.duration,
 		"serviceUnit": appointment.service_unit,
-		"provider": appointment.appointment_provider,
+		"provider": appointment.service_provider_name
+		or _get_provider_name_map([appointment.appointment_provider]).get(appointment.appointment_provider)
+		or appointment.appointment_provider,
+		"providerId": appointment.appointment_provider,
 		"serviceProviderName": appointment.service_provider_name,
 		"appointmentPrice": appointment.appointment_price,
 		"totalAmount": flt(appointment.total_amount),
@@ -199,7 +276,7 @@ def _serialize_appointment(appointment):
 		"details": appointment.details,
 		"notes": appointment.notes,
 		"source": appointment.source,
-		"selectedSlotIds": _safe_json_loads(getattr(appointment, "selected_slot_ids", None), []),
+		"selectedSlotIds": [],
 		"allAvailableProviders": _safe_json_loads(getattr(appointment, "all_available_providers", None), []),
 		"modified": appointment.modified,
 		"creation": appointment.creation,
@@ -237,6 +314,64 @@ def _serialize_appointment_payment(payment):
 		"orderId": payment.order_id,
 		"modified": payment.modified,
 	}
+
+
+def _time_key(value):
+	if value is None:
+		return ""
+	return str(value).split(".")[0]
+
+
+def _get_allocation_provider_change_options(appointment):
+	if not appointment.appointment_type or not appointment.appointment_date:
+		return []
+
+	rows = get_projected_available_slots(
+		service_type_id=appointment.appointment_type,
+		start_date=appointment.appointment_date,
+		end_date=appointment.appointment_date,
+		required_duration_minutes=appointment.duration,
+	)
+	if not rows:
+		return []
+
+	target_start = _time_key(appointment.start_time)
+	target_end = _time_key(appointment.end_time)
+	seen = set()
+	options = []
+
+	for row in rows:
+		provider = row.get("provider")
+		if not provider or provider == appointment.appointment_provider:
+			continue
+
+		if _time_key(row.get("start_time")) != target_start:
+			continue
+		if _time_key(row.get("end_time")) != target_end:
+			continue
+
+		service_unit = row.get("service_unit")
+		provider_key = (provider, service_unit or "")
+		if provider_key in seen:
+			continue
+		seen.add(provider_key)
+
+		options.append(
+			{
+				"provider": provider,
+				"provider_name": row.get("provider_name") or provider,
+				"service_unit": service_unit,
+				"service_unit_name": row.get("service_unit_name") or service_unit,
+				"slot_ids": row.get("slot_ids") or [],
+			}
+		)
+
+	return rank_provider_options(
+		options,
+		appointment_date=appointment.appointment_date,
+		service_type=appointment.appointment_type,
+		exclude_provider=appointment.appointment_provider,
+	)
 
 
 def _build_appointment_timeline(appointment, payments, event_logs):
@@ -376,7 +511,10 @@ def _build_appointment_response(appointment, booking=None):
 	time_tracking = compute_appointment_time_summary(event_logs)
 	payment_rows = frappe.get_all(
 		"Service Appointment Payment",
-		filters={"reference_doctype": "Service Appointment", "reference_docname": appointment.name},
+		filters={
+			"reference_doctype": "Service Appointment",
+			"reference_docname": appointment.name,
+		},
 		fields=[
 			"name",
 			"reference_doctype",
@@ -444,7 +582,7 @@ def _build_appointment_response(appointment, booking=None):
 			and appointment.status not in ["Completed", "Cancelled", "Closed", "No Show"],
 			"canCancel": appointment.status not in ["Cancelled", "Closed", "Completed", "No Show"],
 			"canReassignProvider": appointment.status
-			in ["Open", "Pending Payment", "Confirmed", "Checked In"]
+			in ["Open", "Pending Payment", "Confirmed", "Checked In", "In Progress"]
 			and appointment.status not in ["Completed", "Cancelled", "Closed", "No Show"],
 			"canEditTimeSlot": appointment.status in ["Open", "Pending Payment", "Confirmed", "Checked In"]
 			and appointment.status not in ["Completed", "Cancelled", "Closed", "No Show"],
@@ -453,14 +591,27 @@ def _build_appointment_response(appointment, booking=None):
 
 
 def _build_checkout_summary(booking):
-	total_amount = flt(booking.grand_total)
+	pricing = calculate_booking_pricing(booking)
+	total_amount = flt(pricing.get("finalAmount") or booking.grand_total)
 	outstanding_amount = max(0, flt(booking.outstanding_amount))
 	paid_amount = max(0, total_amount - outstanding_amount)
 	deposit_percent = flt(get_confirmation_deposit_percent("Service Booking", booking.name, doc=booking))
 	minimum_due = flt(get_payment_amount("Service Booking", booking.name, total_amount, doc=booking))
+	coupon_summary = _build_booking_coupon_summary(booking, pricing=pricing)
 
 	return {
-		"booking": _serialize_booking(booking),
+		"booking": _serialize_booking(booking, pricing=pricing),
+		"pricing": {
+			"subtotalAmount": flt(pricing.get("subtotalAmount") or 0),
+			"appointmentDiscountTotal": flt(pricing.get("appointmentDiscountTotal") or 0),
+			"bookingDiscountAmount": flt(pricing.get("bookingDiscountAmount") or 0),
+			"totalAmount": flt(pricing.get("totalAmount") or 0),
+			"finalAmount": flt(pricing.get("finalAmount") or 0),
+			"intermediateTotal": flt(pricing.get("intermediateTotal") or 0),
+			"appointmentBreakdown": pricing.get("appointmentBreakdown") or [],
+			"bookingCoupon": pricing.get("bookingCoupon"),
+			"appointmentCoupons": pricing.get("appointmentCoupons") or [],
+		},
 		"payment": {
 			"referenceDoctype": "Service Booking",
 			"referenceDocname": booking.name,
@@ -470,7 +621,350 @@ def _build_checkout_summary(booking):
 			"outstandingAmount": outstanding_amount,
 			"minimumDue": minimum_due,
 			"depositPercent": deposit_percent,
+			"totalDiscount": coupon_summary.get("totalDiscount", 0),
 		},
+		"coupon": coupon_summary,
+	}
+
+
+def _get_checkout_appointments(booking_id: str):
+	appointment_names = frappe.get_all(
+		"Service Appointment",
+		filters={"booking_id": booking_id, "docstatus": 0},
+		pluck="name",
+	)
+	return [frappe.get_doc("Service Appointment", name) for name in appointment_names]
+
+
+def _coupon_scope_label(coupon):
+	return coupon_scope_label(coupon)
+
+
+def _evaluate_coupon_for_booking(booking_id: str, coupon):
+	booking = frappe.get_doc("Service Booking", booking_id)
+	if is_booking_level_coupon(coupon):
+		pricing = calculate_booking_pricing(booking, booking_coupon_code=coupon.name)
+		booking_discount = flt(pricing.get("bookingDiscountAmount") or 0)
+		valid = booking_discount > 0
+		message = pricing.get("bookingCouponMessage") or _("Coupon is not applicable to this booking.")
+		return {
+			"eligible": (
+				[] if not valid else [{"bookingId": booking_id, "discountAmount": booking_discount}]
+			),
+			"ineligible": ([] if valid else [{"bookingId": booking_id, "reason": message}]),
+			"previewDiscount": booking_discount,
+			"scope": _coupon_scope_label(coupon),
+			"pricing": pricing,
+		}
+
+	appointments = _get_checkout_appointments(booking_id)
+	eligible = []
+	ineligible = []
+	preview_discount = 0
+
+	usage_ok, usage_msg = coupon.is_usage_available()
+
+	for appointment in appointments:
+		valid, reason = coupon.is_valid_for_appointment(appointment=appointment)
+		if valid and usage_ok:
+			discount = flt(appointment.compute_coupon_discount(coupon))
+			eligible.append(
+				{
+					"appointmentId": appointment.name,
+					"serviceType": appointment.appointment_type,
+					"guestName": appointment.full_name,
+					"totalAmount": flt(appointment.total_amount),
+					"discountAmount": discount,
+				}
+			)
+			preview_discount += discount
+		else:
+			ineligible.append(
+				{
+					"appointmentId": appointment.name,
+					"serviceType": appointment.appointment_type,
+					"guestName": appointment.full_name,
+					"reason": usage_msg if not usage_ok else reason,
+				}
+			)
+
+	return {
+		"eligible": eligible,
+		"ineligible": ineligible,
+		"previewDiscount": preview_discount,
+		"scope": _coupon_scope_label(coupon),
+		"pricing": calculate_booking_pricing(booking),
+	}
+
+
+def _build_booking_coupon_summary(booking, pricing=None):
+	pricing = pricing or calculate_booking_pricing(booking)
+	applied_coupons = list(pricing.get("appointmentCoupons") or [])
+	booking_coupon = pricing.get("bookingCoupon")
+	if booking_coupon:
+		applied_coupons.append(
+			{
+				"coupon": booking_coupon.get("code") or booking_coupon.get("name"),
+				"discountAmount": flt(booking_coupon.get("discountAmount") or 0),
+				"scope": "booking",
+				"appointments": [],
+			}
+		)
+
+	return {
+		"hasCoupon": bool(applied_coupons),
+		"totalDiscount": flt(pricing.get("appointmentDiscountTotal") or 0)
+		+ flt(pricing.get("bookingDiscountAmount") or 0),
+		"appointmentDiscountTotal": flt(pricing.get("appointmentDiscountTotal") or 0),
+		"bookingDiscountAmount": flt(pricing.get("bookingDiscountAmount") or 0),
+		"appliedCoupons": applied_coupons,
+		"appliedBookingCoupon": booking_coupon,
+		"appliedAppointmentCoupons": pricing.get("appointmentCoupons") or [],
+	}
+
+
+@frappe.whitelist()
+def validate_checkout_coupon(booking_id: str, coupon_code: str):
+	if not booking_id:
+		frappe.throw(_("Booking reference is required."))
+	if not coupon_code:
+		frappe.throw(_("Coupon code is required."))
+
+	booking = frappe.get_doc("Service Booking", booking_id)
+	coupon = resolve_coupon_doc(coupon_code)
+	if not coupon:
+		return {
+			"valid": False,
+			"message": _("Coupon code is invalid."),
+			"coupon": None,
+			"evaluation": {
+				"eligible": [],
+				"ineligible": [],
+				"previewDiscount": 0,
+				"scope": "none",
+			},
+		}
+
+	evaluation = _evaluate_coupon_for_booking(booking_id, coupon)
+	valid = len(evaluation.get("eligible") or []) > 0
+
+	return {
+		"valid": valid,
+		"message": (_("Coupon is valid.") if valid else _("Coupon is not applicable to this booking.")),
+		"coupon": {
+			"name": coupon.name,
+			"code": coupon.code,
+			"couponType": coupon.coupon_type,
+			"discountType": coupon.discount_type,
+			"discountValue": flt(coupon.discount_value),
+			"maximumDiscountAmount": flt(coupon.maximum_discount_amount or 0),
+			"minimumOrderValue": flt(coupon.minimum_order_value or 0),
+			"scope": evaluation.get("scope"),
+		},
+		"evaluation": evaluation,
+		"pricing": evaluation.get("pricing") or calculate_booking_pricing(booking),
+	}
+
+
+@frappe.whitelist()
+def apply_checkout_coupon(booking_id: str, coupon_code: str):
+	if not booking_id:
+		frappe.throw(_("Booking reference is required."))
+	if not coupon_code:
+		frappe.throw(_("Coupon code is required."))
+
+	booking = frappe.get_doc("Service Booking", booking_id)
+	coupon = resolve_coupon_doc(coupon_code)
+	if not coupon:
+		frappe.throw(_("Coupon code is invalid."))
+
+	# Non-stacking: reject booking coupon if any appointment coupon exists
+	if is_booking_level_coupon(coupon):
+		_assert_no_appointment_coupons(booking_id)
+	else:
+		frappe.throw(
+			_(
+				"Appointment-level coupons must be applied per appointment. "
+				"Use the coupon field on each appointment card."
+			)
+		)
+
+	evaluation = _evaluate_coupon_for_booking(booking_id, coupon)
+	if not (evaluation.get("eligible") or []):
+		frappe.throw(_("Coupon is not applicable to this booking."))
+
+	booking.coupon_code = coupon.name
+	booking.save(ignore_permissions=True)
+
+	booking.reload()
+	booking.sync_financial_snapshot()
+	booking.reload()
+	frappe.db.commit()  # nosemgrep
+
+	return {
+		"message": _("Coupon applied successfully."),
+		"checkout": _build_checkout_summary(booking),
+		"evaluation": evaluation,
+	}
+
+
+@frappe.whitelist()
+def remove_checkout_coupon(booking_id: str, coupon_code: str | None = None):
+	if not booking_id:
+		frappe.throw(_("Booking reference is required."))
+
+	booking = frappe.get_doc("Service Booking", booking_id)
+	filters = {"booking_id": booking_id, "docstatus": 0}
+	remove_booking_coupon = False
+	if coupon_code:
+		coupon = resolve_coupon_doc(coupon_code)
+		if coupon:
+			if is_booking_level_coupon(coupon):
+				remove_booking_coupon = True
+			else:
+				filters["coupon_code"] = coupon.name
+		else:
+			filters["coupon_code"] = coupon_code
+	else:
+		filters["coupon_code"] = ["is", "set"]
+		remove_booking_coupon = True
+
+	if remove_booking_coupon:
+		booking.coupon_code = None
+		booking.coupon_discount_type = ""
+		booking.coupon_discount_amount = 0
+		booking.coupon_scope = ""
+		booking.save(ignore_permissions=True)
+
+	appointment_names = frappe.get_all("Service Appointment", filters=filters, pluck="name")
+	for appointment_name in appointment_names:
+		appointment = frappe.get_doc("Service Appointment", appointment_name)
+		appointment.coupon_code = None
+		appointment.discount_amount = 0
+		appointment.calculate_grand_total()
+		appointment.set_confirmation_targets()
+		appointment.set_outstanding_amount()
+		appointment.update_payment_and_workflow_status()
+		appointment.save(ignore_permissions=True)
+
+	booking.reload()
+	booking.sync_financial_snapshot()
+	booking.reload()
+	frappe.db.commit()  # nosemgrep
+
+	return {
+		"message": _("Coupon removed."),
+		"checkout": _build_checkout_summary(booking),
+	}
+
+
+def _assert_no_appointment_coupons(booking_id: str):
+	"""Raise if any appointment in the booking already has a coupon applied."""
+	has_appt_coupon = frappe.db.exists(
+		"Service Appointment",
+		{"booking_id": booking_id, "docstatus": 0, "coupon_code": ["is", "set"]},
+	)
+	if has_appt_coupon:
+		frappe.throw(
+			_(
+				"Appointment-level discounts are already active. "
+				"Remove appointment coupons before applying a booking-level coupon."
+			)
+		)
+
+
+def _assert_no_booking_coupon(booking):
+	"""Raise if the booking already has a booking-level coupon."""
+	if booking.coupon_code:
+		frappe.throw(
+			_("A booking-level coupon is already active. " "Remove it before applying an appointment coupon.")
+		)
+
+
+@frappe.whitelist()
+def apply_appointment_coupon(booking_id: str, appointment_id: str, coupon_code: str):
+	"""Apply a coupon to a single appointment only. Enforces non-stacking."""
+	if not booking_id:
+		frappe.throw(_("Booking reference is required."))
+	if not appointment_id:
+		frappe.throw(_("Appointment reference is required."))
+	if not coupon_code:
+		frappe.throw(_("Coupon code is required."))
+
+	booking = frappe.get_doc("Service Booking", booking_id)
+	appointment = frappe.get_doc("Service Appointment", appointment_id)
+
+	if appointment.booking_id != booking_id:
+		frappe.throw(_("Appointment does not belong to this booking."))
+
+	coupon = resolve_coupon_doc(coupon_code)
+	if not coupon:
+		frappe.throw(_("Coupon code is invalid."))
+
+	if is_booking_level_coupon(coupon):
+		frappe.throw(
+			_(
+				"This coupon applies to the entire booking, not a single appointment. "
+				"Use the booking coupon field instead."
+			)
+		)
+
+	# Non-stacking: reject if booking coupon is active.
+	_assert_no_booking_coupon(booking)
+
+	# Validate against this specific appointment.
+	valid, reason = coupon.is_valid_for_appointment(appointment=appointment)
+	if not valid:
+		frappe.throw(reason or _("Coupon is not valid for this appointment."))
+
+	usage_ok, usage_msg = coupon.is_usage_available()
+	if not usage_ok:
+		frappe.throw(usage_msg or _("Coupon usage limit has been reached."))
+
+	appointment.coupon_code = coupon.name
+	appointment.save(ignore_permissions=True)
+
+	booking.reload()
+	booking.sync_financial_snapshot()
+	booking.reload()
+	frappe.db.commit()  # nosemgrep
+
+	return {
+		"message": _("Coupon applied to appointment."),
+		"checkout": _build_checkout_summary(booking),
+	}
+
+
+@frappe.whitelist()
+def remove_appointment_coupon(booking_id: str, appointment_id: str):
+	"""Remove the coupon from a single appointment."""
+	if not booking_id:
+		frappe.throw(_("Booking reference is required."))
+	if not appointment_id:
+		frappe.throw(_("Appointment reference is required."))
+
+	booking = frappe.get_doc("Service Booking", booking_id)
+	appointment = frappe.get_doc("Service Appointment", appointment_id)
+
+	if appointment.booking_id != booking_id:
+		frappe.throw(_("Appointment does not belong to this booking."))
+
+	appointment.coupon_code = None
+	appointment.discount_amount = 0
+	appointment.calculate_grand_total()
+	appointment.set_confirmation_targets()
+	appointment.set_outstanding_amount()
+	appointment.update_payment_and_workflow_status()
+	appointment.save(ignore_permissions=True)
+
+	booking.reload()
+	booking.sync_financial_snapshot()
+	booking.reload()
+	frappe.db.commit()  # nosemgrep
+
+	return {
+		"message": _("Coupon removed from appointment."),
+		"checkout": _build_checkout_summary(booking),
 	}
 
 
@@ -572,7 +1066,10 @@ def get_checkout_payment_methods(booking_id: str):
 
 	default_method_id = ""
 	if methods:
-		mpesa = next((method for method in methods if method.get("providerType") == "mpesa"), None)
+		mpesa = next(
+			(method for method in methods if method.get("providerType") == "mpesa"),
+			None,
+		)
 		default_method_id = (mpesa or methods[0]).get("id")
 
 	return {
@@ -605,7 +1102,10 @@ def get_checkout_online_payment_gateways(booking_id: str):
 	methods = _get_gateway_options(booking)
 	default_method_id = ""
 	if methods:
-		mpesa = next((method for method in methods if method.get("providerType") == "mpesa"), None)
+		mpesa = next(
+			(method for method in methods if method.get("providerType") == "mpesa"),
+			None,
+		)
 		default_method_id = (mpesa or methods[0]).get("id")
 
 	return {
@@ -620,6 +1120,10 @@ def create_checkout_payment_link(
 	payment_gateway: str | None = None,
 	redirect_to: str | None = None,
 	phone_number: str | None = None,
+	amount: float | None = None,
+	payment_type: str | None = None,
+	coupon_code: str | None = None,
+	final_amount_reference: float | None = None,
 ):
 	if not booking_id:
 		frappe.throw(_("Booking reference is required."))
@@ -627,11 +1131,26 @@ def create_checkout_payment_link(
 	if phone_number:
 		frappe.db.set_value("Service Booking", booking_id, "mobile_no", phone_number)
 
+	frappe.logger("frappoint.checkout").info(
+		{
+			"event": "create_checkout_payment_link",
+			"booking_id": booking_id,
+			"payment_gateway": payment_gateway,
+			"payment_type": payment_type,
+			"coupon_code": coupon_code,
+			"amount": amount,
+			"final_amount_reference": final_amount_reference,
+		}
+	)
+
 	url = get_payment_link(
 		reference_doctype="Service Booking",
 		reference_docname=booking_id,
 		payment_gateway=payment_gateway or "",
 		redirect_to=redirect_to or "",
+		amount=amount,
+		payment_type=payment_type,
+		coupon_code=coupon_code,
 	)
 
 	booking = frappe.get_doc("Service Booking", booking_id)
@@ -751,8 +1270,16 @@ def create_draft_service_booking(customer=None, items=None):
 
 
 @frappe.whitelist()
-def upsert_draft_service_appointment(booking_id: str, assignment=None, appointment_id: str | None = None):
+def upsert_draft_service_appointment(
+	booking_id: str | None = None,
+	assignment=None,
+	appointment_id: str | None = None,
+	bookingId: str | None = None,
+):
 	assignment = _parse_json_payload(assignment, {})
+	booking_id = (
+		booking_id or bookingId or frappe.form_dict.get("booking_id") or frappe.form_dict.get("bookingId")
+	)
 	if not booking_id:
 		frappe.throw(_("Booking reference is required to reserve an appointment."))
 
@@ -762,6 +1289,38 @@ def upsert_draft_service_appointment(booking_id: str, assignment=None, appointme
 	slot = assignment.get("slot") or {}
 	service_item = assignment.get("service") or {}
 	service_payload = {**assignment, **service_item}
+	slot_start_time = slot.get("startTime") or slot.get("start_time")
+	slot_end_time = slot.get("endTime") or slot.get("end_time")
+	slot_providers = slot.get("providers") or []
+	provider = slot.get("provider") or slot.get("appointment_provider")
+	service_unit = slot.get("serviceUnit") or slot.get("service_unit")
+	if not provider and slot_providers:
+		preferred_gender = guest.get("providerGender") or assignment.get("providerGender")
+		selected_provider = select_provider_for_assignment(
+			slot_providers,
+			appointment_date=assignment.get("date"),
+			service_type=service_type,
+			preferred_gender=preferred_gender,
+		)
+		if not selected_provider:
+			throw_no_provider_available(preferred_gender)
+		provider = selected_provider.get("provider")
+		service_unit = service_unit or selected_provider.get("service_unit")
+	if not service_unit and slot_providers:
+		matching_provider = next(
+			(
+				row
+				for row in slot_providers
+				if (row or {}).get("provider") == provider
+				and ((row or {}).get("serviceUnit") or (row or {}).get("service_unit"))
+			),
+			None,
+		)
+		if matching_provider:
+			service_unit = (matching_provider or {}).get("serviceUnit") or (matching_provider or {}).get(
+				"service_unit"
+			)
+	slot_ids = slot.get("slotIds") or slot.get("slot_ids") or []
 
 	if not service_type:
 		frappe.throw(_("Service type is required to create an appointment."))
@@ -769,9 +1328,9 @@ def upsert_draft_service_appointment(booking_id: str, assignment=None, appointme
 		frappe.throw(_("Guest full name is required before reserving a slot."))
 	if not assignment.get("date"):
 		frappe.throw(_("Appointment date is required before reserving a slot."))
-	if not slot.get("startTime") or not slot.get("endTime"):
+	if not slot_start_time or not slot_end_time:
 		frappe.throw(_("Selected slot is incomplete."))
-	if not slot.get("provider"):
+	if not provider:
 		frappe.throw(_("Provider is required for slot reservation."))
 
 	price_id = service_payload.get("priceId") or service_payload.get("packageId")
@@ -803,14 +1362,15 @@ def upsert_draft_service_appointment(booking_id: str, assignment=None, appointme
 	appointment.customer = booking.customer
 	appointment.appointment_type = service_type
 	appointment.appointment_date = assignment.get("date")
-	appointment.appointment_provider = slot.get("provider")
+	appointment.appointment_provider = provider
+	appointment.service_unit = service_unit
 	appointment.duration = duration
 	appointment.appointment_price = resolved_price_name
 	appointment.currency = currency
-	appointment.start_time = slot.get("startTime")
-	appointment.end_time = slot.get("endTime")
-	appointment.selected_slot_ids = json.dumps(slot.get("slotIds") or [])
-	appointment.all_available_providers = json.dumps(slot.get("providers") or [])
+	appointment.start_time = slot_start_time
+	appointment.end_time = slot_end_time
+	appointment.selected_slot_ids = json.dumps(slot_ids) if slot_ids else None
+	appointment.all_available_providers = json.dumps(slot_providers)
 	appointment.full_name = guest.get("fullName")
 	appointment.email = guest.get("email") or booking.email
 	appointment.mobile_no = guest.get("mobileNo") or booking.mobile_no
@@ -852,7 +1412,7 @@ def upsert_draft_service_appointment(booking_id: str, assignment=None, appointme
 			"fullName": appointment.full_name,
 			"email": appointment.email,
 			"mobileNo": appointment.mobile_no,
-			"slotIds": json.loads(appointment.selected_slot_ids) if appointment.selected_slot_ids else [],
+			"slotIds": (json.loads(appointment.selected_slot_ids) if appointment.selected_slot_ids else []),
 		},
 	}
 
@@ -884,8 +1444,8 @@ def get_appointment_details(appointment_id: str):
 
 @frappe.whitelist()
 def perform_appointment_action(
-	appointment_id: str,
-	action: str,
+	appointment_id: str | None = None,
+	action: str | None = None,
 	new_appointment_date: str | None = None,
 	new_start_time: str | None = None,
 	new_end_time: str | None = None,
@@ -895,7 +1455,27 @@ def perform_appointment_action(
 	actual_start_time: str | None = None,
 	actual_end_time: str | None = None,
 	cancellation_reasons=None,
+	**kwargs,
 ):
+	appointment_id = (
+		appointment_id
+		or kwargs.get("appointment")
+		or kwargs.get("appointment_name")
+		or kwargs.get("appointmentId")
+	)
+	action = action or kwargs.get("action")
+	new_appointment_date = new_appointment_date or kwargs.get("newAppointmentDate")
+	new_start_time = new_start_time or kwargs.get("newStartTime")
+	new_end_time = new_end_time or kwargs.get("newEndTime")
+	new_provider = new_provider or kwargs.get("newProvider") or kwargs.get("target_provider")
+	new_slot_ids = new_slot_ids if new_slot_ids is not None else kwargs.get("newSlotIds")
+	new_service_unit = new_service_unit or kwargs.get("newServiceUnit") or kwargs.get("target_service_unit")
+	actual_start_time = actual_start_time or kwargs.get("actualStartTime") or kwargs.get("handover_time")
+	actual_end_time = actual_end_time or kwargs.get("actualEndTime")
+	cancellation_reasons = (
+		cancellation_reasons if cancellation_reasons is not None else kwargs.get("cancellationReasons")
+	)
+
 	if not appointment_id:
 		frappe.throw(_("Appointment reference is required."))
 	if not action:
@@ -903,6 +1483,14 @@ def perform_appointment_action(
 
 	action = action.strip().lower()
 	appointment = frappe.get_doc("Service Appointment", appointment_id)
+
+	if isinstance(new_slot_ids, str):
+		try:
+			parsed_slot_ids = json.loads(new_slot_ids)
+			if isinstance(parsed_slot_ids, list):
+				new_slot_ids = parsed_slot_ids
+		except Exception:
+			pass
 
 	if action in {"check_in", "start", "pause", "resume"}:
 		apply_appointment_event_action(
@@ -914,7 +1502,7 @@ def perform_appointment_action(
 		frappe.db.commit()
 		return _build_appointment_response(
 			appointment,
-			frappe.get_doc("Service Booking", appointment.booking_id) if appointment.booking_id else None,
+			(frappe.get_doc("Service Booking", appointment.booking_id) if appointment.booking_id else None),
 		)
 
 	if action == "complete":
@@ -923,15 +1511,13 @@ def perform_appointment_action(
 			"complete",
 			action_time=actual_end_time or now_datetime(),
 		)
-		invoice_name = appointment.complete_appointment()
+		appointment.complete_appointment()
 		appointment.reload()
 		frappe.db.commit()
-		response = _build_appointment_response(
+		return _build_appointment_response(
 			appointment,
-			frappe.get_doc("Service Booking", appointment.booking_id) if appointment.booking_id else None,
+			(frappe.get_doc("Service Booking", appointment.booking_id) if appointment.booking_id else None),
 		)
-		response["invoiceName"] = invoice_name
-		return response
 
 	if action == "confirm":
 		appointment.confirm_appointment()
@@ -939,7 +1525,7 @@ def perform_appointment_action(
 		frappe.db.commit()
 		return _build_appointment_response(
 			appointment,
-			frappe.get_doc("Service Booking", appointment.booking_id) if appointment.booking_id else None,
+			(frappe.get_doc("Service Booking", appointment.booking_id) if appointment.booking_id else None),
 		)
 
 	if action == "cancel":
@@ -953,6 +1539,81 @@ def perform_appointment_action(
 		return response
 
 	if action in {"reassign_provider", "edit_time_slot"}:
+		if action == "reassign_provider":
+			if appointment.status in {"Checked In", "In Progress"}:
+				if new_provider:
+					result = reassign_ongoing_appointment(
+						appointment_name=appointment_id,
+						target_provider=new_provider,
+						handover_time=actual_start_time,
+					)
+					appointment.reload()
+					booking = (
+						frappe.get_doc("Service Booking", appointment.booking_id)
+						if appointment.booking_id
+						else None
+					)
+					response = _build_appointment_response(appointment, booking)
+					response["providerChangeOptions"] = []
+					response["operationResult"] = result
+					return response
+
+				result = get_ongoing_reassignment_options(
+					appointment_name=appointment_id,
+					handover_time=actual_start_time,
+				)
+				booking = (
+					frappe.get_doc("Service Booking", appointment.booking_id)
+					if appointment.booking_id
+					else None
+				)
+				response = _build_appointment_response(appointment, booking)
+				response["providerChangeOptions"] = result.get("provider_change_options") or []
+				response["operationResult"] = result
+				return response
+
+			# Allocation-first path: provider/service unit updates are provider-option driven.
+			if new_provider or new_service_unit:
+				result = change_appointment_provider(
+					appointment_id,
+					target_provider=new_provider or appointment.appointment_provider,
+					target_service_unit=new_service_unit or appointment.service_unit,
+				)
+				appointment.reload()
+				booking = (
+					frappe.get_doc("Service Booking", appointment.booking_id)
+					if appointment.booking_id
+					else None
+				)
+				response = _build_appointment_response(appointment, booking)
+				response["providerChangeOptions"] = []
+				response["operationResult"] = result
+				return response
+
+			provider_change_options = _get_allocation_provider_change_options(appointment)
+			result = {
+				"success": True,
+				"appointment": appointment.name,
+				"current_provider": appointment.appointment_provider,
+				"provider_change_options": provider_change_options,
+			}
+
+			# Fallback for legacy slot-backed appointments where projector options are empty.
+			if not provider_change_options:
+				try:
+					result = change_appointment_provider(appointment_id)
+					provider_change_options = result.get("provider_change_options") or []
+				except Exception:
+					provider_change_options = []
+
+			booking = (
+				frappe.get_doc("Service Booking", appointment.booking_id) if appointment.booking_id else None
+			)
+			response = _build_appointment_response(appointment, booking)
+			response["providerChangeOptions"] = provider_change_options
+			response["operationResult"] = result
+			return response
+
 		# Booking desk frequently operates on non-submitted appointments; allow in-place updates.
 		if not new_appointment_date:
 			new_appointment_date = appointment.appointment_date
@@ -967,9 +1628,10 @@ def perform_appointment_action(
 		appointment.appointment_provider = new_provider or appointment.appointment_provider
 		appointment.service_unit = new_service_unit or appointment.service_unit
 		if new_slot_ids is not None:
-			appointment.selected_slot_ids = (
-				json.dumps(new_slot_ids) if isinstance(new_slot_ids, list) else new_slot_ids
-			)
+			if isinstance(new_slot_ids, list):
+				appointment.selected_slot_ids = json.dumps(new_slot_ids) if new_slot_ids else None
+			else:
+				appointment.selected_slot_ids = new_slot_ids
 
 		appointment.save(ignore_permissions=True)
 		frappe.db.commit()
@@ -991,13 +1653,19 @@ def perform_appointment_action(
 			new_start_time = appointment.start_time
 		if not new_end_time:
 			new_end_time = appointment.end_time
+		normalized_new_slot_ids = None
+		if isinstance(new_slot_ids, list):
+			normalized_new_slot_ids = json.dumps(new_slot_ids) if new_slot_ids else None
+		elif new_slot_ids:
+			normalized_new_slot_ids = new_slot_ids
+
 		result = reschedule_appointment(
 			appointment_name=appointment_id,
 			new_appointment_date=new_appointment_date,
 			new_start_time=new_start_time,
 			new_end_time=new_end_time,
 			new_provider=new_provider or appointment.appointment_provider,
-			new_slot_ids=json.dumps(new_slot_ids) if isinstance(new_slot_ids, list) else new_slot_ids,
+			new_slot_ids=normalized_new_slot_ids,
 			new_service_unit=new_service_unit or appointment.service_unit,
 		)
 		response = {"operationResult": result}
@@ -1121,6 +1789,22 @@ def get_service_bookings_workspace(
 		"page": page,
 		"pageSize": page_size,
 		"hasMore": has_more,
+	}
+
+
+def _get_doctype_latest_modified(doctype: str) -> str:
+	latest = frappe.db.get_value(doctype, filters={}, fieldname="MAX(modified)")
+	return str(latest or "")
+
+
+@frappe.whitelist()
+def get_booking_desk_cache_version():
+	return {
+		"serviceTypesVersion": _get_doctype_latest_modified("Service Type"),
+		"providersVersion": _get_doctype_latest_modified("Service Provider"),
+		"customersVersion": _get_doctype_latest_modified("Customer"),
+		"bookingsVersion": _get_doctype_latest_modified("Service Booking"),
+		"generatedAt": str(now_datetime()),
 	}
 
 

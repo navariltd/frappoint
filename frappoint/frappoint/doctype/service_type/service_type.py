@@ -4,7 +4,7 @@
 import frappe
 from frappe import _
 from frappe.model.document import Document
-from frappe.utils import get_link_to_form, getdate, today
+from frappe.utils import add_days, get_link_to_form, getdate, today
 
 
 class ServiceType(Document):
@@ -28,9 +28,11 @@ class ServiceType(Document):
 		)
 
 		appointment_type: DF.Data
+		benefits: DF.TextEditor | None
 		buffer_after: DF.Int
 		buffer_before: DF.Int
 		company: DF.Link
+		confirmation_deposit_percent: DF.Percent
 		consumables: DF.Table[ServiceTypeMaterial]
 		default_duration_in_minutes: DF.Int
 		description: DF.TextEditor | None
@@ -40,7 +42,6 @@ class ServiceType(Document):
 		item_group: DF.Data | None
 		item_name: DF.Data | None
 		max_clients_per_slot: DF.Int
-		confirmation_deposit_percent: DF.Percent
 		max_guests: DF.Int
 		min_guests: DF.Int
 		payment_gateways: DF.Table[ServiceTypePaymentGateway]
@@ -48,6 +49,7 @@ class ServiceType(Document):
 		service_unit_types: DF.Table[ServiceTypeUnitType]
 		short_description: DF.Data | None
 		tags: DF.SmallText | None
+		techniques: DF.TextEditor | None
 	# end: auto-generated types
 	pass
 
@@ -60,6 +62,17 @@ class ServiceType(Document):
 		self.validate_prices()
 		self.validate_consumables()
 		self.auto_create_item_if_missing()
+
+	def on_update(self):
+		self.invalidate_slot_cache()
+
+	def invalidate_slot_cache(self):
+		from ...services.slot_cache_service import invalidate_service_date_range_cache
+
+		start = getdate(today())
+		horizon = int(frappe.db.get_single_value("Service Appointment Settings", "max_advance_days") or 30)
+		end = add_days(start, max(0, horizon))
+		invalidate_service_date_range_cache(self.name, start, end)
 
 	def validate_default_duration(self):
 		if self.default_duration_in_minutes <= 0:

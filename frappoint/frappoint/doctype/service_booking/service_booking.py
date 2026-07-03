@@ -6,9 +6,13 @@ import json
 import frappe
 from frappe import _
 from frappe.model.document import Document
-from frappe.query_builder.functions import Sum
-from frappe.utils import cint, flt
+from frappe.utils import cint, flt, today
 
+from frappoint.frappoint.services.booking_transaction_service import confirm_held_allocations
+from frappoint.frappoint.services.pricing_service import (
+	sync_booking_pricing_fields,
+	validate_booking_coupon_assignment,
+)
 from frappoint.payments import get_confirmation_deposit_percent
 
 
@@ -24,9 +28,16 @@ class ServiceBooking(Document):
 		from frappoint.frappoint.doctype.service_booking_item.service_booking_item import ServiceBookingItem
 
 		amended_from: DF.Link | None
+		appointment_discount_total: DF.Currency
 		booking_date: DF.Date
+		booking_discount_amount: DF.Currency
 		booking_time: DF.Time
 		confirmation_required_amount: DF.Currency
+		coupon_applied: DF.Check
+		coupon_code: DF.Data | None
+		coupon_discount_amount: DF.Currency
+		coupon_discount_type: DF.Literal["", "percentage", "fixed"]
+		coupon_scope: DF.Literal["", "booking"]
 		currency: DF.Link | None
 		customer: DF.Link
 		email: DF.Data | None
@@ -36,6 +47,7 @@ class ServiceBooking(Document):
 		mobile_no: DF.Data | None
 		naming_series: DF.Literal["BK-.DD./.MM./.YY.-.####"]
 		outstanding_amount: DF.Currency
+		sales_invoice: DF.Link | None
 		status: DF.Literal["Draft", "Payment Pending", "Partly Paid", "Confirmed", "Closed", "Cancelled"]
 		subtotal: DF.Currency
 		total_guests: DF.Int
@@ -45,13 +57,19 @@ class ServiceBooking(Document):
 		self.set_onload("appointment_list_html", self.get_appointment_table())
 
 	def validate(self):
-		self.recalculate_totals()
+		pricing = self.recalculate_totals()
+		validate_booking_coupon_assignment(self, pricing=pricing)
 
 	def before_submit(self):
 		self.validate_submission_readiness()
 		self.validate_confirmation_before_submit()
 
 	def on_submit(self):
+		if frappe.db.exists("DocType", "Service Resource Allocation"):
+			for appointment_name in frappe.get_all(
+				"Service Appointment", filters={"booking_id": self.name}, pluck="name"
+			):
+				confirm_held_allocations(appointment_name)
 		self.sync_financial_snapshot()
 
 	def on_cancel(self):
@@ -89,10 +107,12 @@ class ServiceBooking(Document):
 			total += flt(item.total_amount)
 			guests += cint(item.qty)
 
-		self.subtotal = total
 		self.total_guests = guests
-
-		self.grand_total = self.subtotal
+		pricing = sync_booking_pricing_fields(self)
+		if not flt(self.subtotal):
+			self.subtotal = total
+		if not flt(self.grand_total):
+			self.grand_total = flt(pricing.get("finalAmount") or total)
 
 		appointment_names = frappe.get_all(
 			"Service Appointment", filters={"booking_id": self.name}, pluck="name"
@@ -127,6 +147,7 @@ class ServiceBooking(Document):
 		self.outstanding_amount = max(0, flt(self.grand_total) - flt(total_paid))
 		self.set_confirmation_targets()
 		self.set_status_from_payments(total_paid)
+		return pricing
 
 	def set_confirmation_targets(self):
 		total_amount = flt(self.grand_total)
@@ -209,6 +230,10 @@ class ServiceBooking(Document):
 			self.status = "Partly Paid"
 			return
 
+		if appointment_statuses.intersection({"Confirmed", "Checked In", "In Progress", "Completed"}):
+			self.status = "Payment Pending"
+			return
+
 		self.status = "Draft"
 
 	def sync_financial_snapshot(self):
@@ -216,7 +241,14 @@ class ServiceBooking(Document):
 		self.recalculate_totals()
 		self.db_set(
 			{
+				"coupon_code": self.coupon_code,
+				"coupon_discount_type": self.coupon_discount_type,
+				"coupon_discount_amount": self.coupon_discount_amount,
+				"coupon_applied": self.coupon_applied,
+				"coupon_scope": self.coupon_scope,
 				"subtotal": self.subtotal,
+				"appointment_discount_total": self.appointment_discount_total,
+				"booking_discount_amount": self.booking_discount_amount,
 				"total_guests": self.total_guests,
 				"grand_total": self.grand_total,
 				"confirmation_required_amount": self.confirmation_required_amount,
@@ -237,6 +269,295 @@ class ServiceBooking(Document):
 		)
 
 		self.outstanding_amount = flt(self.grand_total) - flt(total_paid)
+
+	def get_company(self):
+		company = frappe.defaults.get_user_default("Company")
+		if company:
+			return company
+
+		return frappe.db.get_single_value("Global Defaults", "default_company")
+
+	def get_linked_sales_invoice(self):
+		if self.sales_invoice:
+			invoice = frappe.db.get_value(
+				"Sales Invoice", self.sales_invoice, ["name", "docstatus"], as_dict=True
+			)
+			if invoice and invoice.docstatus != 2:
+				return invoice
+
+		if frappe.get_meta("Sales Invoice").has_field("service_booking"):
+			invoice = frappe.get_all(
+				"Sales Invoice",
+				filters={"service_booking": self.name, "docstatus": ["!=", 2]},
+				fields=["name", "docstatus"],
+				limit=1,
+			)
+			if invoice:
+				return invoice[0]
+
+	def get_invoiceable_appointments(self):
+		return frappe.get_all(
+			"Service Appointment",
+			filters={
+				"booking_id": self.name,
+				"status": ["not in", ["Cancelled", "Rescheduled", "Closed", "No Show"]],
+			},
+			fields=["name", "status"],
+		)
+
+	def get_appointment_invoice_map(self, appointment_names=None):
+		filters = {"service_appointment": ["is", "set"], "docstatus": ["!=", 2]}
+		if appointment_names:
+			filters["service_appointment"] = ["in", appointment_names]
+
+		invoices = frappe.get_all(
+			"Sales Invoice",
+			filters=filters,
+			fields=["name", "service_appointment", "docstatus"],
+		)
+		return {invoice.service_appointment: invoice for invoice in invoices}
+
+	def validate_invoice_readiness(self):
+		if self.docstatus == 2 or self.status == "Cancelled":
+			frappe.throw(_("Cannot create a Sales Invoice for a cancelled booking."))
+
+		existing_invoice = self.get_linked_sales_invoice()
+		if existing_invoice:
+			frappe.throw(
+				_("Sales Invoice {0} already exists for this booking.").format(existing_invoice.name),
+				title=_("Already Invoiced"),
+			)
+
+		appointments = self.get_invoiceable_appointments()
+		if not appointments:
+			frappe.throw(_("No billable appointments are linked to this booking."))
+
+		appointment_invoice_map = self.get_appointment_invoice_map(
+			[appointment.name for appointment in appointments]
+		)
+		if appointment_invoice_map:
+			frappe.throw(
+				_("Appointment invoices already exist for this booking: {0}").format(
+					", ".join(sorted(invoice.name for invoice in appointment_invoice_map.values()))
+				),
+				title=_("Already Invoiced"),
+			)
+
+		incomplete = [appointment.name for appointment in appointments if appointment.status != "Completed"]
+		if incomplete:
+			frappe.throw(
+				_("Complete all linked appointments before creating the booking invoice: {0}").format(
+					", ".join(incomplete)
+				),
+				title=_("Appointments Not Complete"),
+			)
+
+		if not self.items:
+			frappe.throw(_("Add at least one booking item before creating a Sales Invoice."))
+
+		if not self.customer:
+			frappe.throw(_("Customer is required to create a Sales Invoice."))
+
+	def build_invoice_items(self):
+		items = []
+		for row in self.items:
+			if not row.service_type or flt(row.qty) <= 0:
+				continue
+
+			item_code = frappe.db.get_value("Service Type", row.service_type, "item")
+			if not item_code:
+				frappe.throw(_("Service Type {0} does not have an Item configured.").format(row.service_type))
+
+			items.append(
+				{
+					"item_code": item_code,
+					"qty": flt(row.qty),
+					"rate": flt(row.rate),
+				}
+			)
+
+		if not items:
+			frappe.throw(_("No invoiceable booking items found."))
+
+		return items
+
+	def create_missing_payment_entries(self):
+		appointment_names = frappe.get_all(
+			"Service Appointment", filters={"booking_id": self.name}, pluck="name"
+		)
+		payment_filters = [
+			["reference_doctype", "=", "Service Booking"],
+			["reference_docname", "=", self.name],
+			["docstatus", "=", 1],
+			["payment_entry", "is", "not set"],
+		]
+
+		payment_names = frappe.get_all("Service Appointment Payment", filters=payment_filters, pluck="name")
+		if appointment_names:
+			payment_names.extend(
+				frappe.get_all(
+					"Service Appointment Payment",
+					filters=[
+						["reference_doctype", "=", "Service Appointment"],
+						["reference_docname", "in", appointment_names],
+						["docstatus", "=", 1],
+						["payment_entry", "is", "not set"],
+					],
+					pluck="name",
+				)
+			)
+
+		for payment_name in set(payment_names):
+			payment = frappe.get_doc("Service Appointment Payment", payment_name)
+			payment.create_payment_entry()
+
+	@frappe.whitelist()
+	def create_sales_invoice(self):
+		self.validate_invoice_readiness()
+
+		company = self.get_company()
+		if not company:
+			frappe.throw(_("Default company is required to create a Sales Invoice."))
+
+		self.create_missing_payment_entries()
+		items = self.build_invoice_items()
+		invoice_payload = {
+			"doctype": "Sales Invoice",
+			"company": company,
+			"customer": self.customer,
+			"posting_date": today(),
+			"payment_due_date": today(),
+			"currency": self.currency,
+			"items": items,
+			"allocate_advances_automatically": True,
+		}
+
+		if frappe.get_meta("Sales Invoice").has_field("service_booking"):
+			invoice_payload["service_booking"] = self.name
+
+		item_total = sum(flt(item["qty"]) * flt(item["rate"]) for item in items)
+		discount_amount = max(0, item_total - flt(self.grand_total))
+		if discount_amount:
+			invoice_payload["apply_discount_on"] = "Grand Total"
+			invoice_payload["discount_amount"] = discount_amount
+
+		sales_invoice = frappe.get_doc(invoice_payload)
+		sales_invoice.insert(ignore_permissions=True, ignore_mandatory=True)
+
+		self.db_set("sales_invoice", sales_invoice.name, update_modified=False)
+		return sales_invoice.name
+
+	@frappe.whitelist()
+	def get_appointment_invoice_options(self):
+		appointments = frappe.get_all(
+			"Service Appointment",
+			filters={
+				"booking_id": self.name,
+				"status": ["not in", ["Cancelled", "Rescheduled", "Closed", "No Show"]],
+			},
+			fields=[
+				"name",
+				"appointment_date",
+				"appointment_type",
+				"service_provider_name",
+				"start_time",
+				"end_time",
+				"status",
+				"total_amount",
+				"currency",
+			],
+			order_by="appointment_date asc, start_time asc",
+		)
+		appointment_names = [appointment.name for appointment in appointments]
+		invoice_map = self.get_appointment_invoice_map(appointment_names)
+
+		guest_rows = frappe.get_all(
+			"Service Appointment Guest",
+			filters={"parent": ["in", appointment_names]},
+			fields=["parent", "full_name", "is_primary"],
+			order_by="is_primary desc, idx asc",
+		)
+		guest_map = {}
+		for guest in guest_rows:
+			guest_map.setdefault(guest.parent, guest.full_name)
+
+		options = []
+		for appointment in appointments:
+			invoice = invoice_map.get(appointment.name)
+			options.append(
+				{
+					"name": appointment.name,
+					"guest_name": guest_map.get(appointment.name) or "Unspecified Guest",
+					"appointment_type": appointment.appointment_type,
+					"provider": appointment.service_provider_name,
+					"appointment_date": appointment.appointment_date,
+					"start_time": appointment.start_time,
+					"end_time": appointment.end_time,
+					"status": appointment.status,
+					"total_amount": appointment.total_amount,
+					"currency": appointment.currency or self.currency,
+					"sales_invoice": invoice.name if invoice else None,
+					"can_invoice": appointment.status == "Completed" and not invoice,
+				}
+			)
+
+		return {
+			"booking_invoice": self.get_linked_sales_invoice(),
+			"appointments": options,
+		}
+
+	@frappe.whitelist()
+	def create_appointment_sales_invoices(self, appointment_names):
+		if isinstance(appointment_names, str):
+			appointment_names = frappe.parse_json(appointment_names)
+
+		appointment_names = list(dict.fromkeys(appointment_names or []))
+		if not appointment_names:
+			frappe.throw(_("Select at least one appointment to invoice."))
+
+		existing_booking_invoice = self.get_linked_sales_invoice()
+		if existing_booking_invoice:
+			frappe.throw(
+				_("Sales Invoice {0} already exists for this booking.").format(existing_booking_invoice.name),
+				title=_("Already Invoiced"),
+			)
+
+		appointments = frappe.get_all(
+			"Service Appointment",
+			filters={"name": ["in", appointment_names], "booking_id": self.name},
+			fields=["name", "status"],
+		)
+		if len(appointments) != len(appointment_names):
+			frappe.throw(_("One or more selected appointments do not belong to this booking."))
+
+		incomplete = [appointment.name for appointment in appointments if appointment.status != "Completed"]
+		if incomplete:
+			frappe.throw(
+				_("Only completed appointments can be invoiced: {0}").format(", ".join(incomplete)),
+				title=_("Appointments Not Complete"),
+			)
+
+		existing_appointment_invoices = self.get_appointment_invoice_map(appointment_names)
+		if existing_appointment_invoices:
+			frappe.throw(
+				_("Sales Invoices already exist for selected appointments: {0}").format(
+					", ".join(sorted(invoice.name for invoice in existing_appointment_invoices.values()))
+				),
+				title=_("Already Invoiced"),
+			)
+
+		created_invoices = []
+		for appointment_name in appointment_names:
+			appointment = frappe.get_doc("Service Appointment", appointment_name)
+			invoice_name = appointment.create_sales_invoice()
+			created_invoices.append(
+				{
+					"appointment": appointment.name,
+					"sales_invoice": invoice_name,
+				}
+			)
+
+		return created_invoices
 
 	@frappe.whitelist()
 	def add_guest(self, guest_data: dict):

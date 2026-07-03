@@ -15,12 +15,20 @@ export async function createCheckoutPaymentLinkApi({
 	paymentGateway,
 	redirectTo,
 	phoneNumber,
+	amount,
+	paymentType,
 }) {
-	const response = await paymentLinkResource.fetch({
+	const payload = {
 		booking_id: bookingId,
 		payment_gateway: paymentGateway || undefined,
 		redirect_to: redirectTo || undefined,
 		phone_number: phoneNumber || undefined,
+		amount: amount ?? undefined,
+		payment_type: paymentType || undefined,
+	};
+
+	const response = await paymentLinkResource.fetch({
+		...payload,
 	});
 	return unwrapPayload(response ?? paymentLinkResource.data);
 }

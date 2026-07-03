@@ -11,10 +11,10 @@ export function useServiceCart() {
 		searchQuery,
 		customers,
 		selectedCustomerId,
+		selectedCustomer,
 		customerSummary,
 		cartItems,
 		subtotal,
-		taxAmount,
 		grandTotal,
 		cartCount,
 		canContinue,
@@ -43,6 +43,7 @@ export function useServiceCart() {
 	const onCategorySelect = (category) => store.setSelectedCategory(category);
 	const onSearchChange = (value) => store.setSearchQuery(value);
 	const onSelectCustomer = (customerId) => store.setSelectedCustomer(customerId);
+	const onRefreshCustomers = () => store.loadCustomers();
 	const onResolveServicePackages = (serviceId, preferredDuration) =>
 		store.resolveServicePackages(serviceId, preferredDuration);
 	const onRetry = () => store.initialize();
@@ -63,10 +64,10 @@ export function useServiceCart() {
 		searchQuery,
 		customers,
 		selectedCustomerId,
+		selectedCustomer,
 		customerSummary,
 		cartItems,
 		subtotal,
-		taxAmount,
 		grandTotal,
 		cartCount,
 		canContinue,
@@ -84,6 +85,7 @@ export function useServiceCart() {
 		onCategorySelect,
 		onSearchChange,
 		onSelectCustomer,
+		onRefreshCustomers,
 		onResolveServicePackages,
 		onRetry,
 		onClearCart,

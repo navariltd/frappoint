@@ -6,11 +6,15 @@
 			:guest="guest"
 			:quantity="quantity"
 			:customers="customers"
+			:providerOptions="providerOptions"
 			:isLoadingDates="Boolean(isLoadingDates[guest.guestKey])"
 			:isLoadingSlots="Boolean(isLoadingSlots[guest.guestKey])"
+			:isReservingSlot="Boolean(isReservingSlots[guest.guestKey])"
+			:reservingSlotId="reservingSlotIdByGuest[guest.guestKey] || ''"
 			:error="errorByGuest[guest.guestKey] || ''"
 			@select-customer="$emit('select-customer', guest.guestKey, $event)"
 			@quick-create="$emit('quick-create', guest.guestKey, $event)"
+			@provider-preference="$emit('provider-preference', guest.guestKey, $event)"
 			@clear-guest="$emit('clear-guest', guest.guestKey)"
 			@load-dates="$emit('load-dates', guest.guestKey)"
 			@select-date="$emit('select-date', guest.guestKey, $event)"
@@ -35,11 +39,23 @@ defineProps({
 		type: Array,
 		default: () => [],
 	},
+	providerOptions: {
+		type: Array,
+		default: () => [],
+	},
 	isLoadingDates: {
 		type: Object,
 		default: () => ({}),
 	},
 	isLoadingSlots: {
+		type: Object,
+		default: () => ({}),
+	},
+	isReservingSlots: {
+		type: Object,
+		default: () => ({}),
+	},
+	reservingSlotIdByGuest: {
 		type: Object,
 		default: () => ({}),
 	},
@@ -52,6 +68,7 @@ defineProps({
 defineEmits([
 	"select-customer",
 	"quick-create",
+	"provider-preference",
 	"clear-guest",
 	"load-dates",
 	"select-date",

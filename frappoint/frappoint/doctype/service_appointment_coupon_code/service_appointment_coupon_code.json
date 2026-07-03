@@ -152,7 +152,7 @@
    "fieldname": "applicable_for",
    "fieldtype": "Select",
    "label": "Applicable For",
-   "options": "Service Type\nService Appointment\nCustomer\nCustomer Group\nBooking Source"
+   "options": "Service Type\nService Appointment\nService Booking\nCustomer\nCustomer Group\nBooking Source"
   },
   {
    "depends_on": "eval:doc.discount_type == 'Percentage'",
@@ -169,7 +169,7 @@
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-02-26 22:07:36.942183",
+ "modified": "2026-05-22 05:49:30.073564",
  "modified_by": "Administrator",
  "module": "Frappoint",
  "name": "Service Appointment Coupon Code",
@@ -191,6 +191,16 @@
   {
    "create": 1,
    "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Operations Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
    "email": 1,
    "export": 1,
    "print": 1,

@@ -23,7 +23,7 @@ export async function fetchAppointmentDetailsApi(appointmentId) {
 }
 
 export async function performAppointmentActionApi(payload) {
-	const response = await appointmentActionResource.fetch({
+	const requestPayload = {
 		appointment_id: payload.appointmentId,
 		action: payload.action,
 		new_appointment_date: payload.newAppointmentDate,
@@ -35,7 +35,15 @@ export async function performAppointmentActionApi(payload) {
 		actual_start_time: payload.actualStartTime,
 		actual_end_time: payload.actualEndTime,
 		cancellation_reasons: payload.cancellationReasons,
+	};
+
+	Object.keys(requestPayload).forEach((key) => {
+		if (requestPayload[key] === undefined) {
+			delete requestPayload[key];
+		}
 	});
+
+	const response = await appointmentActionResource.fetch(requestPayload);
 
 	return unwrapPayload(response ?? appointmentActionResource.data);
 }

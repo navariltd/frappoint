@@ -4,6 +4,9 @@ from frappe.utils import add_days, date_diff, getdate, now_datetime
 from .frappoint.doctype.service_provider_appointment_slot.service_provider_appointment_slot import (
 	generate_slots_for_specific_days,
 )
+from .frappoint.services.slot_cache_service import (
+	purge_slot_cache_before_date,
+)
 
 
 def purge_old_slots():
@@ -16,6 +19,7 @@ def purge_old_slots():
 		purge_date = today
 
 	frappe.db.delete("Service Provider Appointment Slot", {"posting_date": ["<", purge_date]})
+	purge_slot_cache_before_date(purge_date)
 
 	frappe.db.commit()
 	return f"Purged slots older than {purge_date}"
@@ -55,10 +59,8 @@ def replenish_slot_window():
 
 
 def expire_pending_payment_holds():
-	"""Close unpaid draft appointments whose payment hold has expired and release slots."""
-	from .frappoint.doctype.service_provider_appointment_slot.service_provider_appointment_slot import (
-		release_appointment_slots,
-	)
+	"""Close unpaid draft appointments whose payment hold has expired and release reserved capacity."""
+	from .frappoint.services.booking_transaction_service import release_capacity_for_allocations
 
 	now = now_datetime()
 	expired_appointments = frappe.get_all(
@@ -83,7 +85,10 @@ def expire_pending_payment_holds():
 				appointment.update_payment_and_workflow_status()
 				continue
 
-			release_appointment_slots(appointment.name)
+			release_capacity_for_allocations(
+				appointment_name=appointment.name,
+				target_status="Expired",
+			)
 			appointment.db_set(
 				{
 					"status": "Closed",
