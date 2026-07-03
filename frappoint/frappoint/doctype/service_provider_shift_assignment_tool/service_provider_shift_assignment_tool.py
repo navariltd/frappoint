@@ -164,7 +164,7 @@ class ServiceProviderShiftAssignmentTool(Document):
 						self.start_date,
 						self.end_date,
 						self.status,
-						row.get("service_unit"),
+						row.get("service_unit") or self.service_unit,
 					)
 					success.append(
 						{
