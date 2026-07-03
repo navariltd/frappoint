@@ -3,6 +3,7 @@ from collections import defaultdict
 
 import frappe
 from frappe import _
+from frappe.query_builder.functions import Max
 from frappe.utils import flt, now_datetime
 
 from frappoint.frappoint.doctype.service_appointment.service_appointment import (
@@ -1793,7 +1794,9 @@ def get_service_bookings_workspace(
 
 
 def _get_doctype_latest_modified(doctype: str) -> str:
-	latest = frappe.db.get_value(doctype, filters={}, fieldname={"MAX": "modified"})
+	table = frappe.qb.DocType(doctype)
+	result = frappe.qb.from_(table).select(Max(table.modified)).run()
+	latest = result[0][0] if result else None
 	return str(latest or "")
 
 

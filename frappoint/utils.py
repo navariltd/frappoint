@@ -1,4 +1,5 @@
 import frappe
+from frappe.query_builder.functions import Max
 from frappe.utils import add_days, date_diff, getdate, now_datetime
 
 from .frappoint.doctype.service_provider_appointment_slot.service_provider_appointment_slot import (
@@ -40,11 +41,14 @@ def replenish_slot_window():
 		shift_start = max(today, shift.start_date)
 		shift_end = min(shift.end_date or window_end, window_end)
 
-		last_slot_date = frappe.db.get_value(
-			"Service Provider Appointment Slot",
-			{"shift_assignment": shift.name},
-			{"MAX": "posting_date"},
+		slot = frappe.qb.DocType("Service Provider Appointment Slot")
+		result = (
+			frappe.qb.from_(slot)
+			.select(Max(slot.posting_date))
+			.where(slot.shift_assignment == shift.name)
+			.run()
 		)
+		last_slot_date = result[0][0] if result else None
 
 		gen_start = add_days(last_slot_date, 1) if last_slot_date else shift_start
 
