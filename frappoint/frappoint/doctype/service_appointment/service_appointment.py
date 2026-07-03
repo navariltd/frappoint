@@ -11,6 +11,7 @@ from frappe.core.doctype.sms_settings.sms_settings import send_sms
 from frappe.desk.calendar import get_event_conditions
 from frappe.desk.reportview import build_match_conditions
 from frappe.model.document import Document
+from frappe.query_builder.functions import Sum
 from frappe.utils import (
 	add_to_date,
 	flt,
@@ -860,7 +861,7 @@ class ServiceAppointment(Document):
 					"reference_name": self.name,
 					"docstatus": 1,
 				},
-				"sum(allocated_amount)",
+				Sum('allocated_amount'),
 			)
 			or 0
 		)
@@ -873,7 +874,7 @@ class ServiceAppointment(Document):
 					"reference_docname": self.name,
 					"docstatus": 1,
 				},
-				"sum(amount)",
+				Sum('amount'),
 			)
 			or 0
 		)
