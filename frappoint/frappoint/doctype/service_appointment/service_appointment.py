@@ -915,7 +915,7 @@ class ServiceAppointment(Document):
 					"reference_name": self.name,
 					"docstatus": 1,
 				},
-				Sum('allocated_amount'),
+				Sum("allocated_amount"),
 			)
 			or 0
 		)
@@ -928,7 +928,7 @@ class ServiceAppointment(Document):
 					"reference_docname": self.name,
 					"docstatus": 1,
 				},
-				Sum('amount'),
+				Sum("amount"),
 			)
 			or 0
 		)

@@ -25,7 +25,7 @@ class ServiceProviderServiceAssignmentTool(Document):
 			ServiceProviderServiceAssignmentServiceDetail,
 		)
 
-		action: DF.Literal["Assign Service to Providers", "Assign Services to Provider"] # type:ignore
+		action: DF.Literal["Assign Service to Providers", "Assign Services to Provider"]  # type:ignore
 		branch: DF.Link | None
 		company: DF.Link
 		department: DF.Link | None
@@ -35,7 +35,7 @@ class ServiceProviderServiceAssignmentTool(Document):
 		service_provider: DF.Link | None
 		service_type: DF.Link | None
 		services: DF.Table[ServiceProviderServiceAssignmentServiceDetail]
-		status: DF.Literal["Active", "Inactive"] # type:ignore
+		status: DF.Literal["Active", "Inactive"]  # type:ignore
 	# end: auto-generated types
 
 	_table_fieldnames: ClassVar[list] = []
