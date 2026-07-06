@@ -31,7 +31,7 @@
 				class="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-primary/90"
 			>
 				<span class="material-symbols-outlined text-[18px]">add</span>
-				+ New Booking
+				New Booking
 			</RouterLink>
 
 			<button
