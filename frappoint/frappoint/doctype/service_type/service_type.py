@@ -76,13 +76,13 @@ class ServiceType(Document):
 
 	def validate_default_duration(self):
 		if self.default_duration_in_minutes <= 0:
-			frappe.throw("Default duration must be greater than zero.")
+			frappe.throw(_("Default duration must be greater than zero."))
 		if self.default_duration_in_minutes > 1440:
-			frappe.throw("Duration cannot exceed 24 hours")
+			frappe.throw(_("Duration cannot exceed 24 hours"))
 
 	def validate_max_clients(self):
 		if self.max_clients_per_slot < 1:
-			frappe.throw("Clients per slot must be at least 1")
+			frappe.throw(_("Clients per slot must be at least 1"))
 
 	def validate_confirmation_deposit_percent(self):
 		if self.confirmation_deposit_percent is None:
@@ -126,12 +126,15 @@ class ServiceType(Document):
 
 		if invalid_prices:
 			error_messages = [
-				f"Row {item['row']}: <b>{item['price_name']}</b> - Amount must be greater than 0 (currently {item['amount']})"
+				_("Row {0}: <b>{1}</b> - Amount must be greater than 0 (currently {2})").format(
+					item["row"], item["price_name"], item["amount"]
+				)
 				for item in invalid_prices
 			]
 
 			frappe.throw(
-				"Invalid price rates found:<br>" + "<br>".join(error_messages), title="Invalid Prices"
+				_("Invalid price rates found:<br>{0}").format("<br>".join(error_messages)),
+				title=_("Invalid Prices"),
 			)
 
 	def _validate_no_duplicates(self, items, fields_to_check, error_title, item_label):
@@ -159,12 +162,13 @@ class ServiceType(Document):
 			error_messages = []
 			for value, rows in sorted(duplicates.items()):
 				key_str = ", ".join(f"<b>{f}</b>: {v}" for f, v in zip(fields_to_check, value, strict=True))
-				row_list = ", ".join(map(str, rows))
-				error_messages.append(f"{key_str} → rows: {row_list}")
+				row_list = ", ".join(str(row) for row in rows)
+				error_messages.append(_("{0} → rows: {1}").format(key_str, row_list))
 
 			plural_label = f"{item_label}s" if not item_label.endswith("s") else item_label
 			frappe.throw(
-				f"Duplicate {plural_label} found:<br>" + "<br>".join(error_messages), title=error_title
+				_("Duplicate {0} found:<br>{1}").format(plural_label, "<br>".join(error_messages)),
+				title=_(error_title),
 			)
 
 	def validate_consumables(self):
