@@ -41,7 +41,7 @@
 							</p>
 						</div>
 						<p class="font-semibold text-[13px] text-primary">
-							{{ price.currency }} {{ Number(price.amount).toFixed(2) }}
+							{{ formatCurrency(price.amount, price.currency) }}
 						</p>
 					</div>
 				</button>
@@ -81,4 +81,12 @@ const selectPrice = (price) => {
 const close = () => {
 	emit("close");
 };
+
+function formatCurrency(value, currency, locale = "en-US") {
+	return new Intl.NumberFormat(locale, {
+		style: "currency",
+		currency: currency,
+		minimumFractionDigits: 2,
+	}).format(value);
+}
 </script>
