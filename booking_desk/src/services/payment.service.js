@@ -5,11 +5,15 @@ export async function createHostedCheckoutPayment({
 	paymentGateway,
 	redirectTo,
 	phoneNumber,
+	amount,
+	paymentType,
 }) {
 	return createCheckoutPaymentLinkApi({
 		bookingId,
 		paymentGateway,
 		redirectTo,
 		phoneNumber,
+		amount,
+		paymentType,
 	});
 }

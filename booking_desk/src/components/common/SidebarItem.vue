@@ -41,9 +41,18 @@ const props = defineProps({
 	icon: { type: String, required: true },
 	label: { type: String, required: true },
 	count: { type: [Number, String], default: undefined },
+	activeWhen: { type: Array, default: () => [] },
 });
 
 const route = useRoute();
-// Checks if the current route name matches the link destination
-const isActive = computed(() => route.name === props.to.name);
+const isActive = computed(() => {
+	const currentName = String(route.name || "");
+	const explicitActiveNames = props.activeWhen.map((name) => String(name));
+
+	if (explicitActiveNames.length) {
+		return explicitActiveNames.includes(currentName);
+	}
+
+	return currentName === String(props.to.name || "");
+});
 </script>

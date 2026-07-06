@@ -2,8 +2,8 @@ import frappe
 from frappe import _
 
 
-@frappe.whitelist(allow_guest=True)
-def get_providers_for_service(service_type, company=None):
+@frappe.whitelist(allow_guest=True)  # nosemgrep: guest-whitelisted-method
+def get_providers_for_service(service_type: str, company: str | None = None):
 	"""
 	Get all providers who can deliver a specific service
 	Use case: Provider selection on booking form
@@ -14,7 +14,9 @@ def get_providers_for_service(service_type, company=None):
 	providers = frappe.db.sql(
 		"""
 		SELECT DISTINCT
+			sp.name,
 			sp.provider_name,
+			sp.gender,
 			sp.designation,
 			sp.color_code,
 			sp.image,
@@ -34,7 +36,7 @@ def get_providers_for_service(service_type, company=None):
 
 
 @frappe.whitelist()
-def get_provider_details(provider):
+def get_provider_details(provider: str):
 	"""
 	Get detailed provider information
 	Use case: Provider profile page

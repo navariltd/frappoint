@@ -1,4 +1,6 @@
 import frappe
+from frappe import _
+from frappe.defaults import get_user_permissions
 from frappe.utils.password import update_password
 
 from ...utils import get_customer_contact_details
@@ -10,20 +12,25 @@ def get_user_details():
 		return {}
 
 	user = frappe.get_doc("User", frappe.session.user)
+	permissions = get_user_permissions(str(frappe.session.user))
+	roles = frappe.get_roles(frappe.session.user)
+
 	return {
 		"full_name": user.full_name,
 		"email": user.email,
 		"phone": user.phone,
+		"permissions": permissions,
+		"roles": roles,
 	}
 
 
-@frappe.whitelist(allow_guest=True)
+@frappe.whitelist(allow_guest=True)  # nosemgrep: guest-whitelisted-method
 def create_user(**kwargs):
 	try:
 		frappe.db.begin()
 
 		if frappe.db.exists("User", kwargs.get("email")):
-			return {"status": "failed", "message": "User already exists."}
+			return {"status": "failed", "message": _("User already exists.")}
 
 		user = frappe.get_doc(
 			{
@@ -48,7 +55,7 @@ def create_user(**kwargs):
 
 		return {
 			"status": "success",
-			"message": "User created and logged in successfully",
+			"message": _("User created and logged in successfully"),
 		}
 	except Exception as e:
 		frappe.db.rollback()
@@ -78,7 +85,7 @@ def create_customer_from_user(user):
 def update_user_profile(**kwargs):
 	"""Update user profile information (name, phone)"""
 	if frappe.session.user == "Guest":
-		frappe.throw("You must be logged in to update your profile")
+		frappe.throw(_("You must be logged in to update your profile"))
 
 	try:
 		user = frappe.get_doc("User", frappe.session.user)
@@ -97,7 +104,7 @@ def update_user_profile(**kwargs):
 
 		return {
 			"status": "success",
-			"message": "Profile updated successfully",
+			"message": _("Profile updated successfully"),
 			"data": {
 				"full_name": user.full_name,
 				"email": user.email,
@@ -106,27 +113,27 @@ def update_user_profile(**kwargs):
 		}
 	except Exception as e:
 		frappe.log_error(frappe.get_traceback(), "User Profile Update Failed")
-		frappe.throw(f"Failed to update profile: {e!s}")
+		frappe.throw(_("Failed to update profile: {0}").format(str(e)))
 
 
 @frappe.whitelist(allow_guest=False)
 def update_user_password(**kwargs):
 	"""Update user password"""
 	if frappe.session.user == "Guest":
-		frappe.throw("You must be logged in to update your password")
+		frappe.throw(_("You must be logged in to update your password"))
 
 	current_password = kwargs.get("current_password")
 	new_password = kwargs.get("new_password")
 	confirm_password = kwargs.get("confirm_password")
 
 	if not all([current_password, new_password, confirm_password]):
-		frappe.throw("All password fields are required")
+		frappe.throw(_("All password fields are required"))
 
 	if new_password != confirm_password:
-		frappe.throw("New password and confirm password do not match")
+		frappe.throw(_("New password and confirm password do not match"))
 
 	if not new_password or len(new_password) < 8:
-		frappe.throw("Password must be at least 8 characters long")
+		frappe.throw(_("Password must be at least 8 characters long"))
 
 	try:
 		# Verify current password
@@ -137,24 +144,24 @@ def update_user_password(**kwargs):
 		# Update password
 		update_password(frappe.session.user, new_password)
 
-		return {"status": "success", "message": "Password updated successfully"}
+		return {"status": "success", "message": _("Password updated successfully")}
 	except frappe.AuthenticationError:
-		frappe.throw("Current password is incorrect")
+		frappe.throw(_("Current password is incorrect"))
 	except Exception as e:
 		frappe.log_error(frappe.get_traceback(), "Password Update Failed")
-		frappe.throw(f"Failed to update password: {e!s}")
+		frappe.throw(_("Failed to update password: {0}").format(str(e)))
 
 
 @frappe.whitelist(allow_guest=False)
 def update_user_image(**kwargs):
 	"""Update user profile image"""
 	if frappe.session.user == "Guest":
-		frappe.throw("You must be logged in to update your profile image")
+		frappe.throw(_("You must be logged in to update your profile image"))
 
 	file_url = kwargs.get("file_url")
 
 	if not file_url:
-		frappe.throw("File URL is required")
+		frappe.throw(_("File URL is required"))
 
 	try:
 		user = frappe.get_doc("User", frappe.session.user)
@@ -163,12 +170,12 @@ def update_user_image(**kwargs):
 
 		return {
 			"status": "success",
-			"message": "Profile image updated successfully",
+			"message": _("Profile image updated successfully"),
 			"data": {"user_image": user.user_image},
 		}
 	except Exception as e:
 		frappe.log_error(frappe.get_traceback(), "User Image Update Failed")
-		frappe.throw(f"Failed to update profile image: {e!s}")
+		frappe.throw(_("Failed to update profile image: {0}").format(str(e)))
 
 
 @frappe.whitelist()

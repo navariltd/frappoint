@@ -8,6 +8,8 @@ from frappe import _
 from frappe.model.document import Document
 from frappe.utils import get_link_to_form
 
+from ...services.availability_projector import enqueue_targeted_counter_refresh
+
 
 class ServiceProvider(Document):
 	# begin: auto-generated types
@@ -32,6 +34,7 @@ class ServiceProvider(Document):
 		email: DF.Data | None
 		employee: DF.Link | None
 		first_name: DF.Data
+		gender: DF.Link | None
 		google_calendar: DF.Link | None
 		grade: DF.Link | None
 		image: DF.AttachImage | None
@@ -111,7 +114,7 @@ class ServiceProvider(Document):
 
 	def set_full_name(self):
 		if self.last_name:
-			self.provider_name = " ".join(filter(None, [self.first_name, self.last_name]))
+			self.provider_name = " ".join([name for name in [self.first_name, self.last_name] if name])
 		else:
 			self.provider_name = self.first_name
 
@@ -208,7 +211,10 @@ class ServiceProvider(Document):
 
 	def mark_future_slots_unavailable(self):
 		"""Mark all future unbooked slots as unavailable when provider is deactivated"""
+		from ...services.slot_cache_service import invalidate_provider_date_range_cache
+
 		today = frappe.utils.nowdate()
+		horizon = int(frappe.db.get_single_value("Service Appointment Settings", "max_advance_days") or 30)
 
 		frappe.db.sql(
 			"""
@@ -222,10 +228,19 @@ class ServiceProvider(Document):
 		)
 
 		frappe.msgprint(_("Marked future unbooked slots as unavailable"), indicator="blue", alert=True)
+		invalidate_provider_date_range_cache(self.name, today, frappe.utils.add_days(today, horizon))
+		enqueue_targeted_counter_refresh(
+			start_date=today,
+			end_date=frappe.utils.add_days(today, horizon),
+			provider=self.name,
+		)
 
 	def reactivate_future_slots(self):
 		"""Reactivate future slots when provider is activated again"""
+		from ...services.slot_cache_service import invalidate_provider_date_range_cache
+
 		today = frappe.utils.nowdate()
+		horizon = int(frappe.db.get_single_value("Service Appointment Settings", "max_advance_days") or 30)
 
 		# Get active shift assignments for this provider
 		active_shifts = frappe.get_all(
@@ -251,11 +266,24 @@ class ServiceProvider(Document):
 			frappe.msgprint(
 				_("Reactivated future slots for active shift assignments"), indicator="green", alert=True
 			)
+			invalidate_provider_date_range_cache(self.name, today, frappe.utils.add_days(today, horizon))
+			enqueue_targeted_counter_refresh(
+				start_date=today,
+				end_date=frappe.utils.add_days(today, horizon),
+				provider=self.name,
+			)
 
 
 @frappe.whitelist()
 @frappe.validate_and_sanitize_search_inputs
-def get_practitioner_list(doctype, txt, searchfield, start, page_len, filters=None):
+def get_practitioner_list(
+	doctype: str,
+	txt: str,
+	searchfield: str,
+	start: int,
+	page_len: int,
+	filters: dict | None = None,
+):
 	active_filter = {"active": 1}
 
 	filters = {**active_filter, **filters} if filters else active_filter

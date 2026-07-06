@@ -22,5 +22,4 @@ export interface AvailableSlot {
 	availability: SlotAvailability;
 	providers: AvailableSlotProvider[];
 	providerSummary: string;
-	slotIds: string[];
 }

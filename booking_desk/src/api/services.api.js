@@ -1,21 +1,18 @@
-import { createListResource, createResource } from "frappe-ui";
+import { createResource } from "frappe-ui";
+import { fetchBookingDeskCacheVersion } from "@/api/cacheVersion.api";
+import { CACHE_MAX_AGE, CACHE_TAGS, getMemoryCache, setMemoryCache } from "@/utils/cachePolicy";
 
 const SERVICE_TYPE_ENDPOINT = "frappoint.frappoint.api.service_type.get_service_types";
 const SERVICE_TYPE_DETAILS_ENDPOINT =
 	"frappoint.frappoint.api.service_type.get_service_type_details";
 const CUSTOMER_DOCTYPE = "Customer";
 const APPOINTMENT_DOCTYPE = "Service Appointment";
-
-const fallbackListResource = createResource({
-	url: "frappe.client.get_list",
-	auto: false,
-});
+const BOOKING_DESK_CUSTOMER_FILTER = [["visible_on_booking_desk", "=", 1]];
 
 const serviceTypesResource = createResource({
 	url: SERVICE_TYPE_ENDPOINT,
 	method: "GET",
 	auto: false,
-	cache: ["services", "service-types"],
 });
 
 const serviceTypeDetailsResource = createResource({
@@ -24,13 +21,9 @@ const serviceTypeDetailsResource = createResource({
 	auto: false,
 });
 
-const customersResource = createListResource({
-	doctype: CUSTOMER_DOCTYPE,
-	fields: ["name", "customer_name"],
-	orderBy: "customer_name asc",
-	pageLength: 500,
+const customerSearchResource = createResource({
+	url: "frappe.client.get_list",
 	auto: false,
-	cache: ["services", "customers"],
 });
 
 const customerAppointmentsResource = createResource({
@@ -48,7 +41,18 @@ const unwrapListPayload = (payload) => {
 	return [];
 };
 
+const SERVICE_TYPES_CACHE_KEY = "reference:service-types";
+
 export async function fetchServiceTypes() {
+	const versions = await fetchBookingDeskCacheVersion();
+	const cached = getMemoryCache(SERVICE_TYPES_CACHE_KEY, {
+		version: versions.serviceTypesVersion,
+	});
+
+	if (cached) {
+		return cached;
+	}
+
 	const response = await serviceTypesResource.fetch({
 		active_only: true,
 		page: 1,
@@ -57,10 +61,18 @@ export async function fetchServiceTypes() {
 
 	const payload = response ?? serviceTypesResource.data;
 	if (Array.isArray(payload?.data)) {
-		return payload.data;
+		return setMemoryCache(SERVICE_TYPES_CACHE_KEY, payload.data, {
+			maxAge: CACHE_MAX_AGE.MEDIUM,
+			tags: [CACHE_TAGS.SERVICES],
+			version: versions.serviceTypesVersion,
+		});
 	}
 	if (Array.isArray(payload?.message?.data)) {
-		return payload.message.data;
+		return setMemoryCache(SERVICE_TYPES_CACHE_KEY, payload.message.data, {
+			maxAge: CACHE_MAX_AGE.MEDIUM,
+			tags: [CACHE_TAGS.SERVICES],
+			version: versions.serviceTypesVersion,
+		});
 	}
 	return [];
 }
@@ -81,24 +93,31 @@ export async function fetchServiceTypeDetails(serviceType) {
 	return payload ?? null;
 }
 
-export async function fetchCustomers() {
-	try {
-		await customersResource.fetch();
-		const rows = unwrapListPayload(customersResource.data);
-		if (rows.length) {
-			return rows;
-		}
-	} catch {
-		// Fall through to generic list fallback.
+export async function fetchCustomers(pageLength = 100) {
+	return searchCustomers("", pageLength);
+}
+
+export async function searchCustomers(query = "", pageLength = 50) {
+	const term = String(query || "").trim();
+	const normalizedPageLength = Math.max(1, Math.min(Number(pageLength) || 50, 100));
+	const orFilters = [];
+
+	if (term) {
+		const needle = `%${term}%`;
+		orFilters.push(["name", "like", needle], ["customer_name", "like", needle]);
 	}
 
-	const fallback = await fallbackListResource.fetch({
+	const response = await customerSearchResource.fetch({
 		doctype: CUSTOMER_DOCTYPE,
 		fields: ["name", "customer_name"],
+		filters: BOOKING_DESK_CUSTOMER_FILTER,
+		or_filters: orFilters.length ? orFilters : undefined,
 		order_by: "customer_name asc",
-		limit_page_length: 500,
+		limit_start: 0,
+		limit_page_length: normalizedPageLength,
 	});
-	return unwrapListPayload(fallback ?? fallbackListResource.data);
+
+	return unwrapListPayload(response ?? customerSearchResource.data);
 }
 
 export async function fetchCustomerRecentAppointments(customerId) {
@@ -133,6 +152,6 @@ export {
 	APPOINTMENT_DOCTYPE,
 	serviceTypesResource,
 	serviceTypeDetailsResource,
-	customersResource,
+	customerSearchResource,
 	customerAppointmentsResource,
 };

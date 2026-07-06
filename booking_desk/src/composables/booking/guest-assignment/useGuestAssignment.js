@@ -15,13 +15,16 @@ export function useGuestAssignment() {
 		activeGuestIndex,
 		isLoadingDates,
 		isLoadingSlots,
+		isReservingSlots,
+		reservingSlotIdByGuest,
 		errorByGuest,
 		progress,
 		validationIssues,
 		isComplete,
 		summaryRows,
 	} = storeToRefs(guestStore);
-	const { cartItems, customers, selectedCustomerId, grandTotal } = storeToRefs(servicesStore);
+	const { cartItems, customers, selectedCustomerId, selectedCustomer, grandTotal } =
+		storeToRefs(servicesStore);
 	const { draftBooking, appointmentsByGuestKey } = storeToRefs(workflowStore);
 
 	const sourceCartItems = computed(() => {
@@ -34,23 +37,43 @@ export function useGuestAssignment() {
 		return workflowStore.customerSnapshot?.customer || selectedCustomerId.value;
 	});
 
+	const workflowSelectedCustomer = computed(() => {
+		if (workflowStore.customerSnapshot?.customer) {
+			return {
+				id: workflowStore.customerSnapshot.customer,
+				name:
+					workflowStore.customerSnapshot.fullName ||
+					workflowStore.customerSnapshot.name ||
+					workflowStore.customerSnapshot.customer,
+			};
+		}
+
+		return selectedCustomer.value || null;
+	});
+
 	const activeServiceKey = computed(
 		() => assignments.value[activeServiceIndex.value]?.serviceKey || ""
 	);
 
 	const initialize = async () => {
-		if (!customers.value.length) {
-			await servicesStore.loadCustomers();
-		}
-		if (workflowStore.bookingId && !workflowStore.draftBooking.items.length) {
+		await servicesStore.loadCustomers();
+		if (workflowStore.bookingId && workflowStore.hydrationRequiresRevalidation) {
+			await workflowStore.reloadDraftBookingSession().catch(() => null);
+		} else if (workflowStore.bookingId && !workflowStore.draftBooking.items.length) {
 			await workflowStore.reloadDraftBookingSession().catch(() => null);
 		}
 		guestStore.initialize({
 			cartItems: sourceCartItems.value,
 			customers: customers.value,
 			selectedCustomerId: workflowSelectedCustomerId.value,
+			selectedCustomer: workflowSelectedCustomer.value,
 			appointmentsByGuestKey: appointmentsByGuestKey.value,
 		});
+		await Promise.all(
+			guestStore.assignments.map((service) =>
+				guestStore.ensureServiceProviders(service.serviceKey).catch(() => [])
+			)
+		);
 	};
 
 	onMounted(initialize);
@@ -62,6 +85,8 @@ export function useGuestAssignment() {
 		activeServiceKey,
 		isLoadingDates,
 		isLoadingSlots,
+		isReservingSlots,
+		reservingSlotIdByGuest,
 		errorByGuest,
 		progress,
 		validationIssues,
@@ -73,6 +98,7 @@ export function useGuestAssignment() {
 		setActiveIndices: guestStore.setActiveIndices,
 		updateGuestFromCustomer: guestStore.updateGuestFromCustomer,
 		quickCreateGuest: guestStore.quickCreateGuest,
+		updateProviderPreference: guestStore.updateProviderPreference,
 		clearGuest: guestStore.clearGuest,
 		fetchGuestDates: guestStore.fetchGuestDates,
 		selectGuestDate: guestStore.selectGuestDate,

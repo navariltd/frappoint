@@ -10,7 +10,12 @@ function normalizeAppointment(appointment) {
 		id: appointment.name,
 		appointmentId: appointment.name,
 		serviceType: appointment.serviceType || "Service",
-		provider: appointment.provider || "Unassigned",
+		provider:
+			appointment.serviceProviderName ||
+			appointment.providerName ||
+			appointment.provider ||
+			"Unassigned",
+		providerId: appointment.providerId || appointment.provider || "",
 		date: appointment.date || "",
 		startTime: appointment.startTime || "",
 		endTime: appointment.endTime || "",
@@ -21,7 +26,7 @@ function normalizeAppointment(appointment) {
 		fullName: appointment.fullName || "Guest",
 		email: appointment.email || "",
 		mobileNo: appointment.mobileNo || "",
-		slotIds: appointment.slotIds || [],
+		slotIds: [],
 	};
 }
 

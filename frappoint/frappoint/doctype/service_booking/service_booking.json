@@ -28,6 +28,18 @@
   "grand_total",
   "confirmation_required_amount",
   "outstanding_amount",
+  "sales_invoice",
+  "discount_section",
+  "coupon_code",
+  "coupon_scope",
+  "coupon_discount_type",
+  "coupon_discount_amount",
+  "coupon_applied",
+  "column_break_tadp",
+  "booking_discount_amount",
+  "appointment_discount_total",
+  "booking_hold_section",
+  "booking_held_until",
   "dashboard_tab",
   "amended_from"
  ],
@@ -70,6 +82,18 @@
    "options": "Draft\nPayment Pending\nPartly Paid\nConfirmed\nClosed\nCancelled"
   },
   {
+     "fieldname": "booking_hold_section",
+     "fieldtype": "Section Break",
+     "label": "Booking Hold"
+    },
+    {
+     "fieldname": "booking_held_until",
+     "fieldtype": "Datetime",
+     "label": "Booking Held Until",
+     "read_only": 1,
+     "help": "When booking hold expires if booking is in Draft state"
+    },
+  {
    "fieldname": "section_break_kkut",
    "fieldtype": "Section Break"
   },
@@ -85,11 +109,59 @@
    "fieldtype": "Column Break"
   },
   {
+   "fieldname": "coupon_code",
+   "fieldtype": "Data",
+   "label": "Coupon Code"
+  },
+  {
+   "default": "booking",
+   "fieldname": "coupon_scope",
+   "fieldtype": "Select",
+   "label": "Coupon Scope",
+   "options": "\nbooking",
+   "read_only": 1
+  },
+  {
    "fieldname": "subtotal",
    "fieldtype": "Currency",
    "in_list_view": 1,
    "label": "Subtotal",
    "options": "currency"
+  },
+  {
+   "fieldname": "appointment_discount_total",
+   "fieldtype": "Currency",
+   "label": "Appointment Discount Total",
+   "options": "currency",
+   "read_only": 1
+  },
+  {
+   "fieldname": "booking_discount_amount",
+   "fieldtype": "Currency",
+   "label": "Booking Discount Amount",
+   "options": "currency",
+   "read_only": 1
+  },
+  {
+   "fieldname": "coupon_discount_type",
+   "fieldtype": "Select",
+   "label": "Coupon Discount Type",
+   "options": "\npercentage\nfixed",
+   "read_only": 1
+  },
+  {
+   "fieldname": "coupon_discount_amount",
+   "fieldtype": "Currency",
+   "label": "Coupon Discount Amount",
+   "options": "currency",
+   "read_only": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "coupon_applied",
+   "fieldtype": "Check",
+   "label": "Coupon Applied",
+   "read_only": 1
   },
   {
    "fieldname": "grand_total",
@@ -109,6 +181,13 @@
    "fieldtype": "Currency",
    "label": "Outstanding Amount",
    "options": "currency",
+   "read_only": 1
+  },
+  {
+   "fieldname": "sales_invoice",
+   "fieldtype": "Link",
+   "label": "Sales Invoice",
+   "options": "Sales Invoice",
    "read_only": 1
   },
   {
@@ -175,6 +254,15 @@
    "print_hide": 1,
    "read_only": 1,
    "search_index": 1
+  },
+  {
+   "fieldname": "discount_section",
+   "fieldtype": "Section Break",
+   "label": "Discount"
+  },
+  {
+   "fieldname": "column_break_tadp",
+   "fieldtype": "Column Break"
   }
  ],
  "grid_page_length": 50,
@@ -184,9 +272,13 @@
   {
    "link_doctype": "Service Appointment",
    "link_fieldname": "booking_id"
+  },
+  {
+   "link_doctype": "Service Appointment Payment",
+   "link_fieldname": "reference_docname"
   }
  ],
- "modified": "2026-05-05 13:41:50.824405",
+ "modified": "2026-05-22 06:13:26.557828",
  "modified_by": "Administrator",
  "module": "Frappoint",
  "name": "Service Booking",
@@ -213,6 +305,7 @@
    "create": 1,
    "email": 1,
    "export": 1,
+   "if_owner": 1,
    "print": 1,
    "read": 1,
    "report": 1,

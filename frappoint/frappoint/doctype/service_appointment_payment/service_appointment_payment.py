@@ -2,9 +2,10 @@
 # For license information, please see license.txt
 
 import frappe
+from erpnext.accounts.party import get_party_account
 from frappe import _
 from frappe.model.document import Document
-from frappe.utils import flt
+from frappe.utils import flt, today
 
 
 class ServiceAppointmentPayment(Document):
@@ -27,6 +28,7 @@ class ServiceAppointmentPayment(Document):
 		name: DF.Int | None
 		order_id: DF.Data | None
 		payment_gateway: DF.Link | None
+		payment_entry: DF.Link | None
 		payment_id: DF.Data | None
 		payment_received: DF.Check
 		posting_date: DF.Date | None
@@ -56,10 +58,103 @@ class ServiceAppointmentPayment(Document):
 			self.get_references()
 
 	def on_submit(self):
+		self.create_payment_entry()  # nosemgrep - submitted payment stores the generated Payment Entry link.
 		self.update_outstanding_balances(cancel=False)
 
 	def on_cancel(self):
+		self.cancel_payment_entry()
 		self.update_outstanding_balances(cancel=True)
+
+	def get_reference_doc(self):
+		if not self.reference_doctype or not self.reference_docname:
+			frappe.throw(_("Reference document is required."))
+
+		return frappe.get_doc(self.reference_doctype, self.reference_docname)
+
+	def get_company(self, reference_doc):
+		company = reference_doc.get("company")
+		if company:
+			return company
+
+		company = frappe.defaults.get_user_default("Company")
+		if company:
+			return company
+
+		return frappe.db.get_single_value("Global Defaults", "default_company")
+
+	def get_mode_of_payment_account(self, company):
+		account = frappe.db.get_value(
+			"Mode of Payment Account",
+			{"parent": self.mode_of_payment, "company": company},
+			"default_account",
+		)
+
+		if not account:
+			frappe.throw(
+				_("Mode of Payment {0} does not have a default account for company {1}.").format(
+					self.mode_of_payment, company
+				)
+			)
+
+		return account
+
+	def create_payment_entry(self):
+		if self.payment_entry:
+			return self.payment_entry
+
+		if flt(self.amount) <= 0:
+			frappe.throw(_("Payment amount must be greater than zero."))
+
+		reference_doc = self.get_reference_doc()
+		customer = reference_doc.get("customer")
+		if not customer:
+			frappe.throw(_("Customer is required to create a Payment Entry."))
+
+		company = self.get_company(reference_doc)
+		if not company:
+			frappe.throw(_("Default company is required to create a Payment Entry."))
+
+		paid_to = self.get_mode_of_payment_account(company)
+		paid_from = get_party_account("Customer", customer, company)
+
+		payment_entry = frappe.get_doc(
+			{
+				"doctype": "Payment Entry",
+				"payment_type": "Receive",
+				"company": company,
+				"posting_date": self.posting_date or today(),
+				"mode_of_payment": self.mode_of_payment,
+				"party_type": "Customer",
+				"party": customer,
+				"paid_from": paid_from,
+				"paid_to": paid_to,
+				"paid_amount": flt(self.amount),
+				"received_amount": flt(self.amount),
+				"reference_no": str(self.payment_id or self.order_id or self.name),
+				"reference_date": self.reference_date or self.posting_date or today(),
+				"remarks": _("Advance payment for {0} {1}").format(
+					self.reference_doctype, self.reference_docname
+				),
+			}
+		)
+		payment_entry.insert(ignore_permissions=True, ignore_mandatory=True)
+		payment_entry.submit()
+
+		payment_entry_name = payment_entry.name
+		self.payment_entry = payment_entry_name
+		self.db_set("payment_entry", payment_entry_name, update_modified=False)
+		return payment_entry_name
+
+	def cancel_payment_entry(self):
+		if not self.payment_entry:
+			return
+
+		if not frappe.db.exists("Payment Entry", self.payment_entry):
+			return
+
+		payment_entry = frappe.get_doc("Payment Entry", self.payment_entry)
+		if payment_entry.docstatus == 1:
+			payment_entry.cancel()
 
 	def update_outstanding_balances(self, cancel=False):
 		self.adjust_doc_outstanding(self.reference_doctype, self.reference_docname, self.amount, cancel)

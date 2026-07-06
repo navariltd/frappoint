@@ -1,84 +1,89 @@
 <template>
 	<div
-		class="group bg-surface-light rounded-2xl overflow-hidden border border-gray-100 shadow-[0_2px_12px_rgba(0,0,0,0.04)] flex-col justify-center"
+		class="bg-surface-container-lowest rounded-xl luxury-shadow luxury-shadow-hover transition-all flex flex-col border border-outline-variant/20 overflow-hidden group"
 	>
-		<div
-			class="relative h-48 overflow-hidden"
-			style="background: linear-gradient(to bottom right, #3a8a8b, #2c7677, #1f5a5b)"
-		>
-			<RouterLink :to="{ name: 'ServiceDetails', params: { name: serviceType.name } }">
-				<div
-					class="absolute inset-0 bg-cover bg-center transition-transform duration-700 group-hover:scale-110"
-					:data-alt="serviceType.name"
-					:style="{ backgroundImage: `url(${serviceType.image})` }"
-				></div>
-				<p
-					class="absolute top-3 right-3 bg-white/90 rounded-lg text-xs font-bold text-primary px-2.5 py-1 shadow-sm"
-				>
-					{{ serviceType.item_group }}
-				</p>
-			</RouterLink>
-		</div>
-
-		<div class="p-5 flex flex-col flex-grow">
-			<div class="flex justify-between items-start mb-2">
-				<h3 class="text-2xl font-semibold">{{ serviceType.name }}</h3>
-			</div>
-
-			<p
-				class="text-sm text-gray-500 line-clamp-2 mb-6"
-				v-html="serviceType.short_description"
-			></p>
-
-			<div class="mt-auto pt-4 border-t border-gray-100 flex items-center justify-between">
-				<div class="flex flex-col">
-					<span class="text-xs text-gray-400 font-medium mb-2">Price</span>
-					<span class="text-base font-bold text-gray-900">{{
-						serviceType.price
-							? formatCurrency(serviceType.price.amount, serviceType.price.currency)
-							: "Contact for pricing"
-					}}</span>
-				</div>
-				<div
-					class="flex items-center justify-center gap-1 text-xs font-medium text-gray-500 bg-gray-100 px-2 py-1 rounded-md"
-				>
-					<FeatherIcon class="h-4" name="clock" />
-					<p>{{ serviceType.default_duration_in_minutes }}m</p>
-				</div>
-			</div>
-
-			<Button
-				@click="showBookingDialog"
-				class="mt-4 w-full bg-background-light text-gray-900 font-semibold py-5 rounded-xl hover:!bg-primary hover:!text-white transition-all duration-300"
+		<div class="aspect-[16/9] overflow-hidden bg-surface-container-low">
+			<img
+				v-if="service.image"
+				:alt="service.appointment_type"
+				class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+				:src="service.image"
+			/>
+			<div
+				v-else
+				class="w-full h-full bg-primary-container flex items-center justify-center"
 			>
-				Book Now
-			</Button>
+				<span class="text-on-primary-container font-label-md text-label-md">No Image</span>
+			</div>
+		</div>
+		<div class="p-stack-md flex flex-col flex-grow">
+			<div class="flex justify-between items-start mb-2 gap-3">
+				<h4 class="font-headline-sm text-headline-sm text-on-surface">
+					{{ service.appointment_type }}
+				</h4>
+				<span class="font-label-md text-label-md text-primary whitespace-nowrap">
+					{{ priceLabel }}
+				</span>
+			</div>
+			<p
+				class="font-body-md text-body-md text-on-surface-variant mb-4 h-[72px] overflow-hidden w-full"
+			>
+				{{ shortDescription }}
+			</p>
+			<div
+				class="mb-5 flex items-center justify-between text-[12px] text-on-surface-variant"
+			>
+				<span>{{ durationLabel }}</span>
+				<span v-if="service.item_group" class="truncate max-w-[50%] text-right">{{
+					service.item_group
+				}}</span>
+			</div>
+			<div>
+				<button
+					type="button"
+					class="w-full inline-flex items-center justify-center bg-primary text-on-primary px-4 py-3 rounded-full font-label-md text-label-md hover:opacity-90 hover:-translate-y-px active:scale-[0.98] transition-all"
+					@click="$emit('add', service)"
+				>
+					Add to Booking
+				</button>
+			</div>
 		</div>
 	</div>
 </template>
 
 <script setup>
-import { Button, FeatherIcon } from "frappe-ui";
+import { computed } from "vue";
 import { formatCurrency } from "@/utils";
-import { useBookingStore } from "@/stores/bookingStore";
-import { useRouter } from "vue-router";
 
 const props = defineProps({
-	serviceType: Object,
+	service: { type: Object, required: true },
 });
 
-const booking = useBookingStore();
-const router = useRouter();
+defineEmits(["view", "add"]);
 
-function showBookingDialog() {
-	router.push({
-		name: "BookingDetails",
-		params: { serviceType: props.serviceType.name },
-	});
-	booking.setServiceType(props.serviceType.name);
-	booking.setPriceName(props.serviceType?.price?.price_name);
-	booking.setPrice(props.serviceType?.price?.amount);
-	booking.setCurrency(props.serviceType?.price?.currency);
-	booking.setDuration(props.serviceType?.price?.duration);
-}
+const priceLabel = computed(() => {
+	if (!props.service?.price?.amount || !props.service?.price?.currency) {
+		return "Price on request";
+	}
+	return formatCurrency(props.service.price.amount, props.service.price.currency);
+});
+
+const durationLabel = computed(() => {
+	const value = Number(props.service?.default_duration_in_minutes || 0);
+	if (!value) {
+		return "Duration flexible";
+	}
+	return `${value} min`;
+});
+
+const shortDescription = computed(() => {
+	const raw = String(props.service?.short_description || "").trim();
+	if (!raw) {
+		return "";
+	}
+	if (raw.length <= 140) {
+		return raw;
+	}
+	return `${raw.slice(0, 140).trimEnd()}...`;
+});
 </script>

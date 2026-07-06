@@ -5,6 +5,7 @@ import {
 	upsertDraftServiceAppointment,
 } from "@/services/bookingOrchestration.service";
 import { BOOKING_WORKFLOW_STORAGE_KEY, createEmptyDraftBooking } from "@/types/booking";
+import { CACHE_MAX_AGE, CACHE_TAGS, invalidateMemoryCacheByTag } from "@/utils/cachePolicy";
 
 const canUseStorage = () => typeof window !== "undefined" && Boolean(window.localStorage);
 
@@ -17,6 +18,9 @@ const createInitialState = () => ({
 	isSavingAppointmentByGuest: {},
 	bookingError: "",
 	appointmentErrorByGuest: {},
+	hydratedAt: 0,
+	workflowMaxAge: CACHE_MAX_AGE.WORKFLOW_STATE,
+	hydrationRequiresRevalidation: false,
 });
 
 export const useBookingWorkflowStore = defineStore("bookingWorkflow", {
@@ -41,6 +45,8 @@ export const useBookingWorkflowStore = defineStore("bookingWorkflow", {
 			window.localStorage.setItem(
 				BOOKING_WORKFLOW_STORAGE_KEY,
 				JSON.stringify({
+					persistedAt: Date.now(),
+					maxAge: this.workflowMaxAge,
 					draftBooking: this.draftBooking,
 					appointmentsByGuestKey: this.appointmentsByGuestKey,
 				})
@@ -60,11 +66,29 @@ export const useBookingWorkflowStore = defineStore("bookingWorkflow", {
 
 			try {
 				const parsed = JSON.parse(raw);
+				const persistedAt = Number(parsed?.persistedAt || 0);
+				const maxAge = Number(parsed?.maxAge || this.workflowMaxAge);
+				const isExpired = !persistedAt || Date.now() - persistedAt > maxAge;
+
+				if (isExpired) {
+					window.localStorage.removeItem(BOOKING_WORKFLOW_STORAGE_KEY);
+					this.draftBooking = createEmptyDraftBooking();
+					this.appointmentsByGuestKey = {};
+					this.hydratedAt = 0;
+					this.hydrationRequiresRevalidation = false;
+					this.hasHydrated = true;
+					return;
+				}
+
 				this.draftBooking = parsed?.draftBooking || createEmptyDraftBooking();
 				this.appointmentsByGuestKey = parsed?.appointmentsByGuestKey || {};
+				this.hydratedAt = persistedAt;
+				this.hydrationRequiresRevalidation = Boolean(this.draftBooking?.id);
 			} catch {
 				this.draftBooking = createEmptyDraftBooking();
 				this.appointmentsByGuestKey = {};
+				this.hydratedAt = 0;
+				this.hydrationRequiresRevalidation = false;
 			}
 
 			this.hasHydrated = true;
@@ -74,6 +98,9 @@ export const useBookingWorkflowStore = defineStore("bookingWorkflow", {
 			if (canUseStorage()) {
 				window.localStorage.removeItem(BOOKING_WORKFLOW_STORAGE_KEY);
 			}
+			invalidateMemoryCacheByTag(CACHE_TAGS.WORKFLOW);
+			invalidateMemoryCacheByTag(CACHE_TAGS.BOOKINGS);
+			invalidateMemoryCacheByTag(CACHE_TAGS.DASHBOARD);
 		},
 		clearBookingError() {
 			this.bookingError = "";
@@ -96,7 +123,12 @@ export const useBookingWorkflowStore = defineStore("bookingWorkflow", {
 				});
 				this.draftBooking = booking;
 				this.appointmentsByGuestKey = {};
+				this.hydrationRequiresRevalidation = false;
+				this.hydratedAt = Date.now();
 				this.persistState();
+				invalidateMemoryCacheByTag(CACHE_TAGS.BOOKINGS);
+				invalidateMemoryCacheByTag(CACHE_TAGS.DASHBOARD);
+				invalidateMemoryCacheByTag(CACHE_TAGS.WORKFLOW);
 				return booking;
 			} catch (error) {
 				this.bookingError = error?.message || "Draft booking could not be created.";
@@ -124,7 +156,11 @@ export const useBookingWorkflowStore = defineStore("bookingWorkflow", {
 					cartItemsSnapshot: this.draftBooking.cartItemsSnapshot,
 					customerSnapshot: this.draftBooking.customerSnapshot,
 				};
+				this.hydrationRequiresRevalidation = false;
+				this.hydratedAt = Date.now();
 				this.persistState();
+				invalidateMemoryCacheByTag(CACHE_TAGS.BOOKINGS);
+				invalidateMemoryCacheByTag(CACHE_TAGS.DASHBOARD);
 				return booking;
 			} catch (error) {
 				this.bookingError = error?.message || "Draft booking could not be loaded.";
@@ -179,10 +215,17 @@ export const useBookingWorkflowStore = defineStore("bookingWorkflow", {
 							fullName: guest.fullName,
 							email: guest.email || "",
 							mobileNo: guest.mobileNo || "",
+							providerGender: guest.providerGender || "",
+							providerPreference: guest.providerPreference || "",
 						},
 					},
 				};
+				this.hydrationRequiresRevalidation = false;
+				this.hydratedAt = Date.now();
 				this.persistState();
+				invalidateMemoryCacheByTag(CACHE_TAGS.BOOKINGS);
+				invalidateMemoryCacheByTag(CACHE_TAGS.DASHBOARD);
+				invalidateMemoryCacheByTag(CACHE_TAGS.WORKFLOW);
 				return result;
 			} catch (error) {
 				this.appointmentErrorByGuest = {

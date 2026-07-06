@@ -1,8 +1,4 @@
-import {
-	checkSlotAvailabilityApi,
-	fetchAvailableDatesApi,
-	fetchAvailableSlotsApi,
-} from "@/api/availability.api";
+import { fetchAvailableDatesApi, fetchAvailableSlotsApi } from "@/api/availability.api";
 
 const dateFormatter = new Intl.DateTimeFormat("en-US", {
 	weekday: "short",
@@ -13,6 +9,15 @@ const dateFormatter = new Intl.DateTimeFormat("en-US", {
 const toNumber = (value, fallback = 0) => {
 	const parsed = Number(value);
 	return Number.isFinite(parsed) ? parsed : fallback;
+};
+
+const normalizeServiceType = (value) => {
+	if (value === null || value === undefined) return "";
+	const normalized = String(value).trim();
+	if (!normalized) return "";
+	const lower = normalized.toLowerCase();
+	if (lower === "null" || lower === "undefined" || lower === "[object object]") return "";
+	return normalized;
 };
 
 const formatDateLabel = (dateValue) => {
@@ -48,7 +53,6 @@ const normalizeProviders = (providers = []) => {
 
 const normalizeSlot = (slot, date) => {
 	const providers = normalizeProviders(slot.providers || []);
-	const slotIds = providers.flatMap((provider) => provider.slotIds);
 	const availability =
 		providers.length > 1 ? "partial" : providers.length ? "available" : "unavailable";
 	return {
@@ -60,12 +64,19 @@ const normalizeSlot = (slot, date) => {
 		availability,
 		providers,
 		providerSummary: toProviderSummary(providers),
-		slotIds,
 	};
 };
 
-export async function fetchNormalizedAvailableDates({ serviceType, duration, provider }) {
-	const response = await fetchAvailableDatesApi({ serviceType, duration, provider });
+export async function fetchNormalizedAvailableDates({ serviceType, duration, provider, gender }) {
+	const normalizedServiceType = normalizeServiceType(serviceType);
+	if (!normalizedServiceType) return [];
+
+	const response = await fetchAvailableDatesApi({
+		serviceType: normalizedServiceType,
+		duration,
+		provider,
+		gender,
+	});
 	const rows = Array.isArray(response) ? response : [];
 	return rows.map((date) => ({
 		date,
@@ -73,23 +84,27 @@ export async function fetchNormalizedAvailableDates({ serviceType, duration, pro
 	}));
 }
 
-export async function fetchNormalizedAvailableSlots({ serviceType, duration, provider, date }) {
-	const response = await fetchAvailableSlotsApi({ serviceType, duration, provider, date });
+export async function fetchNormalizedAvailableSlots({
+	serviceType,
+	duration,
+	provider,
+	date,
+	gender,
+	useCounterEngine,
+}) {
+	const normalizedServiceType = normalizeServiceType(serviceType);
+	if (!normalizedServiceType) return [];
+
+	const response = await fetchAvailableSlotsApi({
+		serviceType: normalizedServiceType,
+		duration,
+		provider,
+		date,
+		gender,
+		useCounterEngine,
+	});
 	const dateGroups = Array.isArray(response) ? response : [];
 	const targetGroup = dateGroups.find((group) => String(group.date) === String(date));
 	const rawSlots = targetGroup?.slots || [];
 	return rawSlots.map((slot) => normalizeSlot(slot, date));
-}
-
-export async function validateSlotAvailability(slotIds = []) {
-	if (!slotIds.length) {
-		return { available: false, unavailableSlots: [] };
-	}
-	const response = await checkSlotAvailabilityApi(slotIds);
-	return {
-		available: Boolean(response?.available),
-		unavailableSlots: Array.isArray(response?.unavailable_slots)
-			? response.unavailable_slots
-			: [],
-	};
 }

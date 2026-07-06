@@ -39,6 +39,12 @@
   "end_time",
   "selected_slot_ids",
   "all_available_providers",
+  "allocation_section",
+  "buffer_before_minutes",
+  "buffer_after_minutes",
+  "column_break_alloc",
+  "payment_hold_until",
+  "allocation_status",
   "payment_details_section",
   "payment_status",
   "confirmation_required_amount",
@@ -480,7 +486,9 @@
    "default": "0",
    "fieldname": "is_guest",
    "fieldtype": "Check",
-   "label": "Is Guest"
+   "hidden": 1,
+   "label": "Is Guest",
+   "read_only": 1
   },
   {
    "fieldname": "guests_section",
@@ -565,6 +573,7 @@
    "default": "0",
    "fieldname": "is_group_booking",
    "fieldtype": "Check",
+   "hidden": 1,
    "label": "Is Group Booking",
    "read_only": 1
   },
@@ -597,9 +606,48 @@
    "hidden": 1,
    "is_virtual": 1,
    "label": "All Available Providers"
+  },
+  {
+   "fieldname": "allocation_section",
+   "fieldtype": "Section Break",
+   "label": "Allocation & Holds"
+  },
+  {
+   "fieldname": "buffer_before_minutes",
+   "fieldtype": "Int",
+   "label": "Buffer Before (minutes)",
+   "read_only": 1,
+   "help": "Buffer before appointment (from Service Type)"
+  },
+  {
+   "fieldname": "buffer_after_minutes",
+   "fieldtype": "Int",
+   "label": "Buffer After (minutes)",
+   "read_only": 1,
+   "help": "Buffer after appointment (from Service Type)"
+  },
+  {
+   "fieldname": "column_break_alloc",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "payment_hold_until",
+   "fieldtype": "Datetime",
+   "label": "Payment Hold Until",
+   "read_only": 1,
+   "help": "When payment hold expires if booking is in Draft state"
+  },
+  {
+   "fieldname": "allocation_status",
+   "fieldtype": "Select",
+   "label": "Allocation Status",
+   "options": "Held\nConfirmed\nReleased",
+   "read_only": 1,
+   "help": "Synced from allocations (Held = resource reserved, Confirmed = payment received, Released = cancelled)"
   }
  ],
  "grid_page_length": 50,
+ "in_create": 1,
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [
@@ -629,7 +677,7 @@
    "link_fieldname": "reference_docname"
   }
  ],
- "modified": "2026-05-20 07:07:01.138267",
+ "modified": "2026-05-22 05:53:34.377627",
  "modified_by": "Administrator",
  "module": "Frappoint",
  "name": "Service Appointment",

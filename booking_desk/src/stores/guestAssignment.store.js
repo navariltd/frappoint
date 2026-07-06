@@ -8,8 +8,8 @@ import {
 import {
 	fetchNormalizedAvailableDates,
 	fetchNormalizedAvailableSlots,
-	validateSlotAvailability,
 } from "@/services/availability.service";
+import { fetchServicePackages } from "@/services/services.service";
 import { useBookingWorkflowStore } from "@/stores/bookingWorkflow.store";
 
 const findServiceIndex = (assignments, serviceKey) =>
@@ -29,9 +29,12 @@ export const useGuestAssignmentStore = defineStore("guestAssignment", {
 		activeGuestIndex: 0,
 		isLoadingDates: {},
 		isLoadingSlots: {},
+		isReservingSlots: {},
+		reservingSlotIdByGuest: {},
 		errorByGuest: {},
 		customers: [],
 		selectedCustomerId: "",
+		selectedCustomer: null,
 	}),
 	getters: {
 		progress(state) {
@@ -52,21 +55,26 @@ export const useGuestAssignmentStore = defineStore("guestAssignment", {
 			cartItems = [],
 			customers = [],
 			selectedCustomerId = "",
+			selectedCustomer = null,
 			appointmentsByGuestKey = {},
 		}) {
 			this.customers = customers;
 			this.selectedCustomerId = selectedCustomerId;
-			const selectedCustomer =
-				customers.find((item) => item.id === selectedCustomerId) || null;
+			const resolvedSelectedCustomer =
+				selectedCustomer ||
+				customers.find((item) => item.id === selectedCustomerId) ||
+				null;
 			this.assignments = buildAssignmentsFromCart(
 				cartItems,
-				selectedCustomer,
+				resolvedSelectedCustomer,
 				appointmentsByGuestKey
 			);
 			this.activeServiceIndex = 0;
 			this.activeGuestIndex = 0;
 			this.isLoadingDates = {};
 			this.isLoadingSlots = {};
+			this.isReservingSlots = {};
+			this.reservingSlotIdByGuest = {};
 			this.errorByGuest = {};
 		},
 		setActiveIndices(serviceIndex, guestIndex) {
@@ -100,6 +108,9 @@ export const useGuestAssignmentStore = defineStore("guestAssignment", {
 			guest.fullName = payload.fullName || "";
 			guest.email = payload.email || "";
 			guest.mobileNo = payload.mobileNo || "";
+			guest.providerGender = payload.providerGender || "";
+			guest.providerPreference =
+				payload.providerPreference || guest.providerPreference || "";
 			guest.isInlineGuest = true;
 			syncGuestCompletion(guest);
 		},
@@ -126,8 +137,11 @@ export const useGuestAssignmentStore = defineStore("guestAssignment", {
 				email: "",
 				mobileNo: "",
 				isInlineGuest: false,
+				providerGender: "",
+				providerPreference: "",
 				date: "",
 				slot: null,
+				availableDates: [],
 				availableSlots: [],
 				isComplete: false,
 			};
@@ -142,9 +156,12 @@ export const useGuestAssignmentStore = defineStore("guestAssignment", {
 			this.isLoadingDates = { ...this.isLoadingDates, [guestKey]: true };
 			this.errorByGuest = { ...this.errorByGuest, [guestKey]: "" };
 			try {
+				await this.ensureServiceProviders(serviceKey);
 				const dates = await fetchNormalizedAvailableDates({
 					serviceType: service.serviceId,
 					duration: service.duration,
+					provider: service.guests[guestIndex].providerPreference,
+					gender: service.guests[guestIndex].providerGender,
 				});
 				service.guests[guestIndex].availableDates = dates;
 			} catch (error) {
@@ -176,6 +193,8 @@ export const useGuestAssignmentStore = defineStore("guestAssignment", {
 				const slots = await fetchNormalizedAvailableSlots({
 					serviceType: service.serviceId,
 					duration: service.duration,
+					provider: guest.providerPreference,
+					gender: guest.providerGender,
 					date,
 				});
 				guest.availableSlots = slots;
@@ -199,17 +218,8 @@ export const useGuestAssignmentStore = defineStore("guestAssignment", {
 			const slot = guest.availableSlots.find((row) => row.id === slotId);
 			if (!slot) return;
 
-			const validation = await validateSlotAvailability(slot.slotIds || []);
-			if (!validation.available) {
-				this.errorByGuest = {
-					...this.errorByGuest,
-					[guestKey]:
-						"Selected slot is no longer available. Please choose another slot.",
-				};
-				return;
-			}
-
-			this.isLoadingSlots = { ...this.isLoadingSlots, [guestKey]: true };
+			this.isReservingSlots = { ...this.isReservingSlots, [guestKey]: true };
+			this.reservingSlotIdByGuest = { ...this.reservingSlotIdByGuest, [guestKey]: slotId };
 			this.errorByGuest = { ...this.errorByGuest, [guestKey]: "" };
 
 			try {
@@ -230,6 +240,8 @@ export const useGuestAssignmentStore = defineStore("guestAssignment", {
 						fullName: guest.fullName,
 						email: guest.email,
 						mobileNo: guest.mobileNo,
+						providerGender: guest.providerGender,
+						providerPreference: guest.providerPreference,
 						notes: guest.notes,
 					},
 					date: guest.date,
@@ -246,7 +258,8 @@ export const useGuestAssignmentStore = defineStore("guestAssignment", {
 					[guestKey]: error?.message || "Appointment could not be reserved.",
 				};
 			} finally {
-				this.isLoadingSlots = { ...this.isLoadingSlots, [guestKey]: false };
+				this.isReservingSlots = { ...this.isReservingSlots, [guestKey]: false };
+				this.reservingSlotIdByGuest = { ...this.reservingSlotIdByGuest, [guestKey]: "" };
 			}
 		},
 		moveToNextPendingGuest() {
@@ -259,6 +272,38 @@ export const useGuestAssignmentStore = defineStore("guestAssignment", {
 						return;
 					}
 				}
+			}
+		},
+		async ensureServiceProviders(serviceKey) {
+			const serviceIndex = findServiceIndex(this.assignments, serviceKey);
+			if (serviceIndex === -1) return [];
+			const service = this.assignments[serviceIndex];
+			if (Array.isArray(service.providerOptions) && service.providerOptions.length) {
+				return service.providerOptions;
+			}
+
+			const details = await fetchServicePackages(service.serviceId, service.duration);
+			service.providerOptions = Array.isArray(details.providers) ? details.providers : [];
+			return service.providerOptions;
+		},
+		async updateProviderPreference(serviceKey, guestKey, providerId) {
+			const serviceIndex = findServiceIndex(this.assignments, serviceKey);
+			if (serviceIndex === -1) return;
+			const service = this.assignments[serviceIndex];
+			const guestIndex = findGuestIndex(service, guestKey);
+			if (guestIndex === -1) return;
+
+			await this.ensureServiceProviders(serviceKey);
+			const guest = service.guests[guestIndex];
+			guest.providerPreference = providerId || "";
+			guest.date = "";
+			guest.slot = null;
+			guest.availableDates = [];
+			guest.availableSlots = [];
+			syncGuestCompletion(guest);
+
+			if (guest.fullName) {
+				await this.fetchGuestDates(serviceKey, guestKey);
 			}
 		},
 	},

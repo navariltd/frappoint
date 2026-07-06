@@ -1,13 +1,18 @@
 <template>
 	<div
-		class="flex items-center gap-2 rounded-lg border border-outline-variant bg-surface px-3 py-2"
+		class="flex items-center gap-1.5 h-[32px] rounded-lg border border-outline-variant bg-surface px-2.5 focus-within:ring-0 focus-within:outline-none"
 	>
-		<span class="material-symbols-outlined text-[18px] text-on-surface-variant">search</span>
+		<span
+			class="material-symbols-outlined text-[16px] leading-none shrink-0 text-on-surface-variant"
+		>
+			search
+		</span>
+
 		<input
 			:value="modelValue"
 			:type="type"
 			:placeholder="placeholder"
-			class="w-full bg-transparent text-[13px] text-on-surface outline-none"
+			class="w-full h-full bg-transparent text-[13px] leading-none text-on-surface outline-none border-none ring-0 focus:outline-none focus:ring-0 focus:border-none"
 			@input="$emit('update:modelValue', $event.target.value)"
 		/>
 	</div>

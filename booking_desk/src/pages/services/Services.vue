@@ -4,6 +4,20 @@
 			class="flex-1 min-w-0 flex flex-col border-r border-outline-variant/60 bg-gray-50/50"
 		>
 			<div class="shrink-0 px-4 py-3 border-outline-variant bg-surface-container-lowest">
+				<div class="mb-3">
+					<div class="relative">
+						<span
+							class="material-symbols-outlined pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[18px] text-on-surface-variant"
+							>search</span
+						>
+						<input
+							v-model="searchQuery"
+							type="text"
+							placeholder="Search services by name"
+							class="w-full rounded-xl border border-outline-variant bg-surface-container-low pl-10 pr-3 py-2 text-[12px] outline-none focus:ring-2 focus:ring-primary"
+						/>
+					</div>
+				</div>
 				<div class="flex items-center gap-2 overflow-x-auto scrollbar-hide pb-1">
 					<button
 						v-for="category in categories"
@@ -96,7 +110,21 @@
 		<aside class="w-[360px] shrink-0 bg-surface-container-lowest flex flex-col">
 			<div class="p-5 space-y-4 shrink-0">
 				<section class="space-y-2">
-					<p class="font-label-md text-label-md font-semibold">Customer</p>
+					<div class="flex items-center justify-between gap-2">
+						<p class="font-label-md text-label-md font-semibold">Customer</p>
+						<button
+							type="button"
+							class="inline-flex items-center gap-1 rounded-full border border-outline-variant bg-surface-container-low px-2.5 py-1 text-[11px] font-medium text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high transition-colors disabled:opacity-60 disabled:cursor-wait"
+							:disabled="isLoadingCustomerResults"
+							@click="onManualRefreshCustomers"
+							aria-label="Refresh customers"
+						>
+							<span class="material-symbols-outlined text-[14px]">
+								{{ isLoadingCustomerResults ? "progress_activity" : "refresh" }}
+							</span>
+							<span>Refresh</span>
+						</button>
+					</div>
 
 					<div
 						v-if="selectedCustomerName && !isCustomerPickerOpen"
@@ -144,7 +172,7 @@
 					</div>
 
 					<p
-						v-if="isLoadingCustomers || isLoadingCustomerSummary"
+						v-if="isLoadingCustomerResults || isLoadingCustomerSummary"
 						class="text-[11px] text-on-surface-variant"
 					>
 						Refreshing customer list...
@@ -175,9 +203,12 @@
 								<p class="text-[12px] font-semibold truncate">{{ item.name }}</p>
 								<button
 									type="button"
-									class="text-[11px] text-primary hover:underline mt-1"
+									class="inline-flex items-center gap-1 mt-1.5 text-[11px] font-semibold text-primary bg-primary/10 hover:bg-primary/20 px-2 py-0.5 rounded-full transition-colors"
 									@click="openPackageChangeDialog(item)"
 								>
+									<span class="material-symbols-outlined text-[12px]"
+										>swap_horiz</span
+									>
 									{{ item.packageName || "Change package" }}
 								</button>
 								<p class="text-[11px] text-on-surface-variant mt-1">
@@ -240,10 +271,6 @@
 						<span class="text-on-surface-variant">Subtotal</span>
 						<span>{{ formatMoney(subtotal) }}</span>
 					</div>
-					<div class="flex justify-between">
-						<span class="text-on-surface-variant">Tax</span>
-						<span>{{ formatMoney(taxAmount) }}</span>
-					</div>
 					<div
 						class="flex justify-between pt-2 border-t border-outline-variant font-semibold text-[13px]"
 					>
@@ -283,36 +310,39 @@
 </template>
 
 <script setup>
-import { computed, ref } from "vue";
+import { computed, ref, watch } from "vue";
 import { useRouter } from "vue-router";
 import { useBookingWorkflow } from "@/composables/booking/useBookingWorkflow";
 import { useServiceCart } from "@/composables/services/useServiceCart";
 import PricingPackageDialog from "@/components/services/PricingPackageDialog.vue";
+import { searchNormalizedCustomers } from "@/services/services.service";
 
 const router = useRouter();
 const customerSearch = ref("");
+const customerResults = ref([]);
 const isCustomerPickerOpen = ref(false);
+const isLoadingCustomerResults = ref(false);
 const isPricingDialogOpen = ref(false);
 const selectedService = ref(null);
 const loadingServiceId = ref("");
 const editingCartItemKey = ref("");
 const cartItemPackages = ref({});
+let customerSearchTimer = null;
+let customerSearchToken = 0;
 
 const {
 	filteredServices,
 	categories,
 	selectedCategory,
-	customers,
-	selectedCustomerId,
+	searchQuery,
+	selectedCustomer,
 	customerSummary,
 	cartItems,
 	subtotal,
-	taxAmount,
 	grandTotal,
 	cartCount,
 	canContinue,
 	isLoadingServices,
-	isLoadingCustomers,
 	isLoadingCustomerSummary,
 	error,
 	formatMoney,
@@ -325,41 +355,69 @@ const {
 	onSelectCustomer,
 	onResolveServicePackages,
 	onRetry,
-	onClearCart,
 } = useServiceCart();
 const { isCreatingBooking, bookingError, createDraftBookingSession, clearBookingError } =
 	useBookingWorkflow();
 
 const selectedCustomerName = computed(() => {
-	if (!selectedCustomerId.value) {
+	if (!selectedCustomer.value) {
 		return "";
 	}
-	const selected = customers.value.find((customer) => customer.id === selectedCustomerId.value);
-	return selected?.name || "";
-});
-
-const selectedCustomer = computed(() => {
-	return customers.value.find((customer) => customer.id === selectedCustomerId.value) || null;
+	return selectedCustomer.value.name || "";
 });
 
 const filteredCustomers = computed(() => {
-	const query = customerSearch.value.trim().toLowerCase();
-	if (!query) {
-		return customers.value;
+	return customerResults.value;
+});
+
+const fetchCustomerResults = async (query = "") => {
+	const token = ++customerSearchToken;
+	isLoadingCustomerResults.value = true;
+	try {
+		const results = await searchNormalizedCustomers(query, 50);
+		if (token === customerSearchToken) {
+			customerResults.value = results;
+		}
+	} finally {
+		if (token === customerSearchToken) {
+			isLoadingCustomerResults.value = false;
+		}
 	}
-	return customers.value.filter((customer) => customer.name.toLowerCase().includes(query));
+};
+
+const refreshCustomerResults = async () => {
+	await fetchCustomerResults(customerSearch.value);
+};
+
+const scheduleCustomerSearch = (query) => {
+	clearTimeout(customerSearchTimer);
+	customerSearchTimer = setTimeout(() => {
+		fetchCustomerResults(query);
+	}, 250);
+};
+
+watch(customerSearch, (value) => {
+	if (!isCustomerPickerOpen.value) {
+		return;
+	}
+	scheduleCustomerSearch(value);
 });
 
 const selectCustomer = (customer) => {
-	onSelectCustomer(customer.id);
+	onSelectCustomer(customer);
 	customerSearch.value = "";
 	isCustomerPickerOpen.value = false;
 };
 
-const enableCustomerPicker = () => {
+const enableCustomerPicker = async () => {
+	await fetchCustomerResults("");
 	onSelectCustomer("");
 	customerSearch.value = "";
 	isCustomerPickerOpen.value = true;
+};
+
+const onManualRefreshCustomers = async () => {
+	await refreshCustomerResults();
 };
 
 const handleAddService = async (service) => {
@@ -473,7 +531,6 @@ const proceedToGuestAssignment = () => {
 		})
 		.catch(() => null);
 };
-const clearCart = onClearCart;
 </script>
 
 <style scoped>

@@ -14,6 +14,7 @@
   "column_break_qpdv",
   "allow_past_booking",
   "max_past_days",
+  "enable_appointment_confirmation_without_payment",
   "section_break_tznz",
   "auto_issue_consumables",
   "column_break_dhhf",
@@ -28,6 +29,7 @@
   "alerts_tab",
   "appointment_confirmation",
   "appointment_confirmation_msg",
+  "confirmation_message_provider",
   "column_break_wnne",
   "appointment_reminder",
   "appointment_reminder_msg",
@@ -193,7 +195,9 @@
   },
   {
    "fieldname": "section_break_tznz",
-   "fieldtype": "Section Break"
+   "fieldtype": "Section Break",
+   "hidden": 1,
+   "read_only": 1
   },
   {
    "fieldname": "column_break_dhhf",
@@ -202,13 +206,26 @@
   {
    "fieldname": "column_break_tgkw",
    "fieldtype": "Column Break"
+  },
+  {
+   "default": "Hello {{ doc.service_provider_name }},\n\nAn appointment with {{ doc.full_name }} has been successfully scheduled for {{ doc.appointment_date }}, from {{ doc.start_time }} to {{ doc.end_time }}, at {{ doc.company }}.\n\nHave a great day!",
+   "fieldname": "confirmation_message_provider",
+   "fieldtype": "Small Text",
+   "label": "Confirmation Message Provider"
+  },
+  {
+   "default": "0",
+   "description": "Allow desk users to approve appointments without any payment.",
+   "fieldname": "enable_appointment_confirmation_without_payment",
+   "fieldtype": "Check",
+   "label": "Enable Appointment Confirmation Without Payment"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2026-02-11 11:37:35.922589",
+ "modified": "2026-05-26 09:49:33.219155",
  "modified_by": "Administrator",
  "module": "Frappoint",
  "name": "Service Appointment Settings",
@@ -221,6 +238,24 @@
    "print": 1,
    "read": 1,
    "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "role": "Operations Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "role": "Receptionist",
    "share": 1,
    "write": 1
   }

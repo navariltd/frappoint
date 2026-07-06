@@ -11,8 +11,10 @@ from frappe.core.doctype.sms_settings.sms_settings import send_sms
 from frappe.desk.calendar import get_event_conditions
 from frappe.desk.reportview import build_match_conditions
 from frappe.model.document import Document
+from frappe.query_builder.functions import Sum
 from frappe.utils import (
 	add_to_date,
+	cint,
 	flt,
 	get_datetime,
 	get_link_to_form,
@@ -21,7 +23,17 @@ from frappe.utils import (
 	now_datetime,
 	today,
 )
+from frappe.utils.user import is_website_user
 
+from ...services.booking_transaction_service import (
+	confirm_held_allocations,
+	release_capacity_for_allocations,
+	reserve_and_create_allocations,
+)
+from ...services.provider_assignment_service import (
+	select_provider_for_assignment,
+	throw_no_provider_available,
+)
 from ..service_provider_appointment_slot.service_provider_appointment_slot import (
 	check_provider_slot_capacity,
 	check_service_unit_capacity,
@@ -86,12 +98,17 @@ class ServiceAppointment(Document):
 		is_group_booking: DF.Check
 		is_guest: DF.Check
 		mobile_no: DF.Data | None
-		naming_series: DF.Literal["SVC-APP-.MM.-.YY.-.###."]
+		naming_series: DF.Literal["SVC-APP-.MM.-.YY.-.###."]  # type: ignore[assignment]
 		notes: DF.Text | None
 		outstanding_amount: DF.Currency
 		payment_expires_at: DF.Datetime | None
 		payment_status: DF.Literal[
-			"Unpaid", "Paid", "Partly Paid", "Partly Refunded", "Refunded", "Cancellation"
+			"Unpaid",  # type: ignore[assignment]
+			"Paid",  # type: ignore[assignment]
+			"Partly Paid",  # type: ignore[assignment]
+			"Partly Refunded",  # type: ignore[assignment]
+			"Refunded",  # type: ignore[assignment]
+			"Cancellation",  # type: ignore[assignment]
 		]
 		reschedule_date: DF.Datetime | None
 		reschedule_notes: DF.Text | None
@@ -102,19 +119,19 @@ class ServiceAppointment(Document):
 		selected_slot_ids: DF.SmallText | None
 		service_provider_name: DF.Data | None
 		service_unit: DF.Link | None
-		source: DF.Literal["Desk", "Portal", "Booking Desk"]
+		source: DF.Literal["Desk", "Portal", "Booking Desk"]  # type: ignore[assignment]
 		start_time: DF.Time
 		status: DF.Literal[
-			"Open",
-			"Pending Payment",
-			"Confirmed",
-			"Checked In",
-			"In Progress",
-			"Rescheduled",
-			"Completed",
-			"Cancelled",
-			"Closed",
-			"No Show",
+			"Open",  # type: ignore[assignment]
+			"Pending Payment",  # type: ignore[assignment]
+			"Confirmed",  # type: ignore[assignment]
+			"Checked In",  # type: ignore[assignment]
+			"In Progress",  # type: ignore[assignment]
+			"Rescheduled",  # type: ignore[assignment]
+			"Completed",  # type: ignore[assignment]
+			"Cancelled",  # type: ignore[assignment]
+			"Closed",  # type: ignore[assignment]
+			"No Show",  # type: ignore[assignment]
 		]
 		total_amount: DF.Currency
 		total_guests: DF.Int
@@ -138,6 +155,7 @@ class ServiceAppointment(Document):
 
 	def after_insert(self):
 		self.insert_calendar_event()
+		self.sync_resource_allocations(force=True)
 
 	def before_save(self):
 		"""Assign provider if multiple options exist then, book slots"""
@@ -180,7 +198,7 @@ class ServiceAppointment(Document):
 
 		self.set_outstanding_amount()
 		self.initialize_payment_hold()
-		self.update_payment_and_workflow_status()
+		self.update_payment_and_workflow_status()  # nosemgrep - db_set persists payment/workflow fields during validation.
 
 	def create_portal_booking(self):
 		"""Create the parent booking record for a portal-created appointment."""
@@ -236,10 +254,11 @@ class ServiceAppointment(Document):
 	def on_submit(self):
 		"""Confirm appointment"""
 		if not self.appointment_price:
-			frappe.throw("Please select a price for this appointment")
+			frappe.throw(_("Please select a price for this appointment"))
 
 		self.validate_confirmation_before_submit()
 
+		self.send_confirmation_msg()
 		if self.status != "Confirmed":
 			self.db_set("status", "Confirmed")
 
@@ -248,6 +267,10 @@ class ServiceAppointment(Document):
 		if self.coupon_code:
 			coupon = frappe.get_doc("Service Appointment Coupon Code", self.coupon_code)
 			coupon.db_set("times_used", coupon.get_usage_count())
+
+		# Phase 4 integration: confirm held allocations when appointment is confirmed.
+		if frappe.db.exists("DocType", "Service Resource Allocation"):
+			confirm_held_allocations(self.name)
 
 	def validate_confirmation_before_submit(self):
 		if self.status in ["Closed", "Cancelled"]:
@@ -260,6 +283,9 @@ class ServiceAppointment(Document):
 		required_amount = flt(self.confirmation_required_amount)
 
 		if paid_amount < required_amount:
+			if self._can_confirm_without_payment_from_desk():
+				return
+
 			expiry_text = ""
 			if self.payment_expires_at:
 				expiry_text = _("Payment hold expires at {0}.").format(
@@ -274,13 +300,27 @@ class ServiceAppointment(Document):
 				title=_("Payment Required"),
 			)
 
+	def _can_confirm_without_payment_from_desk(self):
+		"""Allow unpaid confirmation only for desk-side users when enabled in settings."""
+		settings = frappe.get_cached_doc("Service Appointment Settings")
+		if not settings.enable_appointment_confirmation_without_payment:
+			return False
+
+		if frappe.session.user == "Guest":
+			return False
+
+		return not is_website_user()
+
 	def on_cancel(self):
 		"""Release slots when appointment is cancelled"""
 		self.handle_cancellation()
 
 	def on_update(self):
 		"""Handle appointment confirmations"""
-		self.update_payment_and_workflow_status()
+		self.update_payment_and_workflow_status()  # nosemgrep - db_set persists payment/workflow fields from this hook.
+
+		if self._has_allocation_relevant_changes():
+			self.sync_resource_allocations(replace_existing=True)
 
 		if self.has_value_changed("status"):
 			self.handle_status_change()
@@ -289,7 +329,7 @@ class ServiceAppointment(Document):
 		"""Handle status changes and reschedules and cancellations"""
 		# Validate actual end time when completing appointment
 		if self.has_value_changed("status") and self.status == "Completed":
-			if not self.completed_at and not self.actual_end_time:
+			if not self.actual_end_time:
 				frappe.throw(
 					_("Completed At is required to mark appointment as Completed"),
 					title=_("Actual End Time Required"),
@@ -305,6 +345,8 @@ class ServiceAppointment(Document):
 		"""Release slots when appointment is deleted and prevent deletion if billing exists"""
 		self.check_linked_documents_before_delete()
 		self.delete_linked_event()
+		if frappe.db.exists("DocType", "Service Resource Allocation"):
+			release_capacity_for_allocations(appointment_name=self.name, target_status="Released")
 		self.release_slots()
 
 	def on_payment_authorized(self, payment_status):
@@ -395,14 +437,30 @@ class ServiceAppointment(Document):
 		"""
 		Validate that the appointment does not overlap with existing appointments
 		for the same provider on the same date and time range.
+
+		For capacity-enabled services, overlap is handled by capacity validation
+		instead of hard-blocking here.
 		"""
 		if not self.appointment_provider or not all([self.appointment_date, self.start_time, self.end_time]):
 			return
 
-		# The overlap logic checks three conditions:
-		# 1. Existing appointment starts before and ends during this appointment
-		# 2. Existing appointment starts during this appointment
-		# 3. Existing appointment has exact same start time
+		if not self.appointment_type:
+			return
+
+		requires_unit, _unit_types = service_type_requires_service_unit(self.appointment_type)
+		apt_type = frappe.get_doc("Service Type", self.appointment_type)
+		max_clients = apt_type.max_clients_per_slot or 1
+
+		if requires_unit and self.service_unit:
+			allow_overlap = frappe.db.get_value("Service Unit", self.service_unit, "allow_overlap")
+			# Service unit overlap-enabled bookings are governed by capacity checks.
+			if allow_overlap:
+				return
+		elif max_clients > 1:
+			# For services without service units, service-level capacity governs overlap.
+			return
+
+		# Half-open interval overlap: existing.start < new.end AND existing.end > new.start
 		overlapping_appointments = frappe.db.sql(
 			"""
 			SELECT
@@ -417,11 +475,8 @@ class ServiceAppointment(Document):
 				AND appointment_provider = %(appointment_provider)s
 				AND start_time IS NOT NULL
 				AND end_time IS NOT NULL
-				AND (
-					(start_time < %(start_time)s AND end_time > %(start_time)s) OR
-					(start_time >= %(start_time)s AND start_time < %(end_time)s) OR
-					(start_time = %(start_time)s)
-				)
+				AND start_time < %(end_time)s
+				AND end_time > %(start_time)s
 			""",
 			{
 				"appointment_date": self.appointment_date,
@@ -436,8 +491,11 @@ class ServiceAppointment(Document):
 		if overlapping_appointments:
 			overlap_details = "<br>".join(
 				[
-					f"• <b>{get_link_to_form(self.doctype, appt['name'])}</b>: {appt['start_time']} - {appt['end_time']} "
-					f"({appt['full_name']}) - Status: {appt['status']}"
+					(
+						f"• <b>{get_link_to_form(self.doctype, appt['name'])}</b>: "
+						+ f"{appt['start_time']} - "
+						+ f"{appt['end_time']} ({appt['full_name']}) - Status: {appt['status']}"
+					)
 					for appt in overlapping_appointments
 				]
 			)
@@ -584,7 +642,7 @@ class ServiceAppointment(Document):
 
 	def validate_price_and_currency(self):
 		if not self.appointment_type or not self.appointment_price:
-			frappe.throw("Service Type and Service Price are required to validate the price.")
+			frappe.throw(_("Service Type and Service Price are required to validate the price."))
 
 		self.validate_guest_requirements()
 
@@ -840,10 +898,12 @@ class ServiceAppointment(Document):
 			and not self.is_new()
 		):
 			self.status = "Confirmed"
+			self.db_set("status", self.status, update_modified=False)
 			self.submit()
 
 		if not should_confirm and self.status == "Pending Payment" and not self.payment_expires_at:
 			self.status = "Open"
+			self.db_set("status", self.status, update_modified=False)
 
 	def set_outstanding_amount(self):
 		if self.is_new():
@@ -860,7 +920,7 @@ class ServiceAppointment(Document):
 					"reference_name": self.name,
 					"docstatus": 1,
 				},
-				"sum(allocated_amount)",
+				Sum("allocated_amount"),
 			)
 			or 0
 		)
@@ -873,7 +933,7 @@ class ServiceAppointment(Document):
 					"reference_docname": self.name,
 					"docstatus": 1,
 				},
-				"sum(amount)",
+				Sum("amount"),
 			)
 			or 0
 		)
@@ -966,9 +1026,16 @@ class ServiceAppointment(Document):
 			message = frappe.db.get_single_value(
 				"Service Appointment Settings", "appointment_confirmation_msg"
 			)
+			provider_msg = frappe.db.get_single_value(
+				"Service Appointment Settings", "confirmation_message_provider"
+			)
+
+			provider_number = self.get_service_provider_number()
 
 			try:
-				self.send_message(message)
+				self.send_message(self.mobile_no, message)
+				self.send_message(provider_number, provider_msg)
+
 			except Exception:
 				frappe.log_error(
 					_("Appointment Confirmation Message Not Sent"),
@@ -976,24 +1043,45 @@ class ServiceAppointment(Document):
 				)
 				frappe.msgprint(_("Appointment Confirmation Message Not Sent"), indicator="orange")
 
-	@staticmethod
-	def send_message(self, message):
+	def send_message(self, mobile_number, message):
 		context = {"doc": self, "alert": self, "comments": None}
 		if self.get("_comments"):
 			context["comments"] = json.loads(self.get("_comments"))
 
 		# jinja to string convertion happens here
-		message = frappe.render_template(message, context)
-		number = [self.mobile_no]
+		message = frappe.render_template(  # nosemgrep - SMS templates are configured by trusted Desk users.
+			message, context
+		)
+		# provider_number = self.get_service_provider_number()
+
+		number = [mobile_number]
+
 		try:
 			send_sms(number, message)
 		except Exception:
 			frappe.msgprint(_("SMS not sent, please check SMS Settings"), alert=True)
 
+	def get_service_provider_number(self):
+		if self.appointment_provider:
+			return frappe.db.get_value("Service Provider", self.appointment_provider, "mobile_no")
+
+		return None
+
 	def _slots_already_booked(self):
-		"""Check if slots are already booked for this appointment"""
+		"""Check if this appointment already owns active resource capacity."""
 		if not self.name:
 			return False
+
+		if frappe.db.exists("DocType", "Service Resource Allocation"):
+			active_allocations = frappe.db.count(
+				"Service Resource Allocation",
+				{
+					"service_appointment": self.name,
+					"allocation_status": ["in", ["Draft", "Held", "Confirmed"]],
+				},
+			)
+			if active_allocations:
+				return True
 
 		booked_count = frappe.db.count(
 			"Service Provider Appointment Slot", {"service_appointment": self.name}
@@ -1001,94 +1089,56 @@ class ServiceAppointment(Document):
 		return booked_count > 0
 
 	def book_selected_slots(self):
-		"""Book the selected slots"""
-		try:
-			slot_ids = json.loads(self.selected_slot_ids)
-		except (json.JSONDecodeError, TypeError):
-			frappe.throw(_("Invalid slot selection data"))
-
-		# Validate all slots are still available
-		for slot_id in slot_ids:
-			slot = frappe.get_doc("Service Provider Appointment Slot", slot_id)
-
-			if not slot.is_available or (slot.service_appointment and slot.service_appointment != self.name):
-				frappe.throw(
-					_("Slot {0} is no longer available. Please select another time slot.").format(slot_id),
-					title=_("Slot Not Available"),
-				)
-
-		# Book all slots
-		for slot_id in slot_ids:
-			frappe.db.set_value(
-				"Service Provider Appointment Slot",
-				slot_id,
-				{"service_appointment": self.name, "is_available": 0},
-			)
+		"""Reserve capacity through allocation ledger instead of slot-table ownership."""
+		self.sync_resource_allocations(force=True, replace_existing=self._slots_already_booked())
 
 	def release_slots(self):
-		"""Release all booked slots for this appointment"""
-		from frappoint.frappoint.doctype.service_provider_appointment_slot.service_provider_appointment_slot import (
-			release_appointment_slots,
-		)
-
-		release_appointment_slots(self.name)
+		"""Release allocation-ledger capacity."""
+		release_capacity_for_allocations(appointment_name=self.name, target_status="Released")
 
 	def _perform_provider_assignment(self):
 		"""
 		Decides which provider gets the appointment based on the
 		list of available options sent from the booking wizard.
 		"""
-		try:
-			options = json.loads(self.all_available_providers)
-		except Exception:
-			frappe.throw(_("No providers available for the selected time."))
+		preferred_gender = self.get("preferred_provider_gender")
+		winner_data = select_provider_for_assignment(
+			self.all_available_providers,
+			appointment_date=self.appointment_date,
+			service_type=self.appointment_type,
+			preferred_gender=preferred_gender,
+		)
+		if not winner_data:
+			throw_no_provider_available(preferred_gender)
 
-		provider_loads = {}
-		for option in options:
-			count = frappe.db.count(
-				"Service Appointment",
-				{
-					"appointment_provider": option["provider"],
-					"appointment_date": self.appointment_date,
-					"status": [
-						"not in",
-						["Cancelled", "No Show", "Rescheduled", "Closed"],
-					],
-				},
-			)
-			provider_loads[option["provider"]] = count
-
-		best_provider_id = min(provider_loads, key=provider_loads.get)
-
-		winner_data = next(opt for opt in options if opt["provider"] == best_provider_id)
 		self.appointment_provider = winner_data["provider"]
-		self.service_provider_name = winner_data["provider_name"]
-		self.selected_slot_ids = json.dumps(winner_data["slot_ids"])
+		self.service_provider_name = winner_data.get("provider_name")
+		if winner_data.get("service_unit"):
+			self.service_unit = winner_data.get("service_unit")
+		self.selected_slot_ids = json.dumps(winner_data.get("slot_ids") or [])
 
 	def handle_status_change(self):
 		"""Handle actions based on status change"""
 		if self.status == "Cancelled":
 			self.handle_cancellation()
+		# if self.status == "Confirmed":
+		# 	self.send_confirmation_msg()
 
 	def complete_appointment(self):
 		self.auto_issue_consumables()
 		self.complete_linked_event()
-
-		# TODO: Move this to the service Booking
-		invoice_name = self.create_sales_invoice()
-
-		return invoice_name
+		if self.booking_id:
+			booking = frappe.get_doc("Service Booking", self.booking_id)
+			booking.sync_financial_snapshot()
 
 	@frappe.whitelist()
-	def complete_and_invoice(self, actual_start_time: str, actual_end_time: str) -> str:
-		self.started_at = self.started_at or actual_start_time
-		self.completed_at = actual_end_time
+	def complete_and_invoice(self, actual_start_time: str, actual_end_time: str):
+		self.actual_start_time = actual_start_time
+		self.actual_end_time = actual_end_time
 		self.status = "Completed"
 		self.save()
 
-		invoice_name = self.complete_appointment()
-
-		return invoice_name
+		self.complete_appointment()
 
 	def get_linked_document(self, doctype, fields=None):
 		"""Generic method to get linked document"""
@@ -1104,7 +1154,7 @@ class ServiceAppointment(Document):
 
 		docs = frappe.get_all(
 			doctype,
-			filters={"service_appointment": self.name, "docstatus": 1},
+			filters={"service_appointment": self.name, "docstatus": ["!=", 2]},
 			fields=fields,
 			limit=1,
 		)
@@ -1221,11 +1271,21 @@ class ServiceAppointment(Document):
 
 	def create_sales_invoice(self):
 		"""Create Sales Invoice when appointment is completed"""
+		if self.booking_id:
+			booking = frappe.get_doc("Service Booking", self.booking_id)
+			if booking.get_linked_sales_invoice():
+				frappe.throw(
+					_(
+						"Booking {0} already has a Sales Invoice. Cancel it before creating appointment invoices."
+					).format(self.booking_id),
+					title=_("Already Invoiced"),
+				)
+
 		sales_invoice = self.get_linked_document("Sales Invoice")
 
 		if sales_invoice:
 			self.show_already_exists_message("Sales Invoice", sales_invoice.name)
-			return
+			return sales_invoice.name
 
 		item_code = frappe.db.get_value("Service Type", self.appointment_type, "item")
 		price_record = self.get_selected_price_record()
@@ -1278,11 +1338,133 @@ class ServiceAppointment(Document):
 		self.db_set("status", "Cancelled")
 		self.db_set("cancellation_date", now_datetime())
 		self.cancel_linked_event()
+		if frappe.db.exists("DocType", "Service Resource Allocation"):
+			release_capacity_for_allocations(appointment_name=self.name, target_status="Cancelled")
 		self.release_slots()
 
 		if not getattr(self.flags, "is_rescheduling", False):
 			if self.booking_id:
 				self.sync_parent_booking()
+
+	def _has_allocation_relevant_changes(self):
+		if self.is_new():
+			return True
+
+		old_doc = self.get_doc_before_save()
+		if not old_doc:
+			return False
+
+		tracked_fields = [
+			"appointment_date",
+			"start_time",
+			"end_time",
+			"appointment_provider",
+			"service_unit",
+			"booking_id",
+		]
+
+		return any(str(old_doc.get(field)) != str(self.get(field)) for field in tracked_fields)
+
+	def _get_buffer_minutes(self):
+		buffer_before = cint(self.get("buffer_before_minutes") or 0)
+		buffer_after = cint(self.get("buffer_after_minutes") or 0)
+
+		if buffer_before or buffer_after:
+			return buffer_before, buffer_after
+
+		if self.appointment_type and frappe.db.exists("Service Type", self.appointment_type):
+			service_type = frappe.db.get_value(
+				"Service Type",
+				self.appointment_type,
+				["buffer_before", "buffer_after"],
+				as_dict=True,
+			)
+			if service_type:
+				return cint(service_type.get("buffer_before") or 0), cint(
+					service_type.get("buffer_after") or 0
+				)
+
+		settings = frappe.get_cached_doc("Service Appointment Settings")
+		return cint(settings.buffer_before or 0), cint(settings.buffer_after or 0)
+
+	def _build_allocation_payloads(self):
+		buffer_before, buffer_after = self._get_buffer_minutes()
+
+		allocation_payloads = [
+			{
+				"resource_type": "Service Provider",
+				"resource_reference": self.appointment_provider,
+				"allocation_date": self.appointment_date,
+				"start_time": self.start_time,
+				"end_time": self.end_time,
+				"appointment_start_time": self.start_time,
+				"appointment_end_time": self.end_time,
+				"capacity_consumed": 1.0,
+				"buffer_before_minutes": buffer_before,
+				"buffer_after_minutes": buffer_after,
+			}
+		]
+
+		if self.service_unit:
+			allocation_payloads.append(
+				{
+					"resource_type": "Service Unit",
+					"resource_reference": self.service_unit,
+					"allocation_date": self.appointment_date,
+					"start_time": self.start_time,
+					"end_time": self.end_time,
+					"appointment_start_time": self.start_time,
+					"appointment_end_time": self.end_time,
+					"capacity_consumed": 1.0,
+					"buffer_before_minutes": buffer_before,
+					"buffer_after_minutes": buffer_after,
+				}
+			)
+
+		return allocation_payloads
+
+	def sync_resource_allocations(self, force=False, replace_existing=False):
+		"""Sync allocation ledger for legacy slot-based workflows.
+
+		This keeps allocation/counter architecture in sync while old slot ownership still exists.
+		"""
+		if not frappe.db.exists("DocType", "Service Resource Allocation"):
+			return
+
+		if not self.name or not self.appointment_date or not self.start_time or not self.end_time:
+			return
+
+		if not self.appointment_provider:
+			return
+
+		if self.status in ["Cancelled", "Closed", "No Show"]:
+			return
+
+		active_allocations = frappe.db.count(
+			"Service Resource Allocation",
+			{
+				"service_appointment": self.name,
+				"allocation_status": ["in", ["Draft", "Held", "Confirmed"]],
+			},
+		)
+
+		if active_allocations and not force and not replace_existing:
+			return
+
+		if replace_existing and active_allocations:
+			release_capacity_for_allocations(appointment_name=self.name, target_status="Released")
+
+		allocation_status = (
+			"Confirmed" if self.status in ["Confirmed", "Checked In", "In Progress", "Completed"] else "Held"
+		)
+
+		reserve_and_create_allocations(
+			appointment_name=self.name,
+			booking_name=self.booking_id,
+			allocations=self._build_allocation_payloads(),
+			allocation_status=allocation_status,
+			extra_metadata={"source": "service_appointment.sync_resource_allocations"},
+		)
 
 	def sync_parent_booking(self):
 		"""Adjust the Service Booking items based on the new operational state"""
@@ -1467,20 +1649,30 @@ class ServiceAppointment(Document):
 
 
 @frappe.whitelist()
-def get_appointment_slots(appointment_type, duration, provider=None, date=None, days_ahead=30):
+def get_appointment_slots(
+	appointment_type: str,
+	duration: int | str,
+	provider: str | None = None,
+	date: str | None = None,
+	days_ahead: int | str | None = None,
+):
 	"""
 	Wrapper method for getting available slots
 	Can be called from frontend
 	"""
-	from frappoint.frappoint.doctype.service_provider_appointment_slot.service_provider_appointment_slot import (
-		get_available_slots,
-	)
+	from frappoint.frappoint.api.slot_availability import get_available_time_slots
 
-	return get_available_slots(appointment_type, duration, provider, date, days_ahead)
+	return get_available_time_slots(
+		service_type=appointment_type,
+		duration=duration,
+		provider=provider,
+		date=date,
+		days_ahead=days_ahead,
+	)
 
 
 @frappe.whitelist()
-def issue_consumables_manual(appointment):
+def issue_consumables_manual(appointment: str):
 	"""Manually issue consumables for an appointment"""
 	doc = frappe.get_doc("Service Appointment", appointment)
 	doc.issue_consumables()
@@ -1488,14 +1680,14 @@ def issue_consumables_manual(appointment):
 
 
 @frappe.whitelist()
-def create_material_request_manual(appointment, t_warehouse):
+def create_material_request_manual(appointment: str, t_warehouse: str):
 	"""Manually create material request for consumables"""
 	doc = frappe.get_doc("Service Appointment", appointment)
 	return doc.create_material_request_for_consumables(t_warehouse)
 
 
 @frappe.whitelist()
-def get_events(start, end, filters=None):
+def get_events(start: str, end: str, filters: str | dict | None = None):
 	"""Returns events for Gantt / Calendar view rendering.
 
 	:param start: Start date-time.
@@ -1509,8 +1701,8 @@ def get_events(start, end, filters=None):
 	if match_conditions:
 		conditions += "and" + match_conditions
 
-	data = frappe.db.sql(
-		f"""
+	query = (
+		"""
 		select
 			`tabService Appointment`.name,
 			`tabService Appointment`.customer,
@@ -1530,8 +1722,11 @@ def get_events(start, end, filters=None):
 			(`tabService Appointment`.appointment_date between %(start)s and %(end)s)
 			and `tabService Appointment`.status != 'Cancelled'
 			and `tabService Appointment`.docstatus < 2
-			{conditions}
-		""",
+		"""
+		+ conditions
+	)
+	data = frappe.db.sql(
+		query,
 		{"start": start, "end": end},
 		as_dict=True,
 		update={"allDay": 0},
@@ -1698,7 +1893,10 @@ def reschedule_appointment(
 		# Move direct appointment payment records to the new appointment.
 		payment_rows = frappe.get_all(
 			"Service Appointment Payment",
-			filters={"reference_doctype": "Service Appointment", "reference_docname": old_appointment.name},
+			filters={
+				"reference_doctype": "Service Appointment",
+				"reference_docname": old_appointment.name,
+			},
 			fields=["name", "amount", "payment_received"],
 		)
 		paid_amount = 0
@@ -1714,7 +1912,10 @@ def reschedule_appointment(
 		# Move booking-allocation references so booking-paid balances follow the new appointment.
 		payment_reference_rows = frappe.get_all(
 			"Service Appointment Payment Reference",
-			filters={"reference_doctype": "Service Appointment", "reference_name": old_appointment.name},
+			filters={
+				"reference_doctype": "Service Appointment",
+				"reference_name": old_appointment.name,
+			},
 			fields=["name", "allocated_amount"],
 		)
 		allocated_paid_amount = 0
@@ -1727,7 +1928,10 @@ def reschedule_appointment(
 			)
 
 		# Fallback to old appointment paid state in case any payment links are stale.
-		old_paid_amount = max(0, flt(old_appointment.grand_total) - flt(old_appointment.outstanding_amount))
+		old_paid_amount = max(
+			0,
+			flt(old_appointment.grand_total) - flt(old_appointment.outstanding_amount),
+		)
 		paid_amount = max(paid_amount, allocated_paid_amount, old_paid_amount)
 
 		grand_total = flt(new_appointment.grand_total or new_appointment.total_amount)
@@ -1784,7 +1988,7 @@ def reschedule_appointment(
 
 
 @frappe.whitelist()
-def cancel_appointment(appointment_id, cancellation_reasons=None):
+def cancel_appointment(appointment_id: str, cancellation_reasons: str | list | None = None):
 	"""Cancel a submitted appointment"""
 	try:
 		appointment = frappe.get_doc("Service Appointment", appointment_id)

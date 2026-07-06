@@ -4,7 +4,9 @@
 			v-for="slot in slots"
 			:key="slot.id"
 			:slot="slot"
-			:selected="selectedSlotId === slot.id"
+			:selected="selectedSlotId === slot.id || pendingSlotId === slot.id"
+			:pending="pendingSlotId === slot.id"
+			:disabled="disabled"
 			@select="$emit('select-slot', $event)"
 		/>
 	</div>
@@ -21,6 +23,14 @@ defineProps({
 	selectedSlotId: {
 		type: String,
 		default: "",
+	},
+	pendingSlotId: {
+		type: String,
+		default: "",
+	},
+	disabled: {
+		type: Boolean,
+		default: false,
 	},
 });
 

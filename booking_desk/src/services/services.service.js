@@ -3,6 +3,7 @@ import {
 	fetchCustomers,
 	fetchServiceTypeDetails,
 	fetchServiceTypes,
+	searchCustomers,
 } from "@/api/services.api";
 
 const toAmount = (value) => {
@@ -25,6 +26,13 @@ const normalizePackage = (row) => ({
 	currency: row.currency || "KES",
 	pricingModel: row.pricing_model || "",
 	guestCount: Number(row.guest_count) || null,
+});
+
+const normalizeProvider = (row) => ({
+	id: row.name || row.provider || "",
+	name: row.provider_name || row.providerName || row.name || row.provider || "",
+	gender: row.gender || "",
+	designation: row.designation || "",
 });
 
 const findPriceForDuration = (prices, targetDuration) => {
@@ -82,7 +90,9 @@ export async function fetchServicePackages(serviceId, preferredDuration = 0) {
 		serviceId,
 		packages,
 		defaultPackage,
-		providers: Array.isArray(details?.providers) ? details.providers : [],
+		providers: Array.isArray(details?.providers)
+			? details.providers.map(normalizeProvider).filter((provider) => provider.id)
+			: [],
 		paymentGateways: Array.isArray(details?.payment_gateways) ? details.payment_gateways : [],
 		minGuests: Number(details?.min_guests) || null,
 		maxGuests: Number(details?.max_guests) || null,
@@ -94,8 +104,16 @@ export function buildServiceCategories(services) {
 	return ["All", ...Array.from(categorySet).sort((a, b) => a.localeCompare(b))];
 }
 
-export async function fetchNormalizedCustomers() {
-	const customers = await fetchCustomers();
+export async function fetchNormalizedCustomers(pageLength = 100) {
+	const customers = await fetchCustomers(pageLength);
+	return customers.map((row) => ({
+		id: row.name,
+		name: row.customer_name || row.name,
+	}));
+}
+
+export async function searchNormalizedCustomers(query = "", pageLength = 50) {
+	const customers = await searchCustomers(query, pageLength);
 	return customers.map((row) => ({
 		id: row.name,
 		name: row.customer_name || row.name,

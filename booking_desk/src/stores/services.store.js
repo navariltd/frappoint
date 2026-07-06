@@ -25,13 +25,13 @@ export const useServicesStore = defineStore("services", {
 		searchQuery: "",
 		customers: [],
 		selectedCustomerId: "",
+		selectedCustomerRecord: null,
 		customerSummary: createEmptyCustomerSummary(),
 		cartItems: [],
 		isLoadingServices: false,
 		isLoadingCustomers: false,
 		isLoadingCustomerSummary: false,
 		error: null,
-		taxRate: 0.085,
 	}),
 	getters: {
 		filteredServices(state) {
@@ -42,20 +42,17 @@ export const useServicesStore = defineStore("services", {
 					service.category === state.selectedCategory;
 				const queryMatch =
 					!query ||
-					service.name.toLowerCase().includes(query) ||
-					service.description.toLowerCase().includes(query) ||
-					service.category.toLowerCase().includes(query);
+					String(service.name || "")
+						.toLowerCase()
+						.includes(query);
 				return categoryMatch && queryMatch;
 			});
 		},
 		subtotal(state) {
 			return state.cartItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
 		},
-		taxAmount() {
-			return this.subtotal * this.taxRate;
-		},
 		grandTotal() {
-			return this.subtotal + this.taxAmount;
+			return this.subtotal;
 		},
 		cartCount(state) {
 			return state.cartItems.reduce((sum, item) => sum + item.quantity, 0);
@@ -64,6 +61,9 @@ export const useServicesStore = defineStore("services", {
 			return this.cartCount > 0;
 		},
 		selectedCustomer(state) {
+			if (state.selectedCustomerRecord) {
+				return state.selectedCustomerRecord;
+			}
 			return (
 				state.customers.find((customer) => customer.id === state.selectedCustomerId) ||
 				null
@@ -77,8 +77,18 @@ export const useServicesStore = defineStore("services", {
 		setSelectedCategory(category) {
 			this.selectedCategory = category;
 		},
-		setSelectedCustomer(customerId) {
-			this.selectedCustomerId = customerId;
+		setSelectedCustomer(customer) {
+			if (customer && typeof customer === "object") {
+				this.selectedCustomerId = customer.id || "";
+				this.selectedCustomerRecord = {
+					id: customer.id || "",
+					name: customer.name || customer.customer_name || customer.id || "",
+				};
+				return;
+			}
+
+			this.selectedCustomerId = customer || "";
+			this.selectedCustomerRecord = null;
 		},
 		addServiceToCart(service, price, packageName, duration, packageId) {
 			const actualPrice = price !== undefined ? price : service.price;
@@ -169,9 +179,13 @@ export const useServicesStore = defineStore("services", {
 			this.isLoadingCustomers = true;
 			this.error = null;
 			try {
-				this.customers = await fetchNormalizedCustomers();
+				this.customers = await fetchNormalizedCustomers(100);
 				if (!this.selectedCustomerId && this.customers.length) {
 					this.selectedCustomerId = this.customers[0].id;
+					this.selectedCustomerRecord = this.customers[0];
+				} else if (this.selectedCustomerId && !this.selectedCustomerRecord) {
+					this.selectedCustomerRecord =
+						this.customers.find((item) => item.id === this.selectedCustomerId) || null;
 				}
 			} catch (error) {
 				this.error = error?.message || "Failed to load customers";
@@ -183,9 +197,9 @@ export const useServicesStore = defineStore("services", {
 			this.isLoadingCustomerSummary = true;
 			this.error = null;
 			try {
-				const selected = this.customers.find(
-					(item) => item.id === this.selectedCustomerId
-				);
+				const selected =
+					this.selectedCustomer ||
+					this.customers.find((item) => item.id === this.selectedCustomerId);
 				this.customerSummary = await fetchCustomerSummary(
 					this.selectedCustomerId,
 					selected?.name || ""
