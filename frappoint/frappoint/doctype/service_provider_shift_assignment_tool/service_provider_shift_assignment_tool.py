@@ -127,7 +127,6 @@ class ServiceProviderShiftAssignmentTool(Document):
 				)
 
 				query = query.where(ServiceProvider.name.notin(end_date_subquery))
-		print(query.run(as_dict=True))
 		return query.run(as_dict=True)
 
 	@frappe.whitelist()
