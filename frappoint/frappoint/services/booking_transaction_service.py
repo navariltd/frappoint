@@ -172,7 +172,7 @@ def confirm_held_allocations(appointment_name: str, commit: bool = False) -> int
 
 	_update_appointment_allocation_status(appointment_name, "Confirmed")
 	if commit:
-		frappe.db.commit()  # nosemgrep: caller requested an explicit transaction boundary.
+		frappe.db.commit()  # nosemgrep - caller requested an explicit transaction boundary.
 	return len(rows)
 
 

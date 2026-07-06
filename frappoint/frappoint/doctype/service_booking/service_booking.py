@@ -508,7 +508,7 @@ class ServiceBooking(Document):
 		}
 
 	@frappe.whitelist()
-	def create_appointment_sales_invoices(self, appointment_names):
+	def create_appointment_sales_invoices(self, appointment_names: str | list):
 		if isinstance(appointment_names, str):
 			appointment_names = frappe.parse_json(appointment_names)
 

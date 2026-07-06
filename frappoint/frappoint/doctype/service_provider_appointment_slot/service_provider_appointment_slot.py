@@ -201,7 +201,11 @@ def _apply_provider_change(appointment, provider_name, service_unit=None):
 
 
 @frappe.whitelist()
-def change_appointment_provider(appointment_name, target_provider=None, target_service_unit=None):
+def change_appointment_provider(
+	appointment_name: str,
+	target_provider: str | None = None,
+	target_service_unit: str | None = None,
+):
 	appointment = frappe.get_doc("Service Appointment", appointment_name)
 	active_allocations = _get_active_allocation_count(appointment.name)
 
@@ -258,7 +262,7 @@ def change_appointment_provider(appointment_name, target_provider=None, target_s
 		else appointment.appointment_provider,
 		service_unit=selected_option.get("service_unit") if selected_option else appointment.service_unit,
 	)
-	frappe.db.commit()
+	frappe.db.commit()  # nosemgrep - provider change is an explicit desk action boundary.
 
 	return {
 		"success": True,
@@ -296,7 +300,7 @@ def insert_slot(provider, slot_date, start_time, end_time, shift_assignment):
 
 
 @frappe.whitelist()
-def generate_for_shift(shift_assignment):
+def generate_for_shift(shift_assignment: str):
 	from ...services.slot_cache_service import invalidate_provider_date_range_cache
 
 	sa = frappe.get_doc("Service Provider Shift Assignment", shift_assignment)
@@ -309,7 +313,7 @@ def generate_for_shift(shift_assignment):
 			"is_available",
 			0,
 		)
-		frappe.db.commit()
+		frappe.db.commit()  # nosemgrep - inactive shift update must persist before cache invalidation.
 		invalidate_provider_date_range_cache(
 			sa.provider, sa.start_date, sa.end_date or add_days(nowdate(), 365)
 		)
@@ -322,7 +326,7 @@ def generate_for_shift(shift_assignment):
 			"service_appointment": ["is", "not set"],
 		},
 	)
-	frappe.db.commit()
+	frappe.db.commit()  # nosemgrep - old generated slots are deleted before regeneration.
 
 	provider = sa.provider
 	slot_size = get_global_slot_size()
@@ -430,7 +434,7 @@ def generate_for_shift(shift_assignment):
 	if slots_to_insert:
 		for slot in slots_to_insert:
 			frappe.get_doc(slot).insert(ignore_permissions=True)
-		frappe.db.commit()
+		frappe.db.commit()  # nosemgrep - generated slots must persist before cache invalidation.
 
 	invalidate_provider_date_range_cache(sa.provider, start_date, end_date)
 
@@ -533,7 +537,7 @@ def generate_slots_for_specific_days(shift_assignment, weekdays, start_date, end
 	if slots_to_insert:
 		for slot in slots_to_insert:
 			frappe.get_doc(slot).insert(ignore_permissions=True)
-		frappe.db.commit()
+		frappe.db.commit()  # nosemgrep - generated weekday slots must persist before cache invalidation.
 
 	invalidate_provider_date_range_cache(sa.provider, start_date, end_date)
 
@@ -572,7 +576,7 @@ def delete_slots_for_specific_days(shift_assignment, weekdays):
 		(shift_assignment, dates_to_delete),
 	)
 
-	frappe.db.commit()
+	frappe.db.commit()  # nosemgrep - selective slot deletion must persist before cache invalidation.
 	invalidate_provider_date_range_cache(sa.provider, start_date, end_date)
 
 	count = deleted_count if isinstance(deleted_count, int) else len(dates_to_delete)

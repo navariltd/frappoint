@@ -15,9 +15,9 @@ def get_service_types(
 	item_group: str | None = None,
 	page: int = 1,
 	page_size: int = 12,
-	sort_by=None,
-	min_price=None,
-	max_price=None,
+	sort_by: str | None = None,
+	min_price: int | float | str | None = None,
+	max_price: int | float | str | None = None,
 ) -> dict:
 	"""
 	Get all available service types with pagination
@@ -241,7 +241,7 @@ def get_service_type_details(service_type: str) -> dict:
 	)
 
 	if not service:
-		frappe.throw("Service not found", frappe.DoesNotExistError)
+		frappe.throw(_("Service not found"), frappe.DoesNotExistError)
 
 	return {
 		**service,

@@ -609,4 +609,4 @@ class ServiceProviderShiftAssignment(Document):
 			self.name,
 		)
 
-		frappe.db.commit()  # nosemgrep: explicit commit after bulk deleting generated slots for this shift.
+		frappe.db.commit()  # nosemgrep - explicit commit after bulk deleting generated slots for this shift.

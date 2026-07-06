@@ -1213,7 +1213,7 @@ def record_manual_checkout_payment(
 
 
 @frappe.whitelist()
-def create_draft_service_booking(customer=None, items=None):
+def create_draft_service_booking(customer: str | dict | None = None, items: str | list | None = None):
 	customer = _parse_json_payload(customer, {})
 	items = _parse_json_payload(items, [])
 
@@ -1265,7 +1265,7 @@ def create_draft_service_booking(customer=None, items=None):
 
 	booking.total_guests = total_guests
 	booking.insert(ignore_permissions=True)
-	frappe.db.commit()  # nosemgrep
+	frappe.db.commit()  # nosemgrep - draft booking must be persisted before the desk continues.
 
 	return _serialize_booking(booking)
 
@@ -1273,7 +1273,7 @@ def create_draft_service_booking(customer=None, items=None):
 @frappe.whitelist()
 def upsert_draft_service_appointment(
 	booking_id: str | None = None,
-	assignment=None,
+	assignment: str | dict | None = None,
 	appointment_id: str | None = None,
 	bookingId: str | None = None,
 ):
@@ -1397,7 +1397,7 @@ def upsert_draft_service_appointment(
 
 	booking.reload()
 	booking.sync_financial_snapshot()
-	frappe.db.commit()  # nosemgrep
+	frappe.db.commit()  # nosemgrep - draft appointment must be persisted before returning availability state.
 
 	return {
 		"booking": _serialize_booking(booking),
@@ -1451,11 +1451,11 @@ def perform_appointment_action(
 	new_start_time: str | None = None,
 	new_end_time: str | None = None,
 	new_provider: str | None = None,
-	new_slot_ids=None,
+	new_slot_ids: str | list | None = None,
 	new_service_unit: str | None = None,
 	actual_start_time: str | None = None,
 	actual_end_time: str | None = None,
-	cancellation_reasons=None,
+	cancellation_reasons: str | list | None = None,
 	**kwargs,
 ):
 	appointment_id = (
@@ -1500,7 +1500,7 @@ def perform_appointment_action(
 			action_time=actual_start_time or now_datetime(),
 		)
 		appointment.reload()
-		frappe.db.commit()
+		frappe.db.commit()  # nosemgrep - event action must be visible before the updated desk response.
 		return _build_appointment_response(
 			appointment,
 			(frappe.get_doc("Service Booking", appointment.booking_id) if appointment.booking_id else None),
@@ -1514,7 +1514,7 @@ def perform_appointment_action(
 		)
 		appointment.complete_appointment()
 		appointment.reload()
-		frappe.db.commit()
+		frappe.db.commit()  # nosemgrep - completion updates booking and appointment state for the response.
 		return _build_appointment_response(
 			appointment,
 			(frappe.get_doc("Service Booking", appointment.booking_id) if appointment.booking_id else None),
@@ -1523,7 +1523,7 @@ def perform_appointment_action(
 	if action == "confirm":
 		appointment.confirm_appointment()
 		appointment.reload()
-		frappe.db.commit()
+		frappe.db.commit()  # nosemgrep - confirmation is an explicit desk action boundary.
 		return _build_appointment_response(
 			appointment,
 			(frappe.get_doc("Service Booking", appointment.booking_id) if appointment.booking_id else None),
@@ -1635,7 +1635,7 @@ def perform_appointment_action(
 				appointment.selected_slot_ids = new_slot_ids
 
 		appointment.save(ignore_permissions=True)
-		frappe.db.commit()
+		frappe.db.commit()  # nosemgrep - desk time-slot edits must be persisted before returning.
 		booking = (
 			frappe.get_doc("Service Booking", appointment.booking_id) if appointment.booking_id else None
 		)
@@ -1698,8 +1698,8 @@ def _derive_payment_status(booking_row):
 def get_service_bookings_workspace(
 	search_text: str | None = None,
 	customer_query: str | None = None,
-	statuses=None,
-	payment_statuses=None,
+	statuses: str | list | None = None,
+	payment_statuses: str | list | None = None,
 	from_date: str | None = None,
 	to_date: str | None = None,
 	page: int = 1,

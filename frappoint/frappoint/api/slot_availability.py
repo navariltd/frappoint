@@ -1,4 +1,5 @@
 import frappe
+from frappe import _
 from frappe.utils import add_days, getdate, nowdate
 
 from ..doctype.service_provider_appointment_slot.service_provider_appointment_slot import (
@@ -7,7 +8,7 @@ from ..doctype.service_provider_appointment_slot.service_provider_appointment_sl
 from ..services.availability_projector import get_available_slots as get_projected_available_slots
 
 
-@frappe.whitelist(allow_guest=True)
+@frappe.whitelist(allow_guest=True)  # nosemgrep: guest-whitelisted-method
 def get_available_dates(
 	service_type: str,
 	duration: int,
@@ -51,15 +52,15 @@ def get_available_dates(
 	return sorted({str(row.get("date")) for row in rows if row.get("date")})
 
 
-@frappe.whitelist(allow_guest=True)
+@frappe.whitelist(allow_guest=True)  # nosemgrep: guest-whitelisted-method
 def get_available_time_slots(
-	service_type,
-	duration,
-	provider=None,
-	date=None,
-	gender=None,
-	days_ahead=None,
-	use_counter_engine=None,
+	service_type: str,
+	duration: int | str,
+	provider: str | None = None,
+	date: str | None = None,
+	gender: str | None = None,
+	days_ahead: int | str | None = None,
+	use_counter_engine: int | str | bool | None = None,
 ):
 	"""
 	Get available time slots
@@ -76,7 +77,7 @@ def get_available_time_slots(
 	# Availability search is projector-only. The legacy slot engine is no longer used here.
 	use_counter_engine = cint_safe(use_counter_engine if use_counter_engine is not None else 1) == 1
 	if not use_counter_engine:
-		frappe.throw("Legacy slot availability engine has been removed. Use the counter engine.")
+		frappe.throw(_("Legacy slot availability engine has been removed. Use the counter engine."))
 
 	start_date, end_date = _resolve_date_range(date=date, days_ahead=days_ahead)
 	rows = get_projected_available_slots(
@@ -104,13 +105,13 @@ def get_available_time_slots(
 	return format_available_slots(rows)
 
 
-@frappe.whitelist(allow_guest=True)
-def check_slot_availability(slot_ids):
+@frappe.whitelist(allow_guest=True)  # nosemgrep: guest-whitelisted-method
+def check_slot_availability(slot_ids: str | list):
 	"""
 	Check if specific slots are still available before booking
 	Use case: Pre-booking validation
 	"""
-	frappe.throw("Legacy slot availability precheck has been removed. Use allocation/counter APIs.")
+	frappe.throw(_("Legacy slot availability precheck has been removed. Use allocation/counter APIs."))
 
 
 def _resolve_date_range(date: str | None = None, days_ahead: int | str | None = None):

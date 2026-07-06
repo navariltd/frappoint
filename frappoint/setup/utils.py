@@ -30,4 +30,4 @@ def before_tests():
 		)
 
 	enable_all_roles_and_domains()
-	frappe.db.commit()  # nosemgrep: setup routine persists created defaults before returning.
+	frappe.db.commit()  # nosemgrep - setup routine persists created defaults before returning.

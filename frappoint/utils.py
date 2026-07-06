@@ -22,7 +22,7 @@ def purge_old_slots():
 	frappe.db.delete("Service Provider Appointment Slot", {"posting_date": ["<", purge_date]})
 	purge_slot_cache_before_date(purge_date)
 
-	frappe.db.commit()  # nosemgrep: scheduled cleanup commits after deleting old slots and cache rows.
+	frappe.db.commit()  # nosemgrep - scheduled cleanup commits after deleting old slots and cache rows.
 	return f"Purged slots older than {purge_date}"
 
 

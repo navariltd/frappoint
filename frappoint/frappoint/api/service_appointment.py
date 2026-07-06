@@ -76,7 +76,7 @@ def create_service_appointment(
 		)
 
 	appointment.insert()
-	frappe.db.commit()
+	frappe.db.commit()  # nosemgrep - portal booking must be committed before returning the appointment id.
 
 	return {
 		"message": _("Service appointment created successfully."),
@@ -140,7 +140,9 @@ def get_cancellation_reasons() -> list[dict]:
 
 
 @frappe.whitelist()
-def reserve_appointment_allocations(appointment_name: str, allocations, booking_name: str | None = None):
+def reserve_appointment_allocations(
+	appointment_name: str, allocations: str | list, booking_name: str | None = None
+):
 	"""Reserve capacity atomically and create resource allocations for an appointment."""
 	if isinstance(allocations, str):
 		allocations = json.loads(allocations)
@@ -178,8 +180,8 @@ def cancel_appointment_with_release(appointment_name: str, reason: str | None = 
 @frappe.whitelist()
 def reschedule_appointment_with_allocations(
 	appointment_name: str,
-	new_appointment_data,
-	new_allocations,
+	new_appointment_data: str | dict,
+	new_allocations: str | list,
 	reason: str | None = None,
 ):
 	"""Reschedule appointment while releasing/re-reserving resource allocations atomically."""

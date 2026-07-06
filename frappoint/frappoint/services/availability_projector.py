@@ -1039,7 +1039,7 @@ def refresh_targeted_counters(
 					resource_reference=service_unit,
 				)
 			)
-		frappe.db.commit()  # nosemgrep: scheduled rebuild commits each day to avoid long transactions.
+		frappe.db.commit()  # nosemgrep - scheduled rebuild commits each day to avoid long transactions.
 		current = add_days(current, 1)
 
 	return {
@@ -1064,7 +1064,7 @@ def refresh_counter_horizon() -> dict[str, Any]:
 	current = start
 	while current <= end:
 		results.append(rebuild_counter_for_date(current))
-		frappe.db.commit()  # nosemgrep: scheduled horizon refresh commits each day to avoid long transactions.
+		frappe.db.commit()  # nosemgrep - scheduled horizon refresh commits each day to avoid long transactions.
 		current = add_days(current, 1)
 
 	result = {

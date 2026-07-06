@@ -58,7 +58,7 @@ class ServiceAppointmentPayment(Document):
 			self.get_references()
 
 	def on_submit(self):
-		self.create_payment_entry()
+		self.create_payment_entry()  # nosemgrep - submitted payment stores the generated Payment Entry link.
 		self.update_outstanding_balances(cancel=False)
 
 	def on_cancel(self):
@@ -140,9 +140,10 @@ class ServiceAppointmentPayment(Document):
 		payment_entry.insert(ignore_permissions=True, ignore_mandatory=True)
 		payment_entry.submit()
 
-		self.db_set("payment_entry", payment_entry.name, update_modified=False)
-		self.payment_entry = payment_entry.name
-		return payment_entry.name
+		payment_entry_name = payment_entry.name
+		self.payment_entry = payment_entry_name
+		self.db_set("payment_entry", payment_entry_name, update_modified=False)
+		return payment_entry_name
 
 	def cancel_payment_entry(self):
 		if not self.payment_entry:
