@@ -81,9 +81,12 @@ class ServiceResourceAllocation(Document):
 		"""Called when allocation is submitted."""
 		# If status is Confirmed, record confirmed_at timestamp
 		if self.allocation_status == "Confirmed" and not self.confirmed_at:
-			self.confirmed_at = now_datetime()
-			self.is_confirmed = True
-			self.db_update()
+			frappe.db.set_value(
+				"Service Resource Allocation",
+				self.name,
+				{"confirmed_at": now_datetime(), "is_confirmed": True},
+				update_modified=False,
+			)
 
 	def before_save(self):
 		"""Before save operations."""
@@ -97,9 +100,9 @@ class ServiceResourceAllocation(Document):
 		"""Called after document is updated post-submission."""
 		# If status changed to Confirmed, record confirmed_at
 		if self.allocation_status == "Confirmed" and not self.confirmed_at:
-			self.confirmed_at = now_datetime()
 			frappe.db.set_value(
 				"Service Resource Allocation",
 				self.name,
-				{"confirmed_at": self.confirmed_at, "is_confirmed": True},
+				{"confirmed_at": now_datetime(), "is_confirmed": True},
+				update_modified=False,
 			)
