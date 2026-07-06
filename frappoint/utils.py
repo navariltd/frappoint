@@ -22,7 +22,7 @@ def purge_old_slots():
 	frappe.db.delete("Service Provider Appointment Slot", {"posting_date": ["<", purge_date]})
 	purge_slot_cache_before_date(purge_date)
 
-	frappe.db.commit()
+	frappe.db.commit()  # nosemgrep: scheduled cleanup commits after deleting old slots and cache rows.
 	return f"Purged slots older than {purge_date}"
 
 
@@ -153,7 +153,7 @@ def get_shift_weekdays(shift_assignment):
 
 
 @frappe.whitelist()
-def get_customer_contact_details(customer):
+def get_customer_contact_details(customer: str):
 	primary_contact = frappe.db.get_value("Customer", customer, "customer_primary_contact")
 
 	if primary_contact:
