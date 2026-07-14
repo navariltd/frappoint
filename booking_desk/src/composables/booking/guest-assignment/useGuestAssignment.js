@@ -99,6 +99,7 @@ export function useGuestAssignment() {
 		updateGuestFromCustomer: guestStore.updateGuestFromCustomer,
 		quickCreateGuest: guestStore.quickCreateGuest,
 		updateProviderPreference: guestStore.updateProviderPreference,
+		updateGuestNotes: guestStore.updateGuestNotes,
 		clearGuest: guestStore.clearGuest,
 		fetchGuestDates: guestStore.fetchGuestDates,
 		selectGuestDate: guestStore.selectGuestDate,
