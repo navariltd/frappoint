@@ -2,6 +2,7 @@ import { defineStore } from "pinia";
 import {
 	createDraftServiceBooking,
 	reloadDraftServiceBooking,
+	updateDraftServiceAppointmentNotes,
 	upsertDraftServiceAppointment,
 } from "@/services/bookingOrchestration.service";
 import { BOOKING_WORKFLOW_STORAGE_KEY, createEmptyDraftBooking } from "@/types/booking";
@@ -215,6 +216,7 @@ export const useBookingWorkflowStore = defineStore("bookingWorkflow", {
 							fullName: guest.fullName,
 							email: guest.email || "",
 							mobileNo: guest.mobileNo || "",
+							notes: guest.notes || "",
 							providerGender: guest.providerGender || "",
 							providerPreference: guest.providerPreference || "",
 						},
@@ -239,6 +241,47 @@ export const useBookingWorkflowStore = defineStore("bookingWorkflow", {
 					[guestKey]: false,
 				};
 			}
+		},
+		async updateAppointmentNotes({ guestKey, appointmentId, notes }) {
+			const existing = this.appointmentsByGuestKey[guestKey] || {};
+			const resolvedAppointmentId = appointmentId || existing.appointmentId;
+			if (!resolvedAppointmentId) {
+				this.appointmentsByGuestKey = {
+					...this.appointmentsByGuestKey,
+					[guestKey]: {
+						...existing,
+						guestKey,
+						guest: {
+							...(existing.guest || {}),
+							notes: notes || "",
+						},
+					},
+				};
+				this.persistState();
+				return null;
+			}
+
+			const appointment = await updateDraftServiceAppointmentNotes({
+				appointmentId: resolvedAppointmentId,
+				notes,
+			});
+			this.appointmentsByGuestKey = {
+				...this.appointmentsByGuestKey,
+				[guestKey]: {
+					...existing,
+					appointmentId: resolvedAppointmentId,
+					guestKey,
+					guest: {
+						...(existing.guest || {}),
+						notes: notes || "",
+					},
+				},
+			};
+			this.persistState();
+			invalidateMemoryCacheByTag(CACHE_TAGS.BOOKINGS);
+			invalidateMemoryCacheByTag(CACHE_TAGS.DASHBOARD);
+			invalidateMemoryCacheByTag(CACHE_TAGS.WORKFLOW);
+			return appointment;
 		},
 	},
 });

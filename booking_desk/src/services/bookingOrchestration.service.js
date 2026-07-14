@@ -1,5 +1,8 @@
 import { createDraftServiceBookingApi, getDraftServiceBookingApi } from "@/api/serviceBooking.api";
-import { upsertDraftServiceAppointmentApi } from "@/api/serviceAppointment.api";
+import {
+	updateDraftServiceAppointmentNotesApi,
+	upsertDraftServiceAppointmentApi,
+} from "@/api/serviceAppointment.api";
 
 const extractErrorMessage = (error, fallback) => {
 	const candidate =
@@ -173,6 +176,16 @@ export async function upsertDraftServiceAppointment({
 	} catch (error) {
 		throw new Error(
 			extractErrorMessage(error, "Appointment could not be reserved. Please try again.")
+		);
+	}
+}
+
+export async function updateDraftServiceAppointmentNotes({ appointmentId, notes }) {
+	try {
+		return await updateDraftServiceAppointmentNotesApi({ appointmentId, notes });
+	} catch (error) {
+		throw new Error(
+			extractErrorMessage(error, "Appointment notes could not be saved. Please try again.")
 		);
 	}
 }

@@ -43,6 +43,7 @@
 						@select-customer="onSelectCustomer"
 						@quick-create="onQuickCreateGuest"
 						@provider-preference="onProviderPreferenceChange"
+						@notes-change="onGuestNotesChange"
 						@clear-guest="onClearGuest"
 						@load-dates="onLoadGuestDates"
 						@select-date="onSelectGuestDate"
@@ -93,6 +94,7 @@ const {
 	updateGuestFromCustomer,
 	quickCreateGuest,
 	updateProviderPreference,
+	updateGuestNotes,
 	clearGuest,
 	fetchGuestDates,
 	selectGuestDate,
@@ -119,6 +121,10 @@ const onQuickCreateGuest = async (serviceKey, guestKey, payload) => {
 
 const onProviderPreferenceChange = async (serviceKey, guestKey, providerId) => {
 	await updateProviderPreference(serviceKey, guestKey, providerId);
+};
+
+const onGuestNotesChange = async (serviceKey, guestKey, notes) => {
+	await updateGuestNotes(serviceKey, guestKey, notes);
 };
 
 const onClearGuest = (serviceKey, guestKey) => {

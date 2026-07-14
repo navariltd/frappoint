@@ -136,6 +136,7 @@ export const useGuestAssignmentStore = defineStore("guestAssignment", {
 				fullName: "",
 				email: "",
 				mobileNo: "",
+				notes: "",
 				isInlineGuest: false,
 				providerGender: "",
 				providerPreference: "",
@@ -304,6 +305,31 @@ export const useGuestAssignmentStore = defineStore("guestAssignment", {
 
 			if (guest.fullName) {
 				await this.fetchGuestDates(serviceKey, guestKey);
+			}
+		},
+		async updateGuestNotes(serviceKey, guestKey, notes) {
+			const workflowStore = useBookingWorkflowStore();
+			const serviceIndex = findServiceIndex(this.assignments, serviceKey);
+			if (serviceIndex === -1) return;
+			const service = this.assignments[serviceIndex];
+			const guestIndex = findGuestIndex(service, guestKey);
+			if (guestIndex === -1) return;
+
+			const guest = service.guests[guestIndex];
+			guest.notes = notes || "";
+			this.errorByGuest = { ...this.errorByGuest, [guestKey]: "" };
+
+			try {
+				await workflowStore.updateAppointmentNotes({
+					guestKey,
+					appointmentId: guest.appointmentId,
+					notes: guest.notes,
+				});
+			} catch (error) {
+				this.errorByGuest = {
+					...this.errorByGuest,
+					[guestKey]: error?.message || "Appointment notes could not be saved.",
+				};
 			}
 		},
 	},

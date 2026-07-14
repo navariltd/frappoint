@@ -197,6 +197,7 @@ def _serialize_booking(booking, pricing=None):
 				"fullName": appointment.full_name,
 				"email": appointment.email,
 				"mobileNo": appointment.mobile_no,
+				"notes": appointment.notes,
 				"slotIds": [],
 			}
 			for appointment in appointments
@@ -1413,8 +1414,39 @@ def upsert_draft_service_appointment(
 			"fullName": appointment.full_name,
 			"email": appointment.email,
 			"mobileNo": appointment.mobile_no,
+			"notes": appointment.notes,
 			"slotIds": (json.loads(appointment.selected_slot_ids) if appointment.selected_slot_ids else []),
 		},
+	}
+
+
+@frappe.whitelist()
+def update_draft_service_appointment_notes(
+	appointment_id: str | None = None,
+	notes: str | None = None,
+	appointmentId: str | None = None,
+):
+	appointment_id = (
+		appointment_id
+		or appointmentId
+		or frappe.form_dict.get("appointment_id")
+		or frappe.form_dict.get("appointmentId")
+	)
+	if not appointment_id:
+		frappe.throw(_("Appointment reference is required to update notes."))
+
+	appointment = frappe.get_doc("Service Appointment", appointment_id)
+	appointment.notes = notes or ""
+	for guest in appointment.get("guests") or []:
+		if guest.get("is_primary"):
+			guest.notes = appointment.notes
+			break
+	appointment.save(ignore_permissions=True)
+	frappe.db.commit()  # nosemgrep
+
+	return {
+		"name": appointment.name,
+		"notes": appointment.notes,
 	}
 
 
