@@ -28,6 +28,7 @@ export function buildAssignmentsFromCart(
 					(useSelectedCustomer ? selectedCustomer.name : ""),
 				email: persistedAppointment?.guest?.email || "",
 				mobileNo: persistedAppointment?.guest?.mobileNo || "",
+				notes: persistedAppointment?.guest?.notes || "",
 				providerGender: persistedAppointment?.guest?.providerGender || "",
 				providerPreference: persistedAppointment?.guest?.providerPreference || "",
 				isInlineGuest:
