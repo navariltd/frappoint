@@ -132,6 +132,17 @@
 					</div>
 				</div>
 
+				<div>
+					<label class="block text-[10px] text-on-surface-variant mb-1">Notes</label>
+					<textarea
+						v-model="localNotes"
+						rows="2"
+						class="w-full resize-none rounded-lg border border-outline-variant bg-surface px-3 py-2 text-[12px] outline-none focus:border-primary transition-colors"
+						placeholder="Appointment notes"
+						@change="onNotesChange"
+					/>
+				</div>
+
 				<p v-if="error" class="text-[11px] text-error">{{ error }}</p>
 			</div>
 
@@ -167,6 +178,7 @@ const emit = defineEmits([
 	"select-customer",
 	"quick-create",
 	"provider-preference",
+	"notes-change",
 	"clear-guest",
 	"load-dates",
 	"select-date",
@@ -219,6 +231,7 @@ const localEmail = ref(props.guest.email || "");
 const localPhone = ref(props.guest.mobileNo || "");
 const localProviderGender = ref(props.guest.providerGender || "");
 const localProviderPreference = ref(props.guest.providerPreference || "");
+const localNotes = ref(props.guest.notes || "");
 
 const availableGenders = ref([]);
 
@@ -260,6 +273,12 @@ watch(
 	() => props.guest.providerPreference,
 	(v) => {
 		localProviderPreference.value = v || "";
+	}
+);
+watch(
+	() => props.guest.notes,
+	(v) => {
+		localNotes.value = v || "";
 	}
 );
 
@@ -333,6 +352,10 @@ const onGenderChange = () => {
 
 const onProviderPreferenceChange = () => {
 	emit("provider-preference", localProviderPreference.value);
+};
+
+const onNotesChange = () => {
+	emit("notes-change", localNotes.value);
 };
 
 const onClear = () => {
