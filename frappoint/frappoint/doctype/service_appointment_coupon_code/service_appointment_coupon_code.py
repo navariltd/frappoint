@@ -21,20 +21,21 @@ class ServiceAppointmentCouponCode(Document):
 		)
 
 		applicable_for: DF.Literal[
-			"Service Type",
-			"Service Appointment",
-			"Service Booking",
-			"Customer",
-			"Customer Group",
-			"Booking Source",
+			"Service Type",  # type: ignore
+			"Service Appointment",  # type: ignore
+			"Service Booking",  # type: ignore
+			"Customer",  # type: ignore
+			"Customer Group",  # type: ignore
+			"Booking Source",  # type: ignore
 		]
-		booking_source: DF.Literal["", "Portal", "Desk"]
+		booking_source: DF.Literal["", "Portal", "Desk"]  # type: ignore
 		code: DF.Data | None
-		coupon_type: DF.Literal["Promotional", "Complimentary", "Campaign"]
+		complimentary_provider: DF.Link | None
+		coupon_type: DF.Literal["Promotional", "Complimentary", "Campaign"]  # type: ignore
 		customer: DF.Link | None
 		customer_group: DF.Link | None
 		disable: DF.Check
-		discount_type: DF.Literal["Percentage", "Amount"]
+		discount_type: DF.Literal["Percentage", "Amount"]  # type: ignore
 		discount_value: DF.Float
 		max_usage_count: DF.Int
 		maximum_discount_amount: DF.Float
