@@ -4,7 +4,7 @@
 import frappe
 from frappe import _
 from frappe.model.document import Document
-from frappe.utils import getdate
+from frappe.utils import flt, getdate
 
 
 class ServiceAppointmentCouponCode(Document):
@@ -59,10 +59,12 @@ class ServiceAppointmentCouponCode(Document):
 				frappe.throw(_("Valid From cannot be greater than Valid Till"))
 
 	def validate_discount_value(self):
-		if self.discount_value <= 0:
+		discount_value = flt(self.discount_value)
+		if discount_value <= 0:
 			frappe.throw(_("Discount value must be greater than 0"))
-		if self.discount_type == "Percentage" and self.discount_value > 100:
+		if self.discount_type == "Percentage" and discount_value > 100:
 			frappe.throw(_("Percentage discount cannot exceed 100%"))
+		self.discount_value = discount_value
 
 	def is_valid_for_appointment(self, appointment):
 		if self.disable:
@@ -115,11 +117,12 @@ class ServiceAppointmentCouponCode(Document):
 		return True, ""
 
 	def is_min_order_met(self, order_amount):
-		if self.minimum_order_value > 0:
-			if order_amount < self.minimum_order_value:
-				gap = self.minimum_order_value - order_amount
+		minimum_order_value = flt(self.minimum_order_value)
+		if minimum_order_value > 0:
+			if flt(order_amount) < minimum_order_value:
+				gap = minimum_order_value - flt(order_amount)
 				return False, _("Add {0} more to use this coupon (min order {1})").format(
-					gap, self.minimum_order_value
+					gap, minimum_order_value
 				)
 		return True, ""
 

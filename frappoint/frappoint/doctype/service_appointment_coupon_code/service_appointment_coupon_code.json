@@ -64,12 +64,14 @@
    "fieldname": "discount_type",
    "fieldtype": "Select",
    "label": "Discount Type",
-   "options": "Percentage\nAmount"
+   "options": "Percentage\nAmount",
+   "reqd": 1
   },
   {
    "fieldname": "discount_value",
    "fieldtype": "Float",
-   "label": "Discount Value"
+   "label": "Discount Value",
+   "reqd": 1
   },
   {
    "fieldname": "section_break_zrdn",
