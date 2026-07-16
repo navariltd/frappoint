@@ -84,14 +84,6 @@ export const useCheckoutStore = defineStore("checkout", {
 		},
 		validationIssues(state) {
 			const issues = [];
-			if (this.canConfirmWithoutPayment) {
-				if (!state.bookingId) {
-					issues.push(
-						"Booking reference is missing. Go back to assignments and continue again."
-					);
-				}
-				return issues;
-			}
 			if (!state.bookingId) {
 				issues.push(
 					"Booking reference is missing. Go back to assignments and continue again."

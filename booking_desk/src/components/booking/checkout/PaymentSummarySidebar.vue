@@ -27,6 +27,21 @@
 
 		<div class="space-y-3 border-t border-outline-variant pt-3">
 			<button
+				v-if="canConfirmWithoutPayment"
+				type="button"
+				class="w-full rounded-lg border border-primary px-4 py-3 text-[12px] font-semibold text-primary flex items-center justify-center gap-2 transition-colors"
+				:class="
+					canConfirmWithoutPaymentSubmit && !isSubmitting
+						? 'hover:bg-primary/10'
+						: 'opacity-60 cursor-not-allowed'
+				"
+				:disabled="!canConfirmWithoutPaymentSubmit || isSubmitting"
+				@click="$emit('confirmWithoutPayment')"
+			>
+				<span class="material-symbols-outlined text-[18px]">verified</span>
+				{{ isSubmitting ? "Processing..." : "Confirm Without Payment" }}
+			</button>
+			<button
 				type="button"
 				class="w-full rounded-lg px-4 py-3 text-[12px] font-semibold flex items-center justify-center gap-2 transition-colors"
 				:class="
@@ -38,7 +53,7 @@
 				@click="$emit('submit')"
 			>
 				<span class="material-symbols-outlined text-[18px]">send_to_mobile</span>
-				{{ isSubmitting ? "Processing..." : submitLabel }}
+				{{ isSubmitting ? "Processing..." : "Make Payment Now" }}
 			</button>
 			<button
 				type="button"
@@ -69,12 +84,14 @@ const props = defineProps({
 	remainingAfterPayment: { type: Number, default: 0 },
 	submitLabel: { type: String, default: "Process Payment" },
 	canSubmit: { type: Boolean, default: false },
+	canConfirmWithoutPayment: { type: Boolean, default: false },
+	canConfirmWithoutPaymentSubmit: { type: Boolean, default: false },
 	isSubmitting: { type: Boolean, default: false },
 	paymentProgress: { type: String, default: "idle" },
 	bookingRef: { type: String, default: "" },
 });
 
-defineEmits(["submit", "refresh"]);
+defineEmits(["submit", "confirmWithoutPayment", "refresh"]);
 
 const statusClass = computed(() => {
 	if (props.paymentProgress === "failed" || props.paymentProgress === "timeout") {

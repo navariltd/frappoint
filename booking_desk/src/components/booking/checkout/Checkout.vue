@@ -148,7 +148,6 @@
 					</section>
 
 					<PaymentTypeSelector
-						v-if="!canConfirmWithoutPayment"
 						:paymentType="selectedPaymentType"
 						:depositAmount="depositAmount"
 						:minimumDue="financialSummary.minimumDue"
@@ -157,10 +156,7 @@
 						@update:depositAmount="setDepositAmount"
 					/>
 
-					<section
-						v-if="!canConfirmWithoutPayment"
-						class="rounded-xl border border-outline-variant bg-surface p-4"
-					>
+					<section class="rounded-xl border border-outline-variant bg-surface p-4">
 						<h3 class="text-[14px] font-semibold text-on-surface mb-3">
 							Payment Channel
 						</h3>
@@ -193,7 +189,6 @@
 					</section>
 
 					<PaymentMethodSelector
-						v-if="!canConfirmWithoutPayment"
 						:methods="activeMethods"
 						:paymentChannel="selectedPaymentChannel"
 						:payableAmount="payableAmount"
@@ -203,7 +198,6 @@
 					/>
 
 					<PaymentWorkflowPanel
-						v-if="!canConfirmWithoutPayment"
 						:selectedMethod="selectedMethod"
 						:manualAmountTendered="manualAmountTendered"
 						:manualReferenceNo="manualReferenceNo"
@@ -228,10 +222,13 @@
 					:remainingAfterPayment="financialSummary.remainingAfterPayment"
 					:submitLabel="submitLabel"
 					:canSubmit="canSubmit"
+					:canConfirmWithoutPayment="canConfirmWithoutPayment"
+					:canConfirmWithoutPaymentSubmit="canConfirmWithoutPaymentSubmit"
 					:isSubmitting="isSubmitting"
 					:paymentProgress="paymentProgress"
 					:bookingRef="booking.name"
 					@submit="submitCheckoutPayment"
+					@confirmWithoutPayment="submitConfirmWithoutPayment"
 					@refresh="refreshSummary"
 				/>
 			</div>
@@ -312,7 +309,7 @@ const checkoutTitle = computed(() =>
 );
 const checkoutSubtitle = computed(() =>
 	canConfirmWithoutPayment.value
-		? "Confirm the booking without collecting payment now."
+		? "Collect payment now or confirm the booking without payment."
 		: "Choose a payment channel and settle the booking."
 );
 
@@ -353,9 +350,6 @@ const combinedIssues = computed(() => {
 	if (error.value) {
 		issues.unshift(error.value);
 	}
-	if (canConfirmWithoutPayment.value) {
-		return issues;
-	}
 	if (selectedPaymentChannel.value === "offline" && !offlineMethods.value.length) {
 		issues.push("No offline modes of payment are configured.");
 	}
@@ -365,13 +359,13 @@ const combinedIssues = computed(() => {
 	return issues;
 });
 
+const canConfirmWithoutPaymentSubmit = computed(
+	() => canConfirmWithoutPayment.value && Boolean(booking.value.name || routeBookingId)
+);
+
 const submitLabel = computed(() => {
 	if (isSubmitting.value) {
 		return "Processing...";
-	}
-
-	if (canConfirmWithoutPayment.value) {
-		return "Confirm Without Payment";
 	}
 
 	if (selectedPaymentChannel.value === "offline") {
@@ -425,12 +419,6 @@ async function submitCheckoutPayment() {
 	}
 
 	try {
-		if (canConfirmWithoutPayment.value) {
-			await confirmWithoutPayment();
-			await completeBookingCheckout();
-			return;
-		}
-
 		await submitPayment({ redirectTo: window.location.href });
 		if (selectedMethod.value?.providerType === "mpesa") {
 			startPolling({ onConfirmed: completeBookingCheckout });
@@ -443,6 +431,19 @@ async function submitCheckoutPayment() {
 			}
 		}
 		await refreshSummary();
+	} catch {
+		stopPolling();
+	}
+}
+
+async function submitConfirmWithoutPayment() {
+	if (!canConfirmWithoutPaymentSubmit.value) {
+		return;
+	}
+
+	try {
+		await confirmWithoutPayment();
+		await completeBookingCheckout();
 	} catch {
 		stopPolling();
 	}
