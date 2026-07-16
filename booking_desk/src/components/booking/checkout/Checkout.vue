@@ -32,9 +32,9 @@
 					<span class="material-symbols-outlined text-sm">chevron_right</span>
 					<span class="text-[11px]">Step 3 of 3</span>
 				</div>
-				<h1 class="text-[20px] font-semibold text-on-surface">Complete Payment</h1>
+				<h1 class="text-[20px] font-semibold text-on-surface">{{ checkoutTitle }}</h1>
 				<p class="text-[13px] text-on-surface-variant">
-					Choose a payment channel and settle the booking.
+					{{ checkoutSubtitle }}
 				</p>
 			</header>
 
@@ -129,7 +129,26 @@
 					<CheckoutValidationBanner :issues="combinedIssues" />
 					<PaymentStatusBanner :message="statusMessage" :progress="paymentProgress" />
 
+					<section
+						v-if="canConfirmWithoutPayment"
+						class="rounded-xl border border-primary bg-primary/10 p-4 flex items-start gap-3"
+					>
+						<span class="material-symbols-outlined text-[22px] text-primary">
+							verified
+						</span>
+						<div class="space-y-1">
+							<h3 class="text-[14px] font-semibold text-on-surface">
+								Payment bypass enabled
+							</h3>
+							<p class="text-[12px] text-on-surface-variant">
+								This booking can be confirmed now. The outstanding balance will
+								remain available for later settlement.
+							</p>
+						</div>
+					</section>
+
 					<PaymentTypeSelector
+						v-if="!canConfirmWithoutPayment"
 						:paymentType="selectedPaymentType"
 						:depositAmount="depositAmount"
 						:minimumDue="financialSummary.minimumDue"
@@ -138,7 +157,10 @@
 						@update:depositAmount="setDepositAmount"
 					/>
 
-					<section class="rounded-xl border border-outline-variant bg-surface p-4">
+					<section
+						v-if="!canConfirmWithoutPayment"
+						class="rounded-xl border border-outline-variant bg-surface p-4"
+					>
 						<h3 class="text-[14px] font-semibold text-on-surface mb-3">
 							Payment Channel
 						</h3>
@@ -171,6 +193,7 @@
 					</section>
 
 					<PaymentMethodSelector
+						v-if="!canConfirmWithoutPayment"
 						:methods="activeMethods"
 						:paymentChannel="selectedPaymentChannel"
 						:payableAmount="payableAmount"
@@ -180,6 +203,7 @@
 					/>
 
 					<PaymentWorkflowPanel
+						v-if="!canConfirmWithoutPayment"
 						:selectedMethod="selectedMethod"
 						:manualAmountTendered="manualAmountTendered"
 						:manualReferenceNo="manualReferenceNo"
@@ -259,6 +283,7 @@ const {
 	error,
 	financialSummary,
 	selectedMethod,
+	canConfirmWithoutPayment,
 	payableAmount,
 	validationIssues,
 	canSubmit,
@@ -269,6 +294,7 @@ const {
 	setMpesaPhone,
 	setManualAmountTendered,
 	setManualReferenceNo,
+	confirmWithoutPayment,
 	refreshSummary,
 } = useCheckout(routeBookingId);
 
@@ -279,6 +305,15 @@ const booking = computed(() => summary.value.booking || {});
 const appointments = computed(() => booking.value.appointments || []);
 const currency = computed(
 	() => financialSummary.value.currency || booking.value.currency || "KES"
+);
+
+const checkoutTitle = computed(() =>
+	canConfirmWithoutPayment.value ? "Confirm Booking" : "Complete Payment"
+);
+const checkoutSubtitle = computed(() =>
+	canConfirmWithoutPayment.value
+		? "Confirm the booking without collecting payment now."
+		: "Choose a payment channel and settle the booking."
 );
 
 const guestCount = computed(() => {
@@ -318,6 +353,9 @@ const combinedIssues = computed(() => {
 	if (error.value) {
 		issues.unshift(error.value);
 	}
+	if (canConfirmWithoutPayment.value) {
+		return issues;
+	}
 	if (selectedPaymentChannel.value === "offline" && !offlineMethods.value.length) {
 		issues.push("No offline modes of payment are configured.");
 	}
@@ -330,6 +368,10 @@ const combinedIssues = computed(() => {
 const submitLabel = computed(() => {
 	if (isSubmitting.value) {
 		return "Processing...";
+	}
+
+	if (canConfirmWithoutPayment.value) {
+		return "Confirm Without Payment";
 	}
 
 	if (selectedPaymentChannel.value === "offline") {
@@ -383,6 +425,12 @@ async function submitCheckoutPayment() {
 	}
 
 	try {
+		if (canConfirmWithoutPayment.value) {
+			await confirmWithoutPayment();
+			await completeBookingCheckout();
+			return;
+		}
+
 		await submitPayment({ redirectTo: window.location.href });
 		if (selectedMethod.value?.providerType === "mpesa") {
 			startPolling({ onConfirmed: completeBookingCheckout });

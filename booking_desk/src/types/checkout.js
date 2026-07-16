@@ -23,6 +23,7 @@ export function createEmptyCheckoutSummary() {
 			outstandingAmount: 0,
 			minimumDue: 0,
 			depositPercent: 100,
+			canConfirmWithoutPayment: false,
 		},
 	};
 }

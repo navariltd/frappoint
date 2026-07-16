@@ -28,6 +28,7 @@ export function useCheckout(bookingId = "") {
 		financialSummary,
 		activeMethods: computed(() => store.activeMethods),
 		selectedMethod: computed(() => store.selectedMethod),
+		canConfirmWithoutPayment: computed(() => store.canConfirmWithoutPayment),
 		payableAmount: computed(() => store.payableAmount),
 		remainingAfterPayment: computed(() => store.remainingAfterPayment),
 		validationIssues: computed(() => store.validationIssues),
@@ -39,6 +40,7 @@ export function useCheckout(bookingId = "") {
 		setMpesaPhone: store.setMpesaPhone,
 		setManualAmountTendered: store.setManualAmountTendered,
 		setManualReferenceNo: store.setManualReferenceNo,
+		confirmWithoutPayment: store.confirmWithoutPayment,
 		refreshSummary: store.refreshSummary,
 	};
 }

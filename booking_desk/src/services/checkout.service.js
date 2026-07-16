@@ -1,4 +1,8 @@
-import { getCheckoutSummaryApi, recordManualCheckoutPaymentApi } from "@/api/checkout.api";
+import {
+	confirmCheckoutWithoutPaymentApi,
+	getCheckoutSummaryApi,
+	recordManualCheckoutPaymentApi,
+} from "@/api/checkout.api";
 import { createEmptyCheckoutSummary } from "@/types/checkout";
 
 const parseErrorMessage = (error, fallback) => {
@@ -73,5 +77,21 @@ export async function recordManualCheckoutPayment({
 		};
 	} catch (error) {
 		throw new Error(parseErrorMessage(error, "Manual payment could not be recorded."));
+	}
+}
+
+export async function confirmCheckoutWithoutPayment(bookingId) {
+	try {
+		const payload = await confirmCheckoutWithoutPaymentApi(bookingId);
+		return {
+			confirmedAppointments: Array.isArray(payload?.confirmedAppointments)
+				? payload.confirmedAppointments
+				: [],
+			checkout: normalizeCheckoutSummary(payload?.checkout),
+		};
+	} catch (error) {
+		throw new Error(
+			parseErrorMessage(error, "Booking could not be confirmed without payment.")
+		);
 	}
 }
