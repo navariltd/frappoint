@@ -5,6 +5,7 @@ import frappe
 from frappe import _
 from frappe.query_builder.functions import Max
 from frappe.utils import flt, now_datetime
+from frappe.utils.user import is_website_user
 
 from frappoint.frappoint.doctype.service_appointment.service_appointment import (
 	cancel_appointment,
@@ -600,6 +601,7 @@ def _build_checkout_summary(booking):
 	deposit_percent = flt(get_confirmation_deposit_percent("Service Booking", booking.name, doc=booking))
 	minimum_due = flt(get_payment_amount("Service Booking", booking.name, total_amount, doc=booking))
 	coupon_summary = _build_booking_coupon_summary(booking, pricing=pricing)
+	can_confirm_without_payment = _can_confirm_checkout_without_payment(booking.name)
 
 	return {
 		"booking": _serialize_booking(booking, pricing=pricing),
@@ -624,9 +626,29 @@ def _build_checkout_summary(booking):
 			"minimumDue": minimum_due,
 			"depositPercent": deposit_percent,
 			"totalDiscount": coupon_summary.get("totalDiscount", 0),
+			"canConfirmWithoutPayment": can_confirm_without_payment,
 		},
 		"coupon": coupon_summary,
 	}
+
+
+def _can_confirm_checkout_without_payment(booking_id: str) -> bool:
+	settings = frappe.get_cached_doc("Service Appointment Settings")
+	if not settings.enable_appointment_confirmation_without_payment:
+		return False
+	if frappe.session.user == "Guest" or is_website_user():
+		return False
+
+	return bool(
+		frappe.db.exists(
+			"Service Appointment",
+			{
+				"booking_id": booking_id,
+				"docstatus": 0,
+				"status": ["not in", ["Cancelled", "Closed"]],
+			},
+		)
+	)
 
 
 def _get_checkout_appointments(booking_id: str):
@@ -1055,6 +1077,39 @@ def get_checkout_summary(booking_id: str):
 	booking.reload()
 
 	return _build_checkout_summary(booking)
+
+
+@frappe.whitelist()
+def confirm_checkout_without_payment(booking_id: str):
+	if not booking_id:
+		frappe.throw(_("Booking reference is required."))
+
+	booking = frappe.get_doc("Service Booking", booking_id)
+	if not _can_confirm_checkout_without_payment(booking.name):
+		frappe.throw(
+			_("Booking cannot be confirmed without payment."),
+			title=_("Payment Required"),
+		)
+
+	appointments = _get_checkout_appointments(booking.name)
+	if not appointments:
+		frappe.throw(_("No draft appointments found for this booking."), title=_("Invalid State"))
+
+	confirmed = []
+	for appointment in appointments:
+		if appointment.status in ["Cancelled", "Closed"]:
+			continue
+		appointment.confirm_appointment()
+		confirmed.append(appointment.name)
+
+	booking.reload()
+	booking.sync_financial_snapshot()
+	frappe.db.commit()  # nosemgrep - checkout confirmation is an explicit desk action boundary.
+
+	return {
+		"confirmedAppointments": confirmed,
+		"checkout": _build_checkout_summary(booking),
+	}
 
 
 @frappe.whitelist()

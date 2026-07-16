@@ -1,6 +1,10 @@
 import { defineStore } from "pinia";
 import { useBookingWorkflowStore } from "@/stores/bookingWorkflow.store";
-import { fetchCheckoutSummary, recordManualCheckoutPayment } from "@/services/checkout.service";
+import {
+	confirmCheckoutWithoutPayment,
+	fetchCheckoutSummary,
+	recordManualCheckoutPayment,
+} from "@/services/checkout.service";
 import { createHostedCheckoutPayment } from "@/services/payment.service";
 import {
 	fetchOfflinePaymentMethods,
@@ -74,6 +78,9 @@ export const useCheckoutStore = defineStore("checkout", {
 			const outstanding = Number(state.summary.payment.outstandingAmount || 0);
 			const payable = this.payableAmount;
 			return Math.max(0, outstanding - payable);
+		},
+		canConfirmWithoutPayment(state) {
+			return Boolean(state.summary.payment.canConfirmWithoutPayment);
 		},
 		validationIssues(state) {
 			const issues = [];
@@ -315,6 +322,38 @@ export const useCheckoutStore = defineStore("checkout", {
 				this.paymentProgress = PAYMENT_PROGRESS.FAILED;
 				this.paymentIntentState = "failed";
 				this.error = error?.message || "Manual payment could not be recorded.";
+				throw error;
+			} finally {
+				this.isSubmitting = false;
+			}
+		},
+		async confirmWithoutPayment() {
+			if (!this.canConfirmWithoutPayment) {
+				throw new Error("Booking cannot be confirmed without payment.");
+			}
+
+			this.isSubmitting = true;
+			this.error = "";
+			this.paymentProgress = PAYMENT_PROGRESS.PROCESSING;
+			this.paymentIntentState = "processing";
+			this.statusMessage = "Confirming booking without payment...";
+
+			try {
+				const payload = await confirmCheckoutWithoutPayment(this.bookingId);
+				if (payload?.checkout) {
+					this.summary = payload.checkout;
+					invalidateMemoryCacheByTag(CACHE_TAGS.BOOKINGS);
+					invalidateMemoryCacheByTag(CACHE_TAGS.DASHBOARD);
+				}
+
+				this.paymentProgress = PAYMENT_PROGRESS.SUCCESS;
+				this.paymentIntentState = "success";
+				this.statusMessage = "Booking confirmed without payment.";
+				return payload;
+			} catch (error) {
+				this.paymentProgress = PAYMENT_PROGRESS.FAILED;
+				this.paymentIntentState = "failed";
+				this.error = error?.message || "Booking could not be confirmed without payment.";
 				throw error;
 			} finally {
 				this.isSubmitting = false;
