@@ -415,6 +415,7 @@ async function copyPaymentLink() {
 
 async function submitCheckoutPayment() {
 	if (!canSubmit.value) {
+		statusMessage.value = "Select a payment channel and method before making payment.";
 		return;
 	}
 

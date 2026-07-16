@@ -47,9 +47,9 @@
 				:class="
 					canSubmit && !isSubmitting
 						? 'bg-primary text-on-primary hover:bg-primary/90'
-						: 'bg-surface-variant text-on-surface-variant cursor-not-allowed'
+						: 'bg-primary/70 text-on-primary hover:bg-primary/80'
 				"
-				:disabled="!canSubmit || isSubmitting"
+				:disabled="isSubmitting"
 				@click="$emit('submit')"
 			>
 				<span class="material-symbols-outlined text-[18px]">send_to_mobile</span>
