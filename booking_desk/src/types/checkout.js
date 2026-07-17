@@ -25,5 +25,21 @@ export function createEmptyCheckoutSummary() {
 			depositPercent: 100,
 			canConfirmWithoutPayment: false,
 		},
+		coupon: {
+			hasCoupon: false,
+			totalDiscount: 0,
+			appliedCoupons: [],
+		},
+		pricing: {
+			subtotalAmount: 0,
+			appointmentDiscountTotal: 0,
+			bookingDiscountAmount: 0,
+			totalAmount: 0,
+			finalAmount: 0,
+			intermediateTotal: 0,
+			appointmentBreakdown: [],
+			bookingCoupon: null,
+			appointmentCoupons: [],
+		},
 	};
 }

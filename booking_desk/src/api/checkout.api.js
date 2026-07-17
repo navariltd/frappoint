@@ -5,6 +5,9 @@ const RECORD_MANUAL_PAYMENT_ENDPOINT =
 	"frappoint.frappoint.api.booking_desk.record_manual_checkout_payment";
 const CONFIRM_WITHOUT_PAYMENT_ENDPOINT =
 	"frappoint.frappoint.api.booking_desk.confirm_checkout_without_payment";
+const VALIDATE_COUPON_ENDPOINT = "frappoint.frappoint.api.booking_desk.validate_checkout_coupon";
+const APPLY_COUPON_ENDPOINT = "frappoint.frappoint.api.booking_desk.apply_checkout_coupon";
+const REMOVE_COUPON_ENDPOINT = "frappoint.frappoint.api.booking_desk.remove_checkout_coupon";
 
 const checkoutSummaryResource = createResource({
 	url: GET_CHECKOUT_SUMMARY_ENDPOINT,
@@ -18,6 +21,21 @@ const manualPaymentResource = createResource({
 
 const confirmWithoutPaymentResource = createResource({
 	url: CONFIRM_WITHOUT_PAYMENT_ENDPOINT,
+	auto: false,
+});
+
+const validateCouponResource = createResource({
+	url: VALIDATE_COUPON_ENDPOINT,
+	auto: false,
+});
+
+const applyCouponResource = createResource({
+	url: APPLY_COUPON_ENDPOINT,
+	auto: false,
+});
+
+const removeCouponResource = createResource({
+	url: REMOVE_COUPON_ENDPOINT,
 	auto: false,
 });
 
@@ -46,4 +64,28 @@ export async function recordManualCheckoutPaymentApi({
 export async function confirmCheckoutWithoutPaymentApi(bookingId) {
 	const response = await confirmWithoutPaymentResource.fetch({ booking_id: bookingId });
 	return unwrapPayload(response ?? confirmWithoutPaymentResource.data);
+}
+
+export async function validateCheckoutCouponApi(bookingId, couponCode) {
+	const response = await validateCouponResource.fetch({
+		booking_id: bookingId,
+		coupon_code: couponCode,
+	});
+	return unwrapPayload(response ?? validateCouponResource.data);
+}
+
+export async function applyCheckoutCouponApi(bookingId, couponCode) {
+	const response = await applyCouponResource.fetch({
+		booking_id: bookingId,
+		coupon_code: couponCode,
+	});
+	return unwrapPayload(response ?? applyCouponResource.data);
+}
+
+export async function removeCheckoutCouponApi(bookingId, couponCode) {
+	const response = await removeCouponResource.fetch({
+		booking_id: bookingId,
+		coupon_code: couponCode || undefined,
+	});
+	return unwrapPayload(response ?? removeCouponResource.data);
 }
