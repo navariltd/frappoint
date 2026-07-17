@@ -6,6 +6,8 @@ from frappe import _
 from frappe.model.document import Document
 from frappe.utils import flt, getdate
 
+from frappoint.frappoint.services.pricing_service import normalize_booking_source
+
 
 class ServiceAppointmentCouponCode(Document):
 	# begin: auto-generated types
@@ -104,7 +106,7 @@ class ServiceAppointmentCouponCode(Document):
 			return False, _("Coupon is only valid at booking level")
 
 		if self.applicable_for == "Booking Source":
-			if appointment.source != self.booking_source:
+			if normalize_booking_source(appointment.source) != normalize_booking_source(self.booking_source):
 				return False, _("Coupon is not valid for this portal")
 			return True, ""
 

@@ -595,6 +595,7 @@ def _build_appointment_response(appointment, booking=None):
 
 def _build_checkout_summary(booking):
 	pricing = calculate_booking_pricing(booking)
+	print("DEBUG(_build_checkout_summary): booking:", booking.name, "pricing:", pricing, "\n")
 	total_amount = flt(pricing.get("finalAmount") or booking.grand_total)
 	outstanding_amount = max(0, flt(booking.outstanding_amount))
 	paid_amount = max(0, total_amount - outstanding_amount)
@@ -771,10 +772,28 @@ def validate_checkout_coupon(booking_id: str, coupon_code: str):
 
 	evaluation = _evaluate_coupon_for_booking(booking_id, coupon)
 	valid = len(evaluation.get("eligible") or []) > 0
+	ineligible = evaluation.get("ineligible") or []
+	invalid_message = (
+		ineligible[0].get("reason")
+		if ineligible and isinstance(ineligible[0], dict)
+		else _("Coupon is not applicable to this booking.")
+	)
+
+	print(
+		"DEBUG(validate_checkout_coupon): booking:",
+		booking.name,
+		"coupon:",
+		coupon.name,
+		"valid:",
+		valid,
+		"evaluation:",
+		evaluation,
+		"\n",
+	)
 
 	return {
 		"valid": valid,
-		"message": (_("Coupon is valid.") if valid else _("Coupon is not applicable to this booking.")),
+		"message": (_("Coupon is valid.") if valid else invalid_message),
 		"coupon": {
 			"name": coupon.name,
 			"code": coupon.code,
@@ -815,7 +834,13 @@ def apply_checkout_coupon(booking_id: str, coupon_code: str):
 
 	evaluation = _evaluate_coupon_for_booking(booking_id, coupon)
 	if not (evaluation.get("eligible") or []):
-		frappe.throw(_("Coupon is not applicable to this booking."))
+		ineligible = evaluation.get("ineligible") or []
+		message = (
+			ineligible[0].get("reason")
+			if ineligible and isinstance(ineligible[0], dict)
+			else _("Coupon is not applicable to this booking.")
+		)
+		frappe.throw(message)
 
 	booking.coupon_code = coupon.name
 	booking.save(ignore_permissions=True)
@@ -824,6 +849,16 @@ def apply_checkout_coupon(booking_id: str, coupon_code: str):
 	booking.sync_financial_snapshot()
 	booking.reload()
 	frappe.db.commit()  # nosemgrep
+
+	print(
+		"DEBUG(apply_checkout_coupon): booking:",
+		booking.name,
+		"coupon:",
+		coupon.name,
+		"evaluation:",
+		evaluation,
+		"\n",
+	)
 
 	return {
 		"message": _("Coupon applied successfully."),
