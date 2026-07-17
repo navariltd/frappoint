@@ -4,6 +4,12 @@
 			<span class="text-on-surface-variant">Total</span>
 			<span class="font-semibold">{{ currency }} {{ totalAmount.toFixed(2) }}</span>
 		</div>
+		<div v-if="discountAmount > 0" class="flex items-center justify-between text-[12px]">
+			<span class="text-on-surface-variant">Discount</span>
+			<span class="font-semibold text-secondary"
+				>-{{ currency }} {{ discountAmount.toFixed(2) }}</span
+			>
+		</div>
 		<div class="flex items-center justify-between text-[12px]">
 			<span class="text-on-surface-variant">Paid</span>
 			<span class="font-semibold">{{ currency }} {{ paidAmount.toFixed(2) }}</span>
@@ -33,6 +39,7 @@
 defineProps({
 	currency: { type: String, default: "KES" },
 	totalAmount: { type: Number, default: 0 },
+	discountAmount: { type: Number, default: 0 },
 	paidAmount: { type: Number, default: 0 },
 	outstandingAmount: { type: Number, default: 0 },
 	payableAmount: { type: Number, default: 0 },
