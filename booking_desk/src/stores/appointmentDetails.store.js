@@ -51,6 +51,12 @@ export const useAppointmentDetailsStore = defineStore("appointmentDetails", {
 		},
 		financialSummary(state) {
 			const totalAmount = Number(state.appointment.totalAmount || 0);
+			const discountAmount = Number(
+				state.paymentSummary?.discountAmount ?? state.appointment.discountAmount ?? 0
+			);
+			const finalAmount = Number(
+				state.paymentSummary?.finalAmount ?? Math.max(0, totalAmount - discountAmount)
+			);
 			const paidAmount = Number(state.paymentSummary?.paidAmount || 0);
 			const outstandingAmount = Number(
 				state.paymentSummary?.outstandingAmount ?? state.appointment.outstandingAmount ?? 0
@@ -58,6 +64,8 @@ export const useAppointmentDetailsStore = defineStore("appointmentDetails", {
 			return {
 				currency: state.paymentSummary?.currency || state.appointment.currency || "KES",
 				totalAmount,
+				discountAmount,
+				finalAmount,
 				paidAmount,
 				outstandingAmount,
 				balance: outstandingAmount,

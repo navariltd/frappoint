@@ -17,9 +17,29 @@
 			class="rounded-md border border-outline-variant/30 divide-y divide-outline-variant/20 text-sm"
 		>
 			<div class="flex items-center justify-between gap-3 px-3 py-2.5">
-				<span class="text-on-surface-variant">Total</span>
+				<span class="text-on-surface-variant">
+					{{ discountAmount > 0 ? "Original amount" : "Total" }}
+				</span>
 				<span class="font-medium text-on-surface"
 					>{{ currency }} {{ totalAmount.toFixed(2) }}</span
+				>
+			</div>
+			<div
+				v-if="discountAmount > 0"
+				class="flex items-center justify-between gap-3 px-3 py-2.5"
+			>
+				<span class="text-on-surface-variant">Discount</span>
+				<span class="font-medium text-secondary"
+					>-{{ currency }} {{ discountAmount.toFixed(2) }}</span
+				>
+			</div>
+			<div
+				v-if="discountAmount > 0"
+				class="flex items-center justify-between gap-3 px-3 py-2.5"
+			>
+				<span class="text-on-surface-variant">Amount after discount</span>
+				<span class="font-medium text-on-surface"
+					>{{ currency }} {{ finalAmount.toFixed(2) }}</span
 				>
 			</div>
 			<div class="flex items-center justify-between gap-3 px-3 py-2.5">
@@ -55,6 +75,8 @@ defineProps({
 	appointment: { type: Object, required: true },
 	currency: { type: String, default: "KES" },
 	totalAmount: { type: Number, default: 0 },
+	discountAmount: { type: Number, default: 0 },
+	finalAmount: { type: Number, default: 0 },
 	paidAmount: { type: Number, default: 0 },
 	outstandingAmount: { type: Number, default: 0 },
 	paymentCount: { type: Number, default: 0 },

@@ -26,6 +26,7 @@ export function createEmptyAppointmentDetails() {
 		serviceProviderName: "",
 		appointmentPrice: "",
 		totalAmount: 0,
+		discountAmount: 0,
 		grandTotal: 0,
 		outstandingAmount: 0,
 		details: "",
