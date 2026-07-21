@@ -911,16 +911,32 @@ class ServiceAppointment(Document):
 		else:
 			self.recalculate_outstanding_from_payments()
 
-	def recalculate_outstanding_from_payments(self):
+	def recalculate_outstanding_from_payments(self, current_payment_name=None, current_paid_amount=None):
 		"""Rebuild the balance from the appointment amount, payments, and discount."""
+		payment_context = getattr(self, "flags", None)
+		if current_payment_name is None and payment_context:
+			current_payment_name = payment_context.get("current_payment_name")
+		if current_paid_amount is None:
+			current_paid_amount = payment_context.get("current_paid_amount", 0) if payment_context else 0
+
+		reference_filters = {
+			"reference_doctype": "Service Appointment",
+			"reference_name": self.name,
+			"docstatus": 1,
+		}
+		direct_payment_filters = {
+			"reference_doctype": "Service Appointment",
+			"reference_docname": self.name,
+			"docstatus": 1,
+		}
+		if current_payment_name:
+			reference_filters["parent"] = ["!=", current_payment_name]
+			direct_payment_filters["name"] = ["!=", current_payment_name]
+
 		reference_paid = (
 			frappe.db.get_value(
 				"Service Appointment Payment Reference",
-				{
-					"reference_doctype": "Service Appointment",
-					"reference_name": self.name,
-					"docstatus": 1,
-				},
+				reference_filters,
 				Sum("allocated_amount"),
 			)
 			or 0
@@ -929,17 +945,13 @@ class ServiceAppointment(Document):
 		direct_paid = (
 			frappe.db.get_value(
 				"Service Appointment Payment",
-				{
-					"reference_doctype": "Service Appointment",
-					"reference_docname": self.name,
-					"docstatus": 1,
-				},
+				direct_payment_filters,
 				Sum("amount"),
 			)
 			or 0
 		)
 
-		total_paid = reference_paid + direct_paid
+		total_paid = flt(reference_paid) + flt(direct_paid) + flt(current_paid_amount)
 		discounted_amount = self.get_discount_amount_for_outstanding()
 
 		self.outstanding_amount = max(
