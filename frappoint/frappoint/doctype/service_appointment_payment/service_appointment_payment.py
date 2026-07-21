@@ -164,6 +164,8 @@ class ServiceAppointmentPayment(Document):
 		if self.reference_doctype == "Service Appointment":
 			appt_doc = frappe.get_doc("Service Appointment", self.reference_docname, ignore_permissions=True)
 
+			appt_doc.recalculate_outstanding_from_payments()
+			appt_doc.db_set("outstanding_amount", appt_doc.outstanding_amount, update_modified=False)
 			appt_doc.update_payment_and_workflow_status()
 
 			parent_booking = frappe.db.get_value("Service Appointment", self.reference_docname, "booking_id")
@@ -188,6 +190,7 @@ class ServiceAppointmentPayment(Document):
 						"Service Appointment", ref.reference_name, ignore_permissions=True
 					)
 					appt_doc.recalculate_outstanding_from_payments()
+					appt_doc.db_set("outstanding_amount", appt_doc.outstanding_amount, update_modified=False)
 					appt_doc.update_payment_and_workflow_status()
 
 		if booking_to_attempt_submit and not cancel:

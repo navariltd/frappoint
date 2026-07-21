@@ -912,6 +912,7 @@ class ServiceAppointment(Document):
 			self.recalculate_outstanding_from_payments()
 
 	def recalculate_outstanding_from_payments(self):
+		"""Rebuild the balance from the appointment amount, payments, and discount."""
 		reference_paid = (
 			frappe.db.get_value(
 				"Service Appointment Payment Reference",
@@ -939,8 +940,40 @@ class ServiceAppointment(Document):
 		)
 
 		total_paid = reference_paid + direct_paid
+		discounted_amount = self.get_discount_amount_for_outstanding()
 
-		self.outstanding_amount = flt(self.grand_total) - flt(total_paid)
+		self.outstanding_amount = max(
+			0,
+			flt(self.total_amount) - flt(total_paid) - flt(discounted_amount),
+		)
+
+	def get_discount_amount_for_outstanding(self):
+		"""Return appointment discount plus its proportional booking-coupon share."""
+		discounted_amount = flt(self.discount_amount)
+		if not self.booking_id:
+			return discounted_amount
+
+		booking_pricing = frappe.db.get_value(
+			"Service Booking",
+			self.booking_id,
+			["booking_discount_amount", "subtotal", "appointment_discount_total"],
+			as_dict=True,
+		)
+		if not booking_pricing:
+			return discounted_amount
+
+		booking_discount = flt(booking_pricing.booking_discount_amount)
+		intermediate_total = max(
+			0,
+			flt(booking_pricing.subtotal) - flt(booking_pricing.appointment_discount_total),
+		)
+		if booking_discount <= 0 or intermediate_total <= 0:
+			return discounted_amount
+
+		appointment_net_amount = max(0, flt(self.total_amount) - discounted_amount)
+		booking_discount_share = booking_discount * appointment_net_amount / intermediate_total
+
+		return min(flt(self.total_amount), discounted_amount + booking_discount_share)
 
 	def set_company_from_type(self):
 		return frappe.db.get_value("Service Type", self.appointment_type, "company")
