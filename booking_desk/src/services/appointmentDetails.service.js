@@ -119,6 +119,7 @@ function normalizeAppointment(raw = {}) {
 		serviceProviderName: raw.serviceProviderName || appointment.serviceProviderName,
 		appointmentPrice: raw.appointmentPrice || appointment.appointmentPrice,
 		totalAmount: toNumber(raw.totalAmount),
+		discountAmount: toNumber(raw.discountAmount),
 		grandTotal: toNumber(raw.grandTotal || raw.totalAmount),
 		outstandingAmount: toNumber(raw.outstandingAmount),
 		details: raw.details || appointment.details,
@@ -153,6 +154,13 @@ export async function fetchAppointmentDetails(appointmentId) {
 		paymentSummary: {
 			currency: payload.paymentSummary?.currency || appointment.currency,
 			totalAmount: toNumber(payload.paymentSummary?.totalAmount || appointment.totalAmount),
+			discountAmount: toNumber(
+				payload.paymentSummary?.discountAmount ?? appointment.discountAmount
+			),
+			finalAmount: toNumber(
+				payload.paymentSummary?.finalAmount ??
+					Math.max(0, appointment.totalAmount - appointment.discountAmount)
+			),
 			paidAmount: toNumber(payload.paymentSummary?.paidAmount),
 			outstandingAmount: toNumber(
 				payload.paymentSummary?.outstandingAmount || appointment.outstandingAmount

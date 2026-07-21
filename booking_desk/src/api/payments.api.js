@@ -17,6 +17,8 @@ export async function createCheckoutPaymentLinkApi({
 	phoneNumber,
 	amount,
 	paymentType,
+	couponCode,
+	finalAmountReference,
 }) {
 	const payload = {
 		booking_id: bookingId,
@@ -25,6 +27,8 @@ export async function createCheckoutPaymentLinkApi({
 		phone_number: phoneNumber || undefined,
 		amount: amount ?? undefined,
 		payment_type: paymentType || undefined,
+		coupon_code: couponCode || undefined,
+		final_amount_reference: finalAmountReference ?? undefined,
 	};
 
 	const response = await paymentLinkResource.fetch({

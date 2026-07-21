@@ -167,6 +167,8 @@
 								:appointment="appointment"
 								:currency="financialSummary.currency"
 								:total-amount="financialSummary.totalAmount"
+								:discount-amount="financialSummary.discountAmount"
+								:final-amount="financialSummary.finalAmount"
 								:paid-amount="financialSummary.paidAmount"
 								:outstanding-amount="financialSummary.outstandingAmount"
 								:payment-count="payments.length"

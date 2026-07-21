@@ -11,6 +11,7 @@
 			<OutstandingBalanceCard
 				:currency="currency"
 				:totalAmount="totalAmount"
+				:discountAmount="discountAmount"
 				:paidAmount="paidAmount"
 				:outstandingAmount="outstandingAmount"
 				:payableAmount="payableAmount"
@@ -78,6 +79,7 @@ import OutstandingBalanceCard from "@/components/booking/checkout/OutstandingBal
 const props = defineProps({
 	currency: { type: String, default: "KES" },
 	totalAmount: { type: Number, default: 0 },
+	discountAmount: { type: Number, default: 0 },
 	paidAmount: { type: Number, default: 0 },
 	outstandingAmount: { type: Number, default: 0 },
 	payableAmount: { type: Number, default: 0 },

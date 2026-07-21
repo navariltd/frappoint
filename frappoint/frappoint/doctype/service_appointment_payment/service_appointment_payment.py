@@ -160,11 +160,11 @@ class ServiceAppointmentPayment(Document):
 		self.adjust_doc_outstanding(self.reference_doctype, self.reference_docname, self.amount, cancel)
 
 		booking_to_attempt_submit = None
+		appointment_payments = {}
 
 		if self.reference_doctype == "Service Appointment":
-			appt_doc = frappe.get_doc("Service Appointment", self.reference_docname, ignore_permissions=True)
-
-			appt_doc.update_payment_and_workflow_status()
+			appointment_payments[self.reference_docname] = self.amount
+			self.reconcile_appointment_outstanding(self.reference_docname, self.amount, cancel)
 
 			parent_booking = frappe.db.get_value("Service Appointment", self.reference_docname, "booking_id")
 			if parent_booking:
@@ -179,16 +179,13 @@ class ServiceAppointmentPayment(Document):
 			booking_to_attempt_submit = self.reference_docname
 
 			for ref in self.references:
+				appointment_payments[ref.reference_name] = ref.allocated_amount
 				self.adjust_doc_outstanding(
 					ref.reference_doctype, ref.reference_name, ref.allocated_amount, cancel
 				)
 
 				if ref.reference_doctype == "Service Appointment":
-					appt_doc = frappe.get_doc(
-						"Service Appointment", ref.reference_name, ignore_permissions=True
-					)
-					appt_doc.recalculate_outstanding_from_payments()
-					appt_doc.update_payment_and_workflow_status()
+					self.reconcile_appointment_outstanding(ref.reference_name, ref.allocated_amount, cancel)
 
 		if booking_to_attempt_submit and not cancel:
 			try:
@@ -201,6 +198,19 @@ class ServiceAppointmentPayment(Document):
 					frappe.get_traceback(),
 					_("Failed to auto-submit booking {0}").format(booking_to_attempt_submit),
 				)
+
+		# Auto-submission can save appointments again before this payment is query-visible.
+		# Reconcile once more so those nested saves cannot restore the pre-payment balance.
+		for appointment_name, paid_amount in appointment_payments.items():
+			self.reconcile_appointment_outstanding(appointment_name, paid_amount, cancel)
+
+	def reconcile_appointment_outstanding(self, appointment_name, paid_amount, cancel):
+		appointment = frappe.get_doc("Service Appointment", appointment_name, ignore_permissions=True)
+		appointment.flags.current_payment_name = self.name
+		appointment.flags.current_paid_amount = 0 if cancel else paid_amount
+		appointment.recalculate_outstanding_from_payments()
+		appointment.db_set("outstanding_amount", appointment.outstanding_amount, update_modified=False)
+		appointment.update_payment_and_workflow_status()
 
 	def adjust_doc_outstanding(self, doctype, docname, amount, cancel):
 		change = flt(amount) if cancel else -flt(amount)

@@ -156,6 +156,21 @@
 						@update:depositAmount="setDepositAmount"
 					/>
 
+					<CouponCodeSection
+						:couponDraft="couponDraft"
+						:currency="currency"
+						:appliedCoupon="appliedCoupon"
+						:validation="couponValidation"
+						:couponError="couponError"
+						:couponMessage="couponMessage"
+						:isValidating="isValidatingCoupon"
+						:isApplying="isApplyingCoupon"
+						:isSubmitting="isSubmitting"
+						@update:couponDraft="setCouponDraft"
+						@apply="applyCoupon"
+						@remove="removeCoupon"
+					/>
+
 					<section class="rounded-xl border border-outline-variant bg-surface p-4">
 						<h3 class="text-[14px] font-semibold text-on-surface mb-3">
 							Payment Channel
@@ -216,6 +231,7 @@
 				<PaymentSummarySidebar
 					:currency="currency"
 					:totalAmount="financialSummary.totalAmount"
+					:discountAmount="totalSavings"
 					:paidAmount="financialSummary.paidAmount"
 					:outstandingAmount="financialSummary.outstandingAmount"
 					:payableAmount="payableAmount"
@@ -242,6 +258,7 @@ import CheckoutLoadingState from "@/components/booking/checkout/CheckoutLoadingS
 import CheckoutValidationBanner from "@/components/booking/checkout/CheckoutValidationBanner.vue";
 import PaymentStatusBanner from "@/components/booking/checkout/PaymentStatusBanner.vue";
 import PaymentTypeSelector from "@/components/booking/checkout/PaymentTypeSelector.vue";
+import CouponCodeSection from "@/components/booking/checkout/CouponCodeSection.vue";
 import PaymentMethodSelector from "@/components/booking/checkout/PaymentMethodSelector.vue";
 import PaymentWorkflowPanel from "@/components/booking/checkout/PaymentWorkflowPanel.vue";
 import PaymentSummarySidebar from "@/components/booking/checkout/PaymentSummarySidebar.vue";
@@ -269,6 +286,12 @@ const {
 	selectedPaymentType,
 	selectedMethodId,
 	depositAmount,
+	couponDraft,
+	couponValidation,
+	couponMessage,
+	couponError,
+	isValidatingCoupon,
+	isApplyingCoupon,
 	mpesaPhone,
 	manualAmountTendered,
 	manualReferenceNo,
@@ -284,6 +307,8 @@ const {
 	payableAmount,
 	validationIssues,
 	canSubmit,
+	appliedCoupon,
+	totalSavings,
 	setPaymentType,
 	setPaymentChannel,
 	setSelectedMethod,
@@ -291,6 +316,9 @@ const {
 	setMpesaPhone,
 	setManualAmountTendered,
 	setManualReferenceNo,
+	setCouponDraft,
+	applyCoupon,
+	removeCoupon,
 	confirmWithoutPayment,
 	refreshSummary,
 } = useCheckout(routeBookingId);

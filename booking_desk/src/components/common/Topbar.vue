@@ -34,17 +34,6 @@
 				New Booking
 			</RouterLink>
 
-			<button
-				type="button"
-				class="relative inline-flex h-11 w-11 items-center justify-center rounded-full border border-border-light/80 dark:border-border-dark bg-white dark:bg-gray-800 text-text-sub-light dark:text-text-sub-dark transition-colors hover:border-primary/40 hover:text-primary"
-				aria-label="Notifications"
-			>
-				<span class="material-symbols-outlined text-[22px]">notifications</span>
-				<span
-					class="absolute right-2 top-2 h-2 w-2 rounded-full bg-red-500 ring-2 ring-white dark:ring-gray-800"
-				></span>
-			</button>
-
 			<div class="hidden sm:flex flex-col items-end leading-tight pr-1">
 				<span class="text-sm font-semibold text-text-main-light dark:text-text-main-dark">
 					{{ displayName }}
