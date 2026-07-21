@@ -274,6 +274,7 @@ def _serialize_appointment(appointment):
 		"serviceProviderName": appointment.service_provider_name,
 		"appointmentPrice": appointment.appointment_price,
 		"totalAmount": flt(appointment.total_amount),
+		"discountAmount": flt(appointment.get_discount_amount_for_outstanding()),
 		"grandTotal": flt(appointment.grand_total or appointment.total_amount),
 		"outstandingAmount": flt(appointment.outstanding_amount),
 		"details": appointment.details,
@@ -541,8 +542,13 @@ def _build_appointment_response(appointment, booking=None):
 		for row in payment_rows
 	]
 	appointment_payload = _serialize_appointment(appointment)
-	paid_amount = sum(flt(payment.get("amount")) for payment in payments if payment.get("paymentReceived"))
+	direct_paid_amount = sum(
+		flt(payment.get("amount")) for payment in payments if payment.get("paymentReceived")
+	)
 	outstanding_amount = flt(appointment_payload.get("outstandingAmount"))
+	discount_amount = flt(appointment_payload.get("discountAmount"))
+	final_amount = max(0, flt(appointment_payload.get("totalAmount")) - discount_amount)
+	paid_amount = max(direct_paid_amount, final_amount - outstanding_amount)
 	if outstanding_amount <= 0 and flt(appointment_payload.get("totalAmount")) > 0:
 		payment_status = "Paid"
 	elif paid_amount > 0:
@@ -561,6 +567,8 @@ def _build_appointment_response(appointment, booking=None):
 		"paymentSummary": {
 			"currency": appointment_payload.get("currency") or (booking.currency if booking else "KES"),
 			"totalAmount": flt(appointment_payload.get("totalAmount")),
+			"discountAmount": discount_amount,
+			"finalAmount": final_amount,
 			"paidAmount": paid_amount,
 			"outstandingAmount": outstanding_amount,
 		},
