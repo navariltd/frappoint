@@ -116,15 +116,6 @@ def _get_booking_appointment_rows(booking):
 
 
 def validate_booking_coupon_for_booking(booking, coupon, appointment_rows=None):
-	print(
-		"DEBUG(validate_booking_coupon_for_booking): booking:",
-		booking.name,
-		"coupon:",
-		coupon.name,
-		"appointment_rows:",
-		len(appointment_rows) if appointment_rows else 0,
-		"\n",
-	)
 	if not coupon:
 		return False, _("Coupon code is invalid.")
 
@@ -173,31 +164,6 @@ def validate_booking_coupon_for_booking(booking, coupon, appointment_rows=None):
 
 def calculate_booking_pricing(booking, booking_coupon_code: str | None = None, appointment_rows=None):
 	appointment_rows = appointment_rows or _get_booking_appointment_rows(booking)
-
-	print(
-		"\nDEBUG(calculate_booking_pricing): appointment_rows length:",
-		len(appointment_rows) if appointment_rows else 0,
-	)
-	print(
-		"\nDEBUG(calculate_booking_pricing): appointment rows fetch from _get_booking_appointment_rows:",
-		_get_booking_appointment_rows(booking),
-		"\n",
-	)
-
-	print(
-		"\nDEBUG(calculate_booking_pricing): booking:",
-		booking.name,
-		"appointment_rows:",
-		appointment_rows,
-		"booking_coupon_code:",
-		booking_coupon_code,
-	)
-	print(
-		"\nDEBUG(calculate_booking_pricing): _get_booking_appointment_rows:",
-		_get_booking_appointment_rows(booking),
-		"\n",
-	)
-
 	subtotal_amount = 0
 	appointment_discount_total = 0
 	intermediate_total = 0
@@ -207,15 +173,6 @@ def calculate_booking_pricing(booking, booking_coupon_code: str | None = None, a
 	for row in appointment_rows:
 		base_amount = flt(row.get("total_amount") or 0)
 		appointment_discount = flt(row.get("discount_amount") or 0)
-		print(
-			"DEBUG(calculate_booking_pricing): row:",
-			row.get("name"),
-			"base_amount:",
-			base_amount,
-			"appointment_discount:",
-			appointment_discount,
-			"\n",
-		)
 		final_amount = flt(row.get("grand_total") or max(base_amount - appointment_discount, 0))
 		coupon_code = row.get("coupon_code") or ""
 
@@ -241,22 +198,6 @@ def calculate_booking_pricing(booking, booking_coupon_code: str | None = None, a
 				"outstandingAmount": flt(row.get("outstanding_amount") or 0),
 				"appointmentCouponCode": coupon_code,
 			}
-		)
-		print(
-			"DEBUG(calculate_booking_pricing): row:",
-			row.get("name"),
-			"appointment_breakdown[-1]:",
-			appointment_breakdown[-1],
-			"\n",
-		)
-		print(
-			"DEBUG(calculate_booking_pricing): row:",
-			row.get("name"),
-			"coupon_code:",
-			coupon_code,
-			"appointment_discount:",
-			appointment_discount,
-			"\n",
 		)
 
 		if coupon_code:
@@ -295,35 +236,10 @@ def calculate_booking_pricing(booking, booking_coupon_code: str | None = None, a
 			booking_coupon,
 			appointment_rows=appointment_rows,
 		)
-		print(
-			"DEBUG(calculate_booking_pricing): booking_coupon:",
-			booking_coupon.name,
-			"booking_coupon_valid:",
-			booking_coupon_valid,
-			"booking_coupon_message:",
-			booking_coupon_message,
-			"\n",
-		)
 		if booking_coupon_valid:
 			minimum_ok, minimum_message = booking_coupon.is_min_order_met(intermediate_total)
-			print(
-				"DEBUG(calculate_booking_pricing): booking_coupon:",
-				booking_coupon.name,
-				"minimum_ok:",
-				minimum_ok,
-				"minimum_message:",
-				minimum_message,
-				"\n",
-			)
 			if minimum_ok:
 				booking_discount_amount = compute_coupon_discount(intermediate_total, booking_coupon)
-				print(
-					"DEBUG(calculate_booking_pricing): booking_coupon:",
-					booking_coupon.name,
-					"booking_discount_amount:",
-					booking_discount_amount,
-					"\n",
-				)
 				if booking_discount_amount > 0:
 					applied_booking_coupon = {
 						"name": booking_coupon.name,
@@ -343,15 +259,7 @@ def calculate_booking_pricing(booking, booking_coupon_code: str | None = None, a
 				booking_coupon_message = minimum_message
 
 	final_amount = max(0, flt(intermediate_total) - flt(booking_discount_amount))
-	print(
-		"DEBUG(calculate_booking_pricing): applied_booking_coupon:",
-		applied_booking_coupon,
-		"booking_discount_amount:",
-		booking_discount_amount,
-		"final_amount:",
-		final_amount,
-		"\n",
-	)
+
 	return {
 		"subtotalAmount": flt(subtotal_amount),
 		"appointmentDiscountTotal": flt(appointment_discount_total),

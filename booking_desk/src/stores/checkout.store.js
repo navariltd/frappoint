@@ -306,14 +306,7 @@ export const useCheckoutStore = defineStore("checkout", {
 			try {
 				const validation = await validateCheckoutCoupon(this.bookingId, value);
 				this.couponValidation = validation;
-				console.log(
-					"DEBUG(validateCoupon): bookingId:",
-					this.bookingId,
-					"coupon:",
-					value,
-					"validation:",
-					validation
-				);
+
 				if (!validation.valid) {
 					this.couponError =
 						validation.message || "Coupon is not valid for this booking.";
