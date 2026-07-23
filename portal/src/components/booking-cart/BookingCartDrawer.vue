@@ -54,6 +54,15 @@
 			<!-- Summary -->
 			<BookingCartSummary />
 
+			<div
+				v-if="continueError"
+				role="alert"
+				class="flex items-start gap-2 rounded-lg border border-error/30 bg-error/10 px-4 py-3 text-body-sm text-error"
+			>
+				<span class="material-symbols-outlined text-[20px]">error</span>
+				<span>{{ continueError }}</span>
+			</div>
+
 			<!-- Actions -->
 			<div class="space-y-3">
 				<button
@@ -113,10 +122,16 @@ const auth = useAuthStore();
 const workflow = useBookingWorkflow();
 
 const isProcessing = ref(false);
+const continueError = ref("");
 
 async function handleContinueBooking() {
+	if (isProcessing.value) return;
+
 	isProcessing.value = true;
+	continueError.value = "";
 	try {
+		await auth.refreshUser();
+
 		if (!auth.isLoggedIn) {
 			await router.push({
 				name: "Login",
@@ -131,8 +146,10 @@ async function handleContinueBooking() {
 			name: "BookingWorkflow",
 		});
 		emit("close");
-	} catch (error) {
+	} catch (error: any) {
 		console.error("[BookingCartDrawer] Navigation failed:", error);
+		continueError.value =
+			error?.message || "We could not start your booking. Please try again.";
 	} finally {
 		isProcessing.value = false;
 	}

@@ -183,6 +183,16 @@ def get_logged_in_customer():
 	if not frappe.session.user or frappe.session.user == "Guest":
 		return {}
 
+	user_details = (
+		frappe.db.get_value(
+			"User",
+			frappe.session.user,
+			["full_name", "email", "phone", "mobile_no"],
+			as_dict=True,
+		)
+		or {}
+	)
+
 	portal_user = frappe.get_all(
 		"Portal User",
 		filters={"user": frappe.session.user},
@@ -193,6 +203,21 @@ def get_logged_in_customer():
 		return {}
 
 	customer = portal_user[0].parent
-	customer_details = get_customer_contact_details(customer)
+	try:
+		customer_details = get_customer_contact_details(customer)
+	except frappe.PermissionError:
+		# A customer portal user is allowed to use their own User profile even when
+		# their role cannot read the linked Contact document.
+		customer_details = {}
+
+	customer_details = {
+		**customer_details,
+		"contact_display": customer_details.get("contact_display") or user_details.get("full_name"),
+		"contact_email": customer_details.get("contact_email") or user_details.get("email"),
+		"contact_mobile": customer_details.get("contact_mobile")
+		or customer_details.get("contact_phone")
+		or user_details.get("mobile_no")
+		or user_details.get("phone"),
+	}
 
 	return {"customer": customer, "contact": customer_details}

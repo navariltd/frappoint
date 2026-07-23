@@ -37,6 +37,7 @@ export interface LoggedInCustomerProfile {
 	contact: {
 		contact_display?: string;
 		contact_email?: string;
+		contact_mobile?: string;
 		contact_phone?: string;
 	};
 }
