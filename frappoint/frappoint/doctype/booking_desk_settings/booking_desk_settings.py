@@ -14,15 +14,15 @@ class BookingDeskSettings(Document):
 	if TYPE_CHECKING:
 		from frappe.types import DF
 
-		accent_color: DF.Color | None
-		body_text_color: DF.Color | None
-		company: DF.Link | None
+		accent_color: DF.Color
+		body_text_color: DF.Color
+		company: DF.Link
 		favicon: DF.AttachImage | None
-		light_surface_color: DF.Color | None
-		page_background_color: DF.Color | None
-		page_title: DF.Data | None
-		primary_color: DF.Color | None
-		primary_hover_color: DF.Color | None
+		light_surface_color: DF.Color
+		page_background_color: DF.Color
+		page_title: DF.Data
+		primary_color: DF.Color
+		primary_hover_color: DF.Color
 		sidebar_logo: DF.AttachImage | None
 	# end: auto-generated types
 
