@@ -29,7 +29,7 @@
 				class="flex items-center justify-between gap-3 px-3 py-2.5"
 			>
 				<span class="text-on-surface-variant">Discount</span>
-				<span class="font-medium text-secondary"
+				<span class="font-medium text-secondary-ink"
 					>-{{ currency }} {{ discountAmount.toFixed(2) }}</span
 				>
 			</div>

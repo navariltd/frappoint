@@ -47,8 +47,8 @@
 				class="w-full rounded-lg px-4 py-3 text-[12px] font-semibold flex items-center justify-center gap-2 transition-colors"
 				:class="
 					canSubmit && !isSubmitting
-						? 'bg-primary text-on-primary hover:bg-primary/90'
-						: 'bg-primary/70 text-on-primary hover:bg-primary/80'
+						? 'bg-primary text-on-primary hover:bg-primary-dark'
+						: 'bg-primary/70 text-on-primary hover:bg-primary-dark'
 				"
 				:disabled="isSubmitting"
 				@click="$emit('submit')"
@@ -100,7 +100,7 @@ const statusClass = computed(() => {
 		return "border-error bg-error-container/30 text-error";
 	}
 	if (props.paymentProgress === "success") {
-		return "border-secondary bg-secondary-container/30 text-secondary";
+		return "border-secondary bg-secondary-container/30 text-secondary-ink";
 	}
 	if (
 		props.paymentProgress === "awaiting_confirmation" ||

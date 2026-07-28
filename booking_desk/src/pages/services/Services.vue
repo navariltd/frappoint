@@ -1,7 +1,7 @@
 <template>
 	<div class="flex h-full overflow-hidden text-on-surface">
 		<section
-			class="flex-1 min-w-0 flex flex-col border-r border-outline-variant/60 bg-gray-50/50"
+			class="flex-1 min-w-0 flex flex-col border-r border-outline-variant/60 bg-surface-container-low"
 		>
 			<div class="shrink-0 px-4 py-3 border-outline-variant bg-surface-container-lowest">
 				<div class="mb-3">
@@ -14,7 +14,7 @@
 							v-model="searchQuery"
 							type="text"
 							placeholder="Search services by name"
-							class="w-full rounded-xl border border-outline-variant bg-surface-container-low pl-10 pr-3 py-2 text-[12px] outline-none focus:ring-2 focus:ring-primary"
+							class="w-full rounded-xl border border-outline-variant bg-surface-container-low pl-10 pr-3 py-2 text-[12px] outline-none focus:ring-2 focus:ring-secondary"
 						/>
 					</div>
 				</div>
@@ -146,7 +146,7 @@
 							v-model="customerSearch"
 							type="text"
 							placeholder="Search and select customer"
-							class="w-full rounded-lg border border-outline-variant bg-surface-container-low px-3 py-2 text-[12px] outline-none focus:ring-2 focus:ring-primary"
+							class="w-full rounded-lg border border-outline-variant bg-surface-container-low px-3 py-2 text-[12px] outline-none focus:ring-2 focus:ring-secondary"
 							@focus="isCustomerPickerOpen = true"
 						/>
 						<div

@@ -42,7 +42,7 @@
 			<!-- Action Button -->
 			<button
 				type="button"
-				class="w-full px-4 py-3 rounded-lg bg-primary text-on-primary font-medium text-sm transition-colors hover:bg-primary/90"
+				class="w-full px-4 py-3 rounded-lg bg-primary text-on-primary font-medium text-sm transition-colors hover:bg-primary-dark"
 				@click="handleLogout"
 			>
 				Log Out
@@ -54,7 +54,7 @@
 					Need help?
 					<a
 						href="mailto:support@example.com"
-						class="text-primary font-medium hover:underline"
+						class="text-secondary-ink decoration-secondary font-medium underline-offset-4 hover:underline focus-visible:ring-2 focus-visible:ring-secondary"
 					>
 						Contact Support
 					</a>

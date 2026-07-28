@@ -22,7 +22,7 @@
 				</div>
 				<div class="bg-surface-container-high px-4 py-2 rounded-xl min-w-[80px]">
 					<p class="text-label-sm text-outline">Checked In</p>
-					<p class="text-headline-sm font-bold text-secondary">
+					<p class="text-headline-sm font-bold text-secondary-ink">
 						{{ summary.checkedIn }}
 					</p>
 				</div>

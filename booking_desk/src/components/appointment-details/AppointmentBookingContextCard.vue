@@ -32,7 +32,7 @@
 			</div>
 		</div>
 		<button
-			class="w-full px-4 py-2 rounded-md border border-outline-variant/70 text-on-surface-variant hover:bg-surface-container-high hover:border-outline transition-colors shadow-sm hover:shadow focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
+			class="w-full px-4 py-2 rounded-md border border-outline-variant/70 text-on-surface-variant hover:bg-surface-container-high hover:border-outline transition-colors shadow-sm hover:shadow focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary/30"
 			type="button"
 			@click="$emit('open-booking')"
 		>
