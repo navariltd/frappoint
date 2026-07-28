@@ -15,7 +15,6 @@ export default {
 	theme: {
 		extend: {
 			colors: {
-				// Enashipai Beach & Spa brand palette
 				primary: themeColor("primary"),
 				"primary-dark": themeColor("primary-dark"),
 				"on-primary": themeColor("on-primary"),
