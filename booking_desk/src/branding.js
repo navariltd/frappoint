@@ -1,19 +1,5 @@
 import { reactive } from "vue";
 import { getBookingDeskBranding } from "@/api/branding.api";
-import fallbackLogo from "@/assets/images/Enashipai_logo.jpg";
-
-const DEFAULTS = Object.freeze({
-	company: "Enashipai Resort & Spa",
-	pageTitle: "Enashipai Booking Desk",
-	sidebarLogo: fallbackLogo,
-	favicon: "/favicon.ico",
-	primaryColor: "#8a0e04",
-	primaryHoverColor: "#6f0a02",
-	accentColor: "#a06f22",
-	lightSurfaceColor: "#feffff",
-	pageBackgroundColor: "#f8f4ee",
-	bodyTextColor: "#2d2d2d",
-});
 
 const COLOR_FIELDS = {
 	primaryColor: "primary_color",
@@ -24,7 +10,22 @@ const COLOR_FIELDS = {
 	bodyTextColor: "body_text_color",
 };
 
-export const branding = reactive({ ...DEFAULTS });
+function createEmptyBranding() {
+	return {
+		company: "",
+		pageTitle: "",
+		sidebarLogo: "",
+		favicon: "",
+		primaryColor: "",
+		primaryHoverColor: "",
+		accentColor: "",
+		lightSurfaceColor: "",
+		pageBackgroundColor: "",
+		bodyTextColor: "",
+	};
+}
+
+export const branding = reactive(createEmptyBranding());
 
 function normalizeHex(value, fallback) {
 	const color = String(value || "").trim();
@@ -39,6 +40,10 @@ function normalizeHex(value, fallback) {
 			.join("")}`.toLowerCase();
 	}
 	return fallback;
+}
+
+function hasBrandingValue(value) {
+	return value !== undefined && value !== null && String(value).trim() !== "";
 }
 
 function toRgb(hex) {
@@ -195,7 +200,9 @@ function applyTheme(settings) {
 }
 
 function applyDocumentBranding(settings) {
-	document.title = settings.pageTitle;
+	if (hasBrandingValue(settings.pageTitle)) {
+		document.title = settings.pageTitle;
+	}
 
 	let themeColor = document.querySelector("meta[name='theme-color']");
 	if (!themeColor) {
@@ -203,7 +210,9 @@ function applyDocumentBranding(settings) {
 		themeColor.name = "theme-color";
 		document.head.appendChild(themeColor);
 	}
-	themeColor.content = settings.primaryColor;
+	if (hasBrandingValue(settings.primaryColor)) {
+		themeColor.content = settings.primaryColor;
+	}
 
 	let favicon = document.querySelector("link[rel~='icon']");
 	if (!favicon) {
@@ -211,29 +220,30 @@ function applyDocumentBranding(settings) {
 		favicon.rel = "icon";
 		document.head.appendChild(favicon);
 	}
-	favicon.href = settings.favicon;
+	if (hasBrandingValue(settings.favicon)) {
+		favicon.href = settings.favicon;
+	}
 }
 
 function mapSettings(response = {}) {
-	const mapped = {
-		company: response.company || DEFAULTS.company,
-		pageTitle: response.page_title || DEFAULTS.pageTitle,
-		sidebarLogo: response.sidebar_logo || DEFAULTS.sidebarLogo,
-		favicon: response.favicon || DEFAULTS.favicon,
-	};
+	const mapped = createEmptyBranding();
+	mapped.company = response.company || "";
+	mapped.pageTitle = response.page_title || "";
+	mapped.sidebarLogo = response.sidebar_logo || "";
+	mapped.favicon = response.favicon || "";
 
 	for (const [frontendField, backendField] of Object.entries(COLOR_FIELDS)) {
-		mapped[frontendField] = normalizeHex(response[backendField], DEFAULTS[frontendField]);
+		mapped[frontendField] = normalizeHex(response[backendField], "");
 	}
 	return mapped;
 }
 
 export async function initializeBranding() {
-	let settings = { ...DEFAULTS };
+	let settings = createEmptyBranding();
 	try {
 		settings = mapSettings(await getBookingDeskBranding());
 	} catch {
-		// The bundled theme remains usable when settings cannot be loaded.
+		// Leave the page on its existing document/theme values if branding cannot be loaded.
 	}
 
 	Object.assign(branding, settings);
