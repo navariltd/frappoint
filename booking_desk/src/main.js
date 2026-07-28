@@ -3,21 +3,28 @@ import App from "./App.vue";
 import router from "./router";
 import { initSocket } from "./socket";
 import { createPinia } from "pinia";
+import { initializeBranding } from "./branding";
 
 import { frappeRequest, FrappeUI, pageMetaPlugin, setConfig } from "frappe-ui";
 import "./index.css";
 
 setConfig("resourceFetcher", frappeRequest);
 
-const pinia = createPinia();
-const app = createApp(App);
+async function bootstrap() {
+	await initializeBranding();
 
-app.use(pinia);
-app.use(router);
-app.use(FrappeUI);
-app.use(pageMetaPlugin);
+	const pinia = createPinia();
+	const app = createApp(App);
 
-const socket = initSocket();
-app.config.globalProperties.$socket = socket;
+	app.use(pinia);
+	app.use(router);
+	app.use(FrappeUI);
+	app.use(pageMetaPlugin);
 
-app.mount("#app");
+	const socket = initSocket();
+	app.config.globalProperties.$socket = socket;
+
+	app.mount("#app");
+}
+
+bootstrap();

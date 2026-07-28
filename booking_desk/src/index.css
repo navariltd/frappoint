@@ -1,3 +1,112 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer base {
+	:root {
+		--color-primary: 138 14 4;
+		--color-primary-dark: 111 10 2;
+		--color-on-primary: 255 255 255;
+		--color-primary-container: 245 222 219;
+		--color-on-primary-container: 101 10 3;
+		--color-primary-fixed: 245 222 219;
+		--color-primary-fixed-dim: 233 190 185;
+		--color-on-primary-fixed: 61 5 1;
+		--color-on-primary-fixed-variant: 101 10 3;
+		--color-inverse-primary: 233 170 163;
+		--color-surface-tint: 138 14 4;
+
+		--color-secondary: 160 111 34;
+		--color-secondary-dark: 122 80 18;
+		--color-secondary-ink: 112 72 13;
+		--color-on-secondary: 45 45 45;
+		--color-secondary-container: 243 231 210;
+		--color-on-secondary-container: 93 59 13;
+		--color-secondary-fixed: 243 231 210;
+		--color-secondary-fixed-dim: 227 204 165;
+		--color-on-secondary-fixed: 62 39 7;
+		--color-on-secondary-fixed-variant: 104 68 14;
+
+		--color-tertiary: 254 255 255;
+		--color-on-tertiary: 45 45 45;
+		--color-tertiary-container: 243 231 210;
+		--color-on-tertiary-container: 99 63 12;
+		--color-tertiary-fixed: 248 238 223;
+		--color-tertiary-fixed-dim: 234 213 180;
+		--color-on-tertiary-fixed: 62 39 7;
+		--color-on-tertiary-fixed-variant: 104 68 14;
+
+		--color-background: 248 244 238;
+		--color-background-light: 248 244 238;
+		--color-background-dark: 36 27 25;
+		--color-on-background: 45 45 45;
+		--color-surface: 251 248 243;
+		--color-surface-light: 254 255 255;
+		--color-surface-dark: 48 37 34;
+		--color-surface-bright: 254 255 255;
+		--color-surface-dim: 231 222 213;
+		--color-surface-container-lowest: 254 255 255;
+		--color-surface-container-low: 248 244 238;
+		--color-surface-container: 242 235 227;
+		--color-surface-container-high: 236 226 216;
+		--color-surface-container-highest: 229 216 205;
+		--color-surface-variant: 242 235 227;
+		--color-on-surface: 45 45 45;
+		--color-on-surface-variant: 93 81 75;
+		--color-inverse-surface: 59 48 45;
+		--color-inverse-on-surface: 255 248 242;
+
+		--color-outline: 120 105 99;
+		--color-outline-variant: 212 197 187;
+		--color-border-light: 224 211 201;
+		--color-border-dark: 89 73 67;
+		--color-text-main-light: 45 45 45;
+		--color-text-main-dark: 254 255 255;
+		--color-text-sub-light: 98 86 80;
+		--color-text-sub-dark: 216 202 193;
+
+		color: rgb(var(--color-on-surface));
+		background: rgb(var(--color-background));
+		font-synthesis: none;
+		text-rendering: optimizeLegibility;
+	}
+
+	html {
+		background: rgb(var(--color-background));
+	}
+
+	body {
+		margin: 0;
+		min-width: 320px;
+		background: rgb(var(--color-background));
+		color: rgb(var(--color-on-surface));
+		font-family: "Inter", ui-sans-serif, system-ui, sans-serif;
+	}
+
+	::selection {
+		background: rgb(var(--color-secondary-container));
+		color: rgb(var(--color-on-primary-container));
+	}
+
+	:where(a, button, input, select, textarea):focus-visible {
+		outline: 3px solid rgb(var(--color-secondary));
+		outline-offset: 2px;
+	}
+
+	a:not([class]) {
+		color: rgb(var(--color-secondary-ink));
+		text-decoration-thickness: 1px;
+		text-underline-offset: 3px;
+	}
+
+	a:not([class]):hover {
+		text-decoration-line: underline;
+	}
+}
+
+@layer components {
+	button.bg-primary:not(:disabled):hover,
+	a.bg-primary:hover {
+		background-color: rgb(var(--color-primary-dark));
+	}
+}
