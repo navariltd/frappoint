@@ -7,16 +7,24 @@ import frappe
 from frappe.tests.utils import FrappeTestCase
 
 from frappoint.frappoint.api.service_type import (
-	_public_asset_url,
 	_safe_portal_html,
+	_service_image_url,
 	get_service_type_details,
+	get_service_type_image,
 )
 
 
 class TestServiceType(FrappeTestCase):
-	def test_private_assets_are_not_exposed_to_portal(self):
-		self.assertIsNone(_public_asset_url("/private/files/service.jpg"))
-		self.assertEqual(_public_asset_url("/files/service.jpg"), "/files/service.jpg")
+	def test_service_image_urls_support_public_and_private_files(self):
+		self.assertEqual(
+			_service_image_url("Massage Therapy", "/private/files/service.jpg"),
+			"/api/method/frappoint.frappoint.api.service_type.get_service_type_image"
+			"?service_type=Massage%20Therapy",
+		)
+		self.assertEqual(
+			_service_image_url("Massage Therapy", "/files/service.jpg"),
+			"/files/service.jpg",
+		)
 
 	def test_portal_html_is_sanitized(self):
 		sanitized = _safe_portal_html('<p onclick="alert(1)">Safe</p><script>alert("unsafe")</script>')
@@ -75,6 +83,23 @@ class TestServiceType(FrappeTestCase):
 				"disabled": 0,
 			},
 		)
-		self.assertIsNone(result["image"])
+		self.assertEqual(
+			result["image"],
+			"/api/method/frappoint.frappoint.api.service_type.get_service_type_image" "?service_type=Massage",
+		)
 		self.assertEqual(result["tags"], ["Relaxation", "Wellness"])
 		get_providers.assert_called_once_with("Massage")
+
+	@patch("frappoint.frappoint.api.service_type.frappe.get_doc")
+	@patch("frappoint.frappoint.api.service_type.frappe.db.get_value")
+	def test_private_service_image_is_streamed_inline(self, get_value, get_doc):
+		get_value.side_effect = ["/private/files/massage.jpg", "FILE-0001"]
+		get_doc.return_value.get_content.return_value = b"image-content"
+
+		get_service_type_image("Massage")
+
+		self.assertEqual(frappe.local.response.filename, "massage.jpg")
+		self.assertEqual(frappe.local.response.filecontent, b"image-content")
+		self.assertEqual(frappe.local.response.content_type, "image/jpeg")
+		self.assertEqual(frappe.local.response.display_content_as, "inline")
+		self.assertEqual(frappe.local.response.type, "download")

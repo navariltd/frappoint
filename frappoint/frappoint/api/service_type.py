@@ -1,4 +1,7 @@
+import mimetypes
+import os
 import re
+from urllib.parse import quote
 
 import frappe
 from frappe import _
@@ -8,9 +11,16 @@ from ...payments import get_payment_gateways_for_service_type
 from .service_provider import get_providers_for_service
 
 
-def _public_asset_url(value: str | None) -> str | None:
-	if not value or value.startswith("/private/"):
+def _service_image_url(service_type: str, value: str | None) -> str | None:
+	if not value:
 		return None
+
+	if value.startswith("/private/files/"):
+		return (
+			"/api/method/frappoint.frappoint.api.service_type.get_service_type_image"
+			f"?service_type={quote(service_type, safe='')}"
+		)
+
 	return value
 
 
@@ -20,6 +30,35 @@ def _safe_portal_html(value: str | None) -> str:
 		always_sanitize=True,
 		disallowed_tags={"script", "style", "iframe", "object", "embed", "form", "input", "button"},
 	)
+
+
+@frappe.whitelist(allow_guest=True)  # nosemgrep: guest-whitelisted-method
+def get_service_type_image(service_type: str):
+	"""Serve the image configured on an active Service Type, including private files."""
+	image_url = frappe.db.get_value(
+		"Service Type",
+		{"name": service_type, "disabled": 0},
+		"image",
+	)
+	if not image_url:
+		frappe.throw(_("Service image not found"), frappe.DoesNotExistError)
+
+	content_type = mimetypes.guess_type(image_url)[0]
+	if not image_url.startswith(("/files/", "/private/files/")) or not (
+		content_type and content_type.startswith("image/")
+	):
+		frappe.throw(_("The configured service file is not an image."), frappe.PermissionError)
+
+	file_name = frappe.db.get_value("File", {"file_url": image_url}, "name")
+	if not file_name:
+		frappe.throw(_("Service image file not found"), frappe.DoesNotExistError)
+
+	file = frappe.get_doc("File", file_name)
+	frappe.local.response.filename = os.path.basename(image_url)
+	frappe.local.response.filecontent = file.get_content()
+	frappe.local.response.content_type = content_type
+	frappe.local.response.display_content_as = "inline"
+	frappe.local.response.type = "download"
 
 
 @frappe.whitelist(allow_guest=True)  # nosemgrep: guest-whitelisted-method
@@ -131,7 +170,7 @@ def get_service_types(
 
 	# Add price information to paginated results only
 	for service in service_types:
-		service.image = _public_asset_url(service.image)
+		service.image = _service_image_url(service.name, service.image)
 		prices = frappe.get_all(
 			"Service Type Price",
 			filters={
@@ -263,7 +302,7 @@ def get_service_type_details(service_type: str) -> dict:
 	if not service:
 		frappe.throw(_("Service not found"), frappe.DoesNotExistError)
 
-	service.image = _public_asset_url(service.image)
+	service.image = _service_image_url(service.name, service.image)
 	for field in ("description", "benefits", "techniques"):
 		service[field] = _safe_portal_html(service.get(field))
 
