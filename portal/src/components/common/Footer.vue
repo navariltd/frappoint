@@ -1,44 +1,44 @@
 <template>
-	<footer class="bg-white border-t border-gray-200">
+	<footer class="bg-surface-light border-t border-outline-variant/50">
 		<div class="max-w-7xl mx-auto px-4 sm:px-6 py-12 md:py-16">
 			<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 lg:gap-12">
 				<!-- Brand Section -->
 				<div class="lg:col-span-1">
 					<div class="flex items-center gap-2 mb-4">
 						<img
-							class="h-8 w-8"
-							src="@/assets/images/logo_img.png"
-							alt="Frappoint logo"
+							class="h-8 w-8 object-contain"
+							:src="branding.sidebarLogo || defaultLogo"
+							:alt="`${branding.company} logo`"
 						/>
-						<h3 class="text-xl font-bold text-gray-900">Frappoint</h3>
+						<h3 class="text-xl font-bold text-on-surface">{{ branding.company }}</h3>
 					</div>
-					<p class="text-sm text-gray-600 leading-relaxed">
+					<p class="text-sm text-on-surface-variant leading-relaxed">
 						Premium wellness booking made simple. Restore your balance today.
 					</p>
 				</div>
 
 				<!-- Company Links -->
 				<div>
-					<h4 class="text-sm font-semibold text-gray-900 mb-4">Company</h4>
+					<h4 class="text-sm font-semibold text-on-surface mb-4">Company</h4>
 					<ul class="space-y-3">
 						<li>
 							<a
 								href="#"
-								class="text-sm text-gray-600 hover:text-primary transition-colors"
+								class="text-sm text-on-surface-variant hover:text-primary transition-colors"
 								>About Us</a
 							>
 						</li>
 						<li>
 							<a
 								href="#"
-								class="text-sm text-gray-600 hover:text-primary transition-colors"
+								class="text-sm text-on-surface-variant hover:text-primary transition-colors"
 								>Careers</a
 							>
 						</li>
 						<li>
 							<a
 								href="#"
-								class="text-sm text-gray-600 hover:text-primary transition-colors"
+								class="text-sm text-on-surface-variant hover:text-primary transition-colors"
 								>Blog</a
 							>
 						</li>
@@ -47,26 +47,26 @@
 
 				<!-- Support Links -->
 				<div>
-					<h4 class="text-sm font-semibold text-gray-900 mb-4">Support</h4>
+					<h4 class="text-sm font-semibold text-on-surface mb-4">Support</h4>
 					<ul class="space-y-3">
 						<li>
 							<a
 								href="#"
-								class="text-sm text-gray-600 hover:text-primary transition-colors"
+								class="text-sm text-on-surface-variant hover:text-primary transition-colors"
 								>Help Center</a
 							>
 						</li>
 						<li>
 							<a
 								href="#"
-								class="text-sm text-gray-600 hover:text-primary transition-colors"
+								class="text-sm text-on-surface-variant hover:text-primary transition-colors"
 								>Safety</a
 							>
 						</li>
 						<li>
 							<a
 								href="#"
-								class="text-sm text-gray-600 hover:text-primary transition-colors"
+								class="text-sm text-on-surface-variant hover:text-primary transition-colors"
 								>Terms of Service</a
 							>
 						</li>
@@ -75,13 +75,13 @@
 
 				<!-- Newsletter Section -->
 				<div>
-					<h4 class="text-sm font-semibold text-gray-900 mb-4">Stay updated</h4>
+					<h4 class="text-sm font-semibold text-on-surface mb-4">Stay updated</h4>
 					<div class="flex gap-2">
 						<input
 							v-model="email"
 							type="email"
 							placeholder="Enter your email"
-							class="flex-1 px-4 py-2.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all"
+							class="flex-1 px-4 py-2.5 text-sm text-on-surface bg-surface border border-outline-variant rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all"
 						/>
 						<button
 							@click="handleSubscribe"
@@ -94,7 +94,9 @@
 			</div>
 
 			<!-- Copyright -->
-			<div class="mt-12 pt-8 border-t border-gray-200 text-center text-sm text-gray-500">
+			<div
+				class="mt-12 pt-8 border-t border-outline-variant/50 text-center text-sm text-on-surface-variant"
+			>
 				© 2025. All rights reserved.
 			</div>
 		</div>
@@ -104,6 +106,8 @@
 <script setup>
 import { ref } from "vue";
 import { FeatherIcon } from "frappe-ui";
+import { branding } from "@/branding";
+import defaultLogo from "@/assets/images/logo_img.png";
 
 const email = ref("");
 

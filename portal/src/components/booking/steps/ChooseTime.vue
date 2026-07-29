@@ -126,7 +126,7 @@
 											? '!bg-primary !text-white'
 											: 'border hover-bg-primary/10'
 									"
-									class="py-4 px-4 rounded-lg border border-slate-200 text-slate-700 hover:border-primary hover:text-primary hover:bg-[#E2F0F9] transition-all text-sm font-medium"
+									class="py-4 px-4 rounded-lg border border-slate-200 text-slate-700 hover:border-primary hover:text-primary hover:bg-primary-container/30 transition-all text-sm font-medium"
 								>
 									{{ formatTime(slot.start_time) }}
 								</Button>
@@ -147,7 +147,7 @@
 											? '!bg-primary !text-white'
 											: 'broder hover-bg-primary/10'
 									"
-									class="py-4 px-4 rounded-lg border border-slate-200 text-slate-700 hover:border-primary hover:text-primary hover:bg-[#E2F0F9] transition-all text-sm font-medium"
+									class="py-4 px-4 rounded-lg border border-slate-200 text-slate-700 hover:border-primary hover:text-primary hover:bg-primary-container/30 transition-all text-sm font-medium"
 								>
 									{{ formatTime(slot.start_time) }}
 								</Button>
@@ -330,10 +330,10 @@ function formatSelectedDate(date) {
 	--dp-font-family: inherit;
 	--dp-border-radius: 12px;
 	--dp-cell-border-radius: 8px;
-	--dp-primary-color: #2c7677;
+	--dp-primary-color: rgb(var(--color-primary));
 	--dp-primary-text-color: #ffffff;
-	--dp-hover-color: #d1e7e7;
-	--dp-hover-text-color: #2c7677;
+	--dp-hover-color: rgb(var(--color-primary-container));
+	--dp-hover-text-color: rgb(var(--color-on-primary-container));
 	--dp-cell-size: 48px;
 	--dp-button-height: 35px;
 }
@@ -375,17 +375,17 @@ function formatSelectedDate(date) {
 }
 
 :deep(.dp__today) {
-	border: 2px solid #2c7677;
+	border: 2px solid rgb(var(--color-primary));
 }
 
 :deep(.dp__active_date) {
-	background: #2c7677 !important;
+	background: rgb(var(--color-primary)) !important;
 	color: white !important;
 }
 
 :deep(.dp__cell_inner:hover) {
-	background: #d1e7e7;
-	color: #2c7677;
+	background: rgb(var(--color-primary-container));
+	color: rgb(var(--color-on-primary-container));
 }
 
 :deep(.dp__arrow_top),
@@ -395,11 +395,11 @@ function formatSelectedDate(date) {
 }
 
 :deep(.dp__month_year_select) {
-	color: #2c7677;
+	color: rgb(var(--color-primary));
 }
 
 :deep(.dp__month_year_select:hover) {
-	background: #d1e7e7;
-	color: #2c7677;
+	background: rgb(var(--color-primary-container));
+	color: rgb(var(--color-on-primary-container));
 }
 </style>

@@ -6,7 +6,7 @@
 		<div class="flex items-center gap-4">
 			<span
 				class="font-headline-md text-headline-md font-semibold text-primary dark:text-inverse-primary"
-				>Frappoint</span
+				>{{ branding.company }}</span
 			>
 		</div>
 		<div class="flex items-center gap-4">
@@ -828,6 +828,7 @@ import UserDetails from "./steps/CustomerDetails.vue";
 import PaymentStep from "./steps/PaymentAndConfirmation.vue";
 import { flattenSlotsByProviderForDate } from "@/utils/slotTransformation";
 import { formatCurrency } from "@/utils";
+import { branding } from "@/branding";
 
 const booking = useBookingStore();
 const auth = useAuthStore();

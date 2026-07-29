@@ -47,7 +47,7 @@
 										  }
 										: {
 												background:
-													'linear-gradient(to bottom right, #3a8a8b, #2c7677, #1f5a5b)',
+													'linear-gradient(to bottom right, rgb(var(--color-primary-container)), rgb(var(--color-primary)), rgb(var(--color-primary-dark)))',
 										  }
 								"
 							></div>

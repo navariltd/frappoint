@@ -1,37 +1,77 @@
 <template>
 	<section
-		class="relative overflow-hidden rounded-[2rem] border border-outline-variant/20 bg-surface-container-lowest shadow-[0px_18px_42px_rgba(45,52,54,0.12)]"
+		class="relative isolate overflow-hidden rounded-[2rem] border border-outline-variant/20 bg-primary shadow-xl shadow-primary/10"
 	>
+		<img
+			v-if="service.image"
+			:src="service.image"
+			:alt="service.appointment_type"
+			class="absolute inset-0 -z-20 h-full w-full object-cover"
+		/>
 		<div
-			class="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(34,97,97,0.28),transparent_42%),linear-gradient(135deg,rgba(7,22,22,0.94),rgba(13,54,54,0.86))]"
+			v-else
+			class="absolute inset-0 -z-20 flex items-center justify-end bg-gradient-to-br from-primary to-primary-dark pr-12 text-on-primary/10"
 		></div>
-		<div
-			class="absolute inset-0 bg-cover bg-center opacity-35 mix-blend-screen transition-transform duration-700"
-			:style="heroStyle"
-		></div>
-		<div
-			class="absolute inset-0 bg-gradient-to-r from-black/60 via-black/25 to-transparent"
-		></div>
-
-		<div
-			class="relative flex min-h-[32rem] flex-col justify-between gap-8 p-8 lg:min-h-[42rem] lg:p-10"
+		<span
+			v-if="!service.image"
+			class="material-symbols-outlined absolute right-8 top-1/2 -z-10 -translate-y-1/2 text-[15rem] text-on-primary/10"
+			aria-hidden="true"
+			>spa</span
 		>
-			<div class="max-w-3xl space-y-4 text-white">
-				<p class="font-label-md text-label-md uppercase tracking-[0.24em] text-white/70">
-					Service Details
-				</p>
-				<h1 class="font-headline-lg text-headline-lg leading-tight text-white">
-					{{ title }}
-				</h1>
-				<p class="max-w-2xl font-body-md text-body-md leading-relaxed text-white/80">
-					{{ subtitle }}
-				</p>
-			</div>
+		<div
+			class="absolute inset-0 -z-10 bg-gradient-to-r from-black/80 via-black/45 to-black/15"
+		></div>
 
-			<div class="flex flex-wrap gap-2">
-				<span v-for="tag in tags" :key="tag" class="inline-flex">
-					<ServiceTag :tag="tag" />
-				</span>
+		<div
+			class="relative flex min-h-[28rem] flex-col justify-end gap-8 p-6 sm:p-10 lg:min-h-[34rem]"
+		>
+			<div class="grid items-end gap-8 lg:grid-cols-[minmax(0,1fr)_auto]">
+				<div class="max-w-3xl space-y-4 text-white">
+					<nav
+						class="flex flex-wrap items-center gap-2 text-label-sm text-white/75"
+						aria-label="Breadcrumb"
+					>
+						<RouterLink
+							:to="{ name: 'Services' }"
+							class="hover:text-white hover:underline"
+						>
+							Services
+						</RouterLink>
+						<template v-if="service.item_group">
+							<span aria-hidden="true">/</span>
+							<span>{{ service.item_group }}</span>
+						</template>
+					</nav>
+					<h1 class="font-headline-lg text-headline-lg leading-tight text-white">
+						{{ title }}
+					</h1>
+					<p
+						v-if="subtitle"
+						class="max-w-2xl font-body-md text-body-md leading-relaxed text-white/85"
+					>
+						{{ subtitle }}
+					</p>
+
+					<div v-if="tags.length" class="flex flex-wrap gap-2 pt-1">
+						<span v-for="tag in tags" :key="tag" class="inline-flex">
+							<ServiceTag :tag="tag" />
+						</span>
+					</div>
+				</div>
+
+				<div
+					v-if="startingPrice"
+					class="w-fit rounded-2xl border border-white/25 bg-surface-container-lowest/95 px-6 py-5 text-on-surface shadow-xl backdrop-blur"
+				>
+					<p
+						class="text-label-sm font-semibold uppercase tracking-[0.14em] text-on-surface-variant"
+					>
+						Starting from
+					</p>
+					<p class="mt-1 font-headline-md text-headline-md font-bold text-primary">
+						{{ startingPrice }}
+					</p>
+				</div>
 			</div>
 		</div>
 	</section>
@@ -40,36 +80,31 @@
 <script setup>
 import { computed } from "vue";
 import ServiceTag from "@/components/common/ServiceTag.vue";
+import { formatCurrency } from "@/utils";
 
 const props = defineProps({
 	service: {
 		type: Object,
 		default: () => ({}),
 	},
-	selectedPackage: {
-		type: Object,
-		default: null,
-	},
 });
 
 const title = computed(
 	() => props.service?.appointment_type || props.service?.name || "Service Details"
 );
-const subtitle = computed(
-	() =>
-		props.service?.short_description ||
-		"Discover the ritual, choose a package, and continue to booking."
-);
+const subtitle = computed(() => props.service?.short_description || "");
 const tags = computed(() => props.service?.tags || []);
-const heroStyle = computed(() => {
-	if (!props.service?.image) {
-		return {
-			backgroundImage: "linear-gradient(135deg, rgba(45,118,119,0.3), rgba(10,35,35,0.1))",
-		};
+const startingPrice = computed(() => {
+	const prices = (props.service?.prices || []).filter(
+		(price) => price?.amount != null && price?.currency
+	);
+	if (!prices.length) {
+		return "";
 	}
 
-	return {
-		backgroundImage: `url(${props.service.image})`,
-	};
+	const lowest = prices.reduce((current, price) =>
+		Number(price.amount) < Number(current.amount) ? price : current
+	);
+	return formatCurrency(lowest.amount, lowest.currency);
 });
 </script>

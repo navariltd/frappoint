@@ -12,7 +12,7 @@
 defineProps({
 	title: {
 		type: String,
-		default: "About the Ritual",
+		default: "About the Service",
 	},
 	content: {
 		type: String,

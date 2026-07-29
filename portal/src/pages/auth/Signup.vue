@@ -35,7 +35,7 @@
 							v-model="fullName"
 							required
 							type="text"
-							class="w-full rounded-xl text-[#111818] dark:text-white border border-[#d5e2e2] dark:border-gray-700 bg-white dark:bg-background-dark focus:border-[#2c7677] focus:ring-1 focus:ring-[#2c7677] h-12 pl-10 pr-4 text-sm font-normal placeholder:text-[#8B949E] transition-colors"
+							class="w-full rounded-xl text-[#111818] dark:text-white border border-[#d5e2e2] dark:border-gray-700 bg-white dark:bg-background-dark focus:border-primary focus:ring-1 focus:ring-primary h-12 pl-10 pr-4 text-sm font-normal placeholder:text-[#8B949E] transition-colors"
 							placeholder="John Doe"
 						/>
 					</div>
@@ -61,7 +61,7 @@
 							v-model="email"
 							required
 							type="email"
-							class="w-full rounded-xl text-[#111818] dark:text-white border border-[#d5e2e2] dark:border-gray-700 bg-white dark:bg-background-dark focus:border-[#2c7677] focus:ring-1 focus:ring-[#2c7677] h-12 pl-10 pr-4 text-sm font-normal placeholder:text-[#8B949E] transition-colors"
+							class="w-full rounded-xl text-[#111818] dark:text-white border border-[#d5e2e2] dark:border-gray-700 bg-white dark:bg-background-dark focus:border-primary focus:ring-1 focus:ring-primary h-12 pl-10 pr-4 text-sm font-normal placeholder:text-[#8B949E] transition-colors"
 							placeholder="name@company.com"
 						/>
 					</div>
@@ -87,7 +87,7 @@
 							v-model="phone"
 							required
 							type="tel"
-							class="w-full rounded-xl text-[#111818] dark:text-white border border-[#d5e2e2] dark:border-gray-700 bg-white dark:bg-background-dark focus:border-[#2c7677] focus:ring-1 focus:ring-[#2c7677] h-12 pl-10 pr-4 text-sm font-normal placeholder:text-[#8B949E] transition-colors"
+							class="w-full rounded-xl text-[#111818] dark:text-white border border-[#d5e2e2] dark:border-gray-700 bg-white dark:bg-background-dark focus:border-primary focus:ring-1 focus:ring-primary h-12 pl-10 pr-4 text-sm font-normal placeholder:text-[#8B949E] transition-colors"
 							placeholder="+1 (555) 000-0000"
 						/>
 					</div>
@@ -113,13 +113,13 @@
 							v-model="password"
 							required
 							:type="showPassword ? 'text' : 'password'"
-							class="w-full rounded-xl text-[#111818] dark:text-white border border-[#d5e2e2] dark:border-gray-700 bg-white dark:bg-background-dark focus:border-[#2c7677] focus:ring-1 focus:ring-[#2c7677] h-12 pl-10 pr-12 text-sm font-normal placeholder:text-[#8B949E] transition-colors"
+							class="w-full rounded-xl text-[#111818] dark:text-white border border-[#d5e2e2] dark:border-gray-700 bg-white dark:bg-background-dark focus:border-primary focus:ring-1 focus:ring-primary h-12 pl-10 pr-12 text-sm font-normal placeholder:text-[#8B949E] transition-colors"
 							placeholder="••••••••"
 							minlength="8"
 						/>
 						<button
 							type="button"
-							class="absolute right-3 text-[#5e8787] flex items-center hover:text-[#2c7677] transition-colors select-none outline-none focus:outline-none"
+							class="absolute right-3 text-[#5e8787] flex items-center hover:text-primary transition-colors select-none outline-none focus:outline-none"
 							@click="showPassword = !showPassword"
 						>
 							<span class="material-symbols-outlined" style="font-size: 20px">
@@ -137,13 +137,13 @@
 						v-model="agreeToTerms"
 						type="checkbox"
 						required
-						class="size-4 mt-0.5 rounded border-[#d5e2e2] text-[#2c7677] focus:ring-[#2c7677]"
+						class="size-4 mt-0.5 rounded border-[#d5e2e2] text-primary focus:ring-primary"
 					/>
 					<label for="terms" class="text-xs text-[#5e8787] font-medium select-none">
 						I agree to the
-						<a href="#" class="text-[#2c7677] hover:underline">Terms of Service</a>
+						<a href="#" class="text-primary hover:underline">Terms of Service</a>
 						and
-						<a href="#" class="text-[#2c7677] hover:underline">Privacy Policy</a>
+						<a href="#" class="text-primary hover:underline">Privacy Policy</a>
 					</label>
 				</div>
 
@@ -156,7 +156,7 @@
 				<button
 					type="submit"
 					:disabled="loading"
-					class="w-full flex items-center justify-center rounded-xl h-12 bg-[#2c7677] text-white text-sm font-bold shadow-lg shadow-[#2c7677]/20 hover:brightness-110 active:scale-[0.98] transition-all disabled:opacity-70 disabled:cursor-not-allowed"
+					class="w-full flex items-center justify-center rounded-xl h-12 bg-primary text-on-primary text-sm font-bold shadow-lg shadow-primary/20 hover:bg-primary-dark active:scale-[0.98] transition-all disabled:opacity-70 disabled:cursor-not-allowed"
 				>
 					<svg
 						v-if="loading"
@@ -190,7 +190,7 @@
 					Already have an account?
 					<RouterLink
 						:to="{ name: 'Login', query: { redirect: route.query.redirect } }"
-						class="text-[#2c7677] font-bold hover:underline"
+						class="text-primary font-bold hover:underline"
 					>
 						Log in
 					</RouterLink>

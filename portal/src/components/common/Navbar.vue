@@ -12,7 +12,7 @@
 				<BookingCartBadge @click="cartDrawerOpen = true" />
 
 				<!-- Appointments Basket -->
-				<NavbarCartIndicator :count="appointmentBasketCount" @open="goToBookings" />
+				<!-- <NavbarCartIndicator :count="appointmentBasketCount" @open="goToBookings" /> -->
 
 				<NavbarUserMenu
 					:isLoggedIn="auth.isLoggedIn"

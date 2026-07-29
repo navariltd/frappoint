@@ -1,10 +1,64 @@
+import mimetypes
+import os
 import re
+from urllib.parse import quote
 
 import frappe
 from frappe import _
+from frappe.utils.html_utils import sanitize_html
 
 from ...payments import get_payment_gateways_for_service_type
 from .service_provider import get_providers_for_service
+
+
+def _service_image_url(service_type: str, value: str | None) -> str | None:
+	if not value:
+		return None
+
+	if value.startswith("/private/files/"):
+		return (
+			"/api/method/frappoint.frappoint.api.service_type.get_service_type_image"
+			f"?service_type={quote(service_type, safe='')}"
+		)
+
+	return value
+
+
+def _safe_portal_html(value: str | None) -> str:
+	return sanitize_html(
+		value or "",
+		always_sanitize=True,
+		disallowed_tags={"script", "style", "iframe", "object", "embed", "form", "input", "button"},
+	)
+
+
+@frappe.whitelist(allow_guest=True)  # nosemgrep: guest-whitelisted-method
+def get_service_type_image(service_type: str):
+	"""Serve the image configured on an active Service Type, including private files."""
+	image_url = frappe.db.get_value(
+		"Service Type",
+		{"name": service_type, "disabled": 0},
+		"image",
+	)
+	if not image_url:
+		frappe.throw(_("Service image not found"), frappe.DoesNotExistError)
+
+	content_type = mimetypes.guess_type(image_url)[0]
+	if not image_url.startswith(("/files/", "/private/files/")) or not (
+		content_type and content_type.startswith("image/")
+	):
+		frappe.throw(_("The configured service file is not an image."), frappe.PermissionError)
+
+	file_name = frappe.db.get_value("File", {"file_url": image_url}, "name")
+	if not file_name:
+		frappe.throw(_("Service image file not found"), frappe.DoesNotExistError)
+
+	file = frappe.get_doc("File", file_name)
+	frappe.local.response.filename = os.path.basename(image_url)
+	frappe.local.response.filecontent = file.get_content()
+	frappe.local.response.content_type = content_type
+	frappe.local.response.display_content_as = "inline"
+	frappe.local.response.type = "download"
 
 
 @frappe.whitelist(allow_guest=True)  # nosemgrep: guest-whitelisted-method
@@ -116,6 +170,7 @@ def get_service_types(
 
 	# Add price information to paginated results only
 	for service in service_types:
+		service.image = _service_image_url(service.name, service.image)
 		prices = frappe.get_all(
 			"Service Type Price",
 			filters={
@@ -184,7 +239,7 @@ def get_price_range(company: str | None = None, item_group: str | None = None) -
 		)
 
 		if not service_types:
-			return {"min_price": 0, "max_price": 0, "currency": "USD"}
+			return {"min_price": 0, "max_price": 0, "currency": None}
 
 		filters["parent"] = ["in", service_types]
 
@@ -196,7 +251,7 @@ def get_price_range(company: str | None = None, item_group: str | None = None) -
 	)
 
 	if not prices:
-		return {"min_price": 0, "max_price": 1000, "currency": "USD"}
+		return {"min_price": 0, "max_price": 0, "currency": None}
 
 	min_price = min(p.amount for p in prices)
 	max_price = max(p.amount for p in prices)
@@ -205,7 +260,7 @@ def get_price_range(company: str | None = None, item_group: str | None = None) -
 	currency = max(
 		set(p.currency for p in prices if p.currency),
 		key=lambda c: sum(1 for p in prices if p.currency == c),
-		default="USD",
+		default=None,
 	)
 
 	min_price = int(min_price / 10) * 10
@@ -223,10 +278,13 @@ def get_service_type_details(service_type: str) -> dict:
 
 	service = frappe.db.get_value(
 		"Service Type",
-		service_type,
+		{"name": service_type, "disabled": 0},
 		[
 			"name",
 			"appointment_type",
+			"item_name",
+			"item_group",
+			"company",
 			"short_description",
 			"image",
 			"tags",
@@ -234,6 +292,7 @@ def get_service_type_details(service_type: str) -> dict:
 			"default_duration_in_minutes",
 			"min_guests",
 			"max_guests",
+			"confirmation_deposit_percent",
 			"benefits",
 			"techniques",
 		],
@@ -243,6 +302,10 @@ def get_service_type_details(service_type: str) -> dict:
 	if not service:
 		frappe.throw(_("Service not found"), frappe.DoesNotExistError)
 
+	service.image = _service_image_url(service.name, service.image)
+	for field in ("description", "benefits", "techniques"):
+		service[field] = _safe_portal_html(service.get(field))
+
 	return {
 		**service,
 		"tags": [t.strip() for t in re.split(r"[,\n]+", service.tags or "") if t.strip()],
@@ -250,6 +313,7 @@ def get_service_type_details(service_type: str) -> dict:
 			"Service Type Price",
 			filters={"parent": service_type},
 			fields=["price_name", "amount", "duration", "currency", "guest_count", "pricing_model"],
+			order_by="duration asc, amount asc",
 		),
 		"providers": get_providers_for_service(service_type),
 		"payment_gateways": get_payment_gateways_for_service_type(service_type),

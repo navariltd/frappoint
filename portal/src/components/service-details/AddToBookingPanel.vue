@@ -17,10 +17,10 @@
 
 		<button
 			type="button"
-			class="w-full rounded-full px-8 py-4 font-headline-sm text-headline-sm text-white transition-all shadow-lg shadow-primary/20 disabled:cursor-not-allowed disabled:bg-surface-container-high disabled:text-on-surface-variant"
+			class="w-full rounded-full px-8 py-4 font-headline-sm text-headline-sm transition-all shadow-lg shadow-primary/20 disabled:cursor-not-allowed disabled:bg-surface-container-high disabled:text-on-surface-variant"
 			:class="
 				selectedPackage
-					? 'bg-primary hover:bg-primary/90 active:scale-[0.98]'
+					? 'bg-primary text-on-primary hover:bg-primary-dark active:scale-[0.98]'
 					: 'bg-surface-container-high'
 			"
 			:disabled="busy || !selectedPackage"
@@ -33,7 +33,21 @@
 			You’ll choose the date, provider, and payment step later in the booking flow.
 		</p>
 
-		<p v-if="error" class="text-center text-label-sm text-red-700">{{ error }}</p>
+		<p
+			v-if="error"
+			class="rounded-xl bg-error-container px-4 py-3 text-center text-label-sm text-on-error-container"
+			role="alert"
+		>
+			{{ error }}
+		</p>
+		<p
+			v-if="success"
+			class="rounded-xl bg-secondary-container px-4 py-3 text-center text-label-sm text-on-secondary-container"
+			role="status"
+			aria-live="polite"
+		>
+			{{ success }}
+		</p>
 	</section>
 </template>
 
@@ -55,6 +69,10 @@ const props = defineProps({
 		default: false,
 	},
 	error: {
+		type: String,
+		default: "",
+	},
+	success: {
 		type: String,
 		default: "",
 	},
