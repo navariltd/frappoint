@@ -84,6 +84,21 @@ export function useServices() {
 		servicesStore.fetchServices();
 	}
 
+	async function onPageChange(page) {
+		const nextPage = Number(page);
+		if (
+			!Number.isInteger(nextPage) ||
+			nextPage < 1 ||
+			nextPage === servicesStore.filters.page
+		) {
+			return;
+		}
+
+		servicesStore.updateFilters({ page: nextPage });
+		await servicesStore.fetchServices();
+		window.scrollTo({ top: 0, behavior: "smooth" });
+	}
+
 	function openService(service) {
 		servicesStore.setSelectedService(service);
 		router.push({ name: "ServiceDetails", params: { name: service.name } });
@@ -126,6 +141,7 @@ export function useServices() {
 		onPriceChange,
 		removeFilterChip,
 		clearFilters,
+		onPageChange,
 		openService,
 		addToBooking,
 	};

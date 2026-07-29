@@ -2,12 +2,13 @@
 	<div v-if="totalPages > 1" class="mt-10 flex items-center justify-center gap-2 pb-6">
 		<!-- Previous button -->
 		<button
+			type="button"
 			@click="goToPrevious"
 			:disabled="!hasPrevious"
 			:class="[
 				hasPrevious
-					? 'bg-white text-gray-700 hover:bg-gray-50 hover:border-gray-400'
-					: 'bg-gray-50 text-gray-400 cursor-not-allowed border-gray-200',
+					? 'bg-surface-light text-on-surface hover:bg-surface-container-high hover:border-outline'
+					: 'bg-surface-container-low text-on-surface-variant/50 cursor-not-allowed border-outline-variant/50',
 				'px-4 py-2.5 rounded-lg border text-sm font-medium transition-all flex items-center gap-2 shadow-sm',
 			]"
 		>
@@ -20,16 +21,18 @@
 			<button
 				v-for="page in pageNumbers"
 				:key="page"
+				type="button"
 				@click="page !== '...' && goToPage(page)"
 				:class="[
 					page === currentPage
-						? 'bg-primary text-white border-primary shadow-sm'
+						? 'bg-primary text-on-primary border-primary shadow-sm'
 						: page === '...'
-						? 'cursor-default text-gray-400 border-transparent bg-transparent'
-						: 'bg-white text-gray-700 hover:bg-gray-50 hover:border-gray-400 border-gray-300',
+						? 'cursor-default text-on-surface-variant border-transparent bg-transparent'
+						: 'bg-surface-light text-on-surface hover:bg-surface-container-high hover:border-outline border-outline-variant',
 					'px-3.5 py-2.5 rounded-lg border text-sm font-medium transition-all min-w-[42px] shadow-sm',
 				]"
 				:disabled="page === '...'"
+				:aria-current="page === currentPage ? 'page' : undefined"
 			>
 				{{ page }}
 			</button>
@@ -37,12 +40,13 @@
 
 		<!-- Next button -->
 		<button
+			type="button"
 			@click="goToNext"
 			:disabled="!hasNext"
 			:class="[
 				hasNext
-					? 'bg-white text-gray-700 hover:bg-gray-50 hover:border-gray-400'
-					: 'bg-gray-50 text-gray-400 cursor-not-allowed border-gray-200',
+					? 'bg-surface-light text-on-surface hover:bg-surface-container-high hover:border-outline'
+					: 'bg-surface-container-low text-on-surface-variant/50 cursor-not-allowed border-outline-variant/50',
 				'px-4 py-2.5 rounded-lg border text-sm font-medium transition-all flex items-center gap-2 shadow-sm',
 			]"
 		>
