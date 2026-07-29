@@ -2,9 +2,24 @@ import re
 
 import frappe
 from frappe import _
+from frappe.utils.html_utils import sanitize_html
 
 from ...payments import get_payment_gateways_for_service_type
 from .service_provider import get_providers_for_service
+
+
+def _public_asset_url(value: str | None) -> str | None:
+	if not value or value.startswith("/private/"):
+		return None
+	return value
+
+
+def _safe_portal_html(value: str | None) -> str:
+	return sanitize_html(
+		value or "",
+		always_sanitize=True,
+		disallowed_tags={"script", "style", "iframe", "object", "embed", "form", "input", "button"},
+	)
 
 
 @frappe.whitelist(allow_guest=True)  # nosemgrep: guest-whitelisted-method
@@ -116,6 +131,7 @@ def get_service_types(
 
 	# Add price information to paginated results only
 	for service in service_types:
+		service.image = _public_asset_url(service.image)
 		prices = frappe.get_all(
 			"Service Type Price",
 			filters={
@@ -184,7 +200,7 @@ def get_price_range(company: str | None = None, item_group: str | None = None) -
 		)
 
 		if not service_types:
-			return {"min_price": 0, "max_price": 0, "currency": "USD"}
+			return {"min_price": 0, "max_price": 0, "currency": None}
 
 		filters["parent"] = ["in", service_types]
 
@@ -196,7 +212,7 @@ def get_price_range(company: str | None = None, item_group: str | None = None) -
 	)
 
 	if not prices:
-		return {"min_price": 0, "max_price": 1000, "currency": "USD"}
+		return {"min_price": 0, "max_price": 0, "currency": None}
 
 	min_price = min(p.amount for p in prices)
 	max_price = max(p.amount for p in prices)
@@ -205,7 +221,7 @@ def get_price_range(company: str | None = None, item_group: str | None = None) -
 	currency = max(
 		set(p.currency for p in prices if p.currency),
 		key=lambda c: sum(1 for p in prices if p.currency == c),
-		default="USD",
+		default=None,
 	)
 
 	min_price = int(min_price / 10) * 10
@@ -223,10 +239,13 @@ def get_service_type_details(service_type: str) -> dict:
 
 	service = frappe.db.get_value(
 		"Service Type",
-		service_type,
+		{"name": service_type, "disabled": 0},
 		[
 			"name",
 			"appointment_type",
+			"item_name",
+			"item_group",
+			"company",
 			"short_description",
 			"image",
 			"tags",
@@ -234,6 +253,7 @@ def get_service_type_details(service_type: str) -> dict:
 			"default_duration_in_minutes",
 			"min_guests",
 			"max_guests",
+			"confirmation_deposit_percent",
 			"benefits",
 			"techniques",
 		],
@@ -243,6 +263,10 @@ def get_service_type_details(service_type: str) -> dict:
 	if not service:
 		frappe.throw(_("Service not found"), frappe.DoesNotExistError)
 
+	service.image = _public_asset_url(service.image)
+	for field in ("description", "benefits", "techniques"):
+		service[field] = _safe_portal_html(service.get(field))
+
 	return {
 		**service,
 		"tags": [t.strip() for t in re.split(r"[,\n]+", service.tags or "") if t.strip()],
@@ -250,6 +274,7 @@ def get_service_type_details(service_type: str) -> dict:
 			"Service Type Price",
 			filters={"parent": service_type},
 			fields=["price_name", "amount", "duration", "currency", "guest_count", "pricing_model"],
+			order_by="duration asc, amount asc",
 		),
 		"providers": get_providers_for_service(service_type),
 		"payment_gateways": get_payment_gateways_for_service_type(service_type),

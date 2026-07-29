@@ -1,49 +1,60 @@
 <template>
 	<ServiceDetailsSkeleton v-if="loading && !serviceDetails" />
 
-	<main v-else class="max-w-[1200px] mx-auto px-container-padding py-section-gap space-y-10">
-		<ServiceHero
-			v-if="serviceDetails"
-			:service="serviceDetails"
-			:selected-package="selectedPackage"
-		/>
+	<main v-else class="mx-auto max-w-7xl space-y-10 px-container-padding py-section-gap">
+		<ServiceHero v-if="serviceDetails" :service="serviceDetails" />
 
 		<div
 			v-if="error && !serviceDetails"
-			class="rounded-3xl border border-red-200 bg-red-50 p-8 text-red-900"
+			class="mx-auto max-w-2xl rounded-3xl border border-error/25 bg-error-container p-8 text-on-error-container"
 		>
 			<p class="font-headline-sm text-headline-sm">Unable to load service details</p>
-			<p class="mt-2 text-body-md text-red-800">{{ error }}</p>
-			<button
-				class="mt-6 rounded-full bg-primary px-6 py-3 text-white font-semibold"
-				type="button"
-				@click="refreshServiceDetails"
-			>
-				Try again
-			</button>
+			<p class="mt-2 text-body-md">{{ error }}</p>
+			<div class="mt-6 flex flex-wrap gap-3">
+				<button
+					class="rounded-full bg-primary px-6 py-3 font-semibold text-on-primary hover:bg-primary-dark"
+					type="button"
+					@click="refreshServiceDetails"
+				>
+					Try again
+				</button>
+				<RouterLink
+					:to="{ name: 'Services' }"
+					class="rounded-full border border-outline px-6 py-3 font-semibold text-on-surface hover:border-primary hover:text-primary"
+				>
+					Back to services
+				</RouterLink>
+			</div>
 		</div>
 
-		<div v-if="serviceDetails" class="grid grid-cols-1 lg:grid-cols-12 gap-stack-md lg:gap-16">
-			<div class="lg:col-span-7 space-y-section-gap">
-				<ServiceDescription :content="longDescription" />
-				<section class="grid grid-cols-1 md:grid-cols-2 gap-stack-md">
+		<div v-if="serviceDetails" class="grid grid-cols-1 gap-10 lg:grid-cols-12 lg:gap-16">
+			<div class="space-y-section-gap lg:col-span-7">
+				<ServiceDescription
+					v-if="longDescription"
+					title="About the Service"
+					:content="longDescription"
+				/>
+				<section
+					v-if="formattedBenefits.length || formattedTechniques.length"
+					class="grid grid-cols-1 gap-stack-md md:grid-cols-2"
+				>
 					<ServiceBenefitsTable
+						v-if="formattedBenefits.length"
 						:items="formattedBenefits"
-						:raw-html="serviceDetails?.benefits || ''"
 					/>
 					<ServiceTechniquesTable
+						v-if="formattedTechniques.length"
 						:items="formattedTechniques"
-						:raw-html="serviceDetails?.techniques || ''"
 					/>
 				</section>
 			</div>
 
 			<aside class="lg:col-span-5">
 				<div
-					class="sticky top-28 bg-surface-container-lowest rounded-3xl p-8 shadow-[0px_12px_32px_rgba(45,52,54,0.08)] border border-outline-variant/20"
+					class="sticky top-28 rounded-3xl border border-outline-variant/30 bg-surface-container-lowest p-6 shadow-xl shadow-primary/10 sm:p-8"
 				>
 					<h3 class="font-headline-md text-headline-md text-on-surface mb-6">
-						Customize Your Ritual
+						Customize Your Service
 					</h3>
 					<div class="space-y-6">
 						<ServicePackageSelector
@@ -57,6 +68,7 @@
 							:service="serviceDetails"
 							:busy="isAddingToBooking"
 							:error="bookingError"
+							:success="bookingSuccess"
 							@add="handleAddToBooking"
 						/>
 					</div>
@@ -87,6 +99,7 @@ const {
 	longDescription,
 	isAddingToBooking,
 	bookingError,
+	bookingSuccess,
 	selectPackage,
 	handleAddToBooking,
 	refreshServiceDetails,
