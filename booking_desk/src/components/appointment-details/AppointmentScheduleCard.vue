@@ -40,7 +40,7 @@
 		<div class="flex flex-wrap gap-2 pt-1">
 			<button
 				v-if="actions.canReschedule"
-				class="px-3 py-2 rounded-md border border-outline-variant/70 text-on-surface-variant hover:bg-surface-container-high hover:border-outline transition-colors shadow-sm hover:shadow focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
+				class="px-3 py-2 rounded-md border border-outline-variant/70 text-on-surface-variant hover:bg-surface-container-high hover:border-outline transition-colors shadow-sm hover:shadow focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary/30"
 				type="button"
 				@click="$emit('reschedule')"
 			>
@@ -48,7 +48,7 @@
 			</button>
 			<button
 				v-if="actions.canReassignProvider"
-				class="px-3 py-2 rounded-md border border-outline-variant/70 text-on-surface-variant hover:bg-surface-container-high hover:border-outline transition-colors shadow-sm hover:shadow focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
+				class="px-3 py-2 rounded-md border border-outline-variant/70 text-on-surface-variant hover:bg-surface-container-high hover:border-outline transition-colors shadow-sm hover:shadow focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary/30"
 				type="button"
 				@click="$emit('reassign-provider')"
 			>

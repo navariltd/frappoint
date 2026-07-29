@@ -23,7 +23,7 @@ const bannerClass = computed(() => {
 		return "border-error bg-error-container/30 text-error";
 	}
 	if (props.progress === "success") {
-		return "border-secondary bg-secondary-container/30 text-secondary";
+		return "border-secondary bg-secondary-container/30 text-secondary-ink";
 	}
 	if (props.progress === "awaiting_confirmation" || props.progress === "processing") {
 		return "border-primary bg-primary/10 text-primary";

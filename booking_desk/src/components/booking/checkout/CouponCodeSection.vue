@@ -30,7 +30,7 @@
 				class="rounded-lg px-4 py-2 text-[12px] font-semibold transition-colors"
 				:class="
 					canApply
-						? 'bg-primary text-on-primary hover:bg-primary/90'
+						? 'bg-primary text-on-primary hover:bg-primary-dark'
 						: 'bg-primary/60 text-on-primary cursor-not-allowed'
 				"
 				:disabled="!canApply"
@@ -41,7 +41,7 @@
 		</div>
 
 		<p v-if="couponError" class="text-[12px] text-error">{{ couponError }}</p>
-		<p v-else-if="couponMessage" class="text-[12px] text-secondary">{{ couponMessage }}</p>
+		<p v-else-if="couponMessage" class="text-[12px] text-secondary-ink">{{ couponMessage }}</p>
 
 		<div
 			v-if="validation?.valid"

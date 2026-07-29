@@ -1,11 +1,11 @@
 <template>
-	<div class="flex h-screen overflow-hidden bg-background-light">
+	<div class="flex h-screen overflow-hidden bg-background text-on-surface">
 		<Sidebar />
 
 		<div class="flex-1 flex flex-col overflow-hidden">
 			<Topbar />
 
-			<main class="flex-1 overflow-y-auto bg-gray-50/50">
+			<main class="flex-1 overflow-y-auto bg-background">
 				<router-view />
 			</main>
 		</div>

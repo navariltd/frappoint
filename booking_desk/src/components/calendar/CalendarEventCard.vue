@@ -1,7 +1,7 @@
 <template>
 	<button
 		type="button"
-		class="w-full rounded-md border border-primary/50 bg-primary px-2 py-1 text-left text-on-primary-container transition-colors hover:bg-primary-container hover:text-on-primary hover:shadow-lg"
+		class="w-full rounded-md border border-primary/50 bg-primary px-2 py-1 text-left text-on-primary transition-colors hover:bg-primary-container hover:text-on-primary-container hover:shadow-lg"
 		@click="$emit('select', event)"
 	>
 		<div class="flex items-start justify-between gap-2">

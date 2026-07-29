@@ -6,7 +6,7 @@
 		</div>
 		<div v-if="discountAmount > 0" class="flex items-center justify-between text-[12px]">
 			<span class="text-on-surface-variant">Discount</span>
-			<span class="font-semibold text-secondary"
+			<span class="font-semibold text-secondary-ink"
 				>-{{ currency }} {{ discountAmount.toFixed(2) }}</span
 			>
 		</div>

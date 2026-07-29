@@ -2,14 +2,14 @@
 	<div class="flex flex-wrap gap-2">
 		<button
 			type="button"
-			class="rounded-md bg-primary text-on-primary px-3.5 py-2 text-[12px] font-semibold transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+			class="rounded-md bg-primary text-on-primary px-3.5 py-2 text-[12px] font-semibold transition-colors hover:bg-primary-dark focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary/40"
 			@click="$emit('open')"
 		>
 			Open
 		</button>
 		<button
 			type="button"
-			class="rounded-md border border-outline-variant/70 text-on-surface-variant px-3.5 py-2 text-[12px] font-semibold transition-colors hover:bg-surface-container-high focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
+			class="rounded-md border border-outline-variant/70 text-on-surface-variant px-3.5 py-2 text-[12px] font-semibold transition-colors hover:bg-surface-container-high focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary/30"
 			@click="$emit('reschedule')"
 		>
 			Reschedule

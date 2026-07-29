@@ -63,7 +63,7 @@
 				<div class="flex gap-1.5">
 					<button
 						type="button"
-						class="p-2 text-primary hover:bg-primary/10 rounded-md border border-primary/30 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+						class="p-2 text-primary hover:bg-primary/10 rounded-md border border-primary/30 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary/40"
 						title="Open Appointment"
 						@click.stop="$emit('open', appointment)"
 					>
@@ -71,7 +71,7 @@
 					</button>
 					<button
 						type="button"
-						class="bg-primary text-on-primary px-3.5 py-2 rounded-md text-[12px] font-semibold transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 active:scale-95"
+						class="bg-primary text-on-primary px-3.5 py-2 rounded-md text-[12px] font-semibold transition-colors hover:bg-primary-dark focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary/40 active:scale-95"
 						@click.stop="$emit('action', 'start', appointment)"
 					>
 						Start

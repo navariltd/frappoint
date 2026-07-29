@@ -53,7 +53,7 @@
 									</div>
 									<button
 										type="button"
-										class="px-3 py-1.5 rounded-md border border-outline-variant/60 text-on-surface-variant hover:bg-surface-container-high hover:border-outline transition-colors text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+										class="px-3 py-1.5 rounded-md border border-outline-variant/60 text-on-surface-variant hover:bg-surface-container-high hover:border-outline transition-colors text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary/40"
 										@click="closeProviderChangePanel"
 									>
 										Close
@@ -78,7 +78,7 @@
 											option.service_unit || option.serviceUnit || 'unit'
 										}`"
 										type="button"
-										class="rounded-xl border border-outline-variant/60 px-4 py-3 text-left transition-colors hover:bg-surface-container-high hover:border-outline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 disabled:opacity-60 disabled:cursor-wait"
+										class="rounded-xl border border-outline-variant/60 px-4 py-3 text-left transition-colors hover:bg-surface-container-high hover:border-outline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary/40 disabled:opacity-60 disabled:cursor-wait"
 										:disabled="Boolean(applyingProviderKey)"
 										@click="applyProviderChange(option)"
 									>
@@ -135,7 +135,7 @@
 									</div>
 									<button
 										type="button"
-										class="px-3 py-1.5 rounded-md border border-outline-variant/60 text-on-surface-variant hover:bg-surface-container-high hover:border-outline transition-colors text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+										class="px-3 py-1.5 rounded-md border border-outline-variant/60 text-on-surface-variant hover:bg-surface-container-high hover:border-outline transition-colors text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary/40"
 										@click="closeReschedulePanel"
 									>
 										Close

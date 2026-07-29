@@ -54,14 +54,14 @@
 
 			<div class="flex flex-wrap gap-2 lg:justify-end lg:max-w-[560px]">
 				<button
-					class="px-3.5 py-2 rounded-md border border-outline-variant/70 text-on-surface-variant hover:bg-surface-container-high hover:border-outline transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
+					class="px-3.5 py-2 rounded-md border border-outline-variant/70 text-on-surface-variant hover:bg-surface-container-high hover:border-outline transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary/30"
 					type="button"
 					@click="$emit('back')"
 				>
 					Back
 				</button>
 				<button
-					class="px-3.5 py-2 rounded-md border border-primary/70 text-primary hover:bg-primary/10 hover:border-primary transition-colors shadow-sm hover:shadow focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 disabled:opacity-45 disabled:cursor-not-allowed"
+					class="px-3.5 py-2 rounded-md border border-primary/70 text-primary hover:bg-primary/10 hover:border-primary transition-colors shadow-sm hover:shadow focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary/40 disabled:opacity-45 disabled:cursor-not-allowed"
 					type="button"
 					:disabled="busy || !actions.canCheckIn"
 					@click="$emit('check-in')"
@@ -69,7 +69,7 @@
 					Check in
 				</button>
 				<button
-					class="px-3.5 py-2 rounded-md border border-primary bg-primary text-on-primary hover:bg-primary/90 transition-colors shadow-sm hover:shadow focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 disabled:opacity-45 disabled:cursor-not-allowed"
+					class="px-3.5 py-2 rounded-md border border-primary bg-primary text-on-primary hover:bg-primary-dark transition-colors shadow-sm hover:shadow focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary/40 disabled:opacity-45 disabled:cursor-not-allowed"
 					type="button"
 					:disabled="busy || !actions.canStart"
 					@click="$emit('start')"
@@ -85,7 +85,7 @@
 					Pause
 				</button>
 				<button
-					class="px-3.5 py-2 rounded-md border border-outline-variant/70 text-on-surface-variant hover:bg-surface-container-high hover:border-outline transition-colors shadow-sm hover:shadow focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30 disabled:opacity-45 disabled:cursor-not-allowed"
+					class="px-3.5 py-2 rounded-md border border-outline-variant/70 text-on-surface-variant hover:bg-surface-container-high hover:border-outline transition-colors shadow-sm hover:shadow focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary/30 disabled:opacity-45 disabled:cursor-not-allowed"
 					type="button"
 					:disabled="busy || !actions.canResume"
 					@click="$emit('resume')"
