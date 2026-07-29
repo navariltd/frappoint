@@ -99,7 +99,7 @@ function meta(gateway) {
 		key: n,
 		label: gateway,
 		description: "Pay securely with this method",
-		color: "#2c7677",
+		color: "rgb(var(--color-primary))",
 		icon: null,
 	};
 }
