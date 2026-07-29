@@ -414,7 +414,9 @@ class ServiceAppointment(Document):
 			frappe.throw(_("End Time must be after Start Time"))
 
 		if start_dt < now_datetime():
-			frappe.throw(_("You cannot schedule an appointment in the past"))
+			settings = frappe.get_cached_doc("Service Appointment Settings")
+			if not settings.allow_past_booking:
+				frappe.throw(_("You cannot schedule an appointment in the past"))
 
 	def calculate_actual_duration(self):
 		"""Validate actual end time and calculate actual duration when appointment is completed"""

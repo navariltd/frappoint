@@ -1,6 +1,7 @@
 # Copyright (c) 2025, Navari LTD and Contributors
 # See license.txt
 
+from datetime import date, datetime, time
 from types import MethodType, SimpleNamespace
 from unittest import TestCase
 from unittest.mock import patch
@@ -11,6 +12,60 @@ from frappoint.frappoint.doctype.service_appointment.service_appointment import 
 
 
 class TestServiceAppointment(TestCase):
+	def test_past_appointment_is_allowed_when_enabled_in_settings(self):
+		appointment = SimpleNamespace(
+			appointment_date=date(2020, 1, 1),
+			start_time=time(9),
+			end_time=time(10),
+		)
+
+		with (
+			patch.object(
+				frappe,
+				"get_cached_doc",
+				return_value=SimpleNamespace(allow_past_booking=1),
+			),
+			patch(
+				"frappoint.frappoint.doctype.service_appointment.service_appointment.now_datetime",
+				return_value=datetime(2025, 1, 1),
+			),
+			patch(
+				"frappoint.frappoint.doctype.service_appointment.service_appointment._",
+				side_effect=lambda message: message,
+			),
+			patch.object(frappe, "throw") as throw,
+		):
+			ServiceAppointment.validate_appointment_date_and_times(appointment)
+
+		throw.assert_not_called()
+
+	def test_past_appointment_is_rejected_when_disabled_in_settings(self):
+		appointment = SimpleNamespace(
+			appointment_date=date(2020, 1, 1),
+			start_time=time(9),
+			end_time=time(10),
+		)
+
+		with (
+			patch.object(
+				frappe,
+				"get_cached_doc",
+				return_value=SimpleNamespace(allow_past_booking=0),
+			),
+			patch(
+				"frappoint.frappoint.doctype.service_appointment.service_appointment.now_datetime",
+				return_value=datetime(2025, 1, 1),
+			),
+			patch(
+				"frappoint.frappoint.doctype.service_appointment.service_appointment._",
+				side_effect=lambda message: message,
+			),
+			patch.object(frappe, "throw") as throw,
+		):
+			ServiceAppointment.validate_appointment_date_and_times(appointment)
+
+		throw.assert_called_once_with("You cannot schedule an appointment in the past")
+
 	def test_recalculate_outstanding_subtracts_payments_and_appointment_discount(self):
 		appointment = SimpleNamespace(
 			name="TEST-APPOINTMENT",
