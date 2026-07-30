@@ -6,6 +6,7 @@ import {
 	applyCheckoutCouponApi,
 	removeCheckoutCouponApi,
 } from "@/api/checkout.api";
+import { getErrorMessage } from "@/utils/errorMessage";
 
 // ----- Types -----
 
@@ -458,12 +459,7 @@ export function normalizeOnlineGateway(raw: any): OnlineGateway {
 // ----- Service functions -----
 
 function parseServiceError(error: any, fallback: string): Error {
-	if (error instanceof Error) return error;
-	const msg =
-		error?.message ||
-		(Array.isArray(error?.messages) ? error.messages.join(" ") : null) ||
-		fallback;
-	return new Error(msg);
+	return new Error(getErrorMessage(error, fallback));
 }
 
 export async function fetchCheckoutSummary(bookingId: string): Promise<CheckoutSummary> {
