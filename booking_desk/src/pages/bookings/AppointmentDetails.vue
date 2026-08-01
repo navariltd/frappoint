@@ -6,7 +6,7 @@
 				<AppointmentDetailsEmptyState
 					v-else-if="error || !hasAppointment"
 					:message="error"
-					@retry="retry"
+					@back="goBack"
 				/>
 				<template v-else>
 					<AppointmentDetailsHeader
@@ -245,7 +245,6 @@ const {
 	hasAppointment,
 	financialSummary,
 	actionState,
-	retry,
 } = useAppointmentDetails(appointmentId);
 
 const {
