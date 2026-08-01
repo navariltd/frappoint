@@ -2046,10 +2046,7 @@ def cancel_appointment(appointment_id: str, cancellation_reasons: str | list | N
 		if appointment.status in ["Cancelled", "Closed"]:
 			return {"success": True, "message": _("Appointment is already cancelled")}
 
-		# A submitted payment holds a dynamic link to the appointment, so Frappe
-		# cannot cancel it. Check before making any changes to the appointment and
-		# give the user the operational next step instead of exposing that low-level
-		# link-integrity error.
+		# Check if there are any submitted payments linked to the appointment
 		has_direct_payment = frappe.db.exists(
 			"Service Appointment Payment",
 			{
