@@ -292,8 +292,10 @@ import CalendarIcon from "@/components/icons/CalendarIcon.vue";
 import PlusIcon from "@/components/icons/PlusIcon.vue";
 import ClipboardIcon from "@/components/icons/ClipboardIcon.vue";
 import TagIcon from "@/components/icons/TagIcon.vue";
+import { useAuthStore } from "@/stores/auth";
 
 const router = useRouter();
+const auth = useAuthStore();
 const viewMode = ref("list");
 
 // Appointment statistics
@@ -339,7 +341,8 @@ const bookingsResourceList = createListResource({
 	doctype: "Service Booking",
 	fields: ["*"],
 	filters: {
-		docstatus: ["=", "1"],
+		docstatus: ["<", "2"],
+		owner: ["=", auth.userId],
 	},
 	orderBy: "booking_date desc, creation desc",
 });

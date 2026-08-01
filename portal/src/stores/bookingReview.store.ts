@@ -7,6 +7,7 @@ import {
 	removeAppointmentCouponApi,
 } from "@/api/bookingReview.api";
 import type { AppointmentPricingBreakdown } from "@/services/checkout.service";
+import { getErrorMessage } from "@/utils/errorMessage";
 
 export interface ReviewBookingInfo {
 	name: string;
@@ -367,7 +368,7 @@ export const useBookingReviewStore = defineStore("booking-review", {
 		},
 
 		_extractError(err: any, fallback: string): string {
-			return err?.message || fallback;
+			return getErrorMessage(err, fallback);
 		},
 
 		reset() {

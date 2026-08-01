@@ -55,25 +55,68 @@
 						</div>
 					</div>
 
-					<div class="mt-6">
-						<h3 class="text-sm font-semibold text-gray-500 mb-2">Appointments</h3>
-						<div v-if="appointments.loading" class="py-6 text-center">
-							Loading appointments...
+					<div class="mt-6 border-t border-primary/15 pt-5">
+						<div class="mb-3 flex items-center justify-between">
+							<h3 class="text-sm font-semibold text-primary">
+								Service appointments
+							</h3>
+							<span
+								class="rounded-full bg-primary-container/30 px-2.5 py-1 text-xs font-semibold text-on-primary-container"
+							>
+								{{ appointmentsList.length }}
+							</span>
 						</div>
-						<div v-else class="divide-y">
-							<div v-for="apt in appointmentsList" :key="apt.name" class="py-3">
-								<div class="flex justify-between items-center">
-									<div>
-										<div class="font-semibold">{{ apt.appointment_type }}</div>
-										<div class="text-xs text-gray-500">
-											{{ formatDate(apt.appointment_date) }} •
-											{{ formatTime(apt.start_time) }} -
-											{{ formatTime(apt.end_time) }}
-										</div>
+
+						<div v-if="appointments.list.loading" class="space-y-3">
+							<div
+								class="h-16 animate-pulse rounded-xl bg-primary-container/20"
+							></div>
+							<div
+								class="h-16 animate-pulse rounded-xl bg-primary-container/20"
+							></div>
+						</div>
+						<p
+							v-else-if="!appointmentsList.length"
+							class="rounded-xl bg-primary-container/10 px-4 py-3 text-sm text-on-primary-container"
+						>
+							No service appointments are attached to this booking.
+						</p>
+						<div v-else class="space-y-3">
+							<div
+								v-for="appointment in appointmentsList"
+								:key="appointment.name"
+								class="rounded-xl border border-primary/15 bg-primary-container/10 px-4 py-3"
+							>
+								<div class="flex items-start justify-between gap-4">
+									<div class="min-w-0">
+										<p class="font-semibold text-gray-900">
+											{{
+												appointment.appointment_type ||
+												"Service appointment"
+											}}
+										</p>
+										<p class="mt-1 text-sm text-gray-600">
+											{{ formatDate(appointment.appointment_date) }}
+											<span v-if="formatTime(appointment.start_time)">
+												· {{ formatTime(appointment.start_time) }}
+												<span v-if="formatTime(appointment.end_time)"
+													>– {{ formatTime(appointment.end_time) }}</span
+												>
+											</span>
+										</p>
+										<p
+											v-if="appointmentProvider(appointment)"
+											class="mt-1 text-xs text-gray-500"
+										>
+											Provider: {{ appointmentProvider(appointment) }}
+										</p>
 									</div>
-									<div class="text-sm text-gray-700">
-										Status: <span class="font-medium">{{ apt.status }}</span>
-									</div>
+									<span
+										:class="appointmentStatusClass(appointment.status)"
+										class="shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold"
+									>
+										{{ appointment.status || "Scheduled" }}
+									</span>
 								</div>
 							</div>
 						</div>
@@ -132,6 +175,7 @@ const appointments = createListResource({
 	fields: ["*"],
 	filters: { booking_id: ["=", bookingId] },
 	orderBy: "appointment_date asc, start_time asc",
+	auto: true,
 });
 
 const appointmentsList = computed(() => appointments.data || []);
@@ -173,5 +217,16 @@ function getStatusColor(status) {
 		Rescheduled: "bg-orange-100 text-orange-700",
 	};
 	return colors[status] || "bg-gray-100 text-gray-700";
+}
+
+function appointmentProvider(appointment) {
+	return appointment.service_provider_name || appointment.appointment_provider || "";
+}
+
+function appointmentStatusClass(status) {
+	if (["Cancelled", "No Show"].includes(status))
+		return "bg-error-container text-on-error-container";
+	if (["Completed", "Closed"].includes(status)) return "bg-gray-200 text-gray-700";
+	return "bg-primary/15 text-primary";
 }
 </script>

@@ -117,7 +117,7 @@ def _get_booking_appointment_rows(booking):
 
 def validate_booking_coupon_for_booking(booking, coupon, appointment_rows=None):
 	if not coupon:
-		return False, _("Coupon code is invalid.")
+		return False, _("That coupon code isn't valid. Check the code and try again.")
 
 	if not is_booking_level_coupon(coupon):
 		return False, _("Coupon is not valid for booking-level checkout.")
@@ -311,7 +311,7 @@ def validate_booking_coupon_assignment(booking, pricing=None):
 
 	coupon = resolve_coupon_doc(coupon_code)
 	if not coupon:
-		frappe.throw(_("Coupon code is invalid."))
+		frappe.throw(_("That coupon code isn't valid. Check the code and try again."))
 
 	if not is_booking_level_coupon(coupon):
 		frappe.throw(_("Coupon is not valid for booking-level pricing."))

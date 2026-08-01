@@ -767,7 +767,7 @@ def validate_checkout_coupon(booking_id: str, coupon_code: str):
 	if not coupon:
 		return {
 			"valid": False,
-			"message": _("Coupon code is invalid."),
+			"message": _("That coupon code isn't valid. Check the code and try again."),
 			"coupon": None,
 			"evaluation": {
 				"eligible": [],
@@ -814,7 +814,7 @@ def apply_checkout_coupon(booking_id: str, coupon_code: str):
 	booking = frappe.get_doc("Service Booking", booking_id)
 	coupon = resolve_coupon_doc(coupon_code)
 	if not coupon:
-		frappe.throw(_("Coupon code is invalid."))
+		frappe.throw(_("That coupon code isn't valid. Check the code and try again."))
 
 	# Non-stacking: reject booking coupon if any appointment coupon exists
 	if is_booking_level_coupon(coupon):
@@ -943,7 +943,7 @@ def apply_appointment_coupon(booking_id: str, appointment_id: str, coupon_code: 
 
 	coupon = resolve_coupon_doc(coupon_code)
 	if not coupon:
-		frappe.throw(_("Coupon code is invalid."))
+		frappe.throw(_("That coupon code isn't valid. Check the code and try again."))
 
 	if is_booking_level_coupon(coupon):
 		frappe.throw(
