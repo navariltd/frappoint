@@ -8,10 +8,33 @@ from unittest.mock import patch
 
 import frappe
 
-from frappoint.frappoint.doctype.service_appointment.service_appointment import ServiceAppointment
+from frappoint.frappoint.doctype.service_appointment.service_appointment import (
+	ServiceAppointment,
+	cancel_appointment,
+)
 
 
 class TestServiceAppointment(TestCase):
+	def test_cancelling_appointment_with_submitted_payment_shows_actionable_message(self):
+		appointment = SimpleNamespace(name="TEST-APPOINTMENT", docstatus=1, status="Confirmed")
+
+		with (
+			patch.object(frappe, "get_doc", return_value=appointment),
+			patch.object(frappe, "db", SimpleNamespace(exists=lambda *args, **kwargs: "PAY-0001")),
+			patch(
+				"frappoint.frappoint.doctype.service_appointment.service_appointment._",
+				side_effect=lambda message: message,
+			),
+			patch.object(frappe, "throw", side_effect=frappe.ValidationError) as throw,
+		):
+			with self.assertRaises(frappe.ValidationError):
+				cancel_appointment("TEST-APPOINTMENT")
+
+		throw.assert_called_once_with(
+			"This appointment has a submitted payment and cannot be cancelled. "
+			"Cancel the linked payment from the Desk first, then cancel the appointment."
+		)
+
 	def test_past_appointment_is_allowed_when_enabled_in_settings(self):
 		appointment = SimpleNamespace(
 			appointment_date=date(2020, 1, 1),

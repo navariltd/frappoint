@@ -2046,6 +2046,34 @@ def cancel_appointment(appointment_id: str, cancellation_reasons: str | list | N
 		if appointment.status in ["Cancelled", "Closed"]:
 			return {"success": True, "message": _("Appointment is already cancelled")}
 
+		# A submitted payment holds a dynamic link to the appointment, so Frappe
+		# cannot cancel it. Check before making any changes to the appointment and
+		# give the user the operational next step instead of exposing that low-level
+		# link-integrity error.
+		has_direct_payment = frappe.db.exists(
+			"Service Appointment Payment",
+			{
+				"reference_doctype": "Service Appointment",
+				"reference_docname": appointment.name,
+				"docstatus": 1,
+			},
+		)
+		has_allocated_booking_payment = frappe.db.exists(
+			"Service Appointment Payment Reference",
+			{
+				"reference_doctype": "Service Appointment",
+				"reference_name": appointment.name,
+				"docstatus": 1,
+			},
+		)
+		if has_direct_payment or has_allocated_booking_payment:
+			frappe.throw(
+				_(
+					"This appointment has a submitted payment and cannot be cancelled. "
+					"Cancel the linked payment from the Desk first, then cancel the appointment."
+				)
+			)
+
 		if cancellation_reasons:
 			if isinstance(cancellation_reasons, str):
 				try:
@@ -2069,6 +2097,9 @@ def cancel_appointment(appointment_id: str, cancellation_reasons: str | list | N
 			"appointment": appointment_id,
 		}
 
+	except frappe.ValidationError:
+		# Keep actionable validation messages intact for portal and Desk users.
+		raise
 	except Exception as e:
 		frappe.db.rollback()
 		frappe.log_error(
