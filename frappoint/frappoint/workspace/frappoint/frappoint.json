@@ -1,6 +1,7 @@
 {
+ "app": "frappoint",
  "charts": [],
- "content": "[{\"id\":\"boWqkujk8K\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\">Frappoint</span>\",\"col\":6}},{\"id\":\"FbUjPfCac_\",\"type\":\"custom_block\",\"data\":{\"custom_block_name\":\"Booking Desk\",\"col\":12}},{\"id\":\"8BCzOHffzA\",\"type\":\"spacer\",\"data\":{\"col\":12}},{\"id\":\"MI3-0E2ywU\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"New Service Booking\",\"col\":4}},{\"id\":\"B3486zmFsw\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Assign Services\",\"col\":4}},{\"id\":\"6sZvkkgHHp\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Manage Shifts\",\"col\":4}},{\"id\":\"exZkckjiUN\",\"type\":\"spacer\",\"data\":{\"col\":12}},{\"id\":\"kOIIwYzHXe\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Today's Appointments\",\"col\":4}},{\"id\":\"VSXQTSgD1E\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Pending Payments\",\"col\":4}},{\"id\":\"ApwvKSNGwc\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Revenue\",\"col\":4}},{\"id\":\"f_134su7Um\",\"type\":\"spacer\",\"data\":{\"col\":12}},{\"id\":\"ZW-WKDOrDx\",\"type\":\"quick_list\",\"data\":{\"quick_list_name\":\"Draft Appointments\",\"col\":4}},{\"id\":\"C7K0DCNqUs\",\"type\":\"quick_list\",\"data\":{\"quick_list_name\":\"Completed Appointments\",\"col\":4}},{\"id\":\"B-XoSjRUd2\",\"type\":\"quick_list\",\"data\":{\"quick_list_name\":\"Cancelled Appointments\",\"col\":4}},{\"id\":\"Jc8Rf_Xf6N\",\"type\":\"spacer\",\"data\":{\"col\":12}},{\"id\":\"uIMQWeCDDa\",\"type\":\"card\",\"data\":{\"card_name\":\"Setup\",\"col\":4}},{\"id\":\"qJJpWdBNBx\",\"type\":\"card\",\"data\":{\"card_name\":\"Masters\",\"col\":4}},{\"id\":\"yhh22m4cxL\",\"type\":\"card\",\"data\":{\"card_name\":\"Operations\",\"col\":4}}]",
+ "content": "[{\"id\":\"boWqkujk8K\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\">Frappoint</span>\",\"col\":6}},{\"id\":\"FbUjPfCac_\",\"type\":\"custom_block\",\"data\":{\"custom_block_name\":\"Booking Desk\",\"col\":12}},{\"id\":\"exZkckjiUN\",\"type\":\"spacer\",\"data\":{\"col\":12}},{\"id\":\"kOIIwYzHXe\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Today's Appointments\",\"col\":4}},{\"id\":\"VSXQTSgD1E\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Pending Payments\",\"col\":4}},{\"id\":\"ApwvKSNGwc\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Revenue\",\"col\":4}},{\"id\":\"f_134su7Um\",\"type\":\"spacer\",\"data\":{\"col\":12}},{\"id\":\"ZW-WKDOrDx\",\"type\":\"quick_list\",\"data\":{\"quick_list_name\":\"Draft Appointments\",\"col\":4}},{\"id\":\"C7K0DCNqUs\",\"type\":\"quick_list\",\"data\":{\"quick_list_name\":\"Completed Appointments\",\"col\":4}},{\"id\":\"B-XoSjRUd2\",\"type\":\"quick_list\",\"data\":{\"quick_list_name\":\"Cancelled Appointments\",\"col\":4}},{\"id\":\"Jc8Rf_Xf6N\",\"type\":\"spacer\",\"data\":{\"col\":12}},{\"id\":\"VSPIkYxKF6\",\"type\":\"card\",\"data\":{\"card_name\":\"Sales and Bookings\",\"col\":4}},{\"id\":\"WLR07D6v6O\",\"type\":\"card\",\"data\":{\"card_name\":\"Tools and Settings\",\"col\":4}},{\"id\":\"X8BcoaJ3CP\",\"type\":\"card\",\"data\":{\"card_name\":\"Coupon Code\",\"col\":4}}]",
  "creation": "2025-11-26 16:39:03.542220",
  "custom_blocks": [
   {
@@ -21,11 +22,21 @@
   {
    "hidden": 0,
    "is_query_report": 0,
-   "label": "Operations",
-   "link_count": 3,
+   "label": "Sales and Bookings",
+   "link_count": 5,
    "link_type": "DocType",
    "onboard": 0,
    "type": "Card Break"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Service Appointment",
+   "link_count": 0,
+   "link_to": "Service Appointment",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
   },
   {
    "hidden": 0,
@@ -40,9 +51,9 @@
   {
    "hidden": 0,
    "is_query_report": 0,
-   "label": "Service Appointments",
+   "label": "Service Type",
    "link_count": 0,
-   "link_to": "Service Appointment",
+   "link_to": "Service Type",
    "link_type": "DocType",
    "onboard": 0,
    "type": "Link"
@@ -50,28 +61,9 @@
   {
    "hidden": 0,
    "is_query_report": 0,
-   "label": "Service Appointment Payment",
+   "label": "Service Provider",
    "link_count": 0,
-   "link_to": "Service Appointment Payment",
-   "link_type": "DocType",
-   "onboard": 0,
-   "type": "Link"
-  },
-  {
-   "hidden": 0,
-   "is_query_report": 0,
-   "label": "Setup",
-   "link_count": 4,
-   "link_type": "DocType",
-   "onboard": 0,
-   "type": "Card Break"
-  },
-  {
-   "hidden": 0,
-   "is_query_report": 0,
-   "label": "Service Appointment Settings",
-   "link_count": 0,
-   "link_to": "Service Appointment Settings",
+   "link_to": "Service Provider",
    "link_type": "DocType",
    "onboard": 0,
    "type": "Link"
@@ -89,28 +81,8 @@
   {
    "hidden": 0,
    "is_query_report": 0,
-   "label": "Service Provider Shift Type",
-   "link_count": 0,
-   "link_to": "Service Provider Shift Type",
-   "link_type": "DocType",
-   "onboard": 0,
-   "type": "Link"
-  },
-  {
-   "hidden": 0,
-   "is_query_report": 0,
-   "label": "Service Provider Shift Assignment",
-   "link_count": 0,
-   "link_to": "Service Provider Shift Assignment",
-   "link_type": "DocType",
-   "onboard": 0,
-   "type": "Link"
-  },
-  {
-   "hidden": 0,
-   "is_query_report": 0,
-   "label": "Masters",
-   "link_count": 4,
+   "label": "Tools and Settings",
+   "link_count": 5,
    "link_type": "DocType",
    "onboard": 0,
    "type": "Card Break"
@@ -118,9 +90,9 @@
   {
    "hidden": 0,
    "is_query_report": 0,
-   "label": "Service Providers",
+   "label": "Service Provider Unavailability",
    "link_count": 0,
-   "link_to": "Service Provider",
+   "link_to": "Service Provider Unavailability",
    "link_type": "DocType",
    "onboard": 0,
    "type": "Link"
@@ -128,9 +100,9 @@
   {
    "hidden": 0,
    "is_query_report": 0,
-   "label": "Service Types",
+   "label": "Service Provider Shift Assignment Tool",
    "link_count": 0,
-   "link_to": "Service Type",
+   "link_to": "Service Provider Shift Assignment Tool",
    "link_type": "DocType",
    "onboard": 0,
    "type": "Link"
@@ -138,9 +110,29 @@
   {
    "hidden": 0,
    "is_query_report": 0,
-   "label": "Service Units",
+   "label": "Service Provider Service Assignment Tool",
    "link_count": 0,
-   "link_to": "Service Unit",
+   "link_to": "Service Provider Service Assignment Tool",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Service Appointment Settings",
+   "link_count": 0,
+   "link_to": "Service Appointment Settings",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Booking Desk Settings",
+   "link_count": 0,
+   "link_to": "Booking Desk Settings",
    "link_type": "DocType",
    "onboard": 0,
    "type": "Link"
@@ -149,6 +141,15 @@
    "hidden": 0,
    "is_query_report": 0,
    "label": "Coupon Code",
+   "link_count": 1,
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Card Break"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Service Appointment Coupon Code",
    "link_count": 0,
    "link_to": "Service Appointment Coupon Code",
    "link_type": "DocType",
@@ -156,7 +157,7 @@
    "type": "Link"
   }
  ],
- "modified": "2026-05-22 05:43:15.272191",
+ "modified": "2026-08-01 12:55:43.469951",
  "modified_by": "Administrator",
  "module": "Frappoint",
  "name": "Frappoint",
@@ -196,29 +197,7 @@
  ],
  "roles": [],
  "sequence_id": 39.0,
- "shortcuts": [
-  {
-   "color": "Grey",
-   "doc_view": "New",
-   "label": "New Service Booking",
-   "link_to": "Service Booking",
-   "stats_filter": "[]",
-   "type": "DocType"
-  },
-  {
-   "color": "Grey",
-   "doc_view": "List",
-   "label": "Assign Services",
-   "link_to": "Service Provider Service Assignment Tool",
-   "type": "DocType"
-  },
-  {
-   "color": "Grey",
-   "doc_view": "List",
-   "label": "Manage Shifts",
-   "link_to": "Service Provider Shift Assignment Tool",
-   "type": "DocType"
-  }
- ],
- "title": "Frappoint"
+ "shortcuts": [],
+ "title": "Frappoint",
+ "type": "Workspace"
 }
