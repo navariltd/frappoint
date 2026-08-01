@@ -55,18 +55,6 @@
 				>
 			</div>
 		</div>
-		<div class="flex flex-wrap gap-1.5">
-			<span
-				class="px-2.5 py-1 rounded-md bg-surface-container-high text-[10px] font-semibold uppercase tracking-[0.08em] text-on-surface-variant"
-			>
-				{{ appointment.paymentStatus || "Unpaid" }}
-			</span>
-			<span
-				class="px-2.5 py-1 rounded-md bg-surface-container-high text-[10px] font-semibold uppercase tracking-[0.08em] text-on-surface-variant"
-			>
-				{{ paymentCount }} payment{{ paymentCount === 1 ? "" : "s" }}
-			</span>
-		</div>
 	</section>
 </template>
 
