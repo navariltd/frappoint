@@ -157,7 +157,7 @@
    "type": "Link"
   }
  ],
- "modified": "2026-08-01 12:55:43.469951",
+ "modified": "2026-08-01 13:01:07.023350",
  "modified_by": "Administrator",
  "module": "Frappoint",
  "name": "Frappoint",
@@ -182,17 +182,17 @@
   {
    "document_type": "Service Appointment",
    "label": "Draft Appointments",
-   "quick_list_filter": "[[\"Service Appointment\",\"docstatus\",\"=\",\"0\",false]]"
+   "quick_list_filter": "[[\"Service Appointment\",\"docstatus\",\"=\",\"0\"]]"
   },
   {
    "document_type": "Service Appointment",
    "label": "Completed Appointments",
-   "quick_list_filter": "[[\"Service Appointment\",\"status\",\"=\",\"Completed\",false]]"
+   "quick_list_filter": "[[\"Service Appointment\",\"status\",\"=\",\"Completed\"]]"
   },
   {
    "document_type": "Service Appointment",
    "label": "Cancelled Appointments",
-   "quick_list_filter": "[[\"Service Appointment\",\"status\",\"=\",\"Cancelled\",false]]"
+   "quick_list_filter": "[[\"Service Appointment\",\"docstatus\",\"=\",\"2\"]]"
   }
  ],
  "roles": [],
