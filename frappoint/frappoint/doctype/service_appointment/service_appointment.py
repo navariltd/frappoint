@@ -69,12 +69,16 @@ class ServiceAppointment(Document):
 		actual_end_time: DF.Time | None
 		actual_start_time: DF.Time | None
 		add_video_conferencing: DF.Check
+		allocation_status: DF.Literal["Held", "Confirmed", "Released"]  # type: ignore[assignment]
 		amended_from: DF.Link | None
 		appointment_date: DF.Date
 		appointment_price: DF.Data
 		appointment_provider: DF.Link | None
 		appointment_type: DF.Link
+		booked_by: DF.Data | None
 		booking_id: DF.Link | None
+		buffer_after_minutes: DF.Int
+		buffer_before_minutes: DF.Int
 		cancellation_date: DF.Datetime | None
 		cancellation_notes: DF.Text | None
 		cancellation_reasons: DF.TableMultiSelect[ServiceAppointmentLostReasonDetail]
@@ -102,14 +106,10 @@ class ServiceAppointment(Document):
 		notes: DF.Text | None
 		outstanding_amount: DF.Currency
 		payment_expires_at: DF.Datetime | None
+		payment_hold_until: DF.Datetime | None
 		payment_status: DF.Literal[
-			"Unpaid",  # type: ignore[assignment]
-			"Paid",  # type: ignore[assignment]
-			"Partly Paid",  # type: ignore[assignment]
-			"Partly Refunded",  # type: ignore[assignment]
-			"Refunded",  # type: ignore[assignment]
-			"Cancellation",  # type: ignore[assignment]
-		]
+			"Unpaid", "Paid", "Partly Paid", "Partly Refunded", "Refunded", "Cancellation"
+		]  # type: ignore[assignment]
 		reschedule_date: DF.Datetime | None
 		reschedule_notes: DF.Text | None
 		reschedule_reasons: DF.TableMultiSelect[ServiceAppointmentLostReasonDetail]
@@ -122,17 +122,17 @@ class ServiceAppointment(Document):
 		source: DF.Literal["Desk", "Portal", "Booking Desk"]  # type: ignore[assignment]
 		start_time: DF.Time
 		status: DF.Literal[
-			"Open",  # type: ignore[assignment]
-			"Pending Payment",  # type: ignore[assignment]
-			"Confirmed",  # type: ignore[assignment]
-			"Checked In",  # type: ignore[assignment]
-			"In Progress",  # type: ignore[assignment]
-			"Rescheduled",  # type: ignore[assignment]
-			"Completed",  # type: ignore[assignment]
-			"Cancelled",  # type: ignore[assignment]
-			"Closed",  # type: ignore[assignment]
-			"No Show",  # type: ignore[assignment]
-		]
+			"Open",
+			"Pending Payment",
+			"Confirmed",
+			"Checked In",
+			"In Progress",
+			"Rescheduled",
+			"Completed",
+			"Cancelled",
+			"Closed",
+			"No Show",
+		]  # type: ignore[assignment]
 		total_amount: DF.Currency
 		total_guests: DF.Int
 	# end: auto-generated types

@@ -1,5 +1,6 @@
 {
  "actions": [],
+ "allow_bulk_edit": 1,
  "allow_rename": 1,
  "autoname": "naming_series:",
  "creation": "2025-10-20 07:07:03.115115",
@@ -31,6 +32,7 @@
   "service_unit",
   "appointment_price",
   "booking_id",
+  "booked_by",
   "is_group_booking",
   "column_break_qigo",
   "appointment_date",
@@ -616,15 +618,13 @@
    "fieldname": "buffer_before_minutes",
    "fieldtype": "Int",
    "label": "Buffer Before (minutes)",
-   "read_only": 1,
-   "help": "Buffer before appointment (from Service Type)"
+   "read_only": 1
   },
   {
    "fieldname": "buffer_after_minutes",
    "fieldtype": "Int",
    "label": "Buffer After (minutes)",
-   "read_only": 1,
-   "help": "Buffer after appointment (from Service Type)"
+   "read_only": 1
   },
   {
    "fieldname": "column_break_alloc",
@@ -634,16 +634,21 @@
    "fieldname": "payment_hold_until",
    "fieldtype": "Datetime",
    "label": "Payment Hold Until",
-   "read_only": 1,
-   "help": "When payment hold expires if booking is in Draft state"
+   "read_only": 1
   },
   {
    "fieldname": "allocation_status",
    "fieldtype": "Select",
    "label": "Allocation Status",
    "options": "Held\nConfirmed\nReleased",
-   "read_only": 1,
-   "help": "Synced from allocations (Held = resource reserved, Confirmed = payment received, Released = cancelled)"
+   "read_only": 1
+  },
+  {
+   "fetch_from": "booking_id.booked_by",
+   "fieldname": "booked_by",
+   "fieldtype": "Data",
+   "label": "Booked By",
+   "read_only": 1
   }
  ],
  "grid_page_length": 50,
@@ -677,7 +682,7 @@
    "link_fieldname": "reference_docname"
   }
  ],
- "modified": "2026-05-22 05:53:34.377627",
+ "modified": "2026-08-03 09:45:34.842628",
  "modified_by": "Administrator",
  "module": "Frappoint",
  "name": "Service Appointment",
