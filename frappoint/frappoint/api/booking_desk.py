@@ -147,6 +147,7 @@ def _serialize_booking(booking, pricing=None):
 		"fullName": booking.full_name,
 		"email": booking.email,
 		"mobileNo": booking.mobile_no,
+		"bookedBy": booking.booked_by,
 		"currency": booking.currency,
 		"subtotal": booking.subtotal,
 		"subtotalAmount": flt(pricing.get("subtotalAmount") or booking.subtotal),
@@ -1289,20 +1290,28 @@ def record_manual_checkout_payment(
 
 
 @frappe.whitelist()
-def create_draft_service_booking(customer: str | dict | None = None, items: str | list | None = None):
+def create_draft_service_booking(
+	customer: str | dict | None = None,
+	items: str | list | None = None,
+	booked_by: str | None = None,
+):
 	customer = _parse_json_payload(customer, {})
 	items = _parse_json_payload(items, [])
+	booked_by = (booked_by or "").strip()
 
 	if not customer or not customer.get("customer"):
 		frappe.throw(_("Customer is required before continuing the booking."))
 	if not items:
 		frappe.throw(_("Add at least one service before creating a draft booking."))
+	if not booked_by:
+		frappe.throw(_("Booked By is required before continuing the booking."))
 
 	booking = frappe.new_doc("Service Booking")
 	booking.customer = customer.get("customer")
 	booking.full_name = customer.get("fullName") or customer.get("name")
 	booking.email = customer.get("email")
 	booking.mobile_no = customer.get("mobileNo")
+	booking.booked_by = booked_by
 	booking.booking_date = frappe.utils.today()
 	booking.booking_time = frappe.utils.now_datetime()
 	booking.status = "Draft"

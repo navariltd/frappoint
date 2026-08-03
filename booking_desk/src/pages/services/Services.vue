@@ -178,6 +178,19 @@
 						Refreshing customer list...
 					</p>
 				</section>
+
+				<section class="space-y-2">
+					<label for="booked-by" class="font-label-md text-label-md font-semibold">
+						Booked By
+					</label>
+					<input
+						id="booked-by"
+						v-model="bookedBy"
+						type="text"
+						placeholder="Enter your name"
+						class="w-full rounded-lg border border-outline-variant bg-surface-container-low px-3 py-2 text-[12px] outline-none focus:ring-2 focus:ring-secondary"
+					/>
+				</section>
 			</div>
 
 			<section class="flex-1 min-h-0 px-5 pb-4">
@@ -282,11 +295,11 @@
 					type="button"
 					class="w-full rounded-xl px-4 py-3 font-label-md text-label-md transition-colors"
 					:class="
-						canContinue && !isCreatingBooking
+						canContinueWithBookedBy && !isCreatingBooking
 							? 'bg-primary text-on-primary'
 							: 'bg-surface-container-high text-on-surface-variant cursor-not-allowed'
 					"
-					:disabled="!canContinue || isCreatingBooking"
+					:disabled="!canContinueWithBookedBy || isCreatingBooking"
 					@click="proceedToGuestAssignment"
 				>
 					{{ isCreatingBooking ? "Creating Draft Booking..." : "Continue Booking" }}
@@ -316,8 +329,10 @@ import { useBookingWorkflow } from "@/composables/booking/useBookingWorkflow";
 import { useServiceCart } from "@/composables/services/useServiceCart";
 import PricingPackageDialog from "@/components/services/PricingPackageDialog.vue";
 import { searchNormalizedCustomers } from "@/services/services.service";
+import { useAuthStore } from "@/stores/auth";
 
 const router = useRouter();
+const auth = useAuthStore();
 const customerSearch = ref("");
 const customerResults = ref([]);
 const isCustomerPickerOpen = ref(false);
@@ -327,6 +342,7 @@ const selectedService = ref(null);
 const loadingServiceId = ref("");
 const editingCartItemKey = ref("");
 const cartItemPackages = ref({});
+const bookedBy = ref(auth.userName || "");
 let customerSearchTimer = null;
 let customerSearchToken = 0;
 
@@ -369,6 +385,10 @@ const selectedCustomerName = computed(() => {
 const filteredCustomers = computed(() => {
 	return customerResults.value;
 });
+
+const canContinueWithBookedBy = computed(
+	() => canContinue.value && Boolean(bookedBy.value.trim())
+);
 
 const fetchCustomerResults = async (query = "") => {
 	const token = ++customerSearchToken;
@@ -517,7 +537,7 @@ const onPricingDialogClose = () => {
 };
 
 const proceedToGuestAssignment = () => {
-	if (!canContinue.value) {
+	if (!canContinueWithBookedBy.value) {
 		return;
 	}
 	clearBookingError();
@@ -525,6 +545,7 @@ const proceedToGuestAssignment = () => {
 		customer: selectedCustomer.value,
 		customerSummary: customerSummary.value,
 		cartItems: cartItems.value,
+		bookedBy: bookedBy.value.trim(),
 	})
 		.then(() => {
 			router.push({ name: "GuestAssignment" });

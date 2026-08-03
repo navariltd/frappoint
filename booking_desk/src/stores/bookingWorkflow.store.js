@@ -112,7 +112,7 @@ export const useBookingWorkflowStore = defineStore("bookingWorkflow", {
 				[guestKey]: "",
 			};
 		},
-		async createDraftBookingSession({ customer, customerSummary, cartItems }) {
+		async createDraftBookingSession({ customer, customerSummary, cartItems, bookedBy }) {
 			this.isCreatingBooking = true;
 			this.bookingError = "";
 
@@ -121,6 +121,7 @@ export const useBookingWorkflowStore = defineStore("bookingWorkflow", {
 					customer,
 					customerSummary,
 					cartItems,
+					bookedBy,
 				});
 				this.draftBooking = booking;
 				this.appointmentsByGuestKey = {};
