@@ -40,6 +40,7 @@ const normalizeDraftBooking = (payload, snapshots = {}) => ({
 	fullName: payload?.fullName || snapshots.customer?.fullName || "",
 	email: payload?.email || snapshots.customer?.email || "",
 	mobileNo: payload?.mobileNo || snapshots.customer?.mobileNo || "",
+	bookedBy: payload?.bookedBy || payload?.booked_by || snapshots.bookedBy || "",
 	currency: payload?.currency || "KES",
 	subtotal: Number(payload?.subtotal || 0),
 	grandTotal: Number(payload?.grandTotal || 0),
@@ -124,17 +125,24 @@ const buildDraftAppointmentPayload = ({ service, guest, date, slot }) => ({
 	},
 });
 
-export async function createDraftServiceBooking({ customer, customerSummary, cartItems }) {
+export async function createDraftServiceBooking({
+	customer,
+	customerSummary,
+	cartItems,
+	bookedBy,
+}) {
 	try {
 		const customerPayload = buildCustomerPayload({ customer, customerSummary });
 		const itemsPayload = buildDraftBookingItems(cartItems);
 		const response = await createDraftServiceBookingApi({
 			customer: customerPayload,
 			items: itemsPayload,
+			bookedBy,
 		});
 		return normalizeDraftBooking(response, {
 			cartItems,
 			customer: customerPayload,
+			bookedBy,
 		});
 	} catch (error) {
 		throw new Error(

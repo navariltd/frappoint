@@ -30,15 +30,17 @@ class ServiceBooking(Document):
 
 		amended_from: DF.Link | None
 		appointment_discount_total: DF.Currency
+		booked_by: DF.Data | None
 		booking_date: DF.Date
 		booking_discount_amount: DF.Currency
+		booking_held_until: DF.Datetime | None
 		booking_time: DF.Time
 		confirmation_required_amount: DF.Currency
 		coupon_applied: DF.Check
 		coupon_code: DF.Data | None
 		coupon_discount_amount: DF.Currency
-		coupon_discount_type: DF.Literal["", "percentage", "fixed"]  # type: ignore[assignment]
-		coupon_scope: DF.Literal["", "booking"]  # type: ignore[assignment]
+		coupon_discount_type: DF.Literal["", "percentage", "fixed"]  # type: ignore
+		coupon_scope: DF.Literal["", "booking"]  # type: ignore
 		currency: DF.Link | None
 		customer: DF.Link
 		email: DF.Data | None
@@ -46,10 +48,10 @@ class ServiceBooking(Document):
 		grand_total: DF.Currency
 		items: DF.Table[ServiceBookingItem]
 		mobile_no: DF.Data | None
-		naming_series: DF.Literal["BK-.DD./.MM./.YY.-.####"]  # type: ignore[assignment]
+		naming_series: DF.Literal["BK-.DD./.MM./.YY.-.####"]  # type: ignore
 		outstanding_amount: DF.Currency
 		sales_invoice: DF.Link | None
-		status: DF.Literal["Draft", "Payment Pending", "Partly Paid", "Confirmed", "Closed", "Cancelled"]  # type: ignore[assignment]
+		status: DF.Literal["Draft", "Payment Pending", "Partly Paid", "Confirmed", "Closed", "Cancelled"]  # type: ignore
 		subtotal: DF.Currency
 		total_guests: DF.Int
 	# end: auto-generated types
