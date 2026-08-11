@@ -6,6 +6,7 @@ import json
 import frappe
 from frappe import _
 from frappe.model.document import Document
+from frappe.query_builder.functions import Sum
 from frappe.utils import cint, flt, today
 
 from frappoint.frappoint.services.booking_transaction_service import confirm_held_allocations
@@ -29,15 +30,17 @@ class ServiceBooking(Document):
 
 		amended_from: DF.Link | None
 		appointment_discount_total: DF.Currency
+		booked_by: DF.Data | None
 		booking_date: DF.Date
 		booking_discount_amount: DF.Currency
+		booking_held_until: DF.Datetime | None
 		booking_time: DF.Time
 		confirmation_required_amount: DF.Currency
 		coupon_applied: DF.Check
 		coupon_code: DF.Data | None
 		coupon_discount_amount: DF.Currency
-		coupon_discount_type: DF.Literal["", "percentage", "fixed"]
-		coupon_scope: DF.Literal["", "booking"]
+		coupon_discount_type: DF.Literal["", "percentage", "fixed"]  # type: ignore
+		coupon_scope: DF.Literal["", "booking"]  # type: ignore
 		currency: DF.Link | None
 		customer: DF.Link
 		email: DF.Data | None
@@ -45,10 +48,10 @@ class ServiceBooking(Document):
 		grand_total: DF.Currency
 		items: DF.Table[ServiceBookingItem]
 		mobile_no: DF.Data | None
-		naming_series: DF.Literal["BK-.DD./.MM./.YY.-.####"]
+		naming_series: DF.Literal["BK-.DD./.MM./.YY.-.####"]  # type: ignore
 		outstanding_amount: DF.Currency
 		sales_invoice: DF.Link | None
-		status: DF.Literal["Draft", "Payment Pending", "Partly Paid", "Confirmed", "Closed", "Cancelled"]
+		status: DF.Literal["Draft", "Payment Pending", "Partly Paid", "Confirmed", "Closed", "Cancelled"]  # type: ignore
 		subtotal: DF.Currency
 		total_guests: DF.Int
 	# end: auto-generated types
@@ -122,7 +125,7 @@ class ServiceBooking(Document):
 			frappe.db.get_value(
 				"Service Appointment Payment",
 				{"reference_doctype": self.doctype, "reference_docname": self.name, "docstatus": 1},
-				"sum(amount)",
+				Sum("amount"),
 			)
 			or 0
 		)
@@ -137,7 +140,7 @@ class ServiceBooking(Document):
 						"reference_docname": ["in", appointment_names],
 						"docstatus": 1,
 					},
-					"sum(amount)",
+					Sum("amount"),
 				)
 				or 0
 			)
@@ -263,7 +266,7 @@ class ServiceBooking(Document):
 			frappe.db.get_value(
 				"Service Appointment Payment Reference",
 				{"reference_doctype": "Service Booking", "reference_name": self.name, "docstatus": 1},
-				"sum(allocated_amount)",
+				Sum("allocated_amount"),
 			)
 			or 0
 		)
@@ -507,7 +510,7 @@ class ServiceBooking(Document):
 		}
 
 	@frappe.whitelist()
-	def create_appointment_sales_invoices(self, appointment_names):
+	def create_appointment_sales_invoices(self, appointment_names: str | list):
 		if isinstance(appointment_names, str):
 			appointment_names = frappe.parse_json(appointment_names)
 

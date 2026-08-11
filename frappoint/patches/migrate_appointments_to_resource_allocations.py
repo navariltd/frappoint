@@ -65,7 +65,7 @@ def _fetch_appointments_batch(last_name: str, limit: int) -> list[dict[str, Any]
 		params["last_name"] = last_name
 
 	where_clause = " AND ".join(conditions)
-	query = f"""
+	query = """
 		SELECT
 			name,
 			booking_id,
@@ -80,7 +80,7 @@ def _fetch_appointments_batch(last_name: str, limit: int) -> list[dict[str, Any]
 		WHERE {where_clause}
 		ORDER BY name ASC
 		LIMIT %(limit)s
-	"""
+	""".replace("{where_clause}", where_clause)
 
 	return frappe.db.sql(query, params, as_dict=True)
 

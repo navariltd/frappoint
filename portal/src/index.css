@@ -1,3 +1,71 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer base {
+	:root {
+		--color-primary: 0 106 99;
+		--color-primary-dark: 0 80 74;
+		--color-on-primary: 255 255 255;
+		--color-primary-container: 77 182 172;
+		--color-on-primary-container: 0 67 63;
+		--color-primary-fixed: 142 244 233;
+		--color-primary-fixed-dim: 113 215 205;
+		--color-on-primary-fixed: 0 32 29;
+		--color-on-primary-fixed-variant: 0 80 74;
+		--color-inverse-primary: 113 215 205;
+		--color-surface-tint: 0 106 99;
+
+		--color-secondary: 40 107 51;
+		--color-secondary-dark: 30 81 39;
+		--color-secondary-ink: 40 107 51;
+		--color-on-secondary: 255 255 255;
+		--color-secondary-container: 171 244 172;
+		--color-on-secondary-container: 46 114 56;
+		--color-secondary-fixed: 171 244 172;
+		--color-secondary-fixed-dim: 144 215 146;
+		--color-on-secondary-fixed: 0 33 7;
+		--color-on-secondary-fixed-variant: 7 82 29;
+
+		--color-tertiary: 159 65 34;
+		--color-on-tertiary: 255 255 255;
+		--color-tertiary-container: 249 134 97;
+		--color-on-tertiary-container: 112 31 3;
+		--color-tertiary-fixed: 255 219 208;
+		--color-tertiary-fixed-dim: 255 181 158;
+		--color-on-tertiary-fixed: 58 11 0;
+		--color-on-tertiary-fixed-variant: 127 42 13;
+
+		--color-background: 244 250 253;
+		--color-background-light: 244 250 253;
+		--color-background-dark: 20 30 30;
+		--color-on-background: 22 29 31;
+		--color-surface: 244 250 253;
+		--color-surface-light: 255 255 255;
+		--color-surface-dark: 28 42 42;
+		--color-surface-bright: 244 250 253;
+		--color-surface-dim: 212 219 221;
+		--color-surface-container-lowest: 255 255 255;
+		--color-surface-container-low: 238 245 247;
+		--color-surface-container: 232 239 241;
+		--color-surface-container-high: 226 233 236;
+		--color-surface-container-highest: 221 228 230;
+		--color-surface-variant: 221 228 230;
+		--color-on-surface: 22 29 31;
+		--color-on-surface-variant: 61 73 71;
+		--color-inverse-surface: 43 50 52;
+		--color-inverse-on-surface: 235 242 244;
+		--color-outline: 109 122 119;
+		--color-outline-variant: 189 201 198;
+
+		color: rgb(var(--color-on-surface));
+		background: rgb(var(--color-background));
+	}
+
+	body {
+		margin: 0;
+		min-width: 320px;
+		background: rgb(var(--color-background));
+		color: rgb(var(--color-on-surface));
+	}
+}

@@ -15,7 +15,7 @@
 		</div>
 		<div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
 			<button
-				class="px-4 py-2.5 rounded-md border border-primary/70 text-primary bg-transparent hover:bg-primary/10 hover:border-primary transition-colors shadow-sm hover:shadow focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 disabled:opacity-45 disabled:cursor-not-allowed"
+				class="px-4 py-2.5 rounded-md border border-primary/70 text-primary bg-transparent hover:bg-primary/10 hover:border-primary transition-colors shadow-sm hover:shadow focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary/40 disabled:opacity-45 disabled:cursor-not-allowed"
 				type="button"
 				:disabled="busy || !actions.canCheckIn"
 				@click="$emit('check-in')"
@@ -23,7 +23,7 @@
 				Check in
 			</button>
 			<button
-				class="px-4 py-2.5 rounded-md border border-primary bg-primary text-on-primary hover:bg-primary/90 transition-colors shadow-sm hover:shadow focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 disabled:opacity-45 disabled:cursor-not-allowed"
+				class="px-4 py-2.5 rounded-md border border-primary bg-primary text-on-primary hover:bg-primary-dark transition-colors shadow-sm hover:shadow focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary/40 disabled:opacity-45 disabled:cursor-not-allowed"
 				type="button"
 				:disabled="busy || !actions.canStart"
 				@click="$emit('start')"
@@ -39,7 +39,7 @@
 				Pause
 			</button>
 			<button
-				class="px-4 py-2.5 rounded-md border border-outline-variant/70 text-on-surface-variant bg-transparent hover:bg-surface-container-high hover:border-outline transition-colors shadow-sm hover:shadow focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30 disabled:opacity-45 disabled:cursor-not-allowed"
+				class="px-4 py-2.5 rounded-md border border-outline-variant/70 text-on-surface-variant bg-transparent hover:bg-surface-container-high hover:border-outline transition-colors shadow-sm hover:shadow focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary/30 disabled:opacity-45 disabled:cursor-not-allowed"
 				type="button"
 				:disabled="busy || !actions.canResume"
 				@click="$emit('resume')"
@@ -56,7 +56,7 @@
 			</button>
 			<button
 				v-if="actions.canReschedule"
-				class="px-4 py-2.5 rounded-md border border-outline-variant/70 text-on-surface-variant bg-transparent hover:bg-surface-container-high hover:border-outline transition-colors shadow-sm hover:shadow focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30 disabled:opacity-45 disabled:cursor-not-allowed"
+				class="px-4 py-2.5 rounded-md border border-outline-variant/70 text-on-surface-variant bg-transparent hover:bg-surface-container-high hover:border-outline transition-colors shadow-sm hover:shadow focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary/30 disabled:opacity-45 disabled:cursor-not-allowed"
 				type="button"
 				:disabled="busy || !actions.canReschedule"
 				@click="$emit('reschedule')"
@@ -65,7 +65,7 @@
 			</button>
 			<button
 				v-if="actions.canReassignProvider"
-				class="px-4 py-2.5 rounded-md border border-outline-variant/70 text-on-surface-variant bg-transparent hover:bg-surface-container-high hover:border-outline transition-colors shadow-sm hover:shadow focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30 disabled:opacity-45 disabled:cursor-not-allowed"
+				class="px-4 py-2.5 rounded-md border border-outline-variant/70 text-on-surface-variant bg-transparent hover:bg-surface-container-high hover:border-outline transition-colors shadow-sm hover:shadow focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary/30 disabled:opacity-45 disabled:cursor-not-allowed"
 				type="button"
 				:disabled="busy || !actions.canReassignProvider"
 				@click="$emit('reassign-provider')"

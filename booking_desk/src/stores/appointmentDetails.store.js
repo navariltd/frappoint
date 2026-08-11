@@ -24,6 +24,34 @@ const createEmptyBookingContext = () => ({
 	items: [],
 });
 
+const getErrorMessage = (error, fallback) => {
+	if (Array.isArray(error?.messages) && error.messages.length) {
+		return error.messages.join(" ");
+	}
+
+	if (error?._server_messages) {
+		try {
+			const serverMessages = JSON.parse(error._server_messages);
+			const messages = serverMessages
+				.map((message) => {
+					try {
+						return JSON.parse(message)?.message || message;
+					} catch {
+						return message;
+					}
+				})
+				.filter(Boolean);
+			if (messages.length) {
+				return messages.join(" ");
+			}
+		} catch {
+			return String(error._server_messages);
+		}
+	}
+
+	return error?.message || fallback;
+};
+
 export const useAppointmentDetailsStore = defineStore("appointmentDetails", {
 	state: () => ({
 		appointment: createEmptyAppointmentDetails(),
@@ -51,6 +79,12 @@ export const useAppointmentDetailsStore = defineStore("appointmentDetails", {
 		},
 		financialSummary(state) {
 			const totalAmount = Number(state.appointment.totalAmount || 0);
+			const discountAmount = Number(
+				state.paymentSummary?.discountAmount ?? state.appointment.discountAmount ?? 0
+			);
+			const finalAmount = Number(
+				state.paymentSummary?.finalAmount ?? Math.max(0, totalAmount - discountAmount)
+			);
 			const paidAmount = Number(state.paymentSummary?.paidAmount || 0);
 			const outstandingAmount = Number(
 				state.paymentSummary?.outstandingAmount ?? state.appointment.outstandingAmount ?? 0
@@ -58,6 +92,8 @@ export const useAppointmentDetailsStore = defineStore("appointmentDetails", {
 			return {
 				currency: state.paymentSummary?.currency || state.appointment.currency || "KES",
 				totalAmount,
+				discountAmount,
+				finalAmount,
 				paidAmount,
 				outstandingAmount,
 				balance: outstandingAmount,
@@ -205,7 +241,7 @@ export const useAppointmentDetailsStore = defineStore("appointmentDetails", {
 					nextAppointmentId,
 				};
 			} catch (error) {
-				this.error = error?.message || "Could not complete the appointment action.";
+				this.error = getErrorMessage(error, "Could not complete the appointment action.");
 				throw error;
 			} finally {
 				this.isSubmittingAction = false;

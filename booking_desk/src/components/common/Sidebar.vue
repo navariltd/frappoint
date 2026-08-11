@@ -1,28 +1,17 @@
 <template>
 	<aside
-		class="h-[calc(100vh)] w-64 bg-surface-light dark:bg-surface-dark border-r border-border-light dark:border-border-dark flex flex-col shrink-0"
+		class="h-screen w-64 bg-primary border-r border-primary-dark flex flex-col shrink-0 text-white shadow-xl shadow-primary/10"
 	>
 		<RouterLink
 			:to="{ name: 'Dashboard' }"
-			class="h-20 flex items-center gap-3 px-4 border-b border-border-light dark:border-border-dark group"
+			class="h-24 flex items-center px-5 border-b border-white/20 group focus-visible:ring-2 focus-visible:ring-secondary focus-visible:ring-inset"
+			:aria-label="`${branding.company} booking desk`"
 		>
-			<div
-				class="flex items-center justify-center rounded-md bg-white p-1 shadow-sm ring-1 ring-gray-100 dark:ring-gray-800 transition-transform group-hover:scale-105"
-			>
-				<img
-					class="w-10 h-10 object-contain"
-					src="../../assets/images/logo_img.png"
-					alt="Logo"
-				/>
-			</div>
-
-			<div class="flex flex-col transition-transform group-hover:scale-105">
-				<h1 class="text-lg font-extrabold leading-tight tracking-tight text-primary">
-					Booking<span class="text-text-main-light dark:text-text-main-dark font-medium"
-						>Desk</span
-					>
-				</h1>
-			</div>
+			<img
+				class="h-[72px] w-full object-contain object-left transition-transform duration-300 group-hover:scale-[1.02]"
+				:src="branding.sidebarLogo"
+				:alt="`${branding.company} logo`"
+			/>
 		</RouterLink>
 
 		<nav class="overflow-y-auto flex-1 p-3 space-y-1 no-scrollbar">
@@ -46,10 +35,10 @@
 			/>
 		</nav>
 
-		<div class="p-4 border-t border-border-light dark:border-border-dark">
+		<div class="p-4 border-t border-white/20">
 			<button
 				@click="handleLogout"
-				class="w-full flex items-center gap-3 px-3 py-2.5 text-red-600 hover:bg-red-200 dark:hover:bg-red-900/10 rounded-sm transition-colors group"
+				class="w-full flex items-center gap-3 px-3 py-2.5 text-white/90 hover:bg-white/10 hover:text-white rounded-md transition-colors group focus-visible:ring-2 focus-visible:ring-secondary"
 			>
 				<span
 					class="material-symbols-outlined text-[20px] group-hover:scale-110 transition-transform"
@@ -62,6 +51,7 @@
 </template>
 
 <script setup>
+import { branding } from "@/branding";
 import { useAuthStore } from "@/stores/auth";
 import SidebarItem from "./SidebarItem.vue";
 

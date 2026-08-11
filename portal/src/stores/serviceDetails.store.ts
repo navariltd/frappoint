@@ -87,13 +87,13 @@ export const useServiceDetailsStore = defineStore("service-details", {
 			);
 		},
 
-		   formattedBenefits(state) {
-			   return state.serviceDetails?.benefits || "";
-		   },
+		formattedBenefits(state) {
+			return normalizeListField(state.serviceDetails?.benefits);
+		},
 
-		   formattedTechniques(state) {
-			   return state.serviceDetails?.techniques || "";
-		   },
+		formattedTechniques(state) {
+			return normalizeListField(state.serviceDetails?.techniques);
+		},
 	},
 
 	actions: {
@@ -141,7 +141,14 @@ export const useServiceDetailsStore = defineStore("service-details", {
 				}
 
 				this.serviceDetails = service;
-				this.selectedPackageKey = service?.prices?.[0]?.price_name || "";
+				const defaultPackage =
+					service?.prices?.find(
+						(price) =>
+							Number(price.duration) ===
+							Number(service.default_duration_in_minutes)
+					) || service?.prices?.[0];
+				this.selectedPackageKey =
+					defaultPackage?.price_name || defaultPackage?.name || "";
 				return service;
 			} catch (error) {
 				if (this.requestId !== nextRequestId) {

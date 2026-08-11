@@ -1,4 +1,5 @@
 import frappe
+from frappe.query_builder.functions import Max
 from frappe.utils import add_days, date_diff, getdate, now_datetime
 
 from .frappoint.doctype.service_provider_appointment_slot.service_provider_appointment_slot import (
@@ -21,7 +22,7 @@ def purge_old_slots():
 	frappe.db.delete("Service Provider Appointment Slot", {"posting_date": ["<", purge_date]})
 	purge_slot_cache_before_date(purge_date)
 
-	frappe.db.commit()
+	frappe.db.commit()  # nosemgrep - scheduled cleanup commits after deleting old slots and cache rows.
 	return f"Purged slots older than {purge_date}"
 
 
@@ -40,11 +41,14 @@ def replenish_slot_window():
 		shift_start = max(today, shift.start_date)
 		shift_end = min(shift.end_date or window_end, window_end)
 
-		last_slot_date = frappe.db.get_value(
-			"Service Provider Appointment Slot",
-			{"shift_assignment": shift.name},
-			"MAX(posting_date)",
+		slot = frappe.qb.DocType("Service Provider Appointment Slot")
+		result = (
+			frappe.qb.from_(slot)
+			.select(Max(slot.posting_date))
+			.where(slot.shift_assignment == shift.name)
+			.run()
 		)
+		last_slot_date = result[0][0] if result else None
 
 		gen_start = add_days(last_slot_date, 1) if last_slot_date else shift_start
 
@@ -149,7 +153,7 @@ def get_shift_weekdays(shift_assignment):
 
 
 @frappe.whitelist()
-def get_customer_contact_details(customer):
+def get_customer_contact_details(customer: str):
 	primary_contact = frappe.db.get_value("Customer", customer, "customer_primary_contact")
 
 	if primary_contact:

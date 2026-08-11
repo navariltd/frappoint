@@ -2,6 +2,14 @@
 // For license information, please see license.txt
 
 frappe.ui.form.on("Service Appointment", {
+	setup(frm) {
+		frappe.db
+			.get_single_value("Service Appointment Settings", "allow_past_booking")
+			.then((allow_past_booking) => {
+				frm.allow_past_booking = Boolean(Number(allow_past_booking));
+			});
+	},
+
 	onload(frm) {
 		if (frm.doc.start_time && frm.doc.end_time) {
 			frm._slot_selected = true;
@@ -495,7 +503,7 @@ function validate_appointment_times(frm) {
 		return;
 	}
 
-	if (start_dt < now) {
+	if (start_dt < now && frm.allow_past_booking === false) {
 		frappe.msgprint(__("You cannot schedule an appointment in the past"));
 		return;
 	}

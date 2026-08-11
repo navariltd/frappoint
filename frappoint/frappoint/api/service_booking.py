@@ -12,7 +12,7 @@ from frappoint.frappoint.services.provider_assignment_service import (
 
 
 @frappe.whitelist()
-def create_booking_with_appointments(booking_payload=None):
+def create_booking_with_appointments(booking_payload: str | dict | None = None):
 	"""Create a Service Booking and linked Service Appointment(s).
 
 	Accepts either a JSON string or dict with keys:

@@ -16,10 +16,10 @@ ACTIVE_APPOINTMENT_STATUSES = ("Open", "Pending Payment", "Confirmed", "Checked 
 
 def get_affected_appointments(
 	provider: str,
-	from_date,
-	to_date,
-	from_time=None,
-	to_time=None,
+	from_date: str,
+	to_date: str,
+	from_time: str | None = None,
+	to_time: str | None = None,
 	all_day: bool = True,
 ) -> list[dict[str, Any]]:
 	"""Return active appointments affected by a provider unavailability window."""
@@ -92,10 +92,10 @@ def get_affected_appointments_for_unavailability(unavailability_name: str) -> li
 def get_reassignment_preview(
 	unavailability_name: str | None = None,
 	provider: str | None = None,
-	from_date=None,
-	to_date=None,
-	from_time=None,
-	to_time=None,
+	from_date: str | None = None,
+	to_date: str | None = None,
+	from_time: str | None = None,
+	to_time: str | None = None,
 	all_day: bool = True,
 ) -> dict[str, Any]:
 	"""Return affected appointments and available replacement providers."""
@@ -135,7 +135,7 @@ def get_reassignment_preview(
 @frappe.whitelist()
 def reassign_affected_appointments(
 	unavailability_name: str,
-	assignments=None,
+	assignments: list[dict[str, Any]] | str | None = None,
 	auto_assign: bool = True,
 ) -> dict[str, Any]:
 	"""Reassign appointments affected by one unavailability record.

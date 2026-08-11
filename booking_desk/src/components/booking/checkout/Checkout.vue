@@ -32,9 +32,9 @@
 					<span class="material-symbols-outlined text-sm">chevron_right</span>
 					<span class="text-[11px]">Step 3 of 3</span>
 				</div>
-				<h1 class="text-[20px] font-semibold text-on-surface">Complete Payment</h1>
+				<h1 class="text-[20px] font-semibold text-on-surface">{{ checkoutTitle }}</h1>
 				<p class="text-[13px] text-on-surface-variant">
-					Choose a payment channel and settle the booking.
+					{{ checkoutSubtitle }}
 				</p>
 			</header>
 
@@ -129,6 +129,24 @@
 					<CheckoutValidationBanner :issues="combinedIssues" />
 					<PaymentStatusBanner :message="statusMessage" :progress="paymentProgress" />
 
+					<section
+						v-if="canConfirmWithoutPayment"
+						class="rounded-xl border border-primary bg-primary/10 p-4 flex items-start gap-3"
+					>
+						<span class="material-symbols-outlined text-[22px] text-primary">
+							verified
+						</span>
+						<div class="space-y-1">
+							<h3 class="text-[14px] font-semibold text-on-surface">
+								Payment bypass enabled
+							</h3>
+							<p class="text-[12px] text-on-surface-variant">
+								This booking can be confirmed now. The outstanding balance will
+								remain available for later settlement.
+							</p>
+						</div>
+					</section>
+
 					<PaymentTypeSelector
 						:paymentType="selectedPaymentType"
 						:depositAmount="depositAmount"
@@ -136,6 +154,21 @@
 						:currency="currency"
 						@update:paymentType="setPaymentType"
 						@update:depositAmount="setDepositAmount"
+					/>
+
+					<CouponCodeSection
+						:couponDraft="couponDraft"
+						:currency="currency"
+						:appliedCoupon="appliedCoupon"
+						:validation="couponValidation"
+						:couponError="couponError"
+						:couponMessage="couponMessage"
+						:isValidating="isValidatingCoupon"
+						:isApplying="isApplyingCoupon"
+						:isSubmitting="isSubmitting"
+						@update:couponDraft="setCouponDraft"
+						@apply="applyCoupon"
+						@remove="removeCoupon"
 					/>
 
 					<section class="rounded-xl border border-outline-variant bg-surface p-4">
@@ -198,16 +231,20 @@
 				<PaymentSummarySidebar
 					:currency="currency"
 					:totalAmount="financialSummary.totalAmount"
+					:discountAmount="totalSavings"
 					:paidAmount="financialSummary.paidAmount"
 					:outstandingAmount="financialSummary.outstandingAmount"
 					:payableAmount="payableAmount"
 					:remainingAfterPayment="financialSummary.remainingAfterPayment"
 					:submitLabel="submitLabel"
 					:canSubmit="canSubmit"
+					:canConfirmWithoutPayment="canConfirmWithoutPayment"
+					:canConfirmWithoutPaymentSubmit="canConfirmWithoutPaymentSubmit"
 					:isSubmitting="isSubmitting"
 					:paymentProgress="paymentProgress"
 					:bookingRef="booking.name"
 					@submit="submitCheckoutPayment"
+					@confirmWithoutPayment="submitConfirmWithoutPayment"
 					@refresh="refreshSummary"
 				/>
 			</div>
@@ -221,6 +258,7 @@ import CheckoutLoadingState from "@/components/booking/checkout/CheckoutLoadingS
 import CheckoutValidationBanner from "@/components/booking/checkout/CheckoutValidationBanner.vue";
 import PaymentStatusBanner from "@/components/booking/checkout/PaymentStatusBanner.vue";
 import PaymentTypeSelector from "@/components/booking/checkout/PaymentTypeSelector.vue";
+import CouponCodeSection from "@/components/booking/checkout/CouponCodeSection.vue";
 import PaymentMethodSelector from "@/components/booking/checkout/PaymentMethodSelector.vue";
 import PaymentWorkflowPanel from "@/components/booking/checkout/PaymentWorkflowPanel.vue";
 import PaymentSummarySidebar from "@/components/booking/checkout/PaymentSummarySidebar.vue";
@@ -248,6 +286,12 @@ const {
 	selectedPaymentType,
 	selectedMethodId,
 	depositAmount,
+	couponDraft,
+	couponValidation,
+	couponMessage,
+	couponError,
+	isValidatingCoupon,
+	isApplyingCoupon,
 	mpesaPhone,
 	manualAmountTendered,
 	manualReferenceNo,
@@ -259,9 +303,12 @@ const {
 	error,
 	financialSummary,
 	selectedMethod,
+	canConfirmWithoutPayment,
 	payableAmount,
 	validationIssues,
 	canSubmit,
+	appliedCoupon,
+	totalSavings,
 	setPaymentType,
 	setPaymentChannel,
 	setSelectedMethod,
@@ -269,6 +316,10 @@ const {
 	setMpesaPhone,
 	setManualAmountTendered,
 	setManualReferenceNo,
+	setCouponDraft,
+	applyCoupon,
+	removeCoupon,
+	confirmWithoutPayment,
 	refreshSummary,
 } = useCheckout(routeBookingId);
 
@@ -279,6 +330,15 @@ const booking = computed(() => summary.value.booking || {});
 const appointments = computed(() => booking.value.appointments || []);
 const currency = computed(
 	() => financialSummary.value.currency || booking.value.currency || "KES"
+);
+
+const checkoutTitle = computed(() =>
+	canConfirmWithoutPayment.value ? "Confirm Booking" : "Complete Payment"
+);
+const checkoutSubtitle = computed(() =>
+	canConfirmWithoutPayment.value
+		? "Collect payment now or confirm the booking without payment."
+		: "Choose a payment channel and settle the booking."
 );
 
 const guestCount = computed(() => {
@@ -326,6 +386,10 @@ const combinedIssues = computed(() => {
 	}
 	return issues;
 });
+
+const canConfirmWithoutPaymentSubmit = computed(
+	() => canConfirmWithoutPayment.value && Boolean(booking.value.name || routeBookingId)
+);
 
 const submitLabel = computed(() => {
 	if (isSubmitting.value) {
@@ -379,6 +443,7 @@ async function copyPaymentLink() {
 
 async function submitCheckoutPayment() {
 	if (!canSubmit.value) {
+		statusMessage.value = "Select a payment channel and method before making payment.";
 		return;
 	}
 
@@ -395,6 +460,19 @@ async function submitCheckoutPayment() {
 			}
 		}
 		await refreshSummary();
+	} catch {
+		stopPolling();
+	}
+}
+
+async function submitConfirmWithoutPayment() {
+	if (!canConfirmWithoutPaymentSubmit.value) {
+		return;
+	}
+
+	try {
+		await confirmWithoutPayment();
+		await completeBookingCheckout();
 	} catch {
 		stopPolling();
 	}

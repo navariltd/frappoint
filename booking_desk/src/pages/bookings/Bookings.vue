@@ -2,7 +2,7 @@
 	<div class="h-full flex flex-col bg-background text-on-surface overflow-hidden">
 		<div class="flex-1 min-h-0 flex overflow-hidden">
 			<main class="flex-1 min-w-0 px-4 pb-4 overflow-y-auto space-y-4">
-				<div class="sticky top-0 z-20 -mx-4 bg-white pb-2">
+				<div class="sticky top-0 z-20 -mx-4 bg-background pb-2">
 					<BookingsToolbar
 						:filters="toolbarFilters"
 						:selectedView="selectedView"

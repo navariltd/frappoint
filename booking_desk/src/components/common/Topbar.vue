@@ -1,11 +1,9 @@
 <template>
 	<header
-		class="h-20 bg-surface-light/95 dark:bg-surface-dark/95 backdrop-blur border-b border-border-light/80 dark:border-border-dark/80 flex items-center justify-between px-6 shrink-0 z-20"
+		class="h-24 bg-surface-light/95 backdrop-blur border-b border-border-light/80 flex items-center justify-between px-6 shrink-0 z-20 shadow-sm"
 	>
 		<div class="min-w-0 flex-1 pr-4">
-			<p
-				class="text-[11px] font-semibold uppercase tracking-[0.18em] text-text-sub-light dark:text-text-sub-dark"
-			>
+			<p class="text-[11px] font-semibold uppercase tracking-[0.18em] text-secondary-ink">
 				{{ sectionLabel }}
 			</p>
 			<div class="mt-1 flex items-center gap-3 min-w-0">
@@ -16,7 +14,7 @@
 				</h1>
 				<span
 					v-if="pageTag"
-					class="shrink-0 rounded-full bg-primary/10 px-2.5 py-1 text-[11px] font-semibold text-primary"
+					class="shrink-0 rounded-full border border-secondary/20 bg-secondary-container px-2.5 py-1 text-[11px] font-semibold text-on-secondary-container"
 				>
 					{{ pageTag }}
 				</span>
@@ -28,34 +26,23 @@
 		<div class="flex items-center gap-3 md:gap-4 pl-4 shrink-0">
 			<RouterLink
 				:to="{ name: 'NewBooking' }"
-				class="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-primary/90"
+				class="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-primary-dark focus-visible:ring-2 focus-visible:ring-secondary"
 			>
 				<span class="material-symbols-outlined text-[18px]">add</span>
-				+ New Booking
+				New Booking
 			</RouterLink>
 
-			<button
-				type="button"
-				class="relative inline-flex h-11 w-11 items-center justify-center rounded-full border border-border-light/80 dark:border-border-dark bg-white dark:bg-gray-800 text-text-sub-light dark:text-text-sub-dark transition-colors hover:border-primary/40 hover:text-primary"
-				aria-label="Notifications"
-			>
-				<span class="material-symbols-outlined text-[22px]">notifications</span>
-				<span
-					class="absolute right-2 top-2 h-2 w-2 rounded-full bg-red-500 ring-2 ring-white dark:ring-gray-800"
-				></span>
-			</button>
-
 			<div class="hidden sm:flex flex-col items-end leading-tight pr-1">
-				<span class="text-sm font-semibold text-text-main-light dark:text-text-main-dark">
+				<span class="text-sm font-semibold text-text-main-light">
 					{{ displayName }}
 				</span>
-				<span class="text-[12px] text-text-sub-light dark:text-text-sub-dark">
+				<span class="text-[12px] text-text-sub-light">
 					{{ userDesignation }}
 				</span>
 			</div>
 
 			<img
-				class="h-11 w-11 rounded-full object-cover bg-gray-100 ring-2 ring-white dark:ring-gray-800"
+				class="h-11 w-11 rounded-full object-cover bg-surface-container ring-2 ring-secondary/40"
 				:src="auth.userImage || defaultAvatar"
 				alt="profile"
 			/>

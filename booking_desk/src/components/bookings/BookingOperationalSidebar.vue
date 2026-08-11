@@ -16,7 +16,7 @@
 					<p class="text-[10px] uppercase text-outline">Pending</p>
 				</div>
 				<div class="rounded-lg bg-surface-container p-3">
-					<p class="text-[18px] font-bold text-secondary">{{ summary.checkedIn }}</p>
+					<p class="text-[18px] font-bold text-secondary-ink">{{ summary.checkedIn }}</p>
 					<p class="text-[10px] uppercase text-outline">Checked In</p>
 				</div>
 			</div>

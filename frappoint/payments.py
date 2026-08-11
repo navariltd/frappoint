@@ -253,7 +253,7 @@ def get_payment_link(
 	)
 
 	if flt(amount_to_pay) <= 0:
-		frappe.throw("No amount is due for this payment request")
+		frappe.throw(_("No amount is due for this payment request"))
 
 	validate_currency(payment_gateway, currency)
 

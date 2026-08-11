@@ -11,7 +11,7 @@ function defaultFilters() {
 		minPrice: null,
 		maxPrice: null,
 		page: 1,
-		pageSize: 12,
+		pageSize: 20,
 	};
 }
 

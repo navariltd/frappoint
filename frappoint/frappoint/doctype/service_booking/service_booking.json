@@ -1,5 +1,6 @@
 {
  "actions": [],
+ "allow_bulk_edit": 1,
  "allow_rename": 1,
  "autoname": "naming_series:",
  "creation": "2026-03-27 09:00:17.334225",
@@ -14,6 +15,7 @@
   "column_break_mtmk",
   "booking_date",
   "booking_time",
+  "booked_by",
   "status",
   "section_break_ucii",
   "items",
@@ -82,17 +84,16 @@
    "options": "Draft\nPayment Pending\nPartly Paid\nConfirmed\nClosed\nCancelled"
   },
   {
-     "fieldname": "booking_hold_section",
-     "fieldtype": "Section Break",
-     "label": "Booking Hold"
-    },
-    {
-     "fieldname": "booking_held_until",
-     "fieldtype": "Datetime",
-     "label": "Booking Held Until",
-     "read_only": 1,
-     "help": "When booking hold expires if booking is in Draft state"
-    },
+   "fieldname": "booking_hold_section",
+   "fieldtype": "Section Break",
+   "label": "Booking Hold"
+  },
+  {
+   "fieldname": "booking_held_until",
+   "fieldtype": "Datetime",
+   "label": "Booking Held Until",
+   "read_only": 1
+  },
   {
    "fieldname": "section_break_kkut",
    "fieldtype": "Section Break"
@@ -263,6 +264,11 @@
   {
    "fieldname": "column_break_tadp",
    "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "booked_by",
+   "fieldtype": "Data",
+   "label": "Booked By"
   }
  ],
  "grid_page_length": 50,
@@ -278,7 +284,7 @@
    "link_fieldname": "reference_docname"
   }
  ],
- "modified": "2026-05-22 06:13:26.557828",
+ "modified": "2026-08-03 09:40:01.778430",
  "modified_by": "Administrator",
  "module": "Frappoint",
  "name": "Service Booking",

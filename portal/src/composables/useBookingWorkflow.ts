@@ -76,7 +76,10 @@ export function useBookingWorkflow() {
 				customer: customerProfile.customer,
 				fullName: customerProfile.contact?.contact_display || auth.userName || "",
 				email: customerProfile.contact?.contact_email || "",
-				mobileNo: customerProfile.contact?.contact_phone || "",
+				mobileNo:
+					customerProfile.contact?.contact_mobile ||
+					customerProfile.contact?.contact_phone ||
+					"",
 			});
 		}
 	}

@@ -9,6 +9,7 @@ export function createEmptyDraftBooking() {
 		fullName: "",
 		email: "",
 		mobileNo: "",
+		bookedBy: "",
 		currency: "KES",
 		subtotal: 0,
 		grandTotal: 0,

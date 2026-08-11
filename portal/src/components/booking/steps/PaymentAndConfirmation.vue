@@ -15,7 +15,7 @@
 						v-model="booking.draft.couponCode"
 						type="text"
 						placeholder="Enter coupon code"
-						class="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:border-[#2c7677] focus:ring-2 focus:ring-[#2c7677]/20 outline-none transition-all"
+						class="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all"
 					/>
 					<p class="mt-2 text-xs text-gray-500 dark:text-gray-400">
 						The discount will be validated when you submit the booking.
@@ -123,7 +123,7 @@
 							<span class="text-lg font-bold text-gray-900 dark:text-white"
 								>Grand Total</span
 							>
-							<span class="text-2xl font-bold text-[#2c7677]">
+							<span class="text-2xl font-bold text-primary">
 								{{ formatCurrency(totalAmount, booking.draft.currency) }}
 							</span>
 						</div>
@@ -131,7 +131,7 @@
 
 					<!-- Security Message -->
 					<div class="pt-4">
-						<p class="text-xs text-center text-[#2c7677] font-medium">
+						<p class="text-xs text-center text-primary font-medium">
 							Your data is safe. We use high-level encryption for all payment
 							processes.
 						</p>
@@ -154,7 +154,7 @@
 			<button
 				:disabled="!canProceed || !booking.draft.selectedPaymentGateway"
 				@click="emit('submit')"
-				class="px-8 py-3 rounded-xl bg-[#2c7677] hover:scale-105 text-white font-bold shadow-lg transition-all flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+				class="px-8 py-3 rounded-xl bg-primary hover:bg-primary-dark hover:scale-105 text-on-primary font-bold shadow-lg transition-all flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
 				type="button"
 			>
 				Proceed to Pay

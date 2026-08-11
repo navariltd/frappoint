@@ -65,6 +65,9 @@
 					(guestKey, providerId) =>
 						$emit('provider-preference', service.serviceKey, guestKey, providerId)
 				"
+				@notes-change="
+					(guestKey, notes) => $emit('notes-change', service.serviceKey, guestKey, notes)
+				"
 				@clear-guest="(guestKey) => $emit('clear-guest', service.serviceKey, guestKey)"
 				@load-dates="(guestKey) => $emit('load-dates', service.serviceKey, guestKey)"
 				@select-date="
@@ -122,6 +125,7 @@ defineEmits([
 	"select-customer",
 	"quick-create",
 	"provider-preference",
+	"notes-change",
 	"clear-guest",
 	"load-dates",
 	"select-date",

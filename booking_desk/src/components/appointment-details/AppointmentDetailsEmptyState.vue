@@ -16,9 +16,9 @@
 		<button
 			class="px-4 py-2 rounded-full bg-primary text-on-primary font-medium"
 			type="button"
-			@click="$emit('retry')"
+			@click="$emit('back')"
 		>
-			Retry
+			Back
 		</button>
 	</div>
 </template>
@@ -28,5 +28,5 @@ defineProps({
 	message: { type: String, default: "" },
 });
 
-defineEmits(["retry"]);
+defineEmits(["back"]);
 </script>

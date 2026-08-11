@@ -10,7 +10,7 @@
 			<span :class="['text-headline-sm font-headline-sm', numberColor, numberOpacity]">
 				{{ props.number }}
 			</span>
-			<span v-if="props.percentage" class="text-[12px] text-secondary font-bold">{{
+			<span v-if="props.percentage" class="text-[12px] text-secondary-ink font-bold">{{
 				props.percentage
 			}}</span>
 			<span
@@ -37,7 +37,7 @@ const props = defineProps({
 	},
 	iconColor: {
 		type: String,
-		default: "text-secondary",
+		default: "text-secondary-ink",
 	},
 	borderLeftColor: {
 		type: String,

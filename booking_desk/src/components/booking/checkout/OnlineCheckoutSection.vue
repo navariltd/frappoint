@@ -22,7 +22,7 @@
 				:href="paymentUrl"
 				target="_blank"
 				rel="noreferrer"
-				class="rounded-lg border border-outline px-3 py-2 text-[12px]"
+				class="rounded-lg border border-secondary/40 px-3 py-2 text-[12px] font-semibold text-secondary-ink decoration-secondary underline-offset-4 transition-colors hover:bg-secondary-container hover:underline focus-visible:ring-2 focus-visible:ring-secondary"
 			>
 				Open Link
 			</a>

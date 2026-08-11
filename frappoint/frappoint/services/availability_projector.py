@@ -6,6 +6,7 @@ from math import ceil
 from typing import Any
 
 import frappe
+from frappe import _
 from frappe.utils import add_days, cint, flt, get_time, getdate, nowdate
 
 ACTIVE_ALLOCATION_STATUSES = ("Draft", "Held", "Confirmed")
@@ -132,7 +133,7 @@ def get_available_slots(
 	"""Return availability windows using precomputed counter rows only."""
 	if not _counter_table_ready():
 		frappe.throw(
-			"Availability counters are not initialized for this site. Run bench migrate for this site."
+			_("Availability counters are not initialized for this site. Run bench migrate for this site.")
 		)
 
 	start = getdate(start_date)
@@ -855,7 +856,7 @@ def _find_unit_for_window(
 	step = timedelta(minutes=slot_size)
 	required = []
 	cursor = datetime.combine(datetime.today(), window_start)
-	for _ in range(slots_needed):
+	for _slot_index in range(slots_needed):
 		required.append(cursor.time())
 		cursor += step
 
@@ -961,7 +962,7 @@ def _get_provider_window_candidate_units(
 	step = timedelta(minutes=slot_size_minutes)
 	required_slots: set[time] = set()
 	cursor = datetime.combine(datetime.today(), window_start)
-	for _ in range(slots_needed):
+	for _slot_index in range(slots_needed):
 		required_slots.add(cursor.time())
 		cursor += step
 
@@ -1038,7 +1039,7 @@ def refresh_targeted_counters(
 					resource_reference=service_unit,
 				)
 			)
-		frappe.db.commit()
+		frappe.db.commit()  # nosemgrep - scheduled rebuild commits each day to avoid long transactions.
 		current = add_days(current, 1)
 
 	return {
@@ -1063,7 +1064,7 @@ def refresh_counter_horizon() -> dict[str, Any]:
 	current = start
 	while current <= end:
 		results.append(rebuild_counter_for_date(current))
-		frappe.db.commit()
+		frappe.db.commit()  # nosemgrep - scheduled horizon refresh commits each day to avoid long transactions.
 		current = add_days(current, 1)
 
 	result = {

@@ -114,7 +114,7 @@ class ServiceProvider(Document):
 
 	def set_full_name(self):
 		if self.last_name:
-			self.provider_name = " ".join(filter(None, [self.first_name, self.last_name]))
+			self.provider_name = " ".join([name for name in [self.first_name, self.last_name] if name])
 		else:
 			self.provider_name = self.first_name
 
@@ -276,7 +276,14 @@ class ServiceProvider(Document):
 
 @frappe.whitelist()
 @frappe.validate_and_sanitize_search_inputs
-def get_practitioner_list(doctype, txt, searchfield, start, page_len, filters=None):
+def get_practitioner_list(
+	doctype: str,
+	txt: str,
+	searchfield: str,
+	start: int,
+	page_len: int,
+	filters: dict | None = None,
+):
 	active_filter = {"active": 1}
 
 	filters = {**active_filter, **filters} if filters else active_filter

@@ -4,8 +4,8 @@
 		class="group flex w-full flex-col gap-2.5 rounded-xl border px-3.5 py-2.5 text-left transition-all duration-200"
 		:class="
 			selected
-				? 'border-primary bg-primary/8 text-primary shadow-[0px_8px_18px_rgba(45,118,119,0.10)]'
-				: 'border-outline-variant/25 bg-surface-container-lowest text-on-surface-variant hover:border-primary/45 hover:shadow-[0px_6px_14px_rgba(45,52,54,0.05)]'
+				? 'border-primary bg-primary/10 text-primary shadow-lg shadow-primary/10'
+				: 'border-outline-variant/25 bg-surface-container-lowest text-on-surface-variant hover:border-primary/45 hover:shadow-md'
 		"
 		:aria-pressed="selected"
 		@click="$emit('select', servicePackage)"
@@ -25,7 +25,7 @@
 				class="shrink-0 rounded-full px-2.5 py-0.5 text-[11px] font-semibold"
 				:class="
 					selected
-						? 'bg-primary text-white'
+						? 'bg-primary text-on-primary'
 						: 'bg-surface-container-high text-on-surface'
 				"
 			>

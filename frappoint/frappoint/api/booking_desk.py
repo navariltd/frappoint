@@ -3,7 +3,9 @@ from collections import defaultdict
 
 import frappe
 from frappe import _
+from frappe.query_builder.functions import Max
 from frappe.utils import flt, now_datetime
+from frappe.utils.user import is_website_user
 
 from frappoint.frappoint.doctype.service_appointment.service_appointment import (
 	cancel_appointment,
@@ -145,6 +147,7 @@ def _serialize_booking(booking, pricing=None):
 		"fullName": booking.full_name,
 		"email": booking.email,
 		"mobileNo": booking.mobile_no,
+		"bookedBy": booking.booked_by,
 		"currency": booking.currency,
 		"subtotal": booking.subtotal,
 		"subtotalAmount": flt(pricing.get("subtotalAmount") or booking.subtotal),
@@ -196,6 +199,7 @@ def _serialize_booking(booking, pricing=None):
 				"fullName": appointment.full_name,
 				"email": appointment.email,
 				"mobileNo": appointment.mobile_no,
+				"notes": appointment.notes,
 				"slotIds": [],
 			}
 			for appointment in appointments
@@ -271,6 +275,7 @@ def _serialize_appointment(appointment):
 		"serviceProviderName": appointment.service_provider_name,
 		"appointmentPrice": appointment.appointment_price,
 		"totalAmount": flt(appointment.total_amount),
+		"discountAmount": flt(appointment.get_discount_amount_for_outstanding()),
 		"grandTotal": flt(appointment.grand_total or appointment.total_amount),
 		"outstandingAmount": flt(appointment.outstanding_amount),
 		"details": appointment.details,
@@ -538,8 +543,13 @@ def _build_appointment_response(appointment, booking=None):
 		for row in payment_rows
 	]
 	appointment_payload = _serialize_appointment(appointment)
-	paid_amount = sum(flt(payment.get("amount")) for payment in payments if payment.get("paymentReceived"))
+	direct_paid_amount = sum(
+		flt(payment.get("amount")) for payment in payments if payment.get("paymentReceived")
+	)
 	outstanding_amount = flt(appointment_payload.get("outstandingAmount"))
+	discount_amount = flt(appointment_payload.get("discountAmount"))
+	final_amount = max(0, flt(appointment_payload.get("totalAmount")) - discount_amount)
+	paid_amount = max(direct_paid_amount, final_amount - outstanding_amount)
 	if outstanding_amount <= 0 and flt(appointment_payload.get("totalAmount")) > 0:
 		payment_status = "Paid"
 	elif paid_amount > 0:
@@ -558,6 +568,8 @@ def _build_appointment_response(appointment, booking=None):
 		"paymentSummary": {
 			"currency": appointment_payload.get("currency") or (booking.currency if booking else "KES"),
 			"totalAmount": flt(appointment_payload.get("totalAmount")),
+			"discountAmount": discount_amount,
+			"finalAmount": final_amount,
 			"paidAmount": paid_amount,
 			"outstandingAmount": outstanding_amount,
 		},
@@ -598,6 +610,7 @@ def _build_checkout_summary(booking):
 	deposit_percent = flt(get_confirmation_deposit_percent("Service Booking", booking.name, doc=booking))
 	minimum_due = flt(get_payment_amount("Service Booking", booking.name, total_amount, doc=booking))
 	coupon_summary = _build_booking_coupon_summary(booking, pricing=pricing)
+	can_confirm_without_payment = _can_confirm_checkout_without_payment(booking.name)
 
 	return {
 		"booking": _serialize_booking(booking, pricing=pricing),
@@ -622,9 +635,29 @@ def _build_checkout_summary(booking):
 			"minimumDue": minimum_due,
 			"depositPercent": deposit_percent,
 			"totalDiscount": coupon_summary.get("totalDiscount", 0),
+			"canConfirmWithoutPayment": can_confirm_without_payment,
 		},
 		"coupon": coupon_summary,
 	}
+
+
+def _can_confirm_checkout_without_payment(booking_id: str) -> bool:
+	settings = frappe.get_cached_doc("Service Appointment Settings")
+	if not settings.enable_appointment_confirmation_without_payment:
+		return False
+	if frappe.session.user == "Guest" or is_website_user():
+		return False
+
+	return bool(
+		frappe.db.exists(
+			"Service Appointment",
+			{
+				"booking_id": booking_id,
+				"docstatus": 0,
+				"status": ["not in", ["Cancelled", "Closed"]],
+			},
+		)
+	)
 
 
 def _get_checkout_appointments(booking_id: str):
@@ -735,7 +768,7 @@ def validate_checkout_coupon(booking_id: str, coupon_code: str):
 	if not coupon:
 		return {
 			"valid": False,
-			"message": _("Coupon code is invalid."),
+			"message": _("That coupon code isn't valid. Check the code and try again."),
 			"coupon": None,
 			"evaluation": {
 				"eligible": [],
@@ -747,10 +780,16 @@ def validate_checkout_coupon(booking_id: str, coupon_code: str):
 
 	evaluation = _evaluate_coupon_for_booking(booking_id, coupon)
 	valid = len(evaluation.get("eligible") or []) > 0
+	ineligible = evaluation.get("ineligible") or []
+	invalid_message = (
+		ineligible[0].get("reason")
+		if ineligible and isinstance(ineligible[0], dict)
+		else _("Coupon is not applicable to this booking.")
+	)
 
 	return {
 		"valid": valid,
-		"message": (_("Coupon is valid.") if valid else _("Coupon is not applicable to this booking.")),
+		"message": (_("Coupon is valid.") if valid else invalid_message),
 		"coupon": {
 			"name": coupon.name,
 			"code": coupon.code,
@@ -776,7 +815,7 @@ def apply_checkout_coupon(booking_id: str, coupon_code: str):
 	booking = frappe.get_doc("Service Booking", booking_id)
 	coupon = resolve_coupon_doc(coupon_code)
 	if not coupon:
-		frappe.throw(_("Coupon code is invalid."))
+		frappe.throw(_("That coupon code isn't valid. Check the code and try again."))
 
 	# Non-stacking: reject booking coupon if any appointment coupon exists
 	if is_booking_level_coupon(coupon):
@@ -791,7 +830,13 @@ def apply_checkout_coupon(booking_id: str, coupon_code: str):
 
 	evaluation = _evaluate_coupon_for_booking(booking_id, coupon)
 	if not (evaluation.get("eligible") or []):
-		frappe.throw(_("Coupon is not applicable to this booking."))
+		ineligible = evaluation.get("ineligible") or []
+		message = (
+			ineligible[0].get("reason")
+			if ineligible and isinstance(ineligible[0], dict)
+			else _("Coupon is not applicable to this booking.")
+		)
+		frappe.throw(message)
 
 	booking.coupon_code = coupon.name
 	booking.save(ignore_permissions=True)
@@ -899,7 +944,7 @@ def apply_appointment_coupon(booking_id: str, appointment_id: str, coupon_code: 
 
 	coupon = resolve_coupon_doc(coupon_code)
 	if not coupon:
-		frappe.throw(_("Coupon code is invalid."))
+		frappe.throw(_("That coupon code isn't valid. Check the code and try again."))
 
 	if is_booking_level_coupon(coupon):
 		frappe.throw(
@@ -1053,6 +1098,39 @@ def get_checkout_summary(booking_id: str):
 	booking.reload()
 
 	return _build_checkout_summary(booking)
+
+
+@frappe.whitelist()
+def confirm_checkout_without_payment(booking_id: str):
+	if not booking_id:
+		frappe.throw(_("Booking reference is required."))
+
+	booking = frappe.get_doc("Service Booking", booking_id)
+	if not _can_confirm_checkout_without_payment(booking.name):
+		frappe.throw(
+			_("Booking cannot be confirmed without payment."),
+			title=_("Payment Required"),
+		)
+
+	appointments = _get_checkout_appointments(booking.name)
+	if not appointments:
+		frappe.throw(_("No draft appointments found for this booking."), title=_("Invalid State"))
+
+	confirmed = []
+	for appointment in appointments:
+		if appointment.status in ["Cancelled", "Closed"]:
+			continue
+		appointment.confirm_appointment()
+		confirmed.append(appointment.name)
+
+	booking.reload()
+	booking.sync_financial_snapshot()
+	frappe.db.commit()  # nosemgrep - checkout confirmation is an explicit desk action boundary.
+
+	return {
+		"confirmedAppointments": confirmed,
+		"checkout": _build_checkout_summary(booking),
+	}
 
 
 @frappe.whitelist()
@@ -1212,20 +1290,28 @@ def record_manual_checkout_payment(
 
 
 @frappe.whitelist()
-def create_draft_service_booking(customer=None, items=None):
+def create_draft_service_booking(
+	customer: str | dict | None = None,
+	items: str | list | None = None,
+	booked_by: str | None = None,
+):
 	customer = _parse_json_payload(customer, {})
 	items = _parse_json_payload(items, [])
+	booked_by = (booked_by or "").strip()
 
 	if not customer or not customer.get("customer"):
 		frappe.throw(_("Customer is required before continuing the booking."))
 	if not items:
 		frappe.throw(_("Add at least one service before creating a draft booking."))
+	if not booked_by:
+		frappe.throw(_("Booked By is required before continuing the booking."))
 
 	booking = frappe.new_doc("Service Booking")
 	booking.customer = customer.get("customer")
 	booking.full_name = customer.get("fullName") or customer.get("name")
 	booking.email = customer.get("email")
 	booking.mobile_no = customer.get("mobileNo")
+	booking.booked_by = booked_by
 	booking.booking_date = frappe.utils.today()
 	booking.booking_time = frappe.utils.now_datetime()
 	booking.status = "Draft"
@@ -1264,7 +1350,7 @@ def create_draft_service_booking(customer=None, items=None):
 
 	booking.total_guests = total_guests
 	booking.insert(ignore_permissions=True)
-	frappe.db.commit()  # nosemgrep
+	frappe.db.commit()  # nosemgrep - draft booking must be persisted before the desk continues.
 
 	return _serialize_booking(booking)
 
@@ -1272,7 +1358,7 @@ def create_draft_service_booking(customer=None, items=None):
 @frappe.whitelist()
 def upsert_draft_service_appointment(
 	booking_id: str | None = None,
-	assignment=None,
+	assignment: str | dict | None = None,
 	appointment_id: str | None = None,
 	bookingId: str | None = None,
 ):
@@ -1396,7 +1482,7 @@ def upsert_draft_service_appointment(
 
 	booking.reload()
 	booking.sync_financial_snapshot()
-	frappe.db.commit()  # nosemgrep
+	frappe.db.commit()  # nosemgrep - draft appointment must be persisted before returning availability state.
 
 	return {
 		"booking": _serialize_booking(booking),
@@ -1412,8 +1498,39 @@ def upsert_draft_service_appointment(
 			"fullName": appointment.full_name,
 			"email": appointment.email,
 			"mobileNo": appointment.mobile_no,
+			"notes": appointment.notes,
 			"slotIds": (json.loads(appointment.selected_slot_ids) if appointment.selected_slot_ids else []),
 		},
+	}
+
+
+@frappe.whitelist()
+def update_draft_service_appointment_notes(
+	appointment_id: str | None = None,
+	notes: str | None = None,
+	appointmentId: str | None = None,
+):
+	appointment_id = (
+		appointment_id
+		or appointmentId
+		or frappe.form_dict.get("appointment_id")
+		or frappe.form_dict.get("appointmentId")
+	)
+	if not appointment_id:
+		frappe.throw(_("Appointment reference is required to update notes."))
+
+	appointment = frappe.get_doc("Service Appointment", appointment_id)
+	appointment.notes = notes or ""
+	for guest in appointment.get("guests") or []:
+		if guest.get("is_primary"):
+			guest.notes = appointment.notes
+			break
+	appointment.save(ignore_permissions=True)
+	frappe.db.commit()  # nosemgrep
+
+	return {
+		"name": appointment.name,
+		"notes": appointment.notes,
 	}
 
 
@@ -1450,11 +1567,11 @@ def perform_appointment_action(
 	new_start_time: str | None = None,
 	new_end_time: str | None = None,
 	new_provider: str | None = None,
-	new_slot_ids=None,
+	new_slot_ids: str | list | None = None,
 	new_service_unit: str | None = None,
 	actual_start_time: str | None = None,
 	actual_end_time: str | None = None,
-	cancellation_reasons=None,
+	cancellation_reasons: str | list | None = None,
 	**kwargs,
 ):
 	appointment_id = (
@@ -1499,7 +1616,7 @@ def perform_appointment_action(
 			action_time=actual_start_time or now_datetime(),
 		)
 		appointment.reload()
-		frappe.db.commit()
+		frappe.db.commit()  # nosemgrep - event action must be visible before the updated desk response.
 		return _build_appointment_response(
 			appointment,
 			(frappe.get_doc("Service Booking", appointment.booking_id) if appointment.booking_id else None),
@@ -1513,7 +1630,7 @@ def perform_appointment_action(
 		)
 		appointment.complete_appointment()
 		appointment.reload()
-		frappe.db.commit()
+		frappe.db.commit()  # nosemgrep - completion updates booking and appointment state for the response.
 		return _build_appointment_response(
 			appointment,
 			(frappe.get_doc("Service Booking", appointment.booking_id) if appointment.booking_id else None),
@@ -1522,7 +1639,7 @@ def perform_appointment_action(
 	if action == "confirm":
 		appointment.confirm_appointment()
 		appointment.reload()
-		frappe.db.commit()
+		frappe.db.commit()  # nosemgrep - confirmation is an explicit desk action boundary.
 		return _build_appointment_response(
 			appointment,
 			(frappe.get_doc("Service Booking", appointment.booking_id) if appointment.booking_id else None),
@@ -1634,7 +1751,7 @@ def perform_appointment_action(
 				appointment.selected_slot_ids = new_slot_ids
 
 		appointment.save(ignore_permissions=True)
-		frappe.db.commit()
+		frappe.db.commit()  # nosemgrep - desk time-slot edits must be persisted before returning.
 		booking = (
 			frappe.get_doc("Service Booking", appointment.booking_id) if appointment.booking_id else None
 		)
@@ -1697,8 +1814,8 @@ def _derive_payment_status(booking_row):
 def get_service_bookings_workspace(
 	search_text: str | None = None,
 	customer_query: str | None = None,
-	statuses=None,
-	payment_statuses=None,
+	statuses: str | list | None = None,
+	payment_statuses: str | list | None = None,
 	from_date: str | None = None,
 	to_date: str | None = None,
 	page: int = 1,
@@ -1793,7 +1910,9 @@ def get_service_bookings_workspace(
 
 
 def _get_doctype_latest_modified(doctype: str) -> str:
-	latest = frappe.db.get_value(doctype, filters={}, fieldname="MAX(modified)")
+	table = frappe.qb.DocType(doctype)
+	result = frappe.qb.from_(table).select(Max(table.modified)).run()
+	latest = result[0][0] if result else None
 	return str(latest or "")
 
 

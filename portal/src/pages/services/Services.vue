@@ -78,6 +78,14 @@
 					@view="openService"
 					@add="addToBooking"
 				/>
+				<Pagination
+					v-if="!loading && pagination"
+					:currentPage="pagination.page"
+					:totalPages="pagination.total_pages"
+					:hasNext="pagination.has_next"
+					:hasPrevious="pagination.has_previous"
+					@page-change="onPageChange"
+				/>
 			</section>
 		</div>
 	</main>
@@ -91,6 +99,7 @@ import ServiceGrid from "@/components/services/ServiceGrid.vue";
 import ServiceFilterChips from "@/components/services/ServiceFilterChips.vue";
 import ServiceEmptyState from "@/components/services/ServiceEmptyState.vue";
 import ServiceSkeletonLoader from "@/components/services/ServiceSkeletonLoader.vue";
+import Pagination from "@/components/common/Pagination.vue";
 
 const {
 	filters,
@@ -99,6 +108,7 @@ const {
 	priceRange,
 	loading,
 	error,
+	pagination,
 	initialize,
 	onSearchChange,
 	onDateChange,
@@ -109,6 +119,7 @@ const {
 	onPriceChange,
 	removeFilterChip,
 	clearFilters,
+	onPageChange,
 	openService,
 	addToBooking,
 } = useServices();

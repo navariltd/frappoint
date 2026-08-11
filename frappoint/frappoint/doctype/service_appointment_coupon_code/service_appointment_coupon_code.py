@@ -4,7 +4,9 @@
 import frappe
 from frappe import _
 from frappe.model.document import Document
-from frappe.utils import getdate
+from frappe.utils import flt, getdate
+
+from frappoint.frappoint.services.pricing_service import normalize_booking_source
 
 
 class ServiceAppointmentCouponCode(Document):
@@ -21,20 +23,21 @@ class ServiceAppointmentCouponCode(Document):
 		)
 
 		applicable_for: DF.Literal[
-			"Service Type",
-			"Service Appointment",
-			"Service Booking",
-			"Customer",
-			"Customer Group",
-			"Booking Source",
+			"Service Type",  # type: ignore
+			"Service Appointment",  # type: ignore
+			"Service Booking",  # type: ignore
+			"Customer",  # type: ignore
+			"Customer Group",  # type: ignore
+			"Booking Source",  # type: ignore
 		]
-		booking_source: DF.Literal["", "Portal", "Desk"]
+		booking_source: DF.Literal["", "Portal", "Desk"]  # type: ignore
 		code: DF.Data | None
-		coupon_type: DF.Literal["Promotional", "Complimentary", "Campaign"]
+		complimentary_provider: DF.Link | None
+		coupon_type: DF.Literal["Promotional", "Complimentary", "Campaign"]  # type: ignore
 		customer: DF.Link | None
 		customer_group: DF.Link | None
 		disable: DF.Check
-		discount_type: DF.Literal["Percentage", "Amount"]
+		discount_type: DF.Literal["Percentage", "Amount"]  # type: ignore
 		discount_value: DF.Float
 		max_usage_count: DF.Int
 		maximum_discount_amount: DF.Float
@@ -59,10 +62,12 @@ class ServiceAppointmentCouponCode(Document):
 				frappe.throw(_("Valid From cannot be greater than Valid Till"))
 
 	def validate_discount_value(self):
-		if self.discount_value <= 0:
+		discount_value = flt(self.discount_value)
+		if discount_value <= 0:
 			frappe.throw(_("Discount value must be greater than 0"))
-		if self.discount_type == "Percentage" and self.discount_value > 100:
+		if self.discount_type == "Percentage" and discount_value > 100:
 			frappe.throw(_("Percentage discount cannot exceed 100%"))
+		self.discount_value = discount_value
 
 	def is_valid_for_appointment(self, appointment):
 		if self.disable:
@@ -101,7 +106,7 @@ class ServiceAppointmentCouponCode(Document):
 			return False, _("Coupon is only valid at booking level")
 
 		if self.applicable_for == "Booking Source":
-			if appointment.source != self.booking_source:
+			if normalize_booking_source(appointment.source) != normalize_booking_source(self.booking_source):
 				return False, _("Coupon is not valid for this portal")
 			return True, ""
 
@@ -115,11 +120,12 @@ class ServiceAppointmentCouponCode(Document):
 		return True, ""
 
 	def is_min_order_met(self, order_amount):
-		if self.minimum_order_value > 0:
-			if order_amount < self.minimum_order_value:
-				gap = self.minimum_order_value - order_amount
+		minimum_order_value = flt(self.minimum_order_value)
+		if minimum_order_value > 0:
+			if flt(order_amount) < minimum_order_value:
+				gap = minimum_order_value - flt(order_amount)
 				return False, _("Add {0} more to use this coupon (min order {1})").format(
-					gap, self.minimum_order_value
+					gap, minimum_order_value
 				)
 		return True, ""
 

@@ -7,7 +7,7 @@
 		>
 			<div class="text-center mb-8">
 				<div
-					class="inline-flex items-center justify-center size-12 rounded-full bg-[#2c7677]/10 text-[#2c7677] mb-4"
+					class="inline-flex items-center justify-center size-12 rounded-full bg-primary/10 text-primary mb-4"
 				>
 					<span class="material-symbols-outlined" style="font-size: 28px"
 						>lock_open</span
@@ -32,7 +32,7 @@
 						v-model="email"
 						required
 						type="email"
-						class="w-full rounded-xl text-[#111818] dark:text-white border border-[#d5e2e2] dark:border-gray-700 bg-white dark:bg-background-dark focus:border-[#2c7677] focus:ring-1 focus:ring-[#2c7677] h-12 px-4 text-sm font-normal placeholder:text-[#8B949E] transition-colors"
+						class="w-full rounded-xl text-[#111818] dark:text-white border border-[#d5e2e2] dark:border-gray-700 bg-white dark:bg-background-dark focus:border-primary focus:ring-1 focus:ring-primary h-12 px-4 text-sm font-normal placeholder:text-[#8B949E] transition-colors"
 						placeholder="name@company.com"
 					/>
 				</div>
@@ -45,7 +45,7 @@
 						>
 							Password
 						</label>
-						<a href="#" class="text-[#2c7677] text-xs font-bold hover:underline">
+						<a href="#" class="text-primary text-xs font-bold hover:underline">
 							Forgot password?
 						</a>
 					</div>
@@ -55,12 +55,12 @@
 							v-model="password"
 							required
 							:type="showPassword ? 'text' : 'password'"
-							class="w-full rounded-xl text-[#111818] dark:text-white border border-[#d5e2e2] dark:border-gray-700 bg-white dark:bg-background-dark focus:border-[#2c7677] focus:ring-1 focus:ring-[#2c7677] h-12 px-4 text-sm font-normal placeholder:text-[#8B949E] transition-colors pr-10"
+							class="w-full rounded-xl text-[#111818] dark:text-white border border-[#d5e2e2] dark:border-gray-700 bg-white dark:bg-background-dark focus:border-primary focus:ring-1 focus:ring-primary h-12 px-4 text-sm font-normal placeholder:text-[#8B949E] transition-colors pr-10"
 							placeholder="••••••••"
 						/>
 						<button
 							type="button"
-							class="absolute right-3 text-[#5e8787] flex items-center hover:text-[#2c7677] transition-colors select-none outline-none focus:outline-none"
+							class="absolute right-3 text-[#5e8787] flex items-center hover:text-primary transition-colors select-none outline-none focus:outline-none"
 							@click="showPassword = !showPassword"
 						>
 							<span class="material-symbols-outlined" style="font-size: 20px">
@@ -75,7 +75,7 @@
 						id="remember"
 						v-model="rememberMe"
 						type="checkbox"
-						class="size-4 rounded border-[#d5e2e2] text-[#2c7677] focus:ring-[#2c7677]"
+						class="size-4 rounded border-[#d5e2e2] text-primary focus:ring-primary"
 					/>
 					<label for="remember" class="text-xs text-[#5e8787] font-medium select-none">
 						Keep me signed in
@@ -100,7 +100,7 @@
 				<button
 					type="submit"
 					:disabled="auth.loading"
-					class="w-full flex items-center justify-center rounded-xl h-12 bg-[#2c7677] text-white text-sm font-bold shadow-lg shadow-[#2c7677]/20 hover:brightness-110 active:scale-[0.98] transition-all disabled:opacity-70 disabled:cursor-not-allowed"
+					class="w-full flex items-center justify-center rounded-xl h-12 bg-primary text-on-primary text-sm font-bold shadow-lg shadow-primary/20 hover:bg-primary-dark active:scale-[0.98] transition-all disabled:opacity-70 disabled:cursor-not-allowed"
 				>
 					<svg
 						v-if="auth.loading"
@@ -133,7 +133,7 @@
 					Don't have an account?
 					<RouterLink
 						:to="{ name: 'Signup', query: { redirect: route.query.redirect } }"
-						class="text-[#2c7677] font-bold hover:underline"
+						class="text-primary font-bold hover:underline"
 					>
 						Sign up
 					</RouterLink>

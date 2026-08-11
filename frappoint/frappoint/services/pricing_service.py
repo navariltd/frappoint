@@ -13,6 +13,12 @@ BOOKING_LEVEL_APPLICABILITY = {
 APPOINTMENT_LEVEL_APPLICABILITY = {"Service Type", "Service Appointment"}
 
 
+def normalize_booking_source(source: str | None) -> str:
+	if source == "Booking Desk":
+		return "Desk"
+	return source or ""
+
+
 def resolve_coupon_doc(code_or_name: str | None):
 	if not code_or_name:
 		return None
@@ -84,7 +90,7 @@ def _get_booking_appointment_rows(booking):
 		filters={
 			"booking_id": booking.name,
 			"docstatus": ["<", 2],
-			"status": ["not in", ["Cancelled", "Closed", "No Show"]],
+			"status": ["not in", ["Cancelled", "No Show"]],
 		},
 		fields=[
 			"name",
@@ -111,7 +117,7 @@ def _get_booking_appointment_rows(booking):
 
 def validate_booking_coupon_for_booking(booking, coupon, appointment_rows=None):
 	if not coupon:
-		return False, _("Coupon code is invalid.")
+		return False, _("That coupon code isn't valid. Check the code and try again.")
 
 	if not is_booking_level_coupon(coupon):
 		return False, _("Coupon is not valid for booking-level checkout.")
@@ -145,16 +151,19 @@ def validate_booking_coupon_for_booking(booking, coupon, appointment_rows=None):
 			return False, _("Coupon is not valid for this customer")
 
 	if coupon.applicable_for == "Booking Source":
-		sources = {row.get("source") for row in (appointment_rows or []) if row.get("source")}
-		if not sources or coupon.booking_source not in sources:
+		sources = {
+			normalize_booking_source(row.get("source"))
+			for row in (appointment_rows or [])
+			if row.get("source")
+		}
+		if not sources or normalize_booking_source(coupon.booking_source) not in sources:
 			return False, _("Coupon is not valid for this booking source")
 
-	return True, ""
+	return True, "Coupon is valid for this booking."
 
 
 def calculate_booking_pricing(booking, booking_coupon_code: str | None = None, appointment_rows=None):
 	appointment_rows = appointment_rows or _get_booking_appointment_rows(booking)
-
 	subtotal_amount = 0
 	appointment_discount_total = 0
 	intermediate_total = 0
@@ -302,7 +311,7 @@ def validate_booking_coupon_assignment(booking, pricing=None):
 
 	coupon = resolve_coupon_doc(coupon_code)
 	if not coupon:
-		frappe.throw(_("Coupon code is invalid."))
+		frappe.throw(_("That coupon code isn't valid. Check the code and try again."))
 
 	if not is_booking_level_coupon(coupon):
 		frappe.throw(_("Coupon is not valid for booking-level pricing."))

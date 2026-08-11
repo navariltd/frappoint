@@ -25,7 +25,7 @@
 							@click="$emit('select', slot.id)"
 							:disabled="isSlotDisabled(slot)"
 							:class="buttonStateClass(slot)"
-							class="py-4 px-4 rounded-lg border border-slate-200 text-slate-700 hover:border-primary hover:text-primary hover:bg-[#E2F0F9] transition-all text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:border-slate-200 disabled:hover:text-slate-700 disabled:hover:bg-white"
+							class="py-4 px-4 rounded-lg border border-slate-200 text-slate-700 hover:border-primary hover:text-primary hover:bg-primary-container/30 transition-all text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:border-slate-200 disabled:hover:text-slate-700 disabled:hover:bg-white"
 						>
 							{{ formatTime(slot.startTime) }}
 						</Button>
@@ -42,7 +42,7 @@
 							@click="$emit('select', slot.id)"
 							:disabled="isSlotDisabled(slot)"
 							:class="buttonStateClass(slot)"
-							class="py-4 px-4 rounded-lg border border-slate-200 text-slate-700 hover:border-primary hover:text-primary hover:bg-[#E2F0F9] transition-all text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:border-slate-200 disabled:hover:text-slate-700 disabled:hover:bg-white"
+							class="py-4 px-4 rounded-lg border border-slate-200 text-slate-700 hover:border-primary hover:text-primary hover:bg-primary-container/30 transition-all text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:border-slate-200 disabled:hover:text-slate-700 disabled:hover:bg-white"
 						>
 							{{ formatTime(slot.startTime) }}
 						</Button>

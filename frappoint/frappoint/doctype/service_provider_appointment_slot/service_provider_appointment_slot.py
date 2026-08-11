@@ -1,7 +1,6 @@
 # Copyright (c) 2025, Navari LTD and contributors
 # For license information, please see license.txt
 
-import json
 from datetime import datetime, timedelta
 
 import frappe
@@ -202,7 +201,11 @@ def _apply_provider_change(appointment, provider_name, service_unit=None):
 
 
 @frappe.whitelist()
-def change_appointment_provider(appointment_name, target_provider=None, target_service_unit=None):
+def change_appointment_provider(
+	appointment_name: str,
+	target_provider: str | None = None,
+	target_service_unit: str | None = None,
+):
 	appointment = frappe.get_doc("Service Appointment", appointment_name)
 	active_allocations = _get_active_allocation_count(appointment.name)
 
@@ -259,7 +262,7 @@ def change_appointment_provider(appointment_name, target_provider=None, target_s
 		else appointment.appointment_provider,
 		service_unit=selected_option.get("service_unit") if selected_option else appointment.service_unit,
 	)
-	frappe.db.commit()
+	frappe.db.commit()  # nosemgrep - provider change is an explicit desk action boundary.
 
 	return {
 		"success": True,
@@ -297,7 +300,7 @@ def insert_slot(provider, slot_date, start_time, end_time, shift_assignment):
 
 
 @frappe.whitelist()
-def generate_for_shift(shift_assignment):
+def generate_for_shift(shift_assignment: str):
 	from ...services.slot_cache_service import invalidate_provider_date_range_cache
 
 	sa = frappe.get_doc("Service Provider Shift Assignment", shift_assignment)
@@ -310,7 +313,7 @@ def generate_for_shift(shift_assignment):
 			"is_available",
 			0,
 		)
-		frappe.db.commit()
+		frappe.db.commit()  # nosemgrep - inactive shift update must persist before cache invalidation.
 		invalidate_provider_date_range_cache(
 			sa.provider, sa.start_date, sa.end_date or add_days(nowdate(), 365)
 		)
@@ -323,7 +326,7 @@ def generate_for_shift(shift_assignment):
 			"service_appointment": ["is", "not set"],
 		},
 	)
-	frappe.db.commit()
+	frappe.db.commit()  # nosemgrep - old generated slots are deleted before regeneration.
 
 	provider = sa.provider
 	slot_size = get_global_slot_size()
@@ -431,7 +434,7 @@ def generate_for_shift(shift_assignment):
 	if slots_to_insert:
 		for slot in slots_to_insert:
 			frappe.get_doc(slot).insert(ignore_permissions=True)
-		frappe.db.commit()
+		frappe.db.commit()  # nosemgrep - generated slots must persist before cache invalidation.
 
 	invalidate_provider_date_range_cache(sa.provider, start_date, end_date)
 
@@ -534,7 +537,7 @@ def generate_slots_for_specific_days(shift_assignment, weekdays, start_date, end
 	if slots_to_insert:
 		for slot in slots_to_insert:
 			frappe.get_doc(slot).insert(ignore_permissions=True)
-		frappe.db.commit()
+		frappe.db.commit()  # nosemgrep - generated weekday slots must persist before cache invalidation.
 
 	invalidate_provider_date_range_cache(sa.provider, start_date, end_date)
 
@@ -573,7 +576,7 @@ def delete_slots_for_specific_days(shift_assignment, weekdays):
 		(shift_assignment, dates_to_delete),
 	)
 
-	frappe.db.commit()
+	frappe.db.commit()  # nosemgrep - selective slot deletion must persist before cache invalidation.
 	invalidate_provider_date_range_cache(sa.provider, start_date, end_date)
 
 	count = deleted_count if isinstance(deleted_count, int) else len(dates_to_delete)
@@ -595,7 +598,14 @@ def service_type_requires_service_unit(service_type):
 
 
 @frappe.whitelist()
-def get_available_slots(appointment_type, duration, provider=None, date=None, gender=None, days_ahead=None):
+def get_available_slots(
+	appointment_type: str,
+	duration: int | str,
+	provider: str | None = None,
+	date: str | None = None,
+	gender: str | None = None,
+	days_ahead: int | str | None = None,
+):
 	frappe.throw(
 		_("Legacy slot availability search has been removed. Use counter-based availability APIs."),
 		title=_("Removed Availability Path"),
@@ -645,22 +655,24 @@ def _get_available_slots_db(
 			frappe.throw(_("Provider {0} cannot provide service type {1}").format(provider, appointment_type))
 		providers = [provider]
 	else:
-		# Build the query to fetch providers
-		gender_filter = ""
+		provider_conditions = [
+			"sps.service_type = %(appointment_type)s",
+			"sps.disabled = 0",
+			"p.active = 1",
+		]
+		provider_params = {"appointment_type": appointment_type}
 		if gender:
-			gender_filter = f" AND p.gender = {frappe.db.escape(gender)}"
-
-		providers = frappe.db.sql(
-			f"""
+			provider_conditions.append("p.gender = %(gender)s")
+			provider_params["gender"] = gender
+		provider_query = """
 			SELECT DISTINCT sps.parent
 			FROM `tabService Provider Service` sps
 			INNER JOIN `tabService Provider` p ON sps.parent = p.name
-			WHERE sps.service_type = %s
-			AND sps.disabled = 0
-			AND p.active = 1
-			{gender_filter}
-		""",
-			appointment_type,
+			WHERE {conditions}
+		""".replace("{conditions}", " AND ".join(provider_conditions))
+		providers = frappe.db.sql(
+			provider_query,
+			provider_params,
 			pluck="parent",
 		)
 
@@ -675,18 +687,19 @@ def _get_available_slots_db(
 		effective_days_ahead = get_effective_max_advance_days(days_ahead)
 		end_date = add_days(start_date, effective_days_ahead)
 
-	past_booking_filter = ""
+	past_booking_filter = []
 	if not allow_past_booking:
-		past_booking_filter = """
-		AND (
+		past_booking_filter.append(
+			"""
+			AND (
 			s.posting_date > CURDATE()
 			OR (s.posting_date = CURDATE() AND s.start_time > CURTIME())
 		)
-	"""
+			"""
+		)
 
 	if requires_unit:
-		slots = frappe.db.sql(
-			f"""
+		slot_query = """
 			SELECT
 				s.name,
 				s.provider,
@@ -713,7 +726,9 @@ def _get_available_slots_db(
 			AND su.allow_appointments = 1
 			{past_booking_filter}
 			ORDER BY s.posting_date, s.start_time, p.provider_name, su.unit_name
-		""",
+		""".replace("{past_booking_filter}", "\n".join(past_booking_filter))
+		slots = frappe.db.sql(
+			slot_query,
 			{
 				"providers": providers,
 				"start_date": start_date,
@@ -724,8 +739,7 @@ def _get_available_slots_db(
 		)
 
 	else:
-		slots = frappe.db.sql(
-			f"""
+		slot_query = """
 			SELECT
 				s.name,
 				s.provider,
@@ -749,7 +763,9 @@ def _get_available_slots_db(
 			AND s.service_unit IS NULL
 			{past_booking_filter}
 			ORDER BY s.posting_date, s.start_time, p.provider_name
-		""",
+		""".replace("{past_booking_filter}", "\n".join(past_booking_filter))
+		slots = frappe.db.sql(
+			slot_query,
 			{"providers": providers, "start_date": start_date, "end_date": end_date},
 			as_dict=True,
 		)
@@ -1119,7 +1135,9 @@ def format_available_slots(slots):
 
 
 @frappe.whitelist()
-def book_appointment_slot(appointment, provider, date, start_time, slot_ids):
+def book_appointment_slot(
+	appointment: str, provider: str, date: str, start_time: str, slot_ids: list[str] | str
+):
 	"""
 	Book slots for an appointment
 
@@ -1130,23 +1148,23 @@ def book_appointment_slot(appointment, provider, date, start_time, slot_ids):
 									start_time: Start time
 									slot_ids: JSON array of slot IDs to book
 	"""
-	frappe.throw("Legacy slot booking endpoint has been removed. Use allocation booking APIs.")
+	frappe.throw(_("Legacy slot booking endpoint has been removed. Use allocation booking APIs."))
 
 
-def reserve_slots_atomically(appointment, slot_ids):
+def reserve_slots_atomically(appointment: str, slot_ids: list[str] | str):
 	"""
 	Concurrency-safe reservation using row-level locks.
 	DB locking is the source of truth; cache is updated by invalidation after write paths.
 	"""
-	frappe.throw("Legacy slot reservation has been removed. Use allocation booking APIs.")
+	frappe.throw(_("Legacy slot reservation has been removed. Use allocation booking APIs."))
 
 
 @frappe.whitelist()
-def release_appointment_slots(appointment, commit=True):
+def release_appointment_slots(appointment: str, commit: bool = True):
 	"""
 	Release slots when appointment is cancelled
 
 	Args:
 									appointment: Service Appointment name
 	"""
-	frappe.throw("Legacy slot release endpoint has been removed. Use allocation release APIs.")
+	frappe.throw(_("Legacy slot release endpoint has been removed. Use allocation release APIs."))

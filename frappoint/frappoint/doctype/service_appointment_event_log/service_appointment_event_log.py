@@ -198,7 +198,7 @@ def apply_appointment_event_action(appointment, action: str, notes: str | None =
 		]:
 			appointment.status = "Checked In"
 		appointment.save(ignore_permissions=True)
-		frappe.db.commit()
+		frappe.db.commit()  # nosemgrep - check-in action must persist before returning the timestamp.
 		return {"logType": "Check-in", "timestamp": event_time}
 
 	if action == "start":
@@ -212,7 +212,7 @@ def apply_appointment_event_action(appointment, action: str, notes: str | None =
 		if appointment.status not in ["Cancelled", "Closed", "Completed", "No Show"]:
 			appointment.status = "In Progress"
 		appointment.save(ignore_permissions=True)
-		frappe.db.commit()
+		frappe.db.commit()  # nosemgrep - start action must persist before returning the timestamp.
 		return {"logType": "Start", "timestamp": event_time}
 
 	if action == "pause":
@@ -247,7 +247,7 @@ def apply_appointment_event_action(appointment, action: str, notes: str | None =
 		appointment.actual_duration = max(1, effective_seconds // 60)  # Convert to minutes, minimum 1
 		appointment.status = "Completed"
 		appointment.save(ignore_permissions=True)
-		frappe.db.commit()
+		frappe.db.commit()  # nosemgrep - completion action must persist before returning the timestamp.
 		return {"logType": "End", "timestamp": event_time}
 
 	frappe.throw(_("Unsupported appointment timing action: {0}").format(action))
