@@ -109,6 +109,63 @@
 
 		<aside class="w-[360px] shrink-0 bg-surface-container-lowest flex flex-col">
 			<div class="p-5 space-y-4 shrink-0">
+				<section
+					class="rounded-xl border border-outline-variant bg-surface-container-low p-3"
+				>
+					<div class="flex items-center justify-between gap-3">
+						<div>
+							<p class="font-label-md text-label-md font-semibold">Couple Booking</p>
+							<p class="mt-0.5 text-[11px] text-on-surface-variant">
+								Book two linked guests at one start time.
+							</p>
+						</div>
+						<button
+							type="button"
+							role="switch"
+							aria-label="Toggle couple booking"
+							:aria-checked="isCoupleBooking"
+							class="relative h-6 w-11 shrink-0 rounded-full transition-colors"
+							:class="isCoupleBooking ? 'bg-primary' : 'bg-outline-variant'"
+							@click="toggleCoupleBooking"
+						>
+							<span
+								class="absolute top-0.5 h-5 w-5 rounded-full bg-white shadow-sm transition-transform"
+								:class="isCoupleBooking ? 'translate-x-5' : 'translate-x-0.5'"
+							></span>
+						</button>
+					</div>
+
+					<div
+						v-if="isCoupleBooking"
+						class="mt-3 space-y-2 border-t border-outline-variant pt-3"
+					>
+						<div v-for="guestNumber in 2" :key="guestNumber">
+							<label
+								class="block text-[10px] font-semibold text-on-surface-variant mb-1"
+							>
+								Guest {{ guestNumber }} Service
+							</label>
+							<select
+								v-model="coupleServiceKeys[guestNumber - 1]"
+								class="w-full rounded-lg border border-outline-variant bg-surface px-3 py-2 text-[12px] outline-none focus:border-primary"
+							>
+								<option value="">Select a service</option>
+								<option
+									v-for="item in cartItems"
+									:key="`${guestNumber}-${item.cartKey || item.serviceId}`"
+									:value="item.cartKey || item.serviceId"
+								>
+									{{ item.name }} · {{ item.duration }} min
+								</option>
+							</select>
+						</div>
+						<p class="text-[10px] text-on-surface-variant">
+							Add services below, then assign one to each guest. The same service can
+							be selected twice.
+						</p>
+					</div>
+				</section>
+
 				<section class="space-y-2">
 					<div class="flex items-center justify-between gap-2">
 						<p class="font-label-md text-label-md font-semibold">Customer</p>
@@ -196,7 +253,8 @@
 			<section class="flex-1 min-h-0 px-5 pb-4">
 				<div class="flex items-center justify-between mb-3">
 					<span class="text-[11px] text-on-surface-variant"
-						>{{ cartCount }} item(s)</span
+						>{{ displayCartCount }}
+						{{ isCoupleBooking ? "guest service(s)" : "item(s)" }}</span
 					>
 				</div>
 				<div
@@ -229,11 +287,14 @@
 								</p>
 							</div>
 							<p class="text-[12px] font-semibold whitespace-nowrap">
-								{{ formatMoney(item.price * item.quantity) }}
+								{{
+									formatMoney(item.price * (isCoupleBooking ? 1 : item.quantity))
+								}}
 							</p>
 						</div>
 						<div class="mt-3 flex items-center justify-between gap-2">
 							<div
+								v-if="!isCoupleBooking"
 								class="flex items-center gap-2 bg-surface-container-high rounded-lg px-2 py-1"
 							>
 								<button
@@ -258,6 +319,12 @@
 									+
 								</button>
 							</div>
+							<span
+								v-else
+								class="rounded-full bg-primary-container px-2 py-1 text-[10px] font-semibold text-on-primary-container"
+							>
+								{{ coupleGuestLabel(item) }}
+							</span>
 							<button
 								type="button"
 								class="text-[11px] text-error hover:text-error/80 transition-colors"
@@ -279,16 +346,22 @@
 				>
 					{{ bookingError }}
 				</div>
+				<div
+					v-if="isCoupleBooking && !hasCompleteCoupleSelection"
+					class="rounded-xl border border-secondary-container bg-secondary-container/30 px-3 py-2 text-[11px] text-on-surface"
+				>
+					Choose a service for Guest 1 and Guest 2 before continuing.
+				</div>
 				<div class="space-y-1.5 text-[12px]">
 					<div class="flex justify-between">
 						<span class="text-on-surface-variant">Subtotal</span>
-						<span>{{ formatMoney(subtotal) }}</span>
+						<span>{{ formatMoney(displaySubtotal) }}</span>
 					</div>
 					<div
 						class="flex justify-between pt-2 border-t border-outline-variant font-semibold text-[13px]"
 					>
 						<span>Grand Total</span>
-						<span>{{ formatMoney(grandTotal) }}</span>
+						<span>{{ formatMoney(displayGrandTotal) }}</span>
 					</div>
 				</div>
 				<button
@@ -302,7 +375,13 @@
 					:disabled="!canContinueWithBookedBy || isCreatingBooking"
 					@click="proceedToGuestAssignment"
 				>
-					{{ isCreatingBooking ? "Creating Draft Booking..." : "Continue Booking" }}
+					{{
+						isCreatingBooking
+							? "Creating Draft Booking..."
+							: isCoupleBooking
+							? "Continue Couple Booking"
+							: "Continue Booking"
+					}}
 				</button>
 			</div>
 		</aside>
@@ -343,6 +422,8 @@ const loadingServiceId = ref("");
 const editingCartItemKey = ref("");
 const cartItemPackages = ref({});
 const bookedBy = ref(auth.userName || "");
+const isCoupleBooking = ref(false);
+const coupleServiceKeys = ref(["", ""]);
 let customerSearchTimer = null;
 let customerSearchToken = 0;
 
@@ -372,8 +453,21 @@ const {
 	onResolveServicePackages,
 	onRetry,
 } = useServiceCart();
-const { isCreatingBooking, bookingError, createDraftBookingSession, clearBookingError } =
-	useBookingWorkflow();
+const {
+	draftBooking,
+	isCreatingBooking,
+	bookingError,
+	createDraftBookingSession,
+	clearBookingError,
+} = useBookingWorkflow();
+
+if (draftBooking.value?.isCouple) {
+	isCoupleBooking.value = true;
+	coupleServiceKeys.value = [...(draftBooking.value.coupleServiceKeys || []), "", ""].slice(
+		0,
+		2
+	);
+}
 
 const selectedCustomerName = computed(() => {
 	if (!selectedCustomer.value) {
@@ -386,8 +480,86 @@ const filteredCustomers = computed(() => {
 	return customerResults.value;
 });
 
+const selectedCoupleItems = computed(() =>
+	coupleServiceKeys.value.map((cartKey) =>
+		cartItems.value.find((item) => (item.cartKey || item.serviceId) === cartKey)
+	)
+);
+
+const hasCompleteCoupleSelection = computed(
+	() => selectedCoupleItems.value.length === 2 && selectedCoupleItems.value.every(Boolean)
+);
+
+const coupleCartItems = computed(() => {
+	const grouped = new Map();
+	selectedCoupleItems.value.filter(Boolean).forEach((item, index) => {
+		const cartKey = item.cartKey || item.serviceId;
+		if (grouped.has(cartKey)) {
+			grouped.get(cartKey).quantity += 1;
+			grouped.get(cartKey).coupleGuestNumbers.push(index + 1);
+			return;
+		}
+		grouped.set(cartKey, {
+			...item,
+			quantity: 1,
+			coupleGuestNumbers: [index + 1],
+		});
+	});
+	return Array.from(grouped.values());
+});
+
+const bookingCartItems = computed(() =>
+	isCoupleBooking.value ? coupleCartItems.value : cartItems.value
+);
+const displayCartCount = computed(() =>
+	isCoupleBooking.value ? selectedCoupleItems.value.filter(Boolean).length : cartCount.value
+);
+const displaySubtotal = computed(() =>
+	isCoupleBooking.value
+		? coupleCartItems.value.reduce(
+				(sum, item) => sum + Number(item.price || 0) * Number(item.quantity || 1),
+				0
+		  )
+		: subtotal.value
+);
+const displayGrandTotal = computed(() =>
+	isCoupleBooking.value ? displaySubtotal.value : grandTotal.value
+);
 const canContinueWithBookedBy = computed(
-	() => canContinue.value && Boolean(bookedBy.value.trim())
+	() =>
+		Boolean(bookedBy.value.trim()) &&
+		(isCoupleBooking.value ? hasCompleteCoupleSelection.value : canContinue.value)
+);
+
+const syncCoupleServiceKeys = (preferDistinct = false) => {
+	const availableKeys = cartItems.value.map((item) => item.cartKey || item.serviceId);
+	const next = coupleServiceKeys.value.map((key) => (availableKeys.includes(key) ? key : ""));
+	if (!next[0]) next[0] = availableKeys[0] || "";
+	if (!next[1]) {
+		next[1] = (preferDistinct ? availableKeys[1] : "") || availableKeys[0] || "";
+	}
+	coupleServiceKeys.value = next;
+};
+
+const toggleCoupleBooking = () => {
+	isCoupleBooking.value = !isCoupleBooking.value;
+	if (isCoupleBooking.value) syncCoupleServiceKeys(true);
+};
+
+const coupleGuestLabel = (item) => {
+	const cartKey = item.cartKey || item.serviceId;
+	const guests = coupleServiceKeys.value
+		.map((selectedKey, index) => (selectedKey === cartKey ? index + 1 : null))
+		.filter(Boolean);
+	return guests.length ? `Guest ${guests.join(" & Guest ")}` : "Couple service option";
+};
+
+watch(
+	cartItems,
+	() => {
+		if (isCoupleBooking.value) syncCoupleServiceKeys();
+	},
+	{ deep: true }
 );
 
 const fetchCustomerResults = async (query = "") => {
@@ -544,8 +716,10 @@ const proceedToGuestAssignment = () => {
 	createDraftBookingSession({
 		customer: selectedCustomer.value,
 		customerSummary: customerSummary.value,
-		cartItems: cartItems.value,
+		cartItems: bookingCartItems.value,
 		bookedBy: bookedBy.value.trim(),
+		isCouple: isCoupleBooking.value,
+		coupleServiceKeys: isCoupleBooking.value ? coupleServiceKeys.value : [],
 	})
 		.then(() => {
 			router.push({ name: "GuestAssignment" });

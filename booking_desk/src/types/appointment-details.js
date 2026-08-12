@@ -2,6 +2,7 @@ export function createEmptyAppointmentDetails() {
 	return {
 		name: "",
 		appointmentId: "",
+		docstatus: 0,
 		bookingId: "",
 		status: "Open",
 		paymentStatus: "Unpaid",
@@ -33,6 +34,9 @@ export function createEmptyAppointmentDetails() {
 		notes: "",
 		source: "",
 		allAvailableProviders: [],
+		isCouple: false,
+		isPrimaryInCouple: false,
+		coupleAppointmentId: "",
 		modified: "",
 		creation: "",
 	};

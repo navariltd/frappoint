@@ -34,6 +34,14 @@
 				</div>
 				<div class="flex flex-wrap gap-1.5">
 					<span
+						v-if="appointment.isCouple"
+						class="px-2.5 py-1 rounded-md bg-primary-container text-on-primary-container text-[10px] font-semibold uppercase tracking-[0.08em]"
+					>
+						{{
+							appointment.isPrimaryInCouple ? "Couple · Primary" : "Couple · Partner"
+						}}
+					</span>
+					<span
 						class="px-2.5 py-1 rounded-md bg-primary-container text-on-primary-container text-[10px] font-semibold uppercase tracking-[0.08em]"
 					>
 						{{ appointment.status || "Open" }}
@@ -50,6 +58,12 @@
 						{{ Number(financialSummary.totalAmount || 0).toFixed(2) }}
 					</span>
 				</div>
+				<p
+					v-if="appointment.coupleAppointmentId"
+					class="text-[11px] font-medium text-primary"
+				>
+					Linked couple appointment: {{ appointment.coupleAppointmentId }}
+				</p>
 			</div>
 
 			<div class="flex flex-wrap gap-2 lg:justify-end lg:max-w-[560px]">

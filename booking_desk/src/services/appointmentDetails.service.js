@@ -1,6 +1,8 @@
 import {
 	fetchNormalizedAvailableDates,
 	fetchNormalizedAvailableSlots,
+	fetchNormalizedCoupleAvailableDates,
+	fetchNormalizedCoupleAvailableSlots,
 } from "@/services/availability.service";
 import {
 	fetchAppointmentDetailsApi,
@@ -22,6 +24,7 @@ function normalizeBooking(raw = {}) {
 		currency: raw.currency || "KES",
 		bookingDate: raw.bookingDate || "",
 		appointmentCount: Number(raw.appointmentCount || (raw.appointments || []).length),
+		isCouple: Boolean(raw.isCouple || raw.is_couple),
 		totalGuests: Number(raw.totalGuests || 0),
 		subtotal: toNumber(raw.subtotal),
 		grandTotal: toNumber(raw.grandTotal),
@@ -93,6 +96,7 @@ function normalizeAppointment(raw = {}) {
 		...appointment,
 		name: raw.name || raw.appointmentId || appointment.name,
 		appointmentId: raw.appointmentId || raw.name || appointment.appointmentId,
+		docstatus: Number(raw.docstatus ?? appointment.docstatus ?? 0),
 		bookingId: raw.bookingId || appointment.bookingId,
 		status: raw.status || appointment.status,
 		paymentStatus: raw.paymentStatus || appointment.paymentStatus,
@@ -130,12 +134,25 @@ function normalizeAppointment(raw = {}) {
 			: [],
 		modified: raw.modified || appointment.modified,
 		creation: raw.creation || appointment.creation,
+		coupleAppointmentId:
+			raw.coupleAppointmentId ||
+			raw.couple_appointment_id ||
+			appointment.coupleAppointmentId,
+		isPrimaryInCouple: Boolean(
+			raw.isPrimaryInCouple ?? raw.is_primary_in_couple ?? appointment.isPrimaryInCouple
+		),
+		isCouple: Boolean(
+			raw.isCouple || raw.is_couple || raw.coupleAppointmentId || raw.couple_appointment_id
+		),
 	};
 }
 
 export async function fetchAppointmentDetails(appointmentId) {
 	const payload = (await fetchAppointmentDetailsApi(appointmentId)) || {};
 	const appointment = normalizeAppointment(payload.appointment || payload);
+	const coupleAppointment = payload.coupleAppointment
+		? normalizeAppointment(payload.coupleAppointment)
+		: null;
 	const booking = payload.booking ? normalizeBooking(payload.booking) : null;
 	const payments = Array.isArray(payload.payments) ? payload.payments.map(normalizePayment) : [];
 	const timeline = Array.isArray(payload.timeline)
@@ -145,6 +162,7 @@ export async function fetchAppointmentDetails(appointmentId) {
 
 	return {
 		appointment,
+		coupleAppointment,
 		booking,
 		eventLogs: Array.isArray(payload.eventLogs) ? payload.eventLogs : [],
 		timeTracking: payload.timeTracking || null,
@@ -176,9 +194,34 @@ export async function fetchAppointmentDetails(appointmentId) {
 	};
 }
 
-export async function fetchAppointmentAvailability({ serviceType, duration, provider, date }) {
+export async function fetchAppointmentAvailability({
+	serviceType,
+	duration,
+	provider,
+	date,
+	appointmentId,
+	coupleAppointment,
+}) {
 	if (!serviceType || !date) {
 		return { dates: [], slots: [] };
+	}
+	if (coupleAppointment?.appointmentType) {
+		const current = { serviceType, duration, appointmentId };
+		const primary = coupleAppointment.isPrimaryInCouple ? coupleAppointment : current;
+		const secondary = coupleAppointment.isPrimaryInCouple ? current : coupleAppointment;
+		const params = {
+			serviceType1: primary.appointmentType || primary.serviceType,
+			serviceType2: secondary.appointmentType || secondary.serviceType,
+			duration1: primary.duration,
+			duration2: secondary.duration,
+			excludeAppointmentId1: primary.appointmentId,
+			excludeAppointmentId2: secondary.appointmentId,
+		};
+		const [dates, slots] = await Promise.all([
+			fetchNormalizedCoupleAvailableDates(params),
+			fetchNormalizedCoupleAvailableSlots({ ...params, date }),
+		]);
+		return { dates, slots };
 	}
 
 	const [dates, slots] = await Promise.all([
@@ -190,5 +233,14 @@ export async function fetchAppointmentAvailability({ serviceType, duration, prov
 }
 
 export async function performAppointmentAction(payload) {
-	return performAppointmentActionApi(payload);
+	const response = await performAppointmentActionApi(payload);
+	return {
+		...response,
+		appointment: response?.appointment
+			? normalizeAppointment(response.appointment)
+			: response?.appointment,
+		coupleAppointment: response?.coupleAppointment
+			? normalizeAppointment(response.coupleAppointment)
+			: response?.coupleAppointment,
+	};
 }

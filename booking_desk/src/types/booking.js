@@ -16,6 +16,8 @@ export function createEmptyDraftBooking() {
 		totalGuests: 0,
 		items: [],
 		appointments: [],
+		isCouple: false,
+		coupleServiceKeys: [],
 		cartItemsSnapshot: [],
 		customerSnapshot: null,
 	};

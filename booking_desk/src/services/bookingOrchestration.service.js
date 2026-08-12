@@ -1,6 +1,7 @@
 import { createDraftServiceBookingApi, getDraftServiceBookingApi } from "@/api/serviceBooking.api";
 import {
 	updateDraftServiceAppointmentNotesApi,
+	upsertDraftCoupleAppointmentsApi,
 	upsertDraftServiceAppointmentApi,
 } from "@/api/serviceAppointment.api";
 
@@ -47,6 +48,14 @@ const normalizeDraftBooking = (payload, snapshots = {}) => ({
 	totalGuests: Number(payload?.totalGuests || 0),
 	items: Array.isArray(payload?.items) ? payload.items : [],
 	appointments: Array.isArray(payload?.appointments) ? payload.appointments : [],
+	// Before a slot is reserved the server has no linked appointments from which
+	// to infer couple mode. Preserve the persisted workflow intent across reloads.
+	isCouple: Boolean(snapshots.isCouple || payload?.isCouple || payload?.is_couple),
+	coupleServiceKeys:
+		payload?.coupleServiceKeys ||
+		payload?.couple_service_keys ||
+		snapshots.coupleServiceKeys ||
+		[],
 	cartItemsSnapshot: snapshots.cartItems || [],
 	customerSnapshot: snapshots.customer || null,
 });
@@ -125,11 +134,86 @@ const buildDraftAppointmentPayload = ({ service, guest, date, slot }) => ({
 	},
 });
 
+const buildCoupleServicePayload = (service = {}) => ({
+	service_id: service.serviceId,
+	service_type: service.serviceId,
+	service_key: service.serviceKey,
+	service_name: service.serviceName,
+	pricing_model: service.pricingModel || "",
+	package_id: service.packageId || null,
+	package_name: service.packageName || "Default",
+	price_id: service.packageId || null,
+	price: Number(service.price || 0),
+	currency: service.currency || "KES",
+	duration: Number(service.duration || 0),
+});
+
+const buildCoupleGuestPayload = (guest = {}) => ({
+	guest_key: guest.guestKey,
+	appointment_id: guest.appointmentId || undefined,
+	full_name: guest.fullName,
+	email: guest.email || "",
+	mobile_no: guest.mobileNo || "",
+	provider_gender: guest.providerGender || "",
+	provider_preference: guest.providerPreference || "",
+	notes: guest.notes || "",
+});
+
+const buildCoupleSlotLeg = (leg = {}) => ({
+	provider: leg.provider || "",
+	provider_name: leg.providerName || leg.provider || "",
+	service_unit: leg.serviceUnit || null,
+	service_unit_name: leg.serviceUnitName || null,
+	start_time: leg.startTime || "",
+	end_time: leg.endTime || "",
+	duration: Number(leg.duration || 0),
+	buffer_before: Number(leg.bufferBefore || 0),
+	buffer_after: Number(leg.bufferAfter || 0),
+	slot_ids: Array.isArray(leg.slotIds) ? leg.slotIds : [],
+});
+
+const buildCoupleAssignmentPayload = ({ primary, secondary, slot }) => {
+	const guest1 = buildCoupleGuestPayload(primary.guest);
+	const guest2 = buildCoupleGuestPayload(secondary.guest);
+	const service1 = buildCoupleServicePayload(primary.service);
+	const service2 = buildCoupleServicePayload(secondary.service);
+	const slotGuest1 = buildCoupleSlotLeg(slot.guest1);
+	const slotGuest2 = buildCoupleSlotLeg(slot.guest2);
+
+	return {
+		is_couple: 1,
+		guest_1: guest1,
+		guest_2: guest2,
+		service_type_1: primary.service.serviceId,
+		service_type_2: secondary.service.serviceId,
+		duration_1: Number(primary.service.duration || 0),
+		duration_2: Number(secondary.service.duration || 0),
+		service_1: service1,
+		service_2: service2,
+		preferred_provider_1: primary.guest.providerPreference || "",
+		preferred_provider_2: secondary.guest.providerPreference || "",
+		appointment_id_1: primary.guest.appointmentId || undefined,
+		appointment_id_2: secondary.guest.appointmentId || undefined,
+		selected_time_slot: {
+			id: slot.id,
+			candidate_id: slot.candidateId || slot.id,
+			date: slot.date,
+			start_time: slot.startTime,
+			provider_1: slotGuest1.provider,
+			provider_2: slotGuest2.provider,
+			guest_1: slotGuest1,
+			guest_2: slotGuest2,
+		},
+	};
+};
+
 export async function createDraftServiceBooking({
 	customer,
 	customerSummary,
 	cartItems,
 	bookedBy,
+	isCouple = false,
+	coupleServiceKeys = [],
 }) {
 	try {
 		const customerPayload = buildCustomerPayload({ customer, customerSummary });
@@ -138,11 +222,14 @@ export async function createDraftServiceBooking({
 			customer: customerPayload,
 			items: itemsPayload,
 			bookedBy,
+			isCouple,
 		});
 		return normalizeDraftBooking(response, {
 			cartItems,
 			customer: customerPayload,
 			bookedBy,
+			isCouple,
+			coupleServiceKeys,
 		});
 	} catch (error) {
 		throw new Error(
@@ -151,10 +238,21 @@ export async function createDraftServiceBooking({
 	}
 }
 
-export async function reloadDraftServiceBooking({ bookingId, cartItems, customer }) {
+export async function reloadDraftServiceBooking({
+	bookingId,
+	cartItems,
+	customer,
+	isCouple,
+	coupleServiceKeys,
+}) {
 	try {
 		const response = await getDraftServiceBookingApi(bookingId);
-		return normalizeDraftBooking(response, { cartItems, customer });
+		return normalizeDraftBooking(response, {
+			cartItems,
+			customer,
+			isCouple,
+			coupleServiceKeys,
+		});
 	} catch (error) {
 		throw new Error(
 			extractErrorMessage(error, "Draft booking could not be loaded right now.")
@@ -184,6 +282,45 @@ export async function upsertDraftServiceAppointment({
 	} catch (error) {
 		throw new Error(
 			extractErrorMessage(error, "Appointment could not be reserved. Please try again.")
+		);
+	}
+}
+
+export async function upsertDraftCoupleAppointments({ bookingId, primary, secondary, slot }) {
+	try {
+		const response = await upsertDraftCoupleAppointmentsApi({
+			bookingId,
+			coupleAssignment: buildCoupleAssignmentPayload({ primary, secondary, slot }),
+		});
+		const appointments =
+			response?.appointments ||
+			[
+				response?.primaryAppointment || response?.primary_appointment,
+				response?.secondaryAppointment || response?.secondary_appointment,
+			].filter(Boolean);
+
+		return {
+			booking: normalizeDraftBooking(response?.booking),
+			appointments,
+			primaryAppointment:
+				response?.primaryAppointment ||
+				response?.primary_appointment ||
+				appointments[0] ||
+				null,
+			secondaryAppointment:
+				response?.secondaryAppointment ||
+				response?.secondary_appointment ||
+				appointments[1] ||
+				null,
+			coupleAppointmentId:
+				response?.coupleAppointmentId || response?.couple_appointment_id || "",
+		};
+	} catch (error) {
+		throw new Error(
+			extractErrorMessage(
+				error,
+				"Both appointments could not be reserved together. Please choose another slot."
+			)
 		);
 	}
 }

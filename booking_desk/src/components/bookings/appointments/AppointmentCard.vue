@@ -3,9 +3,17 @@
 		class="bg-surface-container-lowest rounded-2xl p-4 shadow-sm border border-outline-variant/30 flex flex-col gap-3 hover:shadow-md transition-shadow"
 	>
 		<div class="flex justify-between items-start gap-2">
-			<span class="text-label-sm text-outline font-mono"
-				>#{{ appointment.appointmentId }}</span
-			>
+			<div class="space-y-1">
+				<span class="text-label-sm text-outline font-mono"
+					>#{{ appointment.appointmentId }}</span
+				>
+				<span
+					v-if="appointment.isCouple"
+					class="block w-fit rounded-full bg-primary-container px-2 py-0.5 text-[9px] font-semibold uppercase text-on-primary-container"
+				>
+					{{ appointment.isPrimaryInCouple ? "Couple · Primary" : "Couple · Partner" }}
+				</span>
+			</div>
 			<AppointmentStatusBadge :status="appointment.status" />
 		</div>
 		<div class="space-y-1">
@@ -32,6 +40,13 @@
 			<div class="flex items-center gap-2 text-outline">
 				<span class="material-symbols-outlined text-[16px]">confirmation_number</span>
 				<span class="text-label-sm">{{ appointment.bookingId || "N/A" }}</span>
+			</div>
+			<div
+				v-if="appointment.coupleAppointmentId"
+				class="flex items-center gap-2 text-primary"
+			>
+				<span class="material-symbols-outlined text-[16px]">link</span>
+				<span class="text-label-sm">Linked {{ appointment.coupleAppointmentId }}</span>
 			</div>
 		</div>
 		<AppointmentQuickActions @action="onAction" />

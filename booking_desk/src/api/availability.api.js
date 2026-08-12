@@ -3,6 +3,8 @@ import { createResource } from "frappe-ui";
 const AVAILABLE_DATES_ENDPOINT = "frappoint.frappoint.api.slot_availability.get_available_dates";
 const AVAILABLE_SLOTS_ENDPOINT =
 	"frappoint.frappoint.api.slot_availability.get_available_time_slots";
+const COUPLE_AVAILABLE_SLOTS_ENDPOINT =
+	"frappoint.frappoint.api.slot_availability.get_couple_available_time_slots";
 
 const availableDatesResource = createResource({
 	url: AVAILABLE_DATES_ENDPOINT,
@@ -12,6 +14,12 @@ const availableDatesResource = createResource({
 
 const availableSlotsResource = createResource({
 	url: AVAILABLE_SLOTS_ENDPOINT,
+	method: "GET",
+	auto: false,
+});
+
+const coupleAvailableSlotsResource = createResource({
+	url: COUPLE_AVAILABLE_SLOTS_ENDPOINT,
 	method: "GET",
 	auto: false,
 });
@@ -81,9 +89,41 @@ export async function fetchAvailableSlotsApi({
 	return unwrapPayload(response ?? availableSlotsResource.data);
 }
 
+export async function fetchCoupleAvailableSlotsApi({
+	serviceType1,
+	serviceType2,
+	duration1,
+	duration2,
+	provider1,
+	provider2,
+	excludeAppointmentId1,
+	excludeAppointmentId2,
+	startDate,
+	endDate,
+}) {
+	const params = {
+		service_type_1: serviceType1,
+		service_type_2: serviceType2,
+		duration_1: duration1,
+		duration_2: duration2,
+		start_date: startDate,
+		end_date: endDate || startDate,
+		use_counter_engine: 1,
+	};
+	if (provider1) params.provider_1 = provider1;
+	if (provider2) params.provider_2 = provider2;
+	if (excludeAppointmentId1) params.exclude_appointment_id_1 = excludeAppointmentId1;
+	if (excludeAppointmentId2) params.exclude_appointment_id_2 = excludeAppointmentId2;
+
+	const response = await coupleAvailableSlotsResource.fetch(params);
+	return unwrapPayload(response ?? coupleAvailableSlotsResource.data);
+}
+
 export {
 	AVAILABLE_DATES_ENDPOINT,
 	AVAILABLE_SLOTS_ENDPOINT,
+	COUPLE_AVAILABLE_SLOTS_ENDPOINT,
 	availableDatesResource,
 	availableSlotsResource,
+	coupleAvailableSlotsResource,
 };

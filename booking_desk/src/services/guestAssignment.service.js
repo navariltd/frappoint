@@ -73,25 +73,37 @@ export function getAssignmentProgress(assignments = []) {
 }
 
 export function summarizeAssignments(assignments = []) {
-	return assignments.flatMap((service) =>
-		service.guests.map((guest) => ({
-			serviceKey: service.serviceKey,
-			serviceName: service.serviceName,
-			price: service.price,
-			currency: service.currency,
-			guestKey: guest.guestKey,
-			guestName: guest.fullName || `Guest ${guest.sequence}`,
-			isComplete: guest.isComplete,
-			date: guest.date,
-			slotLabel: guest.slot ? `${guest.slot.startTime} - ${guest.slot.endTime}` : "",
-			providerLabel: guest.slot?.providerSummary || "",
-		}))
-	);
+	return assignments
+		.flatMap((service) =>
+			service.guests.map((guest) => ({
+				serviceKey: service.serviceKey,
+				serviceName: service.serviceName,
+				price: service.price,
+				currency: service.currency,
+				guestKey: guest.guestKey,
+				guestName: guest.fullName || `Guest ${guest.coupleSequence || guest.sequence}`,
+				isComplete: guest.isComplete,
+				date: guest.date,
+				slotLabel: guest.slot ? `${guest.slot.startTime} - ${guest.slot.endTime}` : "",
+				providerLabel: guest.slot?.providerSummary || "",
+				coupleSequence: guest.coupleSequence,
+			}))
+		)
+		.sort(
+			(a, b) =>
+				Number(a.coupleSequence || Number.MAX_SAFE_INTEGER) -
+				Number(b.coupleSequence || Number.MAX_SAFE_INTEGER)
+		);
 }
 
-export function buildValidationIssues(assignments = []) {
+export function buildValidationIssues(assignments = [], { isCouple = false } = {}) {
 	const issues = [];
 	const slotUsage = new Map();
+	const guests = assignments.flatMap((service) => service.guests);
+
+	if (isCouple && guests.length !== 2) {
+		issues.push("Couple bookings require exactly two guests and two services.");
+	}
 
 	assignments.forEach((service) => {
 		if (service.guests.length > service.quantity) {
@@ -99,28 +111,38 @@ export function buildValidationIssues(assignments = []) {
 		}
 
 		service.guests.forEach((guest) => {
+			const guestNumber = guest.coupleSequence || guest.sequence;
 			if (!guest.fullName) {
-				issues.push(
-					`${service.serviceName} - Guest ${guest.sequence}: guest is required.`
-				);
+				issues.push(`${service.serviceName} - Guest ${guestNumber}: guest is required.`);
 			}
 			if (!guest.date) {
-				issues.push(`${service.serviceName} - Guest ${guest.sequence}: date is required.`);
+				issues.push(`${service.serviceName} - Guest ${guestNumber}: date is required.`);
 			}
 			if (!guest.slot) {
-				issues.push(`${service.serviceName} - Guest ${guest.sequence}: slot is required.`);
+				issues.push(`${service.serviceName} - Guest ${guestNumber}: slot is required.`);
 			}
 
-			if (guest.slot) {
+			if (guest.slot && !isCouple) {
 				const slotKey = `${guest.date}:${guest.slot.startTime}:${guest.slot.providerSummary}`;
 				slotUsage.set(slotKey, (slotUsage.get(slotKey) || 0) + 1);
 			}
 		});
 	});
 
-	for (const [key, count] of slotUsage.entries()) {
-		if (count > 1) {
-			issues.push(`Duplicate slot conflict detected at ${key}.`);
+	if (!isCouple) {
+		for (const [key, count] of slotUsage.entries()) {
+			if (count > 1) {
+				issues.push(`Duplicate slot conflict detected at ${key}.`);
+			}
+		}
+	}
+
+	if (isCouple && guests.length === 2 && guests.every((guest) => guest.slot)) {
+		const [guest1, guest2] = [...guests].sort(
+			(a, b) => Number(a.coupleSequence || 0) - Number(b.coupleSequence || 0)
+		);
+		if (guest1.date !== guest2.date || guest1.slot.startTime !== guest2.slot.startTime) {
+			issues.push("Both couple appointments must start together on the same date.");
 		}
 	}
 

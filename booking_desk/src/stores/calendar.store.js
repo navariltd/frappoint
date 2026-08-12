@@ -137,9 +137,20 @@ export const useCalendarStore = defineStore("calendarWorkspace", {
 			this.isActionLoading = true;
 			this.error = "";
 			try {
+				let cancelCouple;
+				if (
+					action === "cancel" &&
+					this.selectedEvent.isCouple &&
+					typeof window !== "undefined"
+				) {
+					cancelCouple = window.confirm(
+						"This appointment is part of a couple booking. Select OK to cancel both appointments, or Cancel to cancel only this appointment."
+					);
+				}
 				await runCalendarAppointmentAction({
 					appointmentId: this.selectedEvent.appointmentId,
 					action,
+					cancelCouple,
 				});
 				await this.fetchEvents();
 				const refreshed = this.events.find(

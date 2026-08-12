@@ -3,12 +3,42 @@ import {
 	createDraftServiceBooking,
 	reloadDraftServiceBooking,
 	updateDraftServiceAppointmentNotes,
+	upsertDraftCoupleAppointments,
 	upsertDraftServiceAppointment,
 } from "@/services/bookingOrchestration.service";
 import { BOOKING_WORKFLOW_STORAGE_KEY, createEmptyDraftBooking } from "@/types/booking";
 import { CACHE_MAX_AGE, CACHE_TAGS, invalidateMemoryCacheByTag } from "@/utils/cachePolicy";
 
 const canUseStorage = () => typeof window !== "undefined" && Boolean(window.localStorage);
+
+const coupleSlotForGuest = (candidate, guestNumber) => {
+	const leg = guestNumber === 1 ? candidate.guest1 : candidate.guest2;
+	return {
+		id: `${candidate.id}:guest-${guestNumber}`,
+		candidateId: candidate.candidateId || candidate.id,
+		date: candidate.date,
+		startTime: leg.startTime || candidate.startTime,
+		endTime: leg.endTime,
+		duration: Number(leg.duration || 0),
+		availability: "available",
+		assignedProvider: leg.provider,
+		assignedProviderName: leg.providerName,
+		providerSummary: leg.providerName || leg.provider || "Auto-assigned",
+		providers: [
+			{
+				provider: leg.provider,
+				providerName: leg.providerName,
+				serviceUnit: leg.serviceUnit,
+				serviceUnitName: leg.serviceUnitName,
+				slotIds: leg.slotIds || [],
+			},
+		],
+		serviceUnit: leg.serviceUnit,
+		bufferBefore: leg.bufferBefore,
+		bufferAfter: leg.bufferAfter,
+		isCouple: true,
+	};
+};
 
 const createInitialState = () => ({
 	hasHydrated: false,
@@ -112,7 +142,14 @@ export const useBookingWorkflowStore = defineStore("bookingWorkflow", {
 				[guestKey]: "",
 			};
 		},
-		async createDraftBookingSession({ customer, customerSummary, cartItems, bookedBy }) {
+		async createDraftBookingSession({
+			customer,
+			customerSummary,
+			cartItems,
+			bookedBy,
+			isCouple = false,
+			coupleServiceKeys = [],
+		}) {
 			this.isCreatingBooking = true;
 			this.bookingError = "";
 
@@ -122,6 +159,8 @@ export const useBookingWorkflowStore = defineStore("bookingWorkflow", {
 					customerSummary,
 					cartItems,
 					bookedBy,
+					isCouple,
+					coupleServiceKeys,
 				});
 				this.draftBooking = booking;
 				this.appointmentsByGuestKey = {};
@@ -152,6 +191,8 @@ export const useBookingWorkflowStore = defineStore("bookingWorkflow", {
 					bookingId: this.draftBooking.id,
 					cartItems: this.draftBooking.cartItemsSnapshot,
 					customer: this.draftBooking.customerSnapshot,
+					isCouple: this.draftBooking.isCouple,
+					coupleServiceKeys: this.draftBooking.coupleServiceKeys,
 				});
 				this.draftBooking = {
 					...booking,
@@ -240,6 +281,121 @@ export const useBookingWorkflowStore = defineStore("bookingWorkflow", {
 				this.isSavingAppointmentByGuest = {
 					...this.isSavingAppointmentByGuest,
 					[guestKey]: false,
+				};
+			}
+		},
+		async upsertDraftCouple({ primary, secondary, slot }) {
+			if (!this.draftBooking.id) {
+				const error = new Error("Create a draft booking before reserving appointments.");
+				this.bookingError = error.message;
+				throw error;
+			}
+
+			const pairs = [primary, secondary];
+			const guestKeys = pairs.map((pair) => pair.guest.guestKey);
+			const busyState = Object.fromEntries(guestKeys.map((guestKey) => [guestKey, true]));
+			const clearErrors = Object.fromEntries(guestKeys.map((guestKey) => [guestKey, ""]));
+			this.isSavingAppointmentByGuest = {
+				...this.isSavingAppointmentByGuest,
+				...busyState,
+			};
+			this.appointmentErrorByGuest = {
+				...this.appointmentErrorByGuest,
+				...clearErrors,
+			};
+
+			const pairsWithAppointmentIds = pairs.map((pair) => ({
+				...pair,
+				guest: {
+					...pair.guest,
+					appointmentId:
+						pair.guest.appointmentId ||
+						this.appointmentsByGuestKey[pair.guest.guestKey]?.appointmentId ||
+						"",
+				},
+			}));
+
+			try {
+				const result = await upsertDraftCoupleAppointments({
+					bookingId: this.draftBooking.id,
+					primary: pairsWithAppointmentIds[0],
+					secondary: pairsWithAppointmentIds[1],
+					slot,
+				});
+				const appointmentRows = [result.primaryAppointment, result.secondaryAppointment];
+				const appointmentUpdates = {};
+				pairsWithAppointmentIds.forEach((pair, index) => {
+					const appointment = appointmentRows[index] || {};
+					const guestSlot = coupleSlotForGuest(slot, index + 1);
+					appointmentUpdates[pair.guest.guestKey] = {
+						appointmentId:
+							appointment.name ||
+							appointment.appointmentId ||
+							pair.guest.appointmentId ||
+							"",
+						guestKey: pair.guest.guestKey,
+						serviceKey: pair.service.serviceKey,
+						serviceId: pair.service.serviceId,
+						date: slot.date,
+						slot: guestSlot,
+						guest: {
+							fullName: pair.guest.fullName,
+							email: pair.guest.email || "",
+							mobileNo: pair.guest.mobileNo || "",
+							notes: pair.guest.notes || "",
+							providerGender: pair.guest.providerGender || "",
+							providerPreference: pair.guest.providerPreference || "",
+						},
+						isCouple: true,
+						isPrimaryInCouple: index === 0,
+						coupleAppointmentId:
+							appointment.coupleAppointmentId ||
+							appointment.couple_appointment_id ||
+							appointmentRows[index === 0 ? 1 : 0]?.name ||
+							"",
+					};
+				});
+
+				this.draftBooking = {
+					...this.draftBooking,
+					...result.booking,
+					isCouple: true,
+					coupleServiceKeys: this.draftBooking.coupleServiceKeys,
+					cartItemsSnapshot: this.draftBooking.cartItemsSnapshot,
+					customerSnapshot: this.draftBooking.customerSnapshot,
+				};
+				this.appointmentsByGuestKey = {
+					...this.appointmentsByGuestKey,
+					...appointmentUpdates,
+				};
+				this.hydrationRequiresRevalidation = false;
+				this.hydratedAt = Date.now();
+				this.persistState();
+				invalidateMemoryCacheByTag(CACHE_TAGS.BOOKINGS);
+				invalidateMemoryCacheByTag(CACHE_TAGS.DASHBOARD);
+				invalidateMemoryCacheByTag(CACHE_TAGS.WORKFLOW);
+
+				return {
+					...result,
+					slotsByGuestKey: Object.fromEntries(
+						guestKeys.map((guestKey, index) => [
+							guestKey,
+							appointmentUpdates[guestKey].slot,
+						])
+					),
+				};
+			} catch (error) {
+				const message =
+					error?.message || "Both appointments could not be reserved together.";
+				this.appointmentErrorByGuest = {
+					...this.appointmentErrorByGuest,
+					...Object.fromEntries(guestKeys.map((guestKey) => [guestKey, message])),
+				};
+				throw error;
+			} finally {
+				this.isSavingAppointmentByGuest = {
+					...this.isSavingAppointmentByGuest,
+					...Object.fromEntries(guestKeys.map((guestKey) => [guestKey, false])),
 				};
 			}
 		},
