@@ -26,6 +26,7 @@ from frappe.utils import (
 from frappe.utils.user import is_website_user
 
 from ...services.booking_transaction_service import (
+	confirm_couple_held_allocations,
 	confirm_held_allocations,
 	release_capacity_for_allocations,
 	reserve_and_create_allocations,
@@ -87,6 +88,7 @@ class ServiceAppointment(Document):
 		confirmation_required_amount: DF.Currency
 		confirmation_token: DF.Data | None
 		coupon_code: DF.Link | None
+		couple_appointment_id: DF.Link | None
 		currency: DF.Link
 		customer: DF.Link
 		details: DF.SmallText | None
@@ -101,6 +103,7 @@ class ServiceAppointment(Document):
 		guests: DF.Table[ServiceAppointmentGuest]
 		is_group_booking: DF.Check
 		is_guest: DF.Check
+		is_primary_in_couple: DF.Check
 		mobile_no: DF.Data | None
 		naming_series: DF.Literal["SVC-APP-.MM.-.YY.-.###."]  # type: ignore[assignment]
 		notes: DF.Text | None
@@ -140,6 +143,9 @@ class ServiceAppointment(Document):
 	def validate(self):
 		self.validate_appointment_date_and_times()
 		self.validate_guest_requirements()
+		self.validate_provider_offers_service()
+		self.validate_couple_configuration()
+		self.validate_couple_modification()
 		self.validate_overlaps()
 		self.validate_appointment_capacity()
 		self.validate_price_and_currency()
@@ -154,8 +160,10 @@ class ServiceAppointment(Document):
 			self.validate_required_for_billing()
 
 	def after_insert(self):
-		self.insert_calendar_event()
-		self.sync_resource_allocations(force=True)
+		if not getattr(self.flags, "skip_calendar_event", False):
+			self.insert_calendar_event()
+		if not getattr(self.flags, "skip_resource_allocation", False):
+			self.sync_resource_allocations(force=True)
 
 	def before_save(self):
 		"""Assign provider if multiple options exist then, book slots"""
@@ -176,10 +184,17 @@ class ServiceAppointment(Document):
 			else:
 				frappe.throw(_("Please select a time slot before saving."))
 
-		self.assign_service_unit_to_appointment()
+		if not getattr(self.flags, "skip_resource_allocation", False):
+			self.assign_service_unit_to_appointment()
 		self.validate_service_unit_requirement()
 
-		if self.selected_slot_ids and self.appointment_provider and self.appointment_date and self.start_time:
+		if (
+			self.selected_slot_ids
+			and self.appointment_provider
+			and self.appointment_date
+			and self.start_time
+			and not getattr(self.flags, "skip_resource_allocation", False)
+		):
 			# For new bookings or when slots have changed, book the new slots
 			if self.is_new() or not self._slots_already_booked():
 				self.book_selected_slots()
@@ -253,12 +268,34 @@ class ServiceAppointment(Document):
 
 	def on_submit(self):
 		"""Confirm appointment"""
+		if self.couple_appointment_id and not getattr(self.flags, "couple_submit_in_progress", False):
+			return self._submit_couple_appointments()
+
+		self._finalize_submitted_appointment(
+			confirm_allocations=not getattr(self.flags, "couple_submit_in_progress", False),
+			send_confirmation=not getattr(self.flags, "couple_submit_in_progress", False),
+		)
+
+	def before_submit(self):
+		"""Only the pair orchestrator may transition a linked appointment to submitted."""
+		if not self.couple_appointment_id:
+			return
+		if getattr(self.flags, "couple_submit_in_progress", False):
+			return
+		if not getattr(self.flags, "couple_submit_orchestrated", False):
+			frappe.throw(
+				_("Couple appointments must be confirmed together. " "Use the couple confirmation action."),
+				title=_("Couple Confirmation Required"),
+			)
+
+	def _finalize_submitted_appointment(self, confirm_allocations=True, send_confirmation=True):
 		if not self.appointment_price:
 			frappe.throw(_("Please select a price for this appointment"))
 
 		self.validate_confirmation_before_submit()
 
-		self.send_confirmation_msg()
+		if send_confirmation:
+			self.send_confirmation_msg()
 		if self.status != "Confirmed":
 			self.db_set("status", "Confirmed")
 
@@ -269,8 +306,109 @@ class ServiceAppointment(Document):
 			coupon.db_set("times_used", coupon.get_usage_count())
 
 		# Phase 4 integration: confirm held allocations when appointment is confirmed.
-		if frappe.db.exists("DocType", "Service Resource Allocation"):
+		if confirm_allocations and frappe.db.exists("DocType", "Service Resource Allocation"):
 			confirm_held_allocations(self.name)
+
+	def _submit_couple_appointments(self):
+		"""Submit the linked pair and confirm both allocation ledgers under one savepoint."""
+		savepoint = getattr(self.flags, "couple_submit_savepoint", None)
+		if not savepoint:
+			frappe.throw(
+				_("Couple confirmation was not started through the atomic pair orchestrator."),
+				title=_("Couple Confirmation Required"),
+			)
+		try:
+			frappe.db.sql(
+				"""
+				SELECT name
+				FROM `tabService Appointment`
+				WHERE name IN %(appointment_names)s
+				ORDER BY name
+				FOR UPDATE
+				""",
+				{"appointment_names": tuple(sorted([self.name, self.couple_appointment_id]))},
+			)
+			linked = frappe.get_doc("Service Appointment", self.couple_appointment_id)
+			if linked.couple_appointment_id != self.name:
+				frappe.throw(_("Couple appointment links must be reciprocal."))
+			if linked.docstatus == 2 or linked.status in {"Cancelled", "Closed", "No Show"}:
+				frappe.throw(_("The linked couple appointment cannot be confirmed."))
+
+			self._finalize_submitted_appointment(confirm_allocations=False, send_confirmation=False)
+			linked_was_draft = linked.docstatus == 0
+			if linked_was_draft:
+				linked.flags.couple_submit_in_progress = True
+				linked.flags.skip_capacity_validation = bool(
+					getattr(self.flags, "skip_capacity_validation", False)
+				)
+				linked.flags.skip_resource_allocation = bool(
+					getattr(self.flags, "skip_resource_allocation", False)
+				)
+				linked.status = "Confirmed"
+				linked.submit()
+
+			if frappe.db.exists("DocType", "Service Resource Allocation"):
+				confirm_couple_held_allocations([self.name, linked.name])
+
+			for appointment_name in [self.name, linked.name] if linked_was_draft else [self.name]:
+				frappe.enqueue(
+					"frappoint.frappoint.doctype.service_appointment.service_appointment.send_confirmation_after_commit",
+					appointment_name=appointment_name,
+					enqueue_after_commit=True,
+				)
+		except Exception:
+			frappe.db.rollback(save_point=savepoint)
+			raise
+
+	def _confirm_couple_appointments(self, savepoint: str | None = None):
+		"""Start the savepoint before either member's status or docstatus is persisted."""
+		if not self.couple_appointment_id:
+			frappe.throw(_("This appointment is not part of a couple booking."))
+
+		savepoint = savepoint or f"confirm_couple_{now_datetime().strftime('%H%M%S%f')}"
+		frappe.db.savepoint(savepoint)
+		try:
+			names = sorted({self.name, self.couple_appointment_id})
+			frappe.db.sql(
+				"""
+				SELECT name
+				FROM `tabService Appointment`
+				WHERE name IN %(appointment_names)s
+				ORDER BY name
+				FOR UPDATE
+				""",
+				{"appointment_names": tuple(names)},
+			)
+			rows = [frappe.get_doc("Service Appointment", name) for name in names]
+			if (
+				len(rows) != 2
+				or rows[0].couple_appointment_id != rows[1].name
+				or (rows[1].couple_appointment_id != rows[0].name)
+			):
+				frappe.throw(_("Couple appointment links must be reciprocal."))
+			if any(row.docstatus != 0 for row in rows):
+				frappe.throw(_("Both couple appointments must be draft before confirmation."))
+			primary_rows = [row for row in rows if cint(row.is_primary_in_couple)]
+			if len(primary_rows) != 1:
+				frappe.throw(_("Couple appointments must identify exactly one primary appointment."))
+
+			primary = primary_rows[0]
+			primary.status = "Confirmed"
+			primary.flags.couple_submit_orchestrated = True
+			primary.flags.couple_submit_savepoint = savepoint
+			primary.flags.skip_capacity_validation = True
+			primary.flags.skip_resource_allocation = True
+			primary.flags.skip_couple_auto_confirmation = True
+			primary.submit()
+			return {
+				"name": primary.name,
+				"appointments": [row.name for row in rows],
+				"status": "Confirmed",
+				"docstatus": 1,
+			}
+		except Exception:
+			frappe.db.rollback(save_point=savepoint)
+			raise
 
 	def validate_confirmation_before_submit(self):
 		if self.status in ["Closed", "Cancelled"]:
@@ -319,7 +457,9 @@ class ServiceAppointment(Document):
 		"""Handle appointment confirmations"""
 		self.update_payment_and_workflow_status()  # nosemgrep - db_set persists payment/workflow fields from this hook.
 
-		if self._has_allocation_relevant_changes():
+		if self._has_allocation_relevant_changes() and not getattr(
+			self.flags, "skip_resource_allocation", False
+		):
 			self.sync_resource_allocations(replace_existing=True)
 
 		if self.has_value_changed("status"):
@@ -343,6 +483,11 @@ class ServiceAppointment(Document):
 
 	def on_trash(self):
 		"""Release slots when appointment is deleted and prevent deletion if billing exists"""
+		if self.couple_appointment_id and not getattr(self.flags, "allow_couple_lifecycle", False):
+			frappe.throw(
+				_("Couple appointments cannot be deleted independently."),
+				title=_("Couple Update Required"),
+			)
 		self.check_linked_documents_before_delete()
 		self.delete_linked_event()
 		if frappe.db.exists("DocType", "Service Resource Allocation"):
@@ -393,16 +538,22 @@ class ServiceAppointment(Document):
 			try:
 				# Confirm the payment has gone through
 				self.db_set("payment_status", "Paid")
-				self.db.set("status", "Confirmed")
-				self.submit()
+				if self.couple_appointment_id:
+					self._confirm_couple_appointments()
+				else:
+					self.db_set("status", "Confirmed")
+					self.submit()
 			except Exception:
 				frappe.log_error(_("Appointment Confirmation Failed"), frappe.get_traceback())
 
 	def update_mpesa_payment_record(self):
 		try:
 			self.db_set("payment_status", "Paid")
-			self.db_set("status", "Confirmed")
-			self.submit()
+			if self.couple_appointment_id:
+				self._confirm_couple_appointments()
+			else:
+				self.db_set("status", "Confirmed")
+				self.submit()
 		except Exception:
 			frappe.log_error(_("Appointment Confirmation Failed"), frappe.get_traceback())
 
@@ -417,6 +568,130 @@ class ServiceAppointment(Document):
 			settings = frappe.get_cached_doc("Service Appointment Settings")
 			if not settings.allow_past_booking:
 				frappe.throw(_("You cannot schedule an appointment in the past"))
+
+	def validate_provider_offers_service(self):
+		"""Ensure the assigned provider is configured to deliver this service."""
+		if not self.appointment_provider or not self.appointment_type:
+			return
+		# Couple operations require this strict check on every coordinated write. For
+		# legacy single appointments, only enforce it when an existing assignment is
+		# actually changed so unrelated note/status edits remain backward compatible.
+		if not self.couple_appointment_id:
+			if self.is_new():
+				return
+			old_doc = self.get_doc_before_save()
+			if not old_doc or (
+				old_doc.appointment_provider == self.appointment_provider
+				and old_doc.appointment_type == self.appointment_type
+			):
+				return
+
+		provider_service_exists = frappe.db.exists(
+			"Service Provider Service",
+			{
+				"parent": self.appointment_provider,
+				"parenttype": "Service Provider",
+				"service_type": self.appointment_type,
+				"disabled": 0,
+			},
+		)
+		if not provider_service_exists:
+			frappe.throw(
+				_("Provider {0} does not offer service {1}.").format(
+					frappe.bold(self.appointment_provider), frappe.bold(self.appointment_type)
+				),
+				title=_("Provider Not Eligible"),
+			)
+
+	def validate_couple_configuration(self):
+		"""Validate reciprocal couple links and the invariants shared by both appointments."""
+		if getattr(self.flags, "skip_couple_validation", False):
+			return
+
+		if not self.couple_appointment_id:
+			if cint(self.is_primary_in_couple):
+				frappe.throw(_("A primary couple appointment must link to its paired appointment."))
+			return
+
+		if self.couple_appointment_id == self.name:
+			frappe.throw(_("An appointment cannot be coupled with itself."))
+
+		linked = frappe.db.get_value(
+			"Service Appointment",
+			self.couple_appointment_id,
+			[
+				"name",
+				"booking_id",
+				"appointment_date",
+				"start_time",
+				"appointment_provider",
+				"service_unit",
+				"couple_appointment_id",
+				"is_primary_in_couple",
+				"docstatus",
+			],
+			as_dict=True,
+		)
+		if not linked:
+			frappe.throw(
+				_("Linked couple appointment {0} does not exist.").format(
+					frappe.bold(self.couple_appointment_id)
+				)
+			)
+
+		if linked.get("couple_appointment_id") != self.name:
+			frappe.throw(_("Couple appointment links must be reciprocal."))
+		if self.booking_id != linked.get("booking_id"):
+			frappe.throw(_("Both couple appointments must belong to the same booking."))
+		if str(self.appointment_date) != str(linked.get("appointment_date")):
+			frappe.throw(_("Both couple appointments must use the same appointment date."))
+		if get_time(self.start_time) != get_time(linked.get("start_time")):
+			frappe.throw(_("Both couple appointments must start at the same time."))
+		if cint(self.is_primary_in_couple) == cint(linked.get("is_primary_in_couple")):
+			frappe.throw(_("Exactly one appointment in a couple must be marked as primary."))
+		if self.service_unit and self.service_unit == linked.get("service_unit"):
+			unit = frappe.db.get_value(
+				"Service Unit", self.service_unit, ["allow_overlap", "capacity"], as_dict=True
+			)
+			if not unit or not cint(unit.get("allow_overlap")) or cint(unit.get("capacity") or 1) < 2:
+				frappe.throw(
+					_("Service Unit {0} cannot host both couple services at the same time.").format(
+						frappe.bold(self.service_unit)
+					),
+					title=_("Incompatible Couple Service Unit"),
+				)
+
+	def validate_couple_modification(self):
+		"""Reject one-sided schedule/resource changes to an existing couple."""
+		if self.is_new() or getattr(self.flags, "allow_couple_update", False):
+			return
+
+		old_doc = self.get_doc_before_save()
+		if not old_doc or not (old_doc.couple_appointment_id or self.couple_appointment_id):
+			return
+
+		tracked_fields = (
+			"appointment_date",
+			"start_time",
+			"end_time",
+			"duration",
+			"appointment_type",
+			"appointment_provider",
+			"service_unit",
+			"selected_slot_ids",
+			"buffer_before_minutes",
+			"buffer_after_minutes",
+			"couple_appointment_id",
+			"is_primary_in_couple",
+		)
+		if any(str(old_doc.get(field)) != str(self.get(field)) for field in tracked_fields):
+			frappe.throw(
+				_(
+					"Couple appointments cannot be changed independently. "
+					"Use the couple booking action to update both appointments together."
+				),
+				title=_("Couple Update Required"),
+			)
 
 	def calculate_actual_duration(self):
 		"""Validate actual end time and calculate actual duration when appointment is completed"""
@@ -443,6 +718,9 @@ class ServiceAppointment(Document):
 		For capacity-enabled services, overlap is handled by capacity validation
 		instead of hard-blocking here.
 		"""
+		if getattr(self.flags, "skip_capacity_validation", False):
+			return
+
 		if not self.appointment_provider or not all([self.appointment_date, self.start_time, self.end_time]):
 			return
 
@@ -531,6 +809,9 @@ class ServiceAppointment(Document):
 
 	def validate_appointment_capacity(self):
 		"""Check if service unit or service provider has capacity for this appointment"""
+		if getattr(self.flags, "skip_capacity_validation", False):
+			return
+
 		if not self.appointment_type:
 			return
 
@@ -795,6 +1076,8 @@ class ServiceAppointment(Document):
 
 		if self.docstatus != 0:
 			frappe.throw(_("Only draft appointments can be confirmed."), title=_("Invalid State"))
+		if self.couple_appointment_id:
+			return self._confirm_couple_appointments()
 
 		self.status = "Confirmed"
 		self.submit()
@@ -899,9 +1182,15 @@ class ServiceAppointment(Document):
 			and self.docstatus == 0
 			and not self.is_new()
 		):
-			self.status = "Confirmed"
-			self.db_set("status", self.status, update_modified=False)
-			self.submit()
+			if self.couple_appointment_id:
+				# Coordinated pair writes deliberately defer automatic submission until
+				# both members have been updated and their capacity has been reserved.
+				if not getattr(self.flags, "skip_couple_auto_confirmation", False):
+					self._confirm_couple_appointments()
+			else:
+				self.status = "Confirmed"
+				self.db_set("status", self.status, update_modified=False)
+				self.submit()
 
 		if not should_confirm and self.status == "Pending Payment" and not self.payment_expires_at:
 			self.status = "Open"
@@ -1067,6 +1356,54 @@ class ServiceAppointment(Document):
 
 		self.db_set({"event": event.name, "google_meet_link": event.google_meet_link})
 		self.notify_update()
+
+	def sync_calendar_event(self):
+		"""Create or update the linked Event after a coordinated booking commits."""
+		if not self.appointment_provider:
+			return
+		if not self.event or not frappe.db.exists("Event", self.event):
+			self.insert_calendar_event()
+			return
+
+		starts_on = datetime.datetime.combine(getdate(self.appointment_date), get_time(self.start_time))
+		ends_on = datetime.datetime.combine(getdate(self.appointment_date), get_time(self.end_time))
+		google_calendar = frappe.db.get_value(
+			"Service Provider", self.appointment_provider, "google_calendar"
+		) or frappe.db.get_single_value("Service Appointment Settings", "default_google_calendar")
+		color = frappe.db.get_value("Service Provider", self.appointment_provider, "color_code") or ""
+
+		event = frappe.get_doc("Event", self.event)
+		event.update(
+			{
+				"subject": f"{self.name} - {self.company}",
+				"color": color,
+				"starts_on": starts_on,
+				"ends_on": ends_on,
+				"status": "Open",
+				"sync_with_google_calendar": 1 if google_calendar else 0,
+				"add_video_conferencing": (1 if self.add_video_conferencing and google_calendar else 0),
+				"google_calendar": google_calendar,
+				"description": f"{self.name} - {self.company}",
+				"reference_doctype": self.doctype,
+				"reference_docname": self.name,
+			}
+		)
+		event.set("event_participants", [])
+		event.append(
+			"event_participants",
+			{
+				"reference_doctype": "Service Provider",
+				"reference_docname": self.appointment_provider,
+			},
+		)
+		if self.customer:
+			event.append(
+				"event_participants",
+				{"reference_doctype": "Customer", "reference_docname": self.customer},
+			)
+		event.save(ignore_permissions=True)
+		event.reload()
+		self.db_set({"event": event.name, "google_meet_link": event.google_meet_link})
 
 	def send_confirmation_msg(self):
 		if frappe.db.get_single_value("Service Appointment Settings", "appointment_confirmation"):
@@ -1381,13 +1718,33 @@ class ServiceAppointment(Document):
 
 	def handle_cancellation(self):
 		"""Handle appointment cancellation"""
+		if self.couple_appointment_id and not getattr(self.flags, "allow_couple_lifecycle", False):
+			frappe.throw(
+				_(
+					"Couple appointments cannot be cancelled independently. "
+					"Use the couple cancellation action."
+				),
+				title=_("Couple Cancellation Required"),
+			)
+
 		# Release slots
 		self.db_set("status", "Cancelled")
 		self.db_set("cancellation_date", now_datetime())
-		self.cancel_linked_event()
-		if frappe.db.exists("DocType", "Service Resource Allocation"):
+		if getattr(self.flags, "skip_calendar_status_sync", False):
+			pass
+		elif getattr(self.flags, "defer_calendar_sync", False):
+			frappe.enqueue(
+				"frappoint.frappoint.doctype.service_appointment.service_appointment.sync_calendar_event_after_commit",
+				appointment_name=self.name,
+				event_status="Cancelled",
+				enqueue_after_commit=True,
+			)
+		else:
+			self.cancel_linked_event()
+		if not getattr(self.flags, "skip_capacity_release", False) and frappe.db.exists(
+			"DocType", "Service Resource Allocation"
+		):
 			release_capacity_for_allocations(appointment_name=self.name, target_status="Cancelled")
-		self.release_slots()
 
 		if not getattr(self.flags, "is_rescheduling", False):
 			if self.booking_id:
@@ -1402,23 +1759,24 @@ class ServiceAppointment(Document):
 			return False
 
 		tracked_fields = [
+			"appointment_type",
 			"appointment_date",
 			"start_time",
 			"end_time",
+			"duration",
 			"appointment_provider",
 			"service_unit",
+			"selected_slot_ids",
+			"buffer_before_minutes",
+			"buffer_after_minutes",
 			"booking_id",
 		]
 
 		return any(str(old_doc.get(field)) != str(self.get(field)) for field in tracked_fields)
 
 	def _get_buffer_minutes(self):
-		buffer_before = cint(self.get("buffer_before_minutes") or 0)
-		buffer_after = cint(self.get("buffer_after_minutes") or 0)
-
-		if buffer_before or buffer_after:
-			return buffer_before, buffer_after
-
+		# Service configuration is also used by the availability projector and must remain
+		# authoritative when reserving counters (including explicit zero-buffer services).
 		if self.appointment_type and frappe.db.exists("Service Type", self.appointment_type):
 			service_type = frappe.db.get_value(
 				"Service Type",
@@ -1431,19 +1789,38 @@ class ServiceAppointment(Document):
 					service_type.get("buffer_after") or 0
 				)
 
+		buffer_before = cint(self.get("buffer_before_minutes") or 0)
+		buffer_after = cint(self.get("buffer_after_minutes") or 0)
+		if buffer_before or buffer_after:
+			return buffer_before, buffer_after
+
 		settings = frappe.get_cached_doc("Service Appointment Settings")
 		return cint(settings.buffer_before or 0), cint(settings.buffer_after or 0)
 
 	def _build_allocation_payloads(self):
 		buffer_before, buffer_after = self._get_buffer_minutes()
+		appointment_start = get_datetime(f"{self.appointment_date} {self.start_time}")
+		appointment_end = get_datetime(f"{self.appointment_date} {self.end_time}")
+		allocation_start = appointment_start - datetime.timedelta(minutes=buffer_before)
+		allocation_end = appointment_end + datetime.timedelta(minutes=buffer_after)
+		appointment_date = getdate(self.appointment_date)
+		if allocation_start.date() != appointment_date or (
+			allocation_end.date() != appointment_date and allocation_end.time() != datetime.time(0, 0)
+		):
+			frappe.throw(
+				_("Appointment buffers cannot cross into another calendar date."),
+				title=_("Invalid Buffered Appointment"),
+			)
+		allocation_start_time = allocation_start.time().strftime("%H:%M:%S")
+		allocation_end_time = allocation_end.time().strftime("%H:%M:%S")
 
 		allocation_payloads = [
 			{
 				"resource_type": "Service Provider",
 				"resource_reference": self.appointment_provider,
 				"allocation_date": self.appointment_date,
-				"start_time": self.start_time,
-				"end_time": self.end_time,
+				"start_time": allocation_start_time,
+				"end_time": allocation_end_time,
 				"appointment_start_time": self.start_time,
 				"appointment_end_time": self.end_time,
 				"capacity_consumed": 1.0,
@@ -1458,8 +1835,8 @@ class ServiceAppointment(Document):
 					"resource_type": "Service Unit",
 					"resource_reference": self.service_unit,
 					"allocation_date": self.appointment_date,
-					"start_time": self.start_time,
-					"end_time": self.end_time,
+					"start_time": allocation_start_time,
+					"end_time": allocation_end_time,
 					"appointment_start_time": self.start_time,
 					"appointment_end_time": self.end_time,
 					"capacity_consumed": 1.0,
@@ -1695,6 +2072,32 @@ class ServiceAppointment(Document):
 		frappe.throw(_("Failed to create {0}: {1}").format(doctype, str(error)))
 
 
+def send_confirmation_after_commit(appointment_name: str) -> None:
+	"""Send a couple confirmation only after both submissions have committed."""
+	appointment = frappe.get_doc("Service Appointment", appointment_name)
+	if appointment.docstatus == 1 and appointment.status == "Confirmed":
+		appointment.send_confirmation_msg()
+
+
+def sync_calendar_event_after_commit(appointment_name: str, event_status: str | None = None) -> None:
+	"""Apply remote-calendar-facing Event writes only after the pair transaction commits."""
+	appointment = frappe.get_doc("Service Appointment", appointment_name)
+	if event_status:
+		if appointment.event and frappe.db.exists("Event", appointment.event):
+			event = frappe.get_doc("Event", appointment.event)
+			if event.status != event_status:
+				event.status = event_status
+				event.save(ignore_permissions=True)
+		return
+	if appointment.docstatus != 2 and appointment.status not in {
+		"Cancelled",
+		"Closed",
+		"No Show",
+		"Rescheduled",
+	}:
+		appointment.sync_calendar_event()
+
+
 @frappe.whitelist()
 def get_appointment_slots(
 	appointment_type: str,
@@ -1867,6 +2270,14 @@ def reschedule_appointment(
 	"""
 	# Get the old appointment
 	old_appointment = frappe.get_doc("Service Appointment", appointment_name)
+	if getattr(old_appointment, "couple_appointment_id", None):
+		frappe.throw(
+			_(
+				"Couple appointments must be rescheduled together. "
+				"Use the couple booking reschedule action."
+			),
+			title=_("Couple Reschedule Required"),
+		)
 
 	# Validate that appointment can be rescheduled
 	if old_appointment.docstatus != 1:
@@ -2035,16 +2446,33 @@ def reschedule_appointment(
 
 
 @frappe.whitelist()
-def cancel_appointment(appointment_id: str, cancellation_reasons: str | list | None = None):
+def cancel_appointment(
+	appointment_id: str,
+	cancellation_reasons: str | list | None = None,
+	allow_couple_single: bool = False,
+	defer_calendar_sync: bool = False,
+	skip_calendar_status_sync: bool = False,
+	skip_capacity_release: bool = False,
+	commit: bool = True,
+):
 	"""Cancel a submitted appointment"""
 	try:
 		appointment = frappe.get_doc("Service Appointment", appointment_id)
+		if appointment.docstatus == 2 or appointment.status in ["Cancelled", "Closed"]:
+			return {
+				"success": True,
+				"message": _("Appointment is already cancelled"),
+				"appointment": appointment_id,
+			}
+
+		if getattr(appointment, "couple_appointment_id", None) and not cint(allow_couple_single):
+			frappe.throw(
+				_("Couple appointments must be cancelled through the couple cancellation action."),
+				title=_("Couple Cancellation Required"),
+			)
 
 		if appointment.docstatus != 1:
 			frappe.throw(_("Only submitted appointments can be cancelled"))
-
-		if appointment.status in ["Cancelled", "Closed"]:
-			return {"success": True, "message": _("Appointment is already cancelled")}
 
 		# Check if there are any submitted payments linked to the appointment
 		has_direct_payment = frappe.db.exists(
@@ -2078,15 +2506,20 @@ def cancel_appointment(appointment_id: str, cancellation_reasons: str | list | N
 				except Exception:
 					cancellation_reasons = [cancellation_reasons]
 
-			appointment.cancellation_reasonss = []
+			appointment.set("cancellation_reasons", [])
 
 			for reason in cancellation_reasons:
-				appointment.append("cancellation_reasons", {"reason": reason})
+				appointment.append("cancellation_reasons", {"lost_reason": reason})
 
 		appointment.flags.ignore_permissions = True
+		appointment.flags.allow_couple_lifecycle = bool(cint(allow_couple_single))
+		appointment.flags.defer_calendar_sync = bool(cint(defer_calendar_sync))
+		appointment.flags.skip_calendar_status_sync = bool(cint(skip_calendar_status_sync))
+		appointment.flags.skip_capacity_release = bool(cint(skip_capacity_release))
 		appointment.cancel()
 
-		frappe.db.commit()
+		if cint(commit):
+			frappe.db.commit()
 
 		return {
 			"success": True,
@@ -2098,7 +2531,8 @@ def cancel_appointment(appointment_id: str, cancellation_reasons: str | list | N
 		# Keep actionable validation messages intact for portal and Desk users.
 		raise
 	except Exception as e:
-		frappe.db.rollback()
+		if cint(commit):
+			frappe.db.rollback()
 		frappe.log_error(
 			title=_("Appointment Cancellation Failed"),
 			message=f"Failed to cancel appointment {appointment_id}: {e}\n\n{frappe.get_traceback()}",

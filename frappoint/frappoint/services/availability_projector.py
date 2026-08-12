@@ -10,6 +10,11 @@ from frappe import _
 from frappe.utils import add_days, cint, flt, get_time, getdate, nowdate
 
 ACTIVE_ALLOCATION_STATUSES = ("Draft", "Held", "Confirmed")
+COUNTER_RESOURCE_DOCTYPES = {
+	"Service Provider": "Service Provider",
+	"Service Unit": "Service Unit",
+	"Equipment": "Equipment",
+}
 WEEKDAY_FIELD_MAP = {
 	0: "monday",
 	1: "tuesday",
@@ -28,6 +33,10 @@ def rebuild_counter_for_date(
 ) -> dict[str, int]:
 	"""Rebuild availability counters for a specific date, optionally filtered by resource."""
 	target_date = getdate(counter_date)
+	lock_counter_resource_rows(
+		resource_type=resource_type,
+		resource_reference=resource_reference,
+	)
 	slot_size = _get_slot_size_minutes()
 
 	base_slots = _build_shift_capacity_slots(
@@ -111,6 +120,10 @@ def invalidate_counter(counter_date, resource_type: str, resource_reference: str
 
 	We invalidate by deleting rows, allowing lazy rebuild on next access.
 	"""
+	lock_counter_resource_rows(
+		resource_type=resource_type,
+		resource_reference=resource_reference,
+	)
 	frappe.db.delete(
 		"Resource Availability Counter",
 		{
@@ -121,6 +134,52 @@ def invalidate_counter(counter_date, resource_type: str, resource_reference: str
 	)
 
 
+def lock_counter_resource_rows(
+	resources: list[dict[str, Any]] | None = None,
+	resource_type: str | None = None,
+	resource_reference: str | None = None,
+) -> None:
+	"""Use resource masters as transaction-scoped mutexes for counter rebuild/deltas.
+
+	The row locks survive until the caller's outer transaction commits, preventing a
+	destructive projection refresh from rebuilding from a snapshot taken before a
+	concurrent allocation ledger is committed.
+	"""
+	targets: dict[str, set[str]] = defaultdict(set)
+	if resources:
+		for row in resources:
+			r_type = row.get("resource_type")
+			r_ref = row.get("resource_reference")
+			if r_type in COUNTER_RESOURCE_DOCTYPES and r_ref:
+				targets[r_type].add(str(r_ref))
+	elif resource_type and resource_reference:
+		if resource_type in COUNTER_RESOURCE_DOCTYPES:
+			targets[resource_type].add(str(resource_reference))
+	else:
+		resource_types = [resource_type] if resource_type else list(COUNTER_RESOURCE_DOCTYPES)
+		for r_type in resource_types:
+			doctype = COUNTER_RESOURCE_DOCTYPES.get(r_type)
+			if not doctype or not frappe.db.table_exists(doctype):
+				continue
+			targets[r_type].update(frappe.get_all(doctype, pluck="name", order_by="name asc"))
+
+	for r_type, doctype in COUNTER_RESOURCE_DOCTYPES.items():
+		names = sorted(targets.get(r_type) or [])
+		if not names or not frappe.db.table_exists(doctype):
+			continue
+		# ``doctype`` comes only from the fixed allow-list above.
+		frappe.db.sql(
+			f"""
+			SELECT name
+			FROM `tab{doctype}`
+			WHERE name IN %(resource_names)s
+			ORDER BY name
+			FOR UPDATE
+			""",  # nosemgrep - fixed DocType allow-list, not request input.
+			{"resource_names": tuple(names)},
+		)
+
+
 def get_available_slots(
 	service_type_id: str,
 	start_date,
@@ -129,6 +188,7 @@ def get_available_slots(
 	service_unit_id: str | None = None,
 	required_duration_minutes: int | None = None,
 	exclude_appointment_id: str | None = None,
+	include_all_service_units: bool = False,
 ) -> list[dict[str, Any]]:
 	"""Return availability windows using precomputed counter rows only."""
 	if not _counter_table_ready():
@@ -167,12 +227,12 @@ def get_available_slots(
 	requires_unit, unit_types = _service_type_requires_unit(service_type_id)
 	unit_filters: dict[str, Any] = {}
 	if requires_unit:
-		if service_unit_id:
-			unit_filters["name"] = service_unit_id
-		elif unit_types:
-			unit_filters["unit_type"] = ["in", unit_types]
 		unit_filters["disabled"] = 0
 		unit_filters["allow_appointments"] = 1
+		if service_unit_id:
+			unit_filters["name"] = service_unit_id
+		if unit_types:
+			unit_filters["unit_type"] = ["in", unit_types]
 
 	provider_names = {
 		row["name"]: row["provider_name"]
@@ -259,8 +319,7 @@ def get_available_slots(
 		for date_key, slot_times in provider_slot_map.get(provider, {}).items():
 			windows = _find_contiguous_windows(slot_times, slot_size, slots_needed)
 			for start_slot in windows:
-				unit_id = None
-				unit_name = None
+				unit_ids_for_window: list[str | None] = [None]
 				if requires_unit:
 					candidate_unit_ids = _get_provider_window_candidate_units(
 						provider_unit_shift_map,
@@ -272,7 +331,7 @@ def get_available_slots(
 					)
 					if not candidate_unit_ids:
 						continue
-					unit_id = _find_unit_for_window(
+					matching_unit_ids = _find_units_for_window(
 						date_key=date_key,
 						window_start=start_slot,
 						slots_needed=slots_needed,
@@ -280,32 +339,382 @@ def get_available_slots(
 						unit_slot_map=unit_slot_map,
 						candidate_unit_ids=candidate_unit_ids,
 					)
-					if not unit_id:
+					if not matching_unit_ids:
 						continue
-					unit_name = unit_names.get(unit_id)
+					unit_ids_for_window = (
+						matching_unit_ids if include_all_service_units else matching_unit_ids[:1]
+					)
 
 				reserve_start_dt = datetime.combine(date_key, start_slot)
 				customer_start_dt = reserve_start_dt + timedelta(minutes=buffer_before)
 				customer_end_dt = customer_start_dt + timedelta(minutes=duration)
 
-				results.append(
-					{
-						"provider": provider,
-						"provider_name": provider_names.get(provider),
-						"service_unit": unit_id,
-						"service_unit_name": unit_name,
-						"date": date_key,
-						"start_time": customer_start_dt.time(),
-						"end_time": customer_end_dt.time(),
-						"duration": duration,
-						"buffer_before": buffer_before,
-						"buffer_after": buffer_after,
-						"slot_ids": [],
-					}
-				)
+				for unit_id in unit_ids_for_window:
+					results.append(
+						{
+							"provider": provider,
+							"provider_name": provider_names.get(provider),
+							"service_unit": unit_id,
+							"service_unit_name": unit_names.get(unit_id) if unit_id else None,
+							"date": date_key,
+							"start_time": customer_start_dt.time(),
+							"end_time": customer_end_dt.time(),
+							"duration": duration,
+							"buffer_before": buffer_before,
+							"buffer_after": buffer_after,
+							"slot_ids": [],
+						}
+					)
 
 	results.sort(key=lambda row: (row["date"], row["start_time"], row.get("provider_name") or ""))
 	return results
+
+
+def get_couple_available_slots(
+	service_type_1: str,
+	service_type_2: str,
+	start_date,
+	end_date,
+	provider_1: str | None = None,
+	provider_2: str | None = None,
+	service_unit_1: str | None = None,
+	service_unit_2: str | None = None,
+	duration_1: int | None = None,
+	duration_2: int | None = None,
+	exclude_appointment_id_1: str | None = None,
+	exclude_appointment_id_2: str | None = None,
+) -> list[dict[str, Any]]:
+	"""Return provider/unit pairs that can start two services at the same customer time.
+
+	Each leg is projected independently so its own duration and buffers remain in force. A
+	second counter-capacity pass rejects a pair when both legs would consume more than the
+	remaining capacity of a shared provider or service unit.
+	"""
+	if not service_type_1 or not service_type_2:
+		return []
+
+	start = getdate(start_date)
+	end = getdate(end_date)
+	if end < start:
+		start, end = end, start
+
+	guest_1_slots = get_available_slots(
+		service_type_id=service_type_1,
+		start_date=start,
+		end_date=end,
+		provider_id=provider_1,
+		service_unit_id=service_unit_1,
+		required_duration_minutes=duration_1,
+		exclude_appointment_id=exclude_appointment_id_1,
+		include_all_service_units=True,
+	)
+	guest_2_slots = get_available_slots(
+		service_type_id=service_type_2,
+		start_date=start,
+		end_date=end,
+		provider_id=provider_2,
+		service_unit_id=service_unit_2,
+		required_duration_minutes=duration_2,
+		exclude_appointment_id=exclude_appointment_id_2,
+		include_all_service_units=True,
+	)
+	if not guest_1_slots or not guest_2_slots:
+		return []
+
+	provider_ids = {row.get("provider") for row in guest_1_slots if row.get("provider")} & {
+		row.get("provider") for row in guest_2_slots if row.get("provider")
+	}
+	unit_ids = {row.get("service_unit") for row in guest_1_slots if row.get("service_unit")} & {
+		row.get("service_unit") for row in guest_2_slots if row.get("service_unit")
+	}
+	excluded_capacity: dict[tuple[str, str, Any, str], float] = defaultdict(float)
+	for appointment_name in (exclude_appointment_id_1, exclude_appointment_id_2):
+		for key, capacity in _build_excluded_appointment_capacity_map(
+			appointment_name=appointment_name,
+			slot_size_minutes=_get_slot_size_minutes(),
+			start=start,
+			end=end,
+		).items():
+			excluded_capacity[key] += capacity
+
+	remaining_capacity = _get_resource_remaining_capacity_map(
+		start=start,
+		end=end,
+		provider_ids=provider_ids,
+		unit_ids=unit_ids,
+		excluded_capacity=excluded_capacity,
+	)
+	unit_allows_overlap = _get_unit_overlap_map(unit_ids)
+
+	return _combine_couple_slot_rows(
+		guest_1_slots=guest_1_slots,
+		guest_2_slots=guest_2_slots,
+		service_type_1=service_type_1,
+		service_type_2=service_type_2,
+		slot_size_minutes=_get_slot_size_minutes(),
+		remaining_capacity=remaining_capacity,
+		unit_allows_overlap=unit_allows_overlap,
+	)
+
+
+def _get_resource_remaining_capacity_map(
+	start,
+	end,
+	provider_ids: set[str],
+	unit_ids: set[str],
+	excluded_capacity: dict[tuple[str, str, Any, str], float] | None = None,
+) -> dict[tuple[str, str, Any, time], float]:
+	capacity_by_slot: dict[tuple[str, str, Any, time], float] = {}
+	resources = (
+		("Service Provider", provider_ids),
+		("Service Unit", unit_ids),
+	)
+
+	for resource_type, resource_ids in resources:
+		if not resource_ids:
+			continue
+		rows = frappe.get_all(
+			"Resource Availability Counter",
+			filters={
+				"resource_type": resource_type,
+				"resource_reference": ["in", sorted(resource_ids)],
+				"counter_date": ["between", [start, end]],
+			},
+			fields=[
+				"counter_date",
+				"counter_slot_time",
+				"resource_reference",
+				"max_capacity",
+				"remaining_capacity",
+				"is_blocked",
+			],
+		)
+		for row in rows:
+			key = (
+				resource_type,
+				row["resource_reference"],
+				getdate(row["counter_date"]),
+				get_time(row["counter_slot_time"]),
+			)
+			excluded_key = (
+				resource_type,
+				row["resource_reference"],
+				getdate(row["counter_date"]),
+				get_time(row["counter_slot_time"]).strftime("%H:%M:%S"),
+			)
+			restored_capacity = flt((excluded_capacity or {}).get(excluded_key) or 0)
+			available_capacity = 0.0
+			if not cint(row.get("is_blocked") or 0):
+				available_capacity = min(
+					flt(row.get("max_capacity") or 0),
+					flt(row.get("remaining_capacity") or 0) + restored_capacity,
+				)
+			capacity_by_slot[key] = max(capacity_by_slot.get(key, 0.0), available_capacity)
+
+	return capacity_by_slot
+
+
+def _get_unit_overlap_map(unit_ids: set[str]) -> dict[str, bool]:
+	if not unit_ids:
+		return {}
+
+	return {
+		row["name"]: bool(cint(row.get("allow_overlap") or 0))
+		for row in frappe.get_all(
+			"Service Unit",
+			filters={"name": ["in", sorted(unit_ids)]},
+			fields=["name", "allow_overlap"],
+		)
+	}
+
+
+def _combine_couple_slot_rows(
+	guest_1_slots: list[dict[str, Any]],
+	guest_2_slots: list[dict[str, Any]],
+	service_type_1: str,
+	service_type_2: str,
+	slot_size_minutes: int,
+	remaining_capacity: dict[tuple[str, str, Any, time], float],
+	unit_allows_overlap: dict[str, bool],
+) -> list[dict[str, Any]]:
+	guest_2_by_start: dict[tuple[Any, time], list[dict[str, Any]]] = defaultdict(list)
+	for row in guest_2_slots:
+		guest_2_by_start[_couple_slot_key(row)].append(row)
+
+	results: list[dict[str, Any]] = []
+	seen_candidates: set[str] = set()
+	for row_1 in guest_1_slots:
+		for row_2 in guest_2_by_start.get(_couple_slot_key(row_1), []):
+			row_1_reserved_slots = _reserved_counter_slot_times(row_1, slot_size_minutes)
+			row_2_reserved_slots = _reserved_counter_slot_times(row_2, slot_size_minutes)
+
+			provider_1 = row_1.get("provider")
+			provider_2 = row_2.get("provider")
+			if provider_1 == provider_2 and provider_1:
+				if not _shared_resource_has_capacity(
+					resource_type="Service Provider",
+					resource_reference=provider_1,
+					date_key=getdate(row_1["date"]),
+					guest_1_slots=row_1_reserved_slots,
+					guest_2_slots=row_2_reserved_slots,
+					remaining_capacity=remaining_capacity,
+				):
+					continue
+
+			unit_1 = row_1.get("service_unit")
+			unit_2 = row_2.get("service_unit")
+			if unit_1 == unit_2 and unit_1:
+				if row_1_reserved_slots & row_2_reserved_slots and not unit_allows_overlap.get(unit_1, False):
+					continue
+				if not _shared_resource_has_capacity(
+					resource_type="Service Unit",
+					resource_reference=unit_1,
+					date_key=getdate(row_1["date"]),
+					guest_1_slots=row_1_reserved_slots,
+					guest_2_slots=row_2_reserved_slots,
+					remaining_capacity=remaining_capacity,
+				):
+					continue
+
+			guest_1 = _build_couple_guest_row(row_1, service_type_1)
+			guest_2 = _build_couple_guest_row(row_2, service_type_2)
+			candidate_id = _build_couple_candidate_id(guest_1, guest_2)
+			if candidate_id in seen_candidates:
+				continue
+			seen_candidates.add(candidate_id)
+
+			results.append(
+				{
+					"candidate_id": candidate_id,
+					"is_couple": 1,
+					"date": getdate(row_1["date"]),
+					"start_time": get_time(row_1["start_time"]),
+					"end_time": _later_appointment_end(row_1, row_2),
+					"service_type_1": service_type_1,
+					"service_type_2": service_type_2,
+					"provider_1": provider_1,
+					"provider_name_1": row_1.get("provider_name"),
+					"provider_2": provider_2,
+					"provider_name_2": row_2.get("provider_name"),
+					"service_unit_1": unit_1,
+					"service_unit_name_1": row_1.get("service_unit_name"),
+					"service_unit_2": unit_2,
+					"service_unit_name_2": row_2.get("service_unit_name"),
+					"end_time_1": get_time(row_1["end_time"]),
+					"end_time_2": get_time(row_2["end_time"]),
+					"duration_1": cint(row_1.get("duration") or 0),
+					"duration_2": cint(row_2.get("duration") or 0),
+					"guest_1": guest_1,
+					"guest_2": guest_2,
+					"slot_ids": [],
+				}
+			)
+
+	results.sort(
+		key=lambda row: (
+			row["date"],
+			row["start_time"],
+			row.get("provider_name_1") or row.get("provider_1") or "",
+			row.get("provider_name_2") or row.get("provider_2") or "",
+			row.get("service_unit_1") or "",
+			row.get("service_unit_2") or "",
+		)
+	)
+	return results
+
+
+def _couple_slot_key(row: dict[str, Any]) -> tuple[Any, time]:
+	return (getdate(row["date"]), get_time(row["start_time"]))
+
+
+def _reserved_counter_slot_times(row: dict[str, Any], slot_size_minutes: int) -> set[time]:
+	date_key = getdate(row["date"])
+	customer_start = datetime.combine(date_key, get_time(row["start_time"]))
+	customer_end = datetime.combine(date_key, get_time(row["end_time"]))
+	if customer_end <= customer_start:
+		customer_end += timedelta(days=1)
+
+	reserve_start = customer_start - timedelta(minutes=cint(row.get("buffer_before") or 0))
+	reserve_end = customer_end + timedelta(minutes=cint(row.get("buffer_after") or 0))
+	return {
+		get_time(slot_time)
+		for slot_time in _interval_to_slot_times(
+			date_key,
+			reserve_start.time(),
+			reserve_end.time(),
+			slot_size_minutes,
+		)
+	}
+
+
+def _shared_resource_has_capacity(
+	resource_type: str,
+	resource_reference: str,
+	date_key,
+	guest_1_slots: set[time],
+	guest_2_slots: set[time],
+	remaining_capacity: dict[tuple[str, str, Any, time], float],
+) -> bool:
+	demand_by_slot: dict[time, float] = defaultdict(float)
+	for slot_time in guest_1_slots:
+		demand_by_slot[slot_time] += 1.0
+	for slot_time in guest_2_slots:
+		demand_by_slot[slot_time] += 1.0
+
+	return all(
+		flt(
+			remaining_capacity.get(
+				(resource_type, resource_reference, getdate(date_key), get_time(slot_time)),
+				0.0,
+			)
+		)
+		>= demand
+		for slot_time, demand in demand_by_slot.items()
+	)
+
+
+def _build_couple_guest_row(row: dict[str, Any], service_type: str) -> dict[str, Any]:
+	return {
+		"service_type": service_type,
+		"provider": row.get("provider"),
+		"provider_name": row.get("provider_name"),
+		"service_unit": row.get("service_unit"),
+		"service_unit_name": row.get("service_unit_name"),
+		"date": getdate(row["date"]),
+		"start_time": get_time(row["start_time"]),
+		"end_time": get_time(row["end_time"]),
+		"duration": cint(row.get("duration") or 0),
+		"buffer_before": cint(row.get("buffer_before") or 0),
+		"buffer_after": cint(row.get("buffer_after") or 0),
+		"slot_ids": row.get("slot_ids") or [],
+		"shift_assignment": row.get("shift_assignment"),
+	}
+
+
+def _build_couple_candidate_id(guest_1: dict[str, Any], guest_2: dict[str, Any]) -> str:
+	parts = [
+		str(guest_1["date"]),
+		get_time(guest_1["start_time"]).strftime("%H:%M:%S"),
+		guest_1.get("service_type"),
+		guest_1.get("provider"),
+		guest_1.get("service_unit"),
+		guest_2.get("service_type"),
+		guest_2.get("provider"),
+		guest_2.get("service_unit"),
+	]
+	return "|".join(str(part or "-") for part in parts)
+
+
+def _later_appointment_end(row_1: dict[str, Any], row_2: dict[str, Any]) -> time:
+	date_key = getdate(row_1["date"])
+	shared_start = datetime.combine(date_key, get_time(row_1["start_time"]))
+	end_datetimes = []
+	for row in (row_1, row_2):
+		end_dt = datetime.combine(date_key, get_time(row["end_time"]))
+		if end_dt <= shared_start:
+			end_dt += timedelta(days=1)
+		end_datetimes.append(end_dt)
+	return max(end_datetimes).time()
 
 
 def _counter_table_ready() -> bool:
@@ -853,6 +1262,25 @@ def _find_unit_for_window(
 	unit_slot_map: dict[str, dict[Any, list[time]]],
 	candidate_unit_ids: set[str] | None = None,
 ) -> str | None:
+	matching_units = _find_units_for_window(
+		date_key=date_key,
+		window_start=window_start,
+		slots_needed=slots_needed,
+		slot_size=slot_size,
+		unit_slot_map=unit_slot_map,
+		candidate_unit_ids=candidate_unit_ids,
+	)
+	return matching_units[0] if matching_units else None
+
+
+def _find_units_for_window(
+	date_key,
+	window_start: time,
+	slots_needed: int,
+	slot_size: int,
+	unit_slot_map: dict[str, dict[Any, list[time]]],
+	candidate_unit_ids: set[str] | None = None,
+) -> list[str]:
 	step = timedelta(minutes=slot_size)
 	required = []
 	cursor = datetime.combine(datetime.today(), window_start)
@@ -861,14 +1289,15 @@ def _find_unit_for_window(
 		cursor += step
 
 	required_set = set(required)
+	matching_units: list[str] = []
 	for unit_id, date_map in unit_slot_map.items():
 		if candidate_unit_ids is not None and unit_id not in candidate_unit_ids:
 			continue
 		available = set(date_map.get(date_key, []))
 		if required_set.issubset(available):
-			return unit_id
+			matching_units.append(unit_id)
 
-	return None
+	return matching_units
 
 
 def _build_provider_unit_shift_map(
