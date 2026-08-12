@@ -1,6 +1,6 @@
 import frappe
 from frappe.query_builder.functions import Max
-from frappe.utils import add_days, date_diff, getdate, now_datetime
+from frappe.utils import add_days, date_diff, get_datetime, getdate, now_datetime
 
 from .frappoint.doctype.service_provider_appointment_slot.service_provider_appointment_slot import (
 	generate_slots_for_specific_days,
@@ -64,7 +64,10 @@ def replenish_slot_window():
 
 def expire_pending_payment_holds():
 	"""Close unpaid draft appointments whose payment hold has expired and release reserved capacity."""
-	from .frappoint.services.booking_transaction_service import release_capacity_for_allocations
+	from .frappoint.services.booking_transaction_service import (
+		release_capacity_for_allocations,
+		release_couple_appointment_allocations,
+	)
 
 	now = now_datetime()
 	expired_appointments = frappe.get_all(
@@ -74,37 +77,98 @@ def expire_pending_payment_holds():
 			"payment_expires_at": ["<=", now],
 			"docstatus": 0,
 		},
-		pluck="name",
+		fields=["name", "booking_id", "couple_appointment_id"],
 	)
 
 	bookings_to_update = set()
+	processed = set()
+	expired_count = 0
 
-	for appointment_name in expired_appointments:
+	for candidate in expired_appointments:
+		if candidate.name in processed:
+			continue
+		appointment_names = [candidate.name]
+		if candidate.couple_appointment_id:
+			appointment_names.append(candidate.couple_appointment_id)
+		appointment_names = sorted(set(appointment_names))
+		processed.update(appointment_names)
+		savepoint = f"expire_hold_{candidate.name.replace('-', '_')}"
+		frappe.db.savepoint(savepoint)
 		try:
-			appointment = frappe.get_doc("Service Appointment", appointment_name)
-			appointment.recalculate_outstanding_from_payments()
-			appointment.set_confirmation_targets()
-
-			if appointment.get_paid_amount() >= appointment.confirmation_required_amount:
-				appointment.update_payment_and_workflow_status()
+			if candidate.booking_id:
+				frappe.db.sql(
+					"SELECT name FROM `tabService Booking` WHERE name = %(name)s FOR UPDATE",
+					{"name": candidate.booking_id},
+				)
+			frappe.db.sql(
+				"""
+				SELECT name FROM `tabService Appointment`
+				WHERE name IN %(names)s ORDER BY name FOR UPDATE
+				""",
+				{"names": tuple(appointment_names)},
+			)
+			appointments = [frappe.get_doc("Service Appointment", name) for name in appointment_names]
+			if len(appointments) == 2 and (
+				appointments[0].couple_appointment_id != appointments[1].name
+				or appointments[1].couple_appointment_id != appointments[0].name
+			):
+				frappe.throw("Couple appointment links must be reciprocal during hold expiry.")
+			if any(
+				row.docstatus != 0 or row.status not in {"Open", "Pending Payment"} for row in appointments
+			):
+				frappe.db.rollback(save_point=savepoint)
+				continue
+			if not any(
+				row.payment_expires_at and get_datetime(row.payment_expires_at) <= now for row in appointments
+			):
+				frappe.db.rollback(save_point=savepoint)
 				continue
 
-			release_capacity_for_allocations(
-				appointment_name=appointment.name,
-				target_status="Expired",
+			for appointment in appointments:
+				appointment.recalculate_outstanding_from_payments()
+				appointment.set_confirmation_targets()
+			all_paid = all(
+				appointment.get_paid_amount() >= appointment.confirmation_required_amount
+				for appointment in appointments
 			)
-			appointment.db_set(
-				{
-					"status": "Closed",
-					"payment_expires_at": None,
-				},
-				update_modified=False,
-			)
+			if all_paid:
+				primary = next(
+					(
+						row
+						for row in appointments
+						if not row.couple_appointment_id or row.is_primary_in_couple
+					),
+					appointments[0],
+				)
+				primary.confirm_appointment()
+			else:
+				if len(appointments) == 2:
+					release_couple_appointment_allocations(
+						appointment_names=[row.name for row in appointments],
+						target_status="Released",
+					)
+				else:
+					release_capacity_for_allocations(
+						appointment_name=appointments[0].name,
+						target_status="Released",
+					)
+				for appointment in appointments:
+					appointment.db_set(
+						{"status": "Closed", "payment_expires_at": None},
+						update_modified=False,
+					)
+				expired_count += len(appointments)
 
-			if appointment.booking_id:
-				bookings_to_update.add(appointment.booking_id)
+			for appointment in appointments:
+				if appointment.booking_id:
+					bookings_to_update.add(appointment.booking_id)
+			frappe.db.commit()  # nosemgrep - each hold group releases or confirms atomically.
 		except Exception:
-			frappe.log_error(frappe.get_traceback(), f"Failed to expire payment hold for {appointment_name}")
+			frappe.db.rollback(save_point=savepoint)
+			frappe.log_error(
+				frappe.get_traceback(),
+				f"Failed to expire payment hold for {', '.join(appointment_names)}",
+			)
 
 	for booking_name in bookings_to_update:
 		try:
@@ -112,8 +176,9 @@ def expire_pending_payment_holds():
 			booking.sync_financial_snapshot()
 		except Exception:
 			frappe.log_error(frappe.get_traceback(), f"Failed to recalculate booking {booking_name}")
+	frappe.db.commit()  # nosemgrep - persist parent booking snapshots after grouped expiry.
 
-	return f"Expired {len(expired_appointments)} unpaid appointments"
+	return f"Expired {expired_count} unpaid appointments"
 
 
 def get_shift_weekdays(shift_assignment):

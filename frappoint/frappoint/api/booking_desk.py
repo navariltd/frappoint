@@ -1,10 +1,11 @@
 import json
 from collections import defaultdict
+from datetime import timedelta
 
 import frappe
 from frappe import _
 from frappe.query_builder.functions import Max
-from frappe.utils import flt, now_datetime
+from frappe.utils import cint, flt, get_datetime, get_time, getdate, now_datetime
 from frappe.utils.user import is_website_user
 
 from frappoint.frappoint.doctype.service_appointment.service_appointment import (
@@ -21,6 +22,9 @@ from frappoint.frappoint.doctype.service_provider_appointment_slot.service_provi
 )
 from frappoint.frappoint.services.availability_projector import (
 	get_available_slots as get_projected_available_slots,
+)
+from frappoint.frappoint.services.availability_projector import (
+	get_couple_available_slots as get_projected_couple_available_slots,
 )
 from frappoint.frappoint.services.ongoing_provider_reassignment_service import (
 	get_ongoing_reassignment_options,
@@ -133,15 +137,22 @@ def _serialize_booking(booking, pricing=None):
 			"full_name",
 			"email",
 			"mobile_no",
+			"notes",
+			"couple_appointment_id",
+			"is_primary_in_couple",
 			"selected_slot_ids",
 		],
 		order_by="creation asc",
 	)
 	provider_ids = [row.appointment_provider for row in appointments if row.get("appointment_provider")]
 	provider_names = _get_provider_name_map(provider_ids)
+	is_couple = bool(cint(getattr(booking, "is_couple", 0))) or any(
+		bool(row.couple_appointment_id) for row in appointments
+	)
 
 	return {
 		"name": booking.name,
+		"isCouple": is_couple,
 		"status": booking.status,
 		"customer": booking.customer,
 		"fullName": booking.full_name,
@@ -200,7 +211,10 @@ def _serialize_booking(booking, pricing=None):
 				"email": appointment.email,
 				"mobileNo": appointment.mobile_no,
 				"notes": appointment.notes,
-				"slotIds": [],
+				"slotIds": _safe_json_loads(appointment.selected_slot_ids, []),
+				"isCouple": bool(appointment.couple_appointment_id),
+				"coupleAppointmentId": appointment.couple_appointment_id,
+				"isPrimaryInCouple": bool(appointment.is_primary_in_couple),
 			}
 			for appointment in appointments
 		],
@@ -248,7 +262,11 @@ def _serialize_appointment(appointment):
 	return {
 		"name": appointment.name,
 		"appointmentId": appointment.name,
+		"docstatus": appointment.docstatus,
 		"bookingId": appointment.booking_id,
+		"isCouple": bool(getattr(appointment, "couple_appointment_id", None)),
+		"coupleAppointmentId": getattr(appointment, "couple_appointment_id", None),
+		"isPrimaryInCouple": bool(getattr(appointment, "is_primary_in_couple", 0)),
 		"status": appointment.status,
 		"paymentStatus": appointment.payment_status,
 		"customer": appointment.customer,
@@ -281,7 +299,7 @@ def _serialize_appointment(appointment):
 		"details": appointment.details,
 		"notes": appointment.notes,
 		"source": appointment.source,
-		"selectedSlotIds": [],
+		"selectedSlotIds": _safe_json_loads(getattr(appointment, "selected_slot_ids", None), []),
 		"allAvailableProviders": _safe_json_loads(getattr(appointment, "all_available_providers", None), []),
 		"modified": appointment.modified,
 		"creation": appointment.creation,
@@ -558,9 +576,17 @@ def _build_appointment_response(appointment, booking=None):
 		payment_status = appointment_payload.get("paymentStatus") or "Unpaid"
 
 	appointment_payload["paymentStatus"] = payment_status
+	linked_couple_appointment = None
+	if getattr(appointment, "couple_appointment_id", None) and frappe.db.exists(
+		"Service Appointment", appointment.couple_appointment_id
+	):
+		linked_couple_appointment = _serialize_appointment(
+			frappe.get_doc("Service Appointment", appointment.couple_appointment_id)
+		)
 
 	return {
 		"appointment": appointment_payload,
+		"coupleAppointment": linked_couple_appointment,
 		"booking": _serialize_booking(booking) if booking else None,
 		"eventLogs": event_logs,
 		"timeTracking": time_tracking,
@@ -1117,11 +1143,22 @@ def confirm_checkout_without_payment(booking_id: str):
 		frappe.throw(_("No draft appointments found for this booking."), title=_("Invalid State"))
 
 	confirmed = []
+	processed = set()
 	for appointment in appointments:
+		if appointment.name in processed:
+			continue
+		if appointment.couple_appointment_id and not appointment.is_primary_in_couple:
+			appointment = frappe.get_doc("Service Appointment", appointment.couple_appointment_id)
+			if appointment.name in processed:
+				continue
 		if appointment.status in ["Cancelled", "Closed"]:
 			continue
 		appointment.confirm_appointment()
 		confirmed.append(appointment.name)
+		processed.add(appointment.name)
+		if appointment.couple_appointment_id:
+			confirmed.append(appointment.couple_appointment_id)
+			processed.add(appointment.couple_appointment_id)
 
 	booking.reload()
 	booking.sync_financial_snapshot()
@@ -1289,15 +1326,586 @@ def record_manual_checkout_payment(
 	}
 
 
+def _is_truthy(value) -> bool:
+	if isinstance(value, str):
+		return value.strip().lower() in {"1", "true", "yes", "on"}
+	return bool(value)
+
+
+def _payload_value(payload, *keys, default=None):
+	if not isinstance(payload, dict):
+		return default
+	for key in keys:
+		if key in payload and payload.get(key) is not None:
+			return payload.get(key)
+	return default
+
+
+def _provider_reference(value):
+	if isinstance(value, dict):
+		return _payload_value(value, "provider", "providerId", "provider_id", "name", "id")
+	return value
+
+
+def _lock_service_booking_row(booking_name: str) -> None:
+	frappe.db.sql(
+		"""
+		SELECT name
+		FROM `tabService Booking`
+		WHERE name = %(booking_name)s
+		FOR UPDATE
+		""",
+		{"booking_name": booking_name},
+	)
+
+
+def _lock_service_appointment_rows(appointment_names: list[str]) -> None:
+	names = sorted({str(name) for name in appointment_names if name})
+	if not names:
+		return
+	frappe.db.sql(
+		"""
+		SELECT name
+		FROM `tabService Appointment`
+		WHERE name IN %(appointment_names)s
+		ORDER BY name
+		FOR UPDATE
+		""",
+		{"appointment_names": tuple(names)},
+	)
+
+
+def _queue_couple_calendar_sync(appointments, event_status: str | None = None) -> None:
+	for appointment in appointments:
+		frappe.enqueue(
+			"frappoint.frappoint.doctype.service_appointment.service_appointment.sync_calendar_event_after_commit",
+			appointment_name=appointment.name,
+			event_status=event_status,
+			enqueue_after_commit=True,
+		)
+
+
+def _normalise_couple_guest(value, booking, guest_number: int) -> dict:
+	guest = _parse_json_payload(value, {}) or {}
+	if not isinstance(guest, dict):
+		frappe.throw(_("Guest {0} details must be an object.").format(guest_number))
+
+	full_name = _payload_value(guest, "fullName", "full_name", "guestFullName", "guest_full_name")
+	if guest_number == 1:
+		full_name = full_name or booking.full_name
+	if not full_name:
+		frappe.throw(_("Guest {0} full name is required for a couple booking.").format(guest_number))
+
+	return {
+		"full_name": full_name,
+		"email": _payload_value(guest, "email", "guestEmail", "guest_email") or booking.email,
+		"mobile_no": _payload_value(guest, "mobileNo", "mobile_no", "guestMobileNo", "guest_mobile_no")
+		or booking.mobile_no,
+		"notes": _payload_value(guest, "notes", default=""),
+		"provider_gender": _payload_value(guest, "providerGender", "provider_gender"),
+	}
+
+
+def _normalise_service_payload(service_value, assignment: dict, index: int) -> dict:
+	if isinstance(service_value, str):
+		service_payload = {"serviceType": service_value}
+	elif isinstance(service_value, dict):
+		service_payload = dict(service_value)
+	else:
+		service_payload = {}
+
+	nested = _payload_value(assignment, f"service_{index}", f"service{index}", default={}) or {}
+	if isinstance(nested, str):
+		nested = {"serviceType": nested}
+	if isinstance(nested, dict):
+		service_payload = {**service_payload, **nested}
+
+	service_type = _payload_value(service_payload, "serviceType", "service_type", "serviceId", "service_id")
+	direct_service_type = _payload_value(assignment, f"service_type_{index}", f"serviceType{index}")
+	if isinstance(direct_service_type, str):
+		service_type = direct_service_type
+	if not service_type:
+		frappe.throw(_("Service type is required for guest {0}.").format(index))
+	service_payload["serviceType"] = service_type
+	if not _payload_value(service_payload, "duration"):
+		service_payload["duration"] = _payload_value(assignment, f"duration_{index}", f"duration{index}")
+	return service_payload
+
+
+def _normalise_couple_slot(assignment: dict) -> tuple[dict, dict, dict]:
+	slot = _payload_value(assignment, "selected_time_slot", "selectedTimeSlot", "slot", default={})
+	slot = _parse_json_payload(slot, {}) or {}
+	if not isinstance(slot, dict):
+		frappe.throw(_("Selected couple time slot must be an object."))
+
+	leg_1 = _payload_value(slot, "guest_1", "guest1", "service_1", "service1", default={}) or {}
+	leg_2 = _payload_value(slot, "guest_2", "guest2", "service_2", "service2", default={}) or {}
+	if not isinstance(leg_1, dict):
+		leg_1 = {}
+	if not isinstance(leg_2, dict):
+		leg_2 = {}
+
+	# Some clients return alternative provider pairs. Resolve the requested pair, or the first pair.
+	pair_options = _payload_value(slot, "provider_pairs", "providerPairs", "providers", default=[]) or []
+	preferred_1 = _provider_reference(
+		_payload_value(assignment, "preferred_provider_1", "preferredProvider1")
+	)
+	preferred_2 = _provider_reference(
+		_payload_value(assignment, "preferred_provider_2", "preferredProvider2")
+	)
+	if isinstance(pair_options, list):
+		for option in pair_options:
+			if not isinstance(option, dict):
+				continue
+			option_1 = _payload_value(option, "guest_1", "guest1", default={}) or {}
+			option_2 = _payload_value(option, "guest_2", "guest2", default={}) or {}
+			provider_1 = _provider_reference(
+				_payload_value(option_1, "provider", "provider_id", "providerId")
+				or _payload_value(option, "provider_1", "provider1")
+			)
+			provider_2 = _provider_reference(
+				_payload_value(option_2, "provider", "provider_id", "providerId")
+				or _payload_value(option, "provider_2", "provider2")
+			)
+			if preferred_1 and provider_1 != preferred_1:
+				continue
+			if preferred_2 and provider_2 != preferred_2:
+				continue
+			leg_1 = {**leg_1, **option_1, "provider": provider_1}
+			leg_2 = {**leg_2, **option_2, "provider": provider_2}
+			break
+
+	return slot, leg_1, leg_2
+
+
+def _resolve_couple_member(
+	booking,
+	assignment: dict,
+	guest: dict,
+	service_payload: dict,
+	slot: dict,
+	leg: dict,
+	index: int,
+) -> dict:
+	service_type = service_payload["serviceType"]
+	price_id = _payload_value(service_payload, "priceId", "price_id", "packageId", "package_id")
+	amount = _payload_value(service_payload, "price", "rate", "amount")
+	requested_duration = cint(
+		_payload_value(service_payload, "duration", default=_payload_value(leg, "duration")) or 0
+	)
+	price_doc = _get_price_doc(
+		service_type,
+		price_id=price_id,
+		amount=amount,
+		duration=requested_duration or None,
+		pricing_model=_payload_value(service_payload, "pricingModel", "pricing_model"),
+	)
+	service_config = (
+		frappe.db.get_value(
+			"Service Type",
+			service_type,
+			["default_duration_in_minutes", "buffer_before", "buffer_after"],
+			as_dict=True,
+		)
+		or {}
+	)
+	price_duration = cint(price_doc.duration if price_doc else 0)
+	if price_duration > 0 and requested_duration > 0 and price_duration != requested_duration:
+		frappe.throw(
+			_("The selected duration for guest {0} does not match the selected service price.").format(index)
+		)
+	duration = (
+		price_duration or requested_duration or cint(service_config.get("default_duration_in_minutes") or 0)
+	)
+	if duration <= 0:
+		frappe.throw(_("A positive duration is required for guest {0}'s service.").format(index))
+
+	appointment_date = _payload_value(
+		slot, "date", "appointment_date", "appointmentDate", "start_date", "startDate"
+	) or _payload_value(assignment, "date", "appointment_date", "appointmentDate")
+	start_time = _payload_value(slot, "start_time", "startTime") or _payload_value(
+		leg, "start_time", "startTime"
+	)
+	leg_start_time = _payload_value(leg, "start_time", "startTime")
+	if leg_start_time and start_time and get_time(leg_start_time) != get_time(start_time):
+		frappe.throw(_("Both couple services must start at the same time."))
+	end_time = _payload_value(leg, "end_time", "endTime")
+	if not appointment_date or not start_time:
+		frappe.throw(_("The selected couple slot must include a date and shared start time."))
+	expected_end = get_datetime(f"{appointment_date} {start_time}") + timedelta(minutes=duration)
+	if not end_time:
+		end_time = expected_end.time()
+	elif get_time(end_time) != expected_end.time():
+		frappe.throw(
+			_("Guest {0}'s slot end time does not match the selected service duration.").format(index)
+		)
+
+	preferred_provider = _provider_reference(
+		_payload_value(assignment, f"preferred_provider_{index}", f"preferredProvider{index}")
+	)
+	selected_provider = _provider_reference(
+		_payload_value(leg, "provider", "provider_id", "providerId")
+	) or _provider_reference(_payload_value(slot, f"provider_{index}", f"provider{index}"))
+	if preferred_provider and selected_provider and preferred_provider != selected_provider:
+		frappe.throw(
+			_("Guest {0}'s preferred provider does not match the selected couple slot.").format(index)
+		)
+	provider = preferred_provider or selected_provider
+	if not provider:
+		frappe.throw(_("An available provider is required for guest {0}.").format(index))
+
+	service_unit = _payload_value(leg, "service_unit", "serviceUnit") or _payload_value(
+		slot, f"service_unit_{index}", f"serviceUnit{index}"
+	)
+	if price_doc and amount is not None and flt(amount) != flt(price_doc.amount):
+		frappe.throw(_("Guest {0}'s service amount does not match the selected price.").format(index))
+	amount = price_doc.amount if price_doc else (amount or 0)
+	requested_currency = _payload_value(service_payload, "currency")
+	if price_doc and requested_currency and requested_currency != price_doc.currency:
+		frappe.throw(_("Guest {0}'s service currency does not match the selected price.").format(index))
+	currency = price_doc.currency if price_doc else (requested_currency or booking.currency)
+	resolved_price_name = price_id or (price_doc.price_name if price_doc else None)
+	if not resolved_price_name:
+		frappe.throw(_("A service price is required for guest {0}.").format(index))
+
+	return {
+		"guest": guest,
+		"service_type": service_type,
+		"appointment_date": appointment_date,
+		"start_time": start_time,
+		"end_time": end_time,
+		"provider": provider,
+		"service_unit": service_unit,
+		"duration": duration,
+		"appointment_price": resolved_price_name,
+		"currency": currency,
+		"amount": amount,
+		"buffer_before": cint(service_config.get("buffer_before") or 0),
+		"buffer_after": cint(service_config.get("buffer_after") or 0),
+		"slot_ids": _payload_value(leg, "slot_ids", "slotIds", default=[]) or [],
+		"provider_options": _payload_value(leg, "providers", default=[]) or [],
+	}
+
+
+def _apply_couple_member_to_appointment(appointment, booking, member: dict) -> None:
+	guest = member["guest"]
+	appointment.booking_id = booking.name
+	appointment.source = appointment.source or "Booking Desk"
+	appointment.status = appointment.status or "Open"
+	appointment.customer = booking.customer
+	appointment.appointment_type = member["service_type"]
+	appointment.appointment_date = member["appointment_date"]
+	appointment.appointment_provider = member["provider"]
+	appointment.service_unit = member["service_unit"]
+	appointment.duration = member["duration"]
+	appointment.appointment_price = member["appointment_price"]
+	appointment.currency = member["currency"]
+	appointment.start_time = member["start_time"]
+	appointment.end_time = member["end_time"]
+	appointment.buffer_before_minutes = member["buffer_before"]
+	appointment.buffer_after_minutes = member["buffer_after"]
+	appointment.selected_slot_ids = json.dumps(member["slot_ids"]) if member["slot_ids"] else None
+	appointment.all_available_providers = json.dumps(member["provider_options"])
+	appointment.full_name = guest["full_name"]
+	appointment.email = guest["email"]
+	appointment.mobile_no = guest["mobile_no"]
+	appointment.total_amount = member["amount"]
+	appointment.notes = guest["notes"]
+	appointment.set("guests", [])
+	appointment.append(
+		"guests",
+		{
+			"full_name": guest["full_name"],
+			"email": guest["email"],
+			"mobile_no": guest["mobile_no"],
+			"is_primary": 1,
+			"notes": guest["notes"],
+		},
+	)
+
+
+def _validate_couple_members_against_projector(member_1: dict, member_2: dict) -> None:
+	"""Re-resolve the selected provider/unit pair from authoritative counter availability."""
+	appointment_date = getdate(member_1["appointment_date"])
+	rows = get_projected_couple_available_slots(
+		service_type_1=member_1["service_type"],
+		service_type_2=member_2["service_type"],
+		start_date=appointment_date,
+		end_date=appointment_date,
+		provider_1=member_1["provider"],
+		provider_2=member_2["provider"],
+		service_unit_1=member_1["service_unit"],
+		service_unit_2=member_2["service_unit"],
+		duration_1=member_1["duration"],
+		duration_2=member_2["duration"],
+	)
+	for row in rows:
+		guest_1 = row.get("guest_1") or {}
+		guest_2 = row.get("guest_2") or {}
+		if (
+			getdate(row.get("date")) == appointment_date
+			and get_time(row.get("start_time")) == get_time(member_1["start_time"])
+			and get_time(guest_1.get("end_time")) == get_time(member_1["end_time"])
+			and get_time(guest_2.get("end_time")) == get_time(member_2["end_time"])
+			and guest_1.get("provider") == member_1["provider"]
+			and guest_2.get("provider") == member_2["provider"]
+			and (guest_1.get("service_unit") or None) == (member_1["service_unit"] or None)
+			and (guest_2.get("service_unit") or None) == (member_2["service_unit"] or None)
+		):
+			return
+
+	frappe.throw(
+		_("The selected provider/unit pair is no longer available for both couple services."),
+		title=_("Couple Slot Unavailable"),
+	)
+
+
+def _appointment_as_couple_member(appointment) -> dict:
+	return {
+		"service_type": appointment.appointment_type,
+		"appointment_date": appointment.appointment_date,
+		"start_time": appointment.start_time,
+		"end_time": appointment.end_time,
+		"provider": appointment.appointment_provider,
+		"service_unit": appointment.service_unit,
+		"duration": cint(appointment.duration),
+	}
+
+
+def _validate_couple_booking_items(booking, members: list[dict]) -> None:
+	"""Ensure the operational pair is covered by the booking lines later used for billing."""
+	available = []
+	for item in booking.items or []:
+		for _index in range(max(0, cint(item.qty) - cint(item.cancelled_qty or 0))):
+			available.append(
+				{
+					"service_type": item.service_type,
+					"rate": flt(item.rate),
+					"currency": item.currency or booking.currency,
+				}
+			)
+
+	for member_index, member in enumerate(members, start=1):
+		match_index = next(
+			(
+				index
+				for index, item in enumerate(available)
+				if item["service_type"] == member["service_type"]
+				and abs(item["rate"] - flt(member["amount"])) < 0.000001
+				and item["currency"] == member["currency"]
+			),
+			None,
+		)
+		if match_index is None:
+			frappe.throw(
+				_("The booking items do not contain guest {0}'s selected service and price.").format(
+					member_index
+				),
+				title=_("Couple Service Mismatch"),
+			)
+		available.pop(match_index)
+
+
+def _couple_reservation_request(appointment) -> dict:
+	allocation_status = (
+		"Confirmed"
+		if appointment.status in ["Confirmed", "Checked In", "In Progress", "Completed"]
+		else "Held"
+	)
+	return {
+		"appointment_name": appointment.name,
+		"booking_name": appointment.booking_id,
+		"allocations": appointment._build_allocation_payloads(),
+		"allocation_status": allocation_status,
+		"extra_metadata": {
+			"source": "booking_desk.couple_booking",
+			"couple_appointment_id": appointment.couple_appointment_id,
+		},
+	}
+
+
+def _upsert_couple_appointments(booking, assignment: dict) -> list:
+	from frappoint.frappoint.services.booking_transaction_service import (
+		release_couple_appointment_allocations,
+		reserve_couple_appointment_allocations,
+	)
+
+	guest_1 = _normalise_couple_guest(_payload_value(assignment, "guest_1", "guest1"), booking, 1)
+	guest_2 = _normalise_couple_guest(_payload_value(assignment, "guest_2", "guest2"), booking, 2)
+	service_1 = _normalise_service_payload(
+		_payload_value(assignment, "service_type_1", "serviceType1"), assignment, 1
+	)
+	service_2 = _normalise_service_payload(
+		_payload_value(assignment, "service_type_2", "serviceType2"), assignment, 2
+	)
+	slot, leg_1, leg_2 = _normalise_couple_slot(assignment)
+	member_1 = _resolve_couple_member(booking, assignment, guest_1, service_1, slot, leg_1, 1)
+	member_2 = _resolve_couple_member(booking, assignment, guest_2, service_2, slot, leg_2, 2)
+
+	if str(member_1["appointment_date"]) != str(member_2["appointment_date"]):
+		frappe.throw(_("Both couple appointments must use the same appointment date."))
+	if get_time(member_1["start_time"]) != get_time(member_2["start_time"]):
+		frappe.throw(_("Both couple appointments must start at the same time."))
+	appointment_id_1 = _payload_value(
+		assignment, "appointment_id_1", "appointmentId1", "primary_appointment_id"
+	)
+	appointment_id_2 = _payload_value(
+		assignment, "appointment_id_2", "appointmentId2", "secondary_appointment_id"
+	)
+	if bool(appointment_id_1) != bool(appointment_id_2):
+		frappe.throw(_("Both appointment references are required when updating a couple booking."))
+
+	savepoint = f"couple_booking_{now_datetime().strftime('%H%M%S%f')}"
+	frappe.db.savepoint(savepoint)
+	try:
+		_lock_service_booking_row(booking.name)
+		booking.reload()
+		if booking.docstatus != 0 or booking.status in {"Cancelled", "Closed"}:
+			frappe.throw(_("Only an active draft booking can accept couple appointments."))
+		if not cint(getattr(booking, "is_couple", 0)):
+			booking.db_set("is_couple", 1, update_modified=False)
+			booking.is_couple = 1
+		_validate_couple_booking_items(booking, [member_1, member_2])
+		if appointment_id_1:
+			_lock_service_appointment_rows([appointment_id_1, appointment_id_2])
+			appointments = [
+				frappe.get_doc("Service Appointment", appointment_id_1),
+				frappe.get_doc("Service Appointment", appointment_id_2),
+			]
+			if any(appointment.booking_id != booking.name for appointment in appointments):
+				frappe.throw(_("Both couple appointments must belong to booking {0}.").format(booking.name))
+			if appointments[0].couple_appointment_id != appointments[1].name or (
+				appointments[1].couple_appointment_id != appointments[0].name
+			):
+				frappe.throw(_("The supplied appointments are not a linked couple."))
+			release_couple_appointment_allocations(
+				appointment_names=[appointment.name for appointment in appointments],
+				target_status="Released",
+			)
+		else:
+			existing_couple = frappe.get_all(
+				"Service Appointment",
+				filters={
+					"booking_id": booking.name,
+					"couple_appointment_id": ["is", "set"],
+					"docstatus": ["!=", 2],
+				},
+				pluck="name",
+				limit=1,
+			)
+			if existing_couple:
+				frappe.throw(
+					_(
+						"This booking already has couple appointments. "
+						"Pass both appointment IDs to update them."
+					)
+				)
+			appointments = [frappe.new_doc("Service Appointment"), frappe.new_doc("Service Appointment")]
+
+		# Updates release their own held rows above, so this exact projection check
+		# evaluates provider/unit correlation against the same counters we reserve.
+		_validate_couple_members_against_projector(member_1, member_2)
+
+		for appointment, member in zip(appointments, [member_1, member_2], strict=True):
+			appointment.flags.skip_resource_allocation = True
+			appointment.flags.skip_calendar_event = True
+			appointment.flags.skip_couple_validation = True
+			appointment.flags.skip_capacity_validation = True
+			appointment.flags.skip_couple_auto_confirmation = True
+			appointment.flags.allow_couple_update = True
+			_apply_couple_member_to_appointment(appointment, booking, member)
+			if appointment.is_new():
+				appointment.insert(ignore_permissions=True)
+			else:
+				appointment.save(ignore_permissions=True)
+
+		primary, secondary = appointments
+		frappe.db.set_value(
+			"Service Appointment",
+			primary.name,
+			{"couple_appointment_id": secondary.name, "is_primary_in_couple": 1},
+			update_modified=False,
+		)
+		frappe.db.set_value(
+			"Service Appointment",
+			secondary.name,
+			{"couple_appointment_id": primary.name, "is_primary_in_couple": 0},
+			update_modified=False,
+		)
+		primary.couple_appointment_id = secondary.name
+		primary.is_primary_in_couple = 1
+		secondary.couple_appointment_id = primary.name
+		secondary.is_primary_in_couple = 0
+
+		for appointment in appointments:
+			appointment.flags.skip_couple_validation = False
+			appointment.validate_provider_offers_service()
+			appointment.validate_couple_configuration()
+
+		reserve_couple_appointment_allocations(
+			appointments=[_couple_reservation_request(appointment) for appointment in appointments]
+		)
+		_queue_couple_calendar_sync(appointments)
+		return appointments
+	except Exception:
+		frappe.db.rollback(save_point=savepoint)
+		raise
+
+
+def _couple_assignment_from_arguments(
+	guest_1=None,
+	guest_2=None,
+	service_type_1=None,
+	service_type_2=None,
+	selected_time_slot=None,
+	preferred_provider_1=None,
+	preferred_provider_2=None,
+	couple_assignment=None,
+) -> dict:
+	assignment = _parse_json_payload(couple_assignment, {}) or {}
+	if not isinstance(assignment, dict):
+		frappe.throw(_("Couple assignment must be an object."))
+	values = {
+		"guest_1": _parse_json_payload(guest_1, {}) if guest_1 is not None else None,
+		"guest_2": _parse_json_payload(guest_2, {}) if guest_2 is not None else None,
+		"service_type_1": _parse_json_payload(service_type_1, {})
+		if isinstance(service_type_1, str) and service_type_1.strip().startswith("{")
+		else service_type_1,
+		"service_type_2": _parse_json_payload(service_type_2, {})
+		if isinstance(service_type_2, str) and service_type_2.strip().startswith("{")
+		else service_type_2,
+		"selected_time_slot": _parse_json_payload(selected_time_slot, {})
+		if selected_time_slot is not None
+		else None,
+		"preferred_provider_1": preferred_provider_1,
+		"preferred_provider_2": preferred_provider_2,
+	}
+	for key, value in values.items():
+		if value is not None:
+			assignment[key] = value
+	return assignment
+
+
 @frappe.whitelist()
 def create_draft_service_booking(
 	customer: str | dict | None = None,
 	items: str | list | None = None,
 	booked_by: str | None = None,
+	is_couple: int | str | bool = 0,
+	guest_1: str | dict | None = None,
+	guest_2: str | dict | None = None,
+	service_type_1: str | dict | None = None,
+	service_type_2: str | dict | None = None,
+	selected_time_slot: str | dict | None = None,
+	preferred_provider_1: str | dict | None = None,
+	preferred_provider_2: str | dict | None = None,
+	couple_assignment: str | dict | None = None,
+	isCouple: int | str | bool | None = None,
 ):
 	customer = _parse_json_payload(customer, {})
 	items = _parse_json_payload(items, [])
 	booked_by = (booked_by or "").strip()
+	couple_mode = _is_truthy(isCouple if isCouple is not None else is_couple) or bool(couple_assignment)
 
 	if not customer or not customer.get("customer"):
 		frappe.throw(_("Customer is required before continuing the booking."))
@@ -1315,6 +1923,7 @@ def create_draft_service_booking(
 	booking.booking_date = frappe.utils.today()
 	booking.booking_time = frappe.utils.now_datetime()
 	booking.status = "Draft"
+	booking.is_couple = cint(couple_mode)
 	booking.currency = items[0].get("currency") or "KES"
 
 	total_guests = 0
@@ -1350,9 +1959,81 @@ def create_draft_service_booking(
 
 	booking.total_guests = total_guests
 	booking.insert(ignore_permissions=True)
+
+	assignment = _couple_assignment_from_arguments(
+		guest_1=guest_1,
+		guest_2=guest_2,
+		service_type_1=service_type_1,
+		service_type_2=service_type_2,
+		selected_time_slot=selected_time_slot,
+		preferred_provider_1=preferred_provider_1,
+		preferred_provider_2=preferred_provider_2,
+		couple_assignment=couple_assignment,
+	)
+	created_couple = []
+	if couple_mode and _payload_value(assignment, "selected_time_slot", "selectedTimeSlot", "slot"):
+		created_couple = _upsert_couple_appointments(booking, assignment)
+		booking.reload()
+		booking.sync_financial_snapshot()
+		booking.reload()
 	frappe.db.commit()  # nosemgrep - draft booking must be persisted before the desk continues.
 
-	return _serialize_booking(booking)
+	response = _serialize_booking(booking)
+	if couple_mode:
+		response["isCouple"] = True
+		response["coupleAppointments"] = [
+			_serialize_appointment(appointment) for appointment in created_couple
+		]
+	return response
+
+
+@frappe.whitelist()
+def upsert_draft_couple_appointments(
+	booking_id: str | None = None,
+	couple_assignment: str | dict | None = None,
+	guest_1: str | dict | None = None,
+	guest_2: str | dict | None = None,
+	service_type_1: str | dict | None = None,
+	service_type_2: str | dict | None = None,
+	selected_time_slot: str | dict | None = None,
+	preferred_provider_1: str | dict | None = None,
+	preferred_provider_2: str | dict | None = None,
+	bookingId: str | None = None,
+):
+	"""Create or update the two linked draft appointments as one atomic reservation."""
+	booking_id = (
+		booking_id or bookingId or frappe.form_dict.get("booking_id") or frappe.form_dict.get("bookingId")
+	)
+	if not booking_id:
+		frappe.throw(_("Booking reference is required to reserve a couple appointment."))
+
+	booking = frappe.get_doc("Service Booking", booking_id)
+	if booking.docstatus != 0 or booking.status in {"Cancelled", "Closed"}:
+		frappe.throw(_("Only an active draft booking can accept couple appointments."))
+
+	assignment = _couple_assignment_from_arguments(
+		guest_1=guest_1,
+		guest_2=guest_2,
+		service_type_1=service_type_1,
+		service_type_2=service_type_2,
+		selected_time_slot=selected_time_slot,
+		preferred_provider_1=preferred_provider_1,
+		preferred_provider_2=preferred_provider_2,
+		couple_assignment=couple_assignment,
+	)
+	appointments = _upsert_couple_appointments(booking, assignment)
+	booking.reload()
+	booking.sync_financial_snapshot()
+	booking.reload()
+	frappe.db.commit()  # nosemgrep - both appointments and allocations share this transaction boundary.
+
+	serialized = [_serialize_appointment(appointment) for appointment in appointments]
+	return {
+		"booking": _serialize_booking(booking),
+		"appointments": serialized,
+		"primaryAppointment": serialized[0],
+		"secondaryAppointment": serialized[1],
+	}
 
 
 @frappe.whitelist()
@@ -1559,6 +2240,573 @@ def get_appointment_details(appointment_id: str):
 	return _build_appointment_response(appointment, booking)
 
 
+def _cancel_service_appointment_without_commit(
+	appointment,
+	cancellation_reasons=None,
+	capacity_already_released: bool = False,
+	queue_calendar_sync: bool = True,
+):
+	if appointment.docstatus == 2 or appointment.status in {"Cancelled", "Closed"}:
+		return {
+			"success": True,
+			"message": _("Appointment is already cancelled"),
+			"appointment": appointment.name,
+		}
+	if appointment.docstatus == 1:
+		return cancel_appointment(
+			appointment.name,
+			cancellation_reasons=cancellation_reasons,
+			allow_couple_single=True,
+			defer_calendar_sync=queue_calendar_sync,
+			skip_calendar_status_sync=not queue_calendar_sync,
+			skip_capacity_release=capacity_already_released,
+			commit=False,
+		)
+	if appointment.docstatus != 0:
+		frappe.throw(_("Appointment {0} cannot be cancelled in its current state.").format(appointment.name))
+
+	reasons = _parse_json_payload(cancellation_reasons, []) or []
+	if isinstance(reasons, str):
+		reasons = [reasons]
+	appointment.set("cancellation_reasons", [])
+	for reason in reasons:
+		appointment.append("cancellation_reasons", {"lost_reason": reason})
+	appointment.flags.allow_couple_lifecycle = True
+	appointment.flags.defer_calendar_sync = queue_calendar_sync
+	appointment.flags.skip_calendar_status_sync = not queue_calendar_sync
+	appointment.flags.skip_capacity_release = capacity_already_released
+	appointment.status = "Cancelled"
+	appointment.save(ignore_permissions=True)
+	return {
+		"success": True,
+		"message": _("Appointment cancelled successfully"),
+		"appointment": appointment.name,
+	}
+
+
+def _cancel_single_from_desk(appointment, cancellation_reasons=None):
+	booking_name = appointment.booking_id
+	savepoint = f"appointment_cancel_{now_datetime().strftime('%H%M%S%f')}"
+	frappe.db.savepoint(savepoint)
+	try:
+		if booking_name:
+			_lock_service_booking_row(booking_name)
+		_lock_service_appointment_rows([appointment.name])
+		appointment = frappe.get_doc("Service Appointment", appointment.name)
+		result = _cancel_service_appointment_without_commit(appointment, cancellation_reasons)
+		frappe.db.commit()  # nosemgrep - cancellation is an explicit Desk action boundary.
+		return result
+	except Exception:
+		frappe.db.rollback(save_point=savepoint)
+		raise
+
+
+def _cancel_couple_from_desk(appointment, cancellation_reasons=None, cancel_both: bool = True):
+	from frappoint.frappoint.services.booking_transaction_service import (
+		release_couple_appointment_allocations,
+	)
+
+	appointment_name = appointment.name
+	linked_name = appointment.couple_appointment_id
+	booking_name = appointment.booking_id
+	savepoint = f"couple_cancel_{now_datetime().strftime('%H%M%S%f')}"
+	frappe.db.savepoint(savepoint)
+	try:
+		if booking_name:
+			_lock_service_booking_row(booking_name)
+		_lock_service_appointment_rows([appointment_name, linked_name])
+		appointment = frappe.get_doc("Service Appointment", appointment_name)
+		linked = frappe.get_doc("Service Appointment", linked_name)
+		if (
+			appointment.couple_appointment_id != linked.name
+			or linked.couple_appointment_id != appointment.name
+		):
+			frappe.throw(_("The linked couple appointment is not reciprocal."))
+		if cancel_both:
+			ordered = sorted(
+				[appointment, linked], key=lambda row: (not bool(row.is_primary_in_couple), row.name)
+			)
+			release_couple_appointment_allocations(
+				appointment_names=[row.name for row in ordered],
+				target_status="Cancelled",
+			)
+			results = [
+				_cancel_service_appointment_without_commit(
+					row,
+					cancellation_reasons,
+					capacity_already_released=True,
+					queue_calendar_sync=False,
+				)
+				for row in ordered
+			]
+			_queue_couple_calendar_sync(ordered, event_status="Cancelled")
+		else:
+			# The user explicitly chose to keep the other service. It becomes a normal single appointment.
+			frappe.db.set_value(
+				"Service Appointment",
+				appointment.name,
+				{"couple_appointment_id": None, "is_primary_in_couple": 0},
+				update_modified=False,
+			)
+			frappe.db.set_value(
+				"Service Appointment",
+				linked.name,
+				{"couple_appointment_id": None, "is_primary_in_couple": 0},
+				update_modified=False,
+			)
+			appointment.couple_appointment_id = None
+			appointment.is_primary_in_couple = 0
+			appointment.reload()
+			results = [_cancel_service_appointment_without_commit(appointment, cancellation_reasons)]
+
+		frappe.db.commit()  # nosemgrep - the selected couple cancellation is one action boundary.
+		return {
+			"success": True,
+			"cancelledBoth": cancel_both,
+			"cancelledAppointments": [row.get("appointment") for row in results],
+			"remainingAppointment": None if cancel_both else linked.name,
+			"message": _("Both couple appointments were cancelled.")
+			if cancel_both
+			else _("The selected appointment was cancelled and the other appointment was kept."),
+		}
+	except Exception:
+		frappe.db.rollback(save_point=savepoint)
+		raise
+
+
+def _edit_couple_from_desk(
+	appointment,
+	new_appointment_date=None,
+	new_start_time=None,
+	new_end_time=None,
+	new_provider=None,
+	new_slot_ids=None,
+	new_service_unit=None,
+	couple_update=None,
+):
+	"""Move/reassign both draft appointments under one allocation savepoint."""
+	from frappoint.frappoint.services.booking_transaction_service import (
+		release_couple_appointment_allocations,
+		reserve_couple_appointment_allocations,
+	)
+
+	appointment_name = appointment.name
+	linked_name = appointment.couple_appointment_id
+	booking_name = appointment.booking_id
+	update = _parse_json_payload(couple_update, {}) or {}
+	if not isinstance(update, dict):
+		frappe.throw(_("Couple update must be an object."))
+	legs = [
+		_payload_value(update, "guest_1", "guest1", "primary", default={}) or {},
+		_payload_value(update, "guest_2", "guest2", "secondary", default={}) or {},
+	]
+	if not all(isinstance(leg, dict) for leg in legs):
+		frappe.throw(_("Each couple update entry must be an object."))
+
+	savepoint = f"couple_edit_{now_datetime().strftime('%H%M%S%f')}"
+	frappe.db.savepoint(savepoint)
+	try:
+		if booking_name:
+			_lock_service_booking_row(booking_name)
+		_lock_service_appointment_rows([appointment_name, linked_name])
+		appointment = frappe.get_doc("Service Appointment", appointment_name)
+		linked = frappe.get_doc("Service Appointment", linked_name)
+		if (
+			appointment.couple_appointment_id != linked.name
+			or linked.couple_appointment_id != appointment.name
+		):
+			frappe.throw(_("The linked couple appointment is not reciprocal."))
+		if appointment.docstatus != 0 or linked.docstatus != 0:
+			frappe.throw(
+				_("Submitted couple appointments must use the couple reschedule action."),
+				title=_("Couple Reschedule Required"),
+			)
+		primary = appointment if appointment.is_primary_in_couple else linked
+		secondary = linked if appointment.is_primary_in_couple else appointment
+		ordered = [primary, secondary]
+		common_date = (
+			_payload_value(
+				update, "date", "appointment_date", "appointmentDate", default=new_appointment_date
+			)
+			or appointment.appointment_date
+		)
+		common_start = (
+			_payload_value(update, "start_time", "startTime", default=new_start_time)
+			or appointment.start_time
+		)
+		release_couple_appointment_allocations(
+			appointment_names=[row.name for row in ordered], target_status="Released"
+		)
+		for row, leg in zip(ordered, legs, strict=True):
+			is_target = row.name == appointment.name
+			row.flags.allow_couple_update = True
+			row.flags.skip_couple_validation = True
+			row.flags.skip_resource_allocation = True
+			row.flags.skip_capacity_validation = True
+			row.flags.skip_couple_auto_confirmation = True
+			row.appointment_date = common_date
+			row.start_time = common_start
+			row.appointment_provider = (
+				_provider_reference(_payload_value(leg, "provider", "provider_id", "providerId"))
+				or (new_provider if is_target else None)
+				or row.appointment_provider
+			)
+			row.service_unit = (
+				_payload_value(leg, "service_unit", "serviceUnit")
+				or (new_service_unit if is_target else None)
+				or row.service_unit
+			)
+
+			leg_end_time = _payload_value(leg, "end_time", "endTime")
+			if not leg_end_time and is_target and new_end_time:
+				leg_end_time = new_end_time
+			expected_end_time = (
+				get_datetime(f"{common_date} {common_start}") + timedelta(minutes=cint(row.duration))
+			).time()
+			if leg_end_time and get_time(leg_end_time) != expected_end_time:
+				frappe.throw(
+					_("Appointment {0}'s end time must match its service duration.").format(row.name)
+				)
+			row.end_time = expected_end_time
+
+			leg_slot_ids = _payload_value(leg, "slot_ids", "slotIds")
+			if leg_slot_ids is None and is_target:
+				leg_slot_ids = new_slot_ids
+			if leg_slot_ids is not None:
+				if isinstance(leg_slot_ids, list):
+					row.selected_slot_ids = json.dumps(leg_slot_ids) if leg_slot_ids else None
+				else:
+					row.selected_slot_ids = leg_slot_ids
+			else:
+				row.selected_slot_ids = None
+			row.save(ignore_permissions=True)
+
+		for row in ordered:
+			row.flags.skip_couple_validation = False
+			row.validate_provider_offers_service()
+			row.validate_couple_configuration()
+		_validate_couple_members_against_projector(
+			_appointment_as_couple_member(primary),
+			_appointment_as_couple_member(secondary),
+		)
+
+		reserve_couple_appointment_allocations(
+			appointments=[_couple_reservation_request(row) for row in ordered]
+		)
+		_queue_couple_calendar_sync(ordered)
+		frappe.db.commit()  # nosemgrep - both schedule/resource changes are persisted together.
+		return {
+			"success": True,
+			"message": _("Both couple appointments were updated successfully."),
+			"updatedAppointments": [row.name for row in ordered],
+		}
+	except Exception:
+		frappe.db.rollback(save_point=savepoint)
+		raise
+
+
+def _new_rescheduled_couple_appointment(old, common_date, common_start, leg, is_target, args):
+	end_time = _payload_value(leg, "end_time", "endTime")
+	if not end_time and is_target:
+		end_time = args.get("new_end_time")
+	expected_end_time = (
+		get_datetime(f"{common_date} {common_start}") + timedelta(minutes=cint(old.duration))
+	).time()
+	if end_time and get_time(end_time) != expected_end_time:
+		frappe.throw(_("Appointment {0}'s end time must match its service duration.").format(old.name))
+	end_time = expected_end_time
+	provider = (
+		_provider_reference(_payload_value(leg, "provider", "provider_id", "providerId"))
+		or (args.get("new_provider") if is_target else None)
+		or old.appointment_provider
+	)
+	service_unit = (
+		_payload_value(leg, "service_unit", "serviceUnit")
+		or (args.get("new_service_unit") if is_target else None)
+		or old.service_unit
+	)
+	slot_ids = _payload_value(leg, "slot_ids", "slotIds")
+	if slot_ids is None and is_target:
+		slot_ids = args.get("new_slot_ids")
+
+	new_appointment = frappe.get_doc(
+		{
+			"doctype": "Service Appointment",
+			"booking_id": old.booking_id,
+			"customer": old.customer,
+			"full_name": old.full_name,
+			"mobile_no": old.mobile_no,
+			"email": old.email,
+			"company": old.company,
+			"appointment_type": old.appointment_type,
+			"appointment_provider": provider,
+			"appointment_date": common_date,
+			"start_time": common_start,
+			"end_time": end_time,
+			"duration": old.duration,
+			"service_unit": service_unit,
+			"appointment_price": old.appointment_price,
+			"total_amount": old.total_amount,
+			"grand_total": old.grand_total,
+			"currency": old.currency,
+			"details": old.details,
+			"notes": (old.notes or "") + f"\n\nRescheduled from: {old.name}",
+			"status": "Open",
+			"source": old.source,
+			"add_video_conferencing": old.add_video_conferencing,
+			"rescheduled_from": old.name,
+			"selected_slot_ids": (
+				json.dumps(slot_ids) if isinstance(slot_ids, list) and slot_ids else slot_ids
+			),
+			"buffer_before_minutes": old.buffer_before_minutes,
+			"buffer_after_minutes": old.buffer_after_minutes,
+		}
+	)
+	for guest in old.guests or []:
+		new_appointment.append(
+			"guests",
+			{
+				"full_name": guest.full_name,
+				"email": guest.email,
+				"mobile_no": guest.mobile_no,
+				"is_primary": guest.is_primary,
+				"notes": guest.notes,
+			},
+		)
+	new_appointment.flags.skip_resource_allocation = True
+	new_appointment.flags.skip_calendar_event = True
+	new_appointment.flags.skip_couple_validation = True
+	new_appointment.flags.skip_capacity_validation = True
+	new_appointment.flags.skip_couple_auto_confirmation = True
+	new_appointment.flags.allow_couple_update = True
+	new_appointment.insert(ignore_permissions=True)
+	return new_appointment
+
+
+def _transfer_rescheduled_appointment_payments(old, new) -> dict:
+	payment_rows = frappe.get_all(
+		"Service Appointment Payment",
+		filters={
+			"reference_doctype": "Service Appointment",
+			"reference_docname": old.name,
+		},
+		fields=["name", "amount", "payment_received"],
+	)
+	paid_amount = 0
+	for row in payment_rows:
+		if row.get("payment_received"):
+			paid_amount += flt(row.get("amount"))
+		frappe.db.set_value("Service Appointment Payment", row.get("name"), {"reference_docname": new.name})
+
+	reference_rows = frappe.get_all(
+		"Service Appointment Payment Reference",
+		filters={
+			"reference_doctype": "Service Appointment",
+			"reference_name": old.name,
+		},
+		fields=["name", "allocated_amount"],
+	)
+	allocated_paid_amount = 0
+	for row in reference_rows:
+		allocated_paid_amount += flt(row.get("allocated_amount"))
+		frappe.db.set_value(
+			"Service Appointment Payment Reference", row.get("name"), {"reference_name": new.name}
+		)
+
+	old_paid_amount = max(0, flt(old.grand_total) - flt(old.outstanding_amount))
+	paid_amount = max(paid_amount, allocated_paid_amount, old_paid_amount)
+	grand_total = flt(new.grand_total or new.total_amount)
+	new.outstanding_amount = max(0, grand_total - paid_amount)
+	if new.outstanding_amount <= 0 and grand_total > 0:
+		new.payment_status = "Paid"
+	elif paid_amount > 0:
+		new.payment_status = "Partly Paid"
+	else:
+		new.payment_status = "Unpaid"
+	frappe.db.set_value(
+		"Service Appointment",
+		new.name,
+		{
+			"outstanding_amount": new.outstanding_amount,
+			"payment_status": new.payment_status,
+		},
+		update_modified=False,
+	)
+	return {
+		"payments": len(payment_rows),
+		"payment_references": len(reference_rows),
+	}
+
+
+def _reschedule_couple_from_desk(
+	appointment,
+	new_appointment_date=None,
+	new_start_time=None,
+	new_end_time=None,
+	new_provider=None,
+	new_slot_ids=None,
+	new_service_unit=None,
+	couple_update=None,
+):
+	from frappoint.frappoint.services.booking_transaction_service import (
+		release_couple_appointment_allocations,
+		reserve_couple_appointment_allocations,
+	)
+
+	appointment_name = appointment.name
+	linked_name = appointment.couple_appointment_id
+	booking_name = appointment.booking_id
+	update = _parse_json_payload(couple_update, {}) or {}
+	if not isinstance(update, dict):
+		frappe.throw(_("Couple update must be an object."))
+	legs = [
+		_payload_value(update, "guest_1", "guest1", "primary", default={}) or {},
+		_payload_value(update, "guest_2", "guest2", "secondary", default={}) or {},
+	]
+	args = {
+		"new_end_time": new_end_time,
+		"new_provider": new_provider,
+		"new_slot_ids": new_slot_ids,
+		"new_service_unit": new_service_unit,
+	}
+	savepoint = f"couple_reschedule_{now_datetime().strftime('%H%M%S%f')}"
+	frappe.db.savepoint(savepoint)
+	try:
+		if booking_name:
+			_lock_service_booking_row(booking_name)
+		_lock_service_appointment_rows([appointment_name, linked_name])
+		appointment = frappe.get_doc("Service Appointment", appointment_name)
+		linked = frappe.get_doc("Service Appointment", linked_name)
+		if (
+			appointment.couple_appointment_id != linked.name
+			or linked.couple_appointment_id != appointment.name
+		):
+			frappe.throw(_("The linked couple appointment is not reciprocal."))
+		for row in (appointment, linked):
+			if row.docstatus != 1:
+				frappe.throw(_("Both couple appointments must be submitted before they can be rescheduled."))
+			if row.status in {"Cancelled", "Closed", "No Show", "Completed"}:
+				frappe.throw(
+					_("Appointment {0} cannot be rescheduled in its current state.").format(row.name)
+				)
+		primary = appointment if appointment.is_primary_in_couple else linked
+		secondary = linked if appointment.is_primary_in_couple else appointment
+		ordered_old = [primary, secondary]
+		common_date = (
+			_payload_value(
+				update, "date", "appointment_date", "appointmentDate", default=new_appointment_date
+			)
+			or appointment.appointment_date
+		)
+		common_start = (
+			_payload_value(update, "start_time", "startTime", default=new_start_time)
+			or appointment.start_time
+		)
+		if get_datetime(f"{common_date} {common_start}") < now_datetime():
+			frappe.throw(_("Cannot reschedule to a time in the past"))
+		new_appointments = [
+			_new_rescheduled_couple_appointment(
+				old,
+				common_date,
+				common_start,
+				leg,
+				old.name == appointment.name,
+				args,
+			)
+			for old, leg in zip(ordered_old, legs, strict=True)
+		]
+		new_primary, new_secondary = new_appointments
+		frappe.db.set_value(
+			"Service Appointment",
+			new_primary.name,
+			{"couple_appointment_id": new_secondary.name, "is_primary_in_couple": 1},
+			update_modified=False,
+		)
+		frappe.db.set_value(
+			"Service Appointment",
+			new_secondary.name,
+			{"couple_appointment_id": new_primary.name, "is_primary_in_couple": 0},
+			update_modified=False,
+		)
+		new_primary.couple_appointment_id = new_secondary.name
+		new_primary.is_primary_in_couple = 1
+		new_secondary.couple_appointment_id = new_primary.name
+		new_secondary.is_primary_in_couple = 0
+
+		for old, row in zip(ordered_old, new_appointments, strict=True):
+			row.coupon_code = old.coupon_code
+			row.discount_amount = old.discount_amount
+			row.grand_total = old.grand_total
+			frappe.db.set_value(
+				"Service Appointment",
+				row.name,
+				{
+					"coupon_code": old.coupon_code,
+					"discount_amount": old.discount_amount,
+					"grand_total": old.grand_total,
+				},
+				update_modified=False,
+			)
+			row.flags.skip_couple_validation = False
+			row.validate_provider_offers_service()
+			row.validate_couple_configuration()
+
+		release_couple_appointment_allocations(
+			appointment_names=[row.name for row in ordered_old], target_status="Released"
+		)
+		_validate_couple_members_against_projector(
+			_appointment_as_couple_member(new_primary),
+			_appointment_as_couple_member(new_secondary),
+		)
+		reserve_couple_appointment_allocations(
+			appointments=[_couple_reservation_request(row) for row in new_appointments]
+		)
+
+		transfer_summary = []
+		for old, new in zip(ordered_old, new_appointments, strict=True):
+			transfer_summary.append(_transfer_rescheduled_appointment_payments(old, new))
+		# Keep the reschedule savepoint intact. Pair confirmation owns a nested,
+		# distinct savepoint so a later failure while cancelling either old member
+		# can still roll the entire reschedule back to its original boundary.
+		confirmation_savepoint = f"{savepoint}_confirmation"
+		new_primary._confirm_couple_appointments(savepoint=confirmation_savepoint)
+		new_primary.reload()
+		new_secondary.reload()
+
+		for old, new in zip(ordered_old, new_appointments, strict=True):
+			old.add_comment(
+				"Comment",
+				_("Couple appointment rescheduled to {0} at {1}. New appointment: {2}").format(
+					frappe.format(common_date, {"fieldtype": "Date"}), new.start_time, new.name
+				),
+			)
+			old.flags.ignore_permissions = True
+			old.flags.ignore_links = True
+			old.flags.is_rescheduling = True
+			old.flags.allow_couple_lifecycle = True
+			old.flags.skip_capacity_release = True
+			old.flags.skip_calendar_status_sync = True
+			old.cancel()
+			old.db_set("status", "Rescheduled")
+			old.db_set("rescheduled_to", new.name)
+		_queue_couple_calendar_sync(new_appointments)
+		_queue_couple_calendar_sync(ordered_old, event_status="Cancelled")
+
+		frappe.db.commit()  # nosemgrep - both replacements and both cancellations are atomic.
+		return {
+			"success": True,
+			"new_appointments": [row.name for row in new_appointments],
+			"old_appointments": [row.name for row in ordered_old],
+			"new_appointment": (new_primary.name if appointment.is_primary_in_couple else new_secondary.name),
+			"transferred_payments": sum(row["payments"] for row in transfer_summary),
+			"transferred_payment_references": sum(row["payment_references"] for row in transfer_summary),
+			"message": _("Both couple appointments were rescheduled successfully."),
+		}
+	except Exception:
+		frappe.db.rollback(save_point=savepoint)
+		raise
+
+
 @frappe.whitelist()
 def perform_appointment_action(
 	appointment_id: str | None = None,
@@ -1572,6 +2820,8 @@ def perform_appointment_action(
 	actual_start_time: str | None = None,
 	actual_end_time: str | None = None,
 	cancellation_reasons: str | list | None = None,
+	cancel_couple: int | str | bool | None = None,
+	couple_update: str | dict | None = None,
 	**kwargs,
 ):
 	appointment_id = (
@@ -1592,6 +2842,9 @@ def perform_appointment_action(
 	cancellation_reasons = (
 		cancellation_reasons if cancellation_reasons is not None else kwargs.get("cancellationReasons")
 	)
+	if cancel_couple is None:
+		cancel_couple = kwargs.get("cancelCouple")
+	couple_update = couple_update if couple_update is not None else kwargs.get("coupleUpdate")
 
 	if not appointment_id:
 		frappe.throw(_("Appointment reference is required."))
@@ -1637,6 +2890,8 @@ def perform_appointment_action(
 		)
 
 	if action == "confirm":
+		if appointment.couple_appointment_id and not appointment.is_primary_in_couple:
+			appointment = frappe.get_doc("Service Appointment", appointment.couple_appointment_id)
 		appointment.confirm_appointment()
 		appointment.reload()
 		frappe.db.commit()  # nosemgrep - confirmation is an explicit desk action boundary.
@@ -1646,7 +2901,28 @@ def perform_appointment_action(
 		)
 
 	if action == "cancel":
-		result = cancel_appointment(appointment_id, cancellation_reasons=cancellation_reasons)
+		if appointment.couple_appointment_id and cancel_couple is None:
+			booking = (
+				frappe.get_doc("Service Booking", appointment.booking_id) if appointment.booking_id else None
+			)
+			response = _build_appointment_response(appointment, booking)
+			response["operationResult"] = {
+				"success": False,
+				"requiresCoupleConfirmation": True,
+				"appointment": appointment.name,
+				"coupleAppointment": appointment.couple_appointment_id,
+				"message": _("This is a couple booking. Do you want to cancel both appointments?"),
+			}
+			return response
+
+		if appointment.couple_appointment_id:
+			result = _cancel_couple_from_desk(
+				appointment,
+				cancellation_reasons=cancellation_reasons,
+				cancel_both=_is_truthy(cancel_couple),
+			)
+		else:
+			result = _cancel_single_from_desk(appointment, cancellation_reasons=cancellation_reasons)
 		appointment.reload()
 		booking = (
 			frappe.get_doc("Service Booking", appointment.booking_id) if appointment.booking_id else None
@@ -1656,6 +2932,33 @@ def perform_appointment_action(
 		return response
 
 	if action in {"reassign_provider", "edit_time_slot"}:
+		if appointment.couple_appointment_id and (
+			action == "edit_time_slot" or new_provider or new_service_unit or couple_update
+		):
+			if appointment.status in {"Checked In", "In Progress"}:
+				frappe.throw(
+					_("An active couple booking cannot be reassigned or moved independently."),
+					title=_("Couple Update Required"),
+				)
+			result = _edit_couple_from_desk(
+				appointment,
+				new_appointment_date=new_appointment_date,
+				new_start_time=new_start_time,
+				new_end_time=new_end_time,
+				new_provider=new_provider,
+				new_slot_ids=new_slot_ids,
+				new_service_unit=new_service_unit,
+				couple_update=couple_update,
+			)
+			appointment.reload()
+			booking = (
+				frappe.get_doc("Service Booking", appointment.booking_id) if appointment.booking_id else None
+			)
+			response = _build_appointment_response(appointment, booking)
+			response["providerChangeOptions"] = []
+			response["operationResult"] = result
+			return response
+
 		if action == "reassign_provider":
 			if appointment.status in {"Checked In", "In Progress"}:
 				if new_provider:
@@ -1775,6 +3078,27 @@ def perform_appointment_action(
 			normalized_new_slot_ids = json.dumps(new_slot_ids) if new_slot_ids else None
 		elif new_slot_ids:
 			normalized_new_slot_ids = new_slot_ids
+
+		if appointment.couple_appointment_id:
+			result = _reschedule_couple_from_desk(
+				appointment,
+				new_appointment_date=new_appointment_date,
+				new_start_time=new_start_time,
+				new_end_time=new_end_time,
+				new_provider=new_provider,
+				new_slot_ids=normalized_new_slot_ids,
+				new_service_unit=new_service_unit,
+				couple_update=couple_update,
+			)
+			new_appointment = frappe.get_doc("Service Appointment", result["new_appointment"])
+			booking = (
+				frappe.get_doc("Service Booking", new_appointment.booking_id)
+				if new_appointment.booking_id
+				else None
+			)
+			response = _build_appointment_response(new_appointment, booking)
+			response["operationResult"] = result
+			return response
 
 		result = reschedule_appointment(
 			appointment_name=appointment_id,

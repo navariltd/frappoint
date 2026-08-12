@@ -9,7 +9,10 @@ from frappe.model.document import Document
 from frappe.query_builder.functions import Sum
 from frappe.utils import cint, flt, today
 
-from frappoint.frappoint.services.booking_transaction_service import confirm_held_allocations
+from frappoint.frappoint.services.booking_transaction_service import (
+	confirm_couple_held_allocations,
+	confirm_held_allocations,
+)
 from frappoint.frappoint.services.pricing_service import (
 	sync_booking_pricing_fields,
 	validate_booking_coupon_assignment,
@@ -46,6 +49,7 @@ class ServiceBooking(Document):
 		email: DF.Data | None
 		full_name: DF.Data | None
 		grand_total: DF.Currency
+		is_couple: DF.Check
 		items: DF.Table[ServiceBookingItem]
 		mobile_no: DF.Data | None
 		naming_series: DF.Literal["BK-.DD./.MM./.YY.-.####"]  # type: ignore
@@ -69,11 +73,40 @@ class ServiceBooking(Document):
 
 	def on_submit(self):
 		if frappe.db.exists("DocType", "Service Resource Allocation"):
-			for appointment_name in frappe.get_all(
-				"Service Appointment", filters={"booking_id": self.name}, pluck="name"
-			):
-				confirm_held_allocations(appointment_name)
+			appointments = frappe.get_all(
+				"Service Appointment",
+				filters={"booking_id": self.name},
+				fields=["name", "couple_appointment_id", "is_primary_in_couple"],
+			)
+			processed = set()
+			for row in appointments:
+				if row.name in processed:
+					continue
+				if row.couple_appointment_id:
+					if not row.is_primary_in_couple:
+						continue
+					confirm_couple_held_allocations([row.name, row.couple_appointment_id])
+					processed.update({row.name, row.couple_appointment_id})
+					continue
+				confirm_held_allocations(row.name)
+				processed.add(row.name)
 		self.sync_financial_snapshot()
+
+	def before_cancel(self):
+		active_couple = frappe.db.exists(
+			"Service Appointment",
+			{
+				"booking_id": self.name,
+				"couple_appointment_id": ["is", "set"],
+				"docstatus": ["!=", 2],
+				"status": ["not in", ["Cancelled", "Closed", "No Show", "Rescheduled"]],
+			},
+		)
+		if active_couple:
+			frappe.throw(
+				_("Cancel the linked couple appointments before cancelling this booking."),
+				title=_("Active Couple Appointments"),
+			)
 
 	def on_cancel(self):
 		self.db_set("status", "Cancelled", update_modified=False)
@@ -82,9 +115,44 @@ class ServiceBooking(Document):
 		if not self.items:
 			frappe.throw(_("Add at least one booking item before submitting."))
 
-		appointment_count = frappe.db.count("Service Appointment", {"booking_id": self.name})
-		if appointment_count <= 0:
+		appointments = frappe.get_all(
+			"Service Appointment",
+			filters={"booking_id": self.name, "docstatus": ["!=", 2]},
+			fields=[
+				"name",
+				"docstatus",
+				"status",
+				"appointment_date",
+				"start_time",
+				"couple_appointment_id",
+				"is_primary_in_couple",
+			],
+		)
+		if not appointments:
 			frappe.throw(_("Add at least one Service Appointment before submitting the booking."))
+
+		by_name = {row.name: row for row in appointments}
+		couple_rows = [row for row in appointments if row.couple_appointment_id]
+		for row in couple_rows:
+			linked = by_name.get(row.couple_appointment_id)
+			if not linked or linked.couple_appointment_id != row.name:
+				frappe.throw(_("This booking contains an incomplete couple appointment pair."))
+			if cint(row.is_primary_in_couple) == cint(linked.is_primary_in_couple):
+				frappe.throw(_("A couple booking must identify exactly one primary appointment."))
+			if str(row.appointment_date) != str(linked.appointment_date) or str(row.start_time) != str(
+				linked.start_time
+			):
+				frappe.throw(_("Couple appointments must retain their shared date and start time."))
+			if row.docstatus != 1 or row.status not in {
+				"Confirmed",
+				"Checked In",
+				"In Progress",
+				"Completed",
+			}:
+				frappe.throw(
+					_("Confirm both couple appointments before submitting the booking."),
+					title=_("Couple Confirmation Required"),
+				)
 
 	def validate_confirmation_before_submit(self):
 		total_amount = flt(self.grand_total)
@@ -166,25 +234,36 @@ class ServiceBooking(Document):
 		return max(0, flt(self.grand_total) - flt(self.outstanding_amount))
 
 	def submit_linked_appointments_if_ready(self):
-		appointment_names = frappe.get_all(
+		appointment_rows = frappe.get_all(
 			"Service Appointment",
 			filters={
 				"booking_id": self.name,
 				"docstatus": 0,
 				"status": ["in", ["Open", "Pending Payment"]],
 			},
-			pluck="name",
+			fields=["name", "couple_appointment_id", "is_primary_in_couple"],
 		)
 
-		for appointment_name in appointment_names:
+		processed = set()
+		for row in appointment_rows:
+			if row.name in processed:
+				continue
+			if row.couple_appointment_id:
+				primary_name = row.name if row.is_primary_in_couple else row.couple_appointment_id
+				appointment = frappe.get_doc("Service Appointment", primary_name)
+				# Pair submission owns its own outer savepoint and must fail the payment transaction as a unit.
+				appointment.recalculate_outstanding_from_payments()
+				appointment.update_payment_and_workflow_status()
+				processed.update({row.name, row.couple_appointment_id})
+				continue
+			appointment = frappe.get_doc("Service Appointment", row.name)
 			try:
-				appointment = frappe.get_doc("Service Appointment", appointment_name)
 				appointment.recalculate_outstanding_from_payments()
 				appointment.update_payment_and_workflow_status()
 			except Exception:
 				frappe.log_error(
 					frappe.get_traceback(),
-					_("Failed to auto-submit linked appointment {0}").format(appointment_name),
+					_("Failed to auto-submit linked appointment {0}").format(row.name),
 				)
 
 	def maybe_auto_submit_after_payment(self):
@@ -662,6 +741,8 @@ class ServiceBooking(Document):
 				"total_amount",
 				"rescheduled_to",
 				"rescheduled_from",
+				"couple_appointment_id",
+				"is_primary_in_couple",
 			],
 			order_by="appointment_date asc, start_time asc",
 		)
@@ -698,6 +779,16 @@ class ServiceBooking(Document):
 			row_style = "opacity: 0.6; background-color: #f1f1f1;" if is_history else ""
 
 			reschedule_info = ""
+			couple_info = ""
+			if appt.couple_appointment_id:
+				couple_role = _("Primary") if appt.is_primary_in_couple else _("Partner")
+				couple_info = f"""
+					<div style="margin-top: 4px;">
+						<span class="label label-info" style="font-size: 0.75em;">
+							{_("Couple")} · {couple_role} · {appt.couple_appointment_id}
+						</span>
+					</div>
+				"""
 			if appt.status == "Rescheduled" and appt.rescheduled_to:
 				reschedule_info = f"""
 					<div style="margin-top: 4px;">
@@ -726,6 +817,7 @@ class ServiceBooking(Document):
 					<td>
 						<div style="font-weight: bold; color: #1a1a1a;">{guest_name}</div>
 						<small class='text-muted'>{appt.name}</small>
+						{couple_info}
 						{reschedule_info}
 					</td>
 					<td>{service_info}</td>
