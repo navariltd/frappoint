@@ -1303,7 +1303,7 @@ def create_draft_service_booking(
 		frappe.throw(_("Customer is required before continuing the booking."))
 	if not items:
 		frappe.throw(_("Add at least one service before creating a draft booking."))
-	if not booked_by:
+	if not booked_by and (not frappe.session.user or frappe.session.user == "Guest"):
 		frappe.throw(_("Booked By is required before continuing the booking."))
 
 	booking = frappe.new_doc("Service Booking")
@@ -1311,7 +1311,7 @@ def create_draft_service_booking(
 	booking.full_name = customer.get("fullName") or customer.get("name")
 	booking.email = customer.get("email")
 	booking.mobile_no = customer.get("mobileNo")
-	booking.booked_by = booked_by
+	booking.booked_by = booked_by or frappe.session.user
 	booking.booking_date = frappe.utils.today()
 	booking.booking_time = frappe.utils.now_datetime()
 	booking.status = "Draft"
