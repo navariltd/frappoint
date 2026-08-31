@@ -1,4 +1,4 @@
-from datetime import date, time
+from datetime import date, time, timedelta
 from unittest import TestCase
 from unittest.mock import call, patch
 
@@ -19,13 +19,14 @@ def _slot(
     buffer_before=0,
     buffer_after=0,
     service_unit=None,
+    slot_date=date(2026, 8, 10),
 ):
     return {
         "provider": provider,
         "provider_name": provider,
         "service_unit": service_unit,
         "service_unit_name": service_unit,
-        "date": date(2026, 8, 10),
+        "date": slot_date,
         "start_time": get_time(start_time),
         "end_time": get_time(end_time),
         "duration": duration,
@@ -35,9 +36,9 @@ def _slot(
     }
 
 
-def _capacity(resource_type, resource, values):
+def _capacity(resource_type, resource, values, slot_date=date(2026, 8, 10)):
     return {
-        (resource_type, resource, date(2026, 8, 10), get_time(slot_time)): remaining
+        (resource_type, resource, slot_date, get_time(slot_time)): remaining
         for slot_time, remaining in values.items()
     }
 
@@ -50,6 +51,7 @@ class TestCoupleAvailabilityProjection(TestCase):
             "09:45:00",
             duration=45,
             buffer_before=15,
+            service_unit="ROOM-1",
         )
         guest_2 = _slot(
             "PROVIDER-2",
@@ -57,12 +59,26 @@ class TestCoupleAvailabilityProjection(TestCase):
             "10:00:00",
             duration=60,
             buffer_after=15,
+            service_unit="ROOM-1",
         )
         non_simultaneous = _slot(
             "PROVIDER-3",
             "09:15:00",
             "10:15:00",
             duration=60,
+            service_unit="ROOM-1",
+        )
+        room_capacity = _capacity(
+            "Service Unit",
+            "ROOM-1",
+            {
+                "08:45:00": 1,
+                "09:00:00": 2,
+                "09:15:00": 2,
+                "09:30:00": 2,
+                "09:45:00": 1,
+                "10:00:00": 1,
+            },
         )
 
         rows = _combine_couple_slot_rows(
@@ -71,8 +87,8 @@ class TestCoupleAvailabilityProjection(TestCase):
             service_type_1="SERVICE-45",
             service_type_2="SERVICE-60",
             slot_size_minutes=15,
-            remaining_capacity={},
-            unit_allows_overlap={},
+            remaining_capacity=room_capacity,
+            unit_allows_overlap={"ROOM-1": True},
         )
 
         self.assertEqual(len(rows), 1)
@@ -83,12 +99,29 @@ class TestCoupleAvailabilityProjection(TestCase):
         self.assertEqual(rows[0]["duration_2"], 60)
 
     def test_same_provider_requires_capacity_for_both_legs(self):
-        guest_1 = _slot("PROVIDER-1", "09:00:00", "09:30:00", duration=30)
-        guest_2 = _slot("PROVIDER-1", "09:00:00", "09:30:00", duration=30)
+        guest_1 = _slot(
+            "PROVIDER-1",
+            "09:00:00",
+            "09:30:00",
+            duration=30,
+            service_unit="ROOM-1",
+        )
+        guest_2 = _slot(
+            "PROVIDER-1",
+            "09:00:00",
+            "09:30:00",
+            duration=30,
+            service_unit="ROOM-1",
+        )
         capacity_one = _capacity(
             "Service Provider",
             "PROVIDER-1",
             {"09:00:00": 1, "09:15:00": 1},
+        )
+        room_capacity = _capacity(
+            "Service Unit",
+            "ROOM-1",
+            {"09:00:00": 2, "09:15:00": 2},
         )
 
         blocked = _combine_couple_slot_rows(
@@ -97,8 +130,8 @@ class TestCoupleAvailabilityProjection(TestCase):
             "SERVICE-1",
             "SERVICE-2",
             15,
-            capacity_one,
-            {},
+            {**capacity_one, **room_capacity},
+            {"ROOM-1": True},
         )
         self.assertEqual(blocked, [])
 
@@ -113,8 +146,8 @@ class TestCoupleAvailabilityProjection(TestCase):
             "SERVICE-1",
             "SERVICE-2",
             15,
-            capacity_two,
-            {},
+            {**capacity_two, **room_capacity},
+            {"ROOM-1": True},
         )
         self.assertEqual(len(available), 1)
 
@@ -192,20 +225,236 @@ class TestCoupleAvailabilityProjection(TestCase):
             service_unit="ROOM-2",
         )
 
-        rows = _combine_couple_slot_rows(
-            [guest_1],
-            [guest_2],
+        with patch.object(
+            availability_projector,
+            "_reserved_counter_slot_times",
+            wraps=availability_projector._reserved_counter_slot_times,
+        ) as reserved_slots:
+            rows = _combine_couple_slot_rows(
+                [guest_1],
+                [guest_2],
+                "SERVICE-1",
+                "SERVICE-2",
+                15,
+                {},
+                {"ROOM-1": False, "ROOM-2": False},
+            )
+
+        self.assertEqual(rows, [])
+        reserved_slots.assert_not_called()
+
+    def test_optional_date_limit_counts_only_eligible_candidates_and_is_deterministic(self):
+        first_date = date(2026, 8, 10)
+        second_date = date(2026, 8, 11)
+        guest_1_slots = [
+            _slot(
+                provider,
+                "09:00:00",
+                "09:30:00",
+                duration=30,
+                service_unit="ROOM-1",
+                slot_date=slot_date,
+            )
+            for slot_date in (second_date, first_date)
+            for provider in ("PROVIDER-B", "PROVIDER-A")
+        ]
+        guest_2_slots = [
+            _slot(
+                provider,
+                "09:00:00",
+                "09:30:00",
+                duration=30,
+                service_unit="ROOM-1",
+                slot_date=slot_date,
+            )
+            for slot_date in (second_date, first_date)
+            for provider in ("PROVIDER-D", "PROVIDER-C")
+        ]
+        remaining_capacity = {}
+        for slot_date in (first_date, second_date):
+            remaining_capacity.update(
+                _capacity(
+                    "Service Unit",
+                    "ROOM-1",
+                    {"09:00:00": 2, "09:15:00": 2},
+                    slot_date=slot_date,
+                )
+            )
+
+        inspected = []
+
+        def accept_provider_b(candidate):
+            inspected.append(candidate["candidate_id"])
+            return candidate["provider_1"] == "PROVIDER-B"
+
+        accept_provider_b.allows_leg = lambda _leg_name, _row: True
+
+        limited = _combine_couple_slot_rows(
+            guest_1_slots,
+            guest_2_slots,
             "SERVICE-1",
             "SERVICE-2",
             15,
-            {},
-            {"ROOM-1": False, "ROOM-2": False},
+            remaining_capacity,
+            {"ROOM-1": True},
+            candidate_filter=accept_provider_b,
+            max_candidates_per_date=1,
         )
 
-        self.assertEqual(rows, [])
+        self.assertEqual(
+            [(row["date"], row["provider_1"], row["provider_2"]) for row in limited],
+            [
+                (first_date, "PROVIDER-B", "PROVIDER-C"),
+                (second_date, "PROVIDER-B", "PROVIDER-C"),
+            ],
+        )
+        self.assertIn("PROVIDER-A", inspected[0])
+
+        complete = _combine_couple_slot_rows(
+            guest_1_slots,
+            guest_2_slots,
+            "SERVICE-1",
+            "SERVICE-2",
+            15,
+            remaining_capacity,
+            {"ROOM-1": True},
+        )
+        self.assertEqual(len(complete), 8)
+
+    def test_date_limit_avoids_the_provider_unit_cartesian_product(self):
+        dates = [date(2026, 8, 10) + timedelta(days=offset) for offset in range(30)]
+        providers_1 = [f"PROVIDER-1-{index:02d}" for index in range(42)]
+        providers_2 = [f"PROVIDER-2-{index:02d}" for index in range(42)]
+        units = [f"ROOM-{index:02d}" for index in range(20)]
+
+        guest_1_slots = [
+            _slot(
+                provider,
+                "09:00:00",
+                "09:30:00",
+                duration=30,
+                service_unit=unit,
+                slot_date=slot_date,
+            )
+            for slot_date in dates
+            for provider in providers_1
+            for unit in units
+        ]
+        guest_2_slots = [
+            _slot(
+                provider,
+                "09:00:00",
+                "09:30:00",
+                duration=30,
+                service_unit=unit,
+                slot_date=slot_date,
+            )
+            for slot_date in dates
+            for provider in providers_2
+            for unit in units
+        ]
+        remaining_capacity = {}
+        for slot_date in dates:
+            for unit in units:
+                remaining_capacity.update(
+                    _capacity(
+                        "Service Unit",
+                        unit,
+                        {"09:00:00": 2, "09:15:00": 2},
+                        slot_date=slot_date,
+                    )
+                )
+
+        theoretical_pair_count = (
+            len(dates) * len(units) * len(providers_1) * len(providers_2)
+        )
+        self.assertGreater(theoretical_pair_count, 1_000_000)
+
+        with patch.object(
+            availability_projector,
+            "_reserved_counter_slot_times",
+            wraps=availability_projector._reserved_counter_slot_times,
+        ) as reserved_slots:
+            rows = _combine_couple_slot_rows(
+                guest_1_slots,
+                guest_2_slots,
+                "SERVICE-1",
+                "SERVICE-2",
+                15,
+                remaining_capacity,
+                dict.fromkeys(units, True),
+                max_candidates_per_date=1,
+            )
+
+        self.assertEqual(len(rows), len(dates))
+        self.assertEqual(reserved_slots.call_count, len(dates) * 2)
+
+        insufficient_capacity = {}
+        for slot_date in dates:
+            for unit in units:
+                insufficient_capacity.update(
+                    _capacity(
+                        "Service Unit",
+                        unit,
+                        {"09:00:00": 1, "09:15:00": 1},
+                        slot_date=slot_date,
+                    )
+                )
+
+        with patch.object(
+            availability_projector,
+            "_shared_resource_has_capacity",
+            wraps=availability_projector._shared_resource_has_capacity,
+        ) as capacity_checks:
+            blocked_rows = _combine_couple_slot_rows(
+                guest_1_slots,
+                guest_2_slots,
+                "SERVICE-1",
+                "SERVICE-2",
+                15,
+                insufficient_capacity,
+                dict.fromkeys(units, True),
+                max_candidates_per_date=1,
+            )
+
+        self.assertEqual(blocked_rows, [])
+        self.assertEqual(capacity_checks.call_count, len(dates) * len(units))
+
+        class RejectEveryLeg:
+            def __init__(self):
+                self.final_candidate_checks = 0
+
+            def allows_leg(self, _leg_name, _row):
+                return False
+
+            def __call__(self, _candidate):
+                self.final_candidate_checks += 1
+                return True
+
+        reject_every_leg = RejectEveryLeg()
+        with (
+            patch.object(availability_projector, "_shared_resource_has_capacity") as capacity_checks,
+            patch.object(availability_projector, "_build_couple_guest_row") as pair_leg_builds,
+        ):
+            rejected_rows = _combine_couple_slot_rows(
+                guest_1_slots,
+                guest_2_slots,
+                "SERVICE-1",
+                "SERVICE-2",
+                15,
+                remaining_capacity,
+                dict.fromkeys(units, True),
+                candidate_filter=reject_every_leg,
+                max_candidates_per_date=1,
+            )
+
+        self.assertEqual(rejected_rows, [])
+        capacity_checks.assert_not_called()
+        pair_leg_builds.assert_not_called()
+        self.assertEqual(reject_every_leg.final_candidate_checks, 0)
 
     @patch.object(availability_projector, "_get_slot_size_minutes", return_value=15)
-    @patch.object(availability_projector, "_get_unit_overlap_map", return_value={})
+    @patch.object(availability_projector, "_get_unit_overlap_map")
     @patch.object(
         availability_projector, "_get_resource_remaining_capacity_map", return_value={}
     )
@@ -217,9 +466,27 @@ class TestCoupleAvailabilityProjection(TestCase):
         _overlap_map,
         _slot_size,
     ):
-        guest_1 = _slot("PROVIDER-1", "09:00:00", "09:45:00", duration=45)
-        guest_2 = _slot("PROVIDER-2", "09:00:00", "10:00:00", duration=60)
+        guest_1 = _slot(
+            "PROVIDER-1",
+            "09:00:00",
+            "09:45:00",
+            duration=45,
+            service_unit="ROOM-1",
+        )
+        guest_2 = _slot(
+            "PROVIDER-2",
+            "09:00:00",
+            "10:00:00",
+            duration=60,
+            service_unit="ROOM-1",
+        )
         get_available_slots.side_effect = [[guest_1], [guest_2]]
+        _capacity_map.return_value = _capacity(
+            "Service Unit",
+            "ROOM-1",
+            {"09:00:00": 2, "09:15:00": 2, "09:30:00": 2, "09:45:00": 1},
+        )
+        _overlap_map.return_value = {"ROOM-1": True}
 
         rows = availability_projector.get_couple_available_slots(
             service_type_1="SERVICE-1",

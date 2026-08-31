@@ -1,6 +1,7 @@
 import {
 	fetchAvailableDatesApi,
 	fetchAvailableSlotsApi,
+	fetchCoupleAvailableDatesApi,
 	fetchCoupleAvailableSlotsApi,
 } from "@/api/availability.api";
 
@@ -261,8 +262,24 @@ export async function fetchNormalizedAvailableSlots({
 }
 
 export async function fetchNormalizedCoupleAvailableDates(params) {
-	const slots = await fetchNormalizedCoupleRows(params);
-	const dates = Array.from(new Set(slots.map((slot) => slot.date))).sort();
+	const serviceType1 = normalizeServiceType(params.serviceType1);
+	const serviceType2 = normalizeServiceType(params.serviceType2);
+	if (!serviceType1 || !serviceType2) return [];
+
+	const range = getDefaultCoupleDateRange();
+	const response = await fetchCoupleAvailableDatesApi({
+		serviceType1,
+		serviceType2,
+		duration1: params.duration1,
+		duration2: params.duration2,
+		provider1: params.provider1,
+		provider2: params.provider2,
+		excludeAppointmentId1: params.excludeAppointmentId1,
+		excludeAppointmentId2: params.excludeAppointmentId2,
+		startDate: params.startDate || range.startDate,
+		endDate: params.endDate || params.startDate || range.endDate,
+	});
+	const dates = Array.from(new Set(Array.isArray(response) ? response : [])).sort();
 	return dates.map((date) => ({ date, label: formatDateLabel(date) }));
 }
 

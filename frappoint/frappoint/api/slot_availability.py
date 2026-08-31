@@ -12,6 +12,9 @@ from ..services.availability_projector import (
 	get_couple_available_slots as get_projected_couple_available_slots,
 )
 
+DEFAULT_COUPLE_CANDIDATES_PER_START = 1
+MAX_COUPLE_CANDIDATES_PER_START = 10
+
 
 @frappe.whitelist(allow_guest=True)  # nosemgrep: guest-whitelisted-method
 def get_available_dates(
@@ -117,6 +120,7 @@ def get_available_time_slots(
 	gender_2: str | None = None,
 	exclude_appointment_id_1: str | None = None,
 	exclude_appointment_id_2: str | None = None,
+	max_candidates_per_start: int | str | None = None,
 ):
 	"""
 	Get available time slots
@@ -137,6 +141,7 @@ def get_available_time_slots(
 			gender_2=gender_2 or gender,
 			exclude_appointment_id_1=exclude_appointment_id_1,
 			exclude_appointment_id_2=exclude_appointment_id_2,
+			max_candidates_per_start=max_candidates_per_start,
 			days_ahead=days_ahead,
 			use_counter_engine=use_counter_engine,
 			start_date=start_date,
@@ -219,6 +224,13 @@ def get_couple_available_dates(
 		start_date=start_date,
 		end_date=end_date,
 	)
+	range_start, range_end = _clamp_couple_date_discovery_range(range_start, range_end)
+	candidate_filter = _build_couple_candidate_filter(
+		start_date=range_start,
+		end_date=range_end,
+		gender_1=gender_1,
+		gender_2=gender_2,
+	)
 	rows = get_projected_couple_available_slots(
 		service_type_1=service_type_1,
 		service_type_2=service_type_2,
@@ -232,9 +244,10 @@ def get_couple_available_dates(
 		duration_2=duration_2,
 		exclude_appointment_id_1=_normalize_optional_id(exclude_appointment_id_1),
 		exclude_appointment_id_2=_normalize_optional_id(exclude_appointment_id_2),
+		candidate_filter=candidate_filter,
+		max_candidates_per_date=1,
 	)
-	rows = _filter_couple_all_day_provider_unavailability(rows)
-	rows = _filter_couple_provider_gender(rows, gender_1, gender_2)
+	rows = [row for row in rows if candidate_filter(row)]
 	return sorted({str(row.get("date")) for row in rows if row.get("date")})
 
 
@@ -257,6 +270,7 @@ def get_couple_available_time_slots(
 	end_date: str | None = None,
 	exclude_appointment_id_1: str | None = None,
 	exclude_appointment_id_2: str | None = None,
+	max_candidates_per_start: int | str | None = None,
 ):
 	"""Return provider/unit pair candidates for simultaneous couple services."""
 	service_type_1 = _normalize_service_type(service_type_1)
@@ -276,6 +290,15 @@ def get_couple_available_time_slots(
 		start_date=start_date,
 		end_date=end_date,
 	)
+	if range_start != range_end:
+		frappe.throw(_("Couple time-slot searches must target a single date."))
+	candidate_limit = _resolve_couple_candidate_limit(max_candidates_per_start)
+	candidate_filter = _build_couple_candidate_filter(
+		start_date=range_start,
+		end_date=range_end,
+		gender_1=gender_1,
+		gender_2=gender_2,
+	)
 	rows = get_projected_couple_available_slots(
 		service_type_1=service_type_1,
 		service_type_2=service_type_2,
@@ -289,12 +312,14 @@ def get_couple_available_time_slots(
 		duration_2=duration_2,
 		exclude_appointment_id_1=_normalize_optional_id(exclude_appointment_id_1),
 		exclude_appointment_id_2=_normalize_optional_id(exclude_appointment_id_2),
+		candidate_filter=candidate_filter,
+		max_candidates_per_start=candidate_limit,
 	)
-	rows = _filter_couple_all_day_provider_unavailability(rows)
-	rows = _filter_couple_provider_gender(rows, gender_1, gender_2)
+	rows = [row for row in rows if candidate_filter(row)]
 	if date:
 		target = str(getdate(date))
 		rows = [row for row in rows if str(row.get("date")) == target]
+	rows = _limit_couple_candidates(rows, max_candidates_per_start=candidate_limit)
 	return _format_couple_available_slots(rows)
 
 
@@ -328,6 +353,85 @@ def _resolve_date_range(
 		effective_days = cint_safe(settings_days)
 
 	return start, add_days(start, effective_days)
+
+
+def _resolve_couple_candidate_limit(value) -> int:
+	requested = cint_safe(value)
+	if requested <= 0:
+		requested = DEFAULT_COUPLE_CANDIDATES_PER_START
+	return min(requested, MAX_COUPLE_CANDIDATES_PER_START)
+
+
+def _clamp_couple_date_discovery_range(start_date, end_date):
+	start = getdate(start_date)
+	end = getdate(end_date)
+	configured_days = cint_safe(
+		frappe.db.get_single_value("Service Appointment Settings", "max_advance_days") or 30
+	)
+	if configured_days <= 0:
+		configured_days = 30
+	return start, min(end, add_days(start, configured_days))
+
+
+class _CoupleCandidateEligibility:
+	def __init__(self, allowed_providers, blocked_ranges_by_provider):
+		self.allowed_providers = allowed_providers
+		self.blocked_ranges_by_provider = blocked_ranges_by_provider
+
+	def allows_leg(self, leg_name, leg):
+		provider = (leg or {}).get("provider")
+		candidate_date = (leg or {}).get("date")
+		if not provider or not candidate_date:
+			return False
+
+		allowed = self.allowed_providers[leg_name]
+		if allowed is not None and provider not in allowed:
+			return False
+
+		candidate_date = getdate(candidate_date)
+		return not any(
+			blocked_from <= candidate_date <= blocked_to
+			for blocked_from, blocked_to in self.blocked_ranges_by_provider.get(provider, [])
+		)
+
+	def __call__(self, candidate):
+		return all(
+			self.allows_leg(leg_name, candidate.get(leg_name) or {})
+			for leg_name in ("guest_1", "guest_2")
+		)
+
+
+def _build_couple_candidate_filter(start_date, end_date, gender_1=None, gender_2=None):
+	allowed_providers = {}
+	for leg_name, gender in (("guest_1", gender_1), ("guest_2", gender_2)):
+		allowed_providers[leg_name] = (
+			set(frappe.get_all("Service Provider", filters={"gender": gender}, pluck="name"))
+			if gender
+			else None
+		)
+
+	blocked_ranges_by_provider = {}
+	if frappe.db.table_exists("Service Provider Unavailability"):
+		unavailability_rows = frappe.get_all(
+			"Service Provider Unavailability",
+			filters={
+				"status": "Active",
+				"docstatus": 1,
+				"all_day": 1,
+				"from_date": ["<=", getdate(end_date)],
+				"to_date": [">=", getdate(start_date)],
+			},
+			fields=["provider", "from_date", "to_date"],
+		)
+		for unavailable in unavailability_rows:
+			provider = unavailable.get("provider")
+			if not provider:
+				continue
+			blocked_ranges_by_provider.setdefault(provider, []).append(
+				(getdate(unavailable.get("from_date")), getdate(unavailable.get("to_date")))
+			)
+
+	return _CoupleCandidateEligibility(allowed_providers, blocked_ranges_by_provider)
 
 
 def _validate_counter_engine(use_counter_engine) -> None:
@@ -466,6 +570,33 @@ def _filter_couple_provider_gender(rows, gender_1=None, gender_2=None):
 	return filtered
 
 
+def _limit_couple_candidates(rows, max_candidates_per_start):
+	limit = _resolve_couple_candidate_limit(max_candidates_per_start)
+	counts_by_start = {}
+	limited = []
+	for row in sorted(rows, key=_couple_candidate_sort_key):
+		start_key = (str(row.get("date")), str(row.get("start_time")))
+		if counts_by_start.get(start_key, 0) >= limit:
+			continue
+		limited.append(row)
+		counts_by_start[start_key] = counts_by_start.get(start_key, 0) + 1
+	return limited
+
+
+def _couple_candidate_sort_key(row):
+	return (
+		str(row.get("date") or ""),
+		str(row.get("start_time") or ""),
+		str(row.get("provider_name_1") or row.get("provider_1") or ""),
+		str(row.get("provider_1") or ""),
+		str(row.get("provider_name_2") or row.get("provider_2") or ""),
+		str(row.get("provider_2") or ""),
+		str(row.get("service_unit_1") or ""),
+		str(row.get("service_unit_2") or ""),
+		str(row.get("candidate_id") or ""),
+	)
+
+
 def _format_couple_available_slots(rows):
 	by_date: dict[str, list[dict]] = {}
 	for row in rows:
@@ -482,14 +613,7 @@ def _format_couple_available_slots(rows):
 	return [
 		{
 			"date": date_str,
-			"slots": sorted(
-				by_date[date_str],
-				key=lambda row: (
-					row.get("start_time") or "",
-					row.get("provider_name_1") or row.get("provider_1") or "",
-					row.get("provider_name_2") or row.get("provider_2") or "",
-				),
-			),
+			"slots": sorted(by_date[date_str], key=_couple_candidate_sort_key),
 		}
 		for date_str in sorted(by_date)
 	]

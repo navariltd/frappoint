@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections import defaultdict
+from collections.abc import Callable
 from datetime import datetime, time, timedelta
 from math import ceil
 from typing import Any
@@ -407,12 +408,16 @@ def get_couple_available_slots(
     duration_2: int | None = None,
     exclude_appointment_id_1: str | None = None,
     exclude_appointment_id_2: str | None = None,
+    candidate_filter: Callable[[dict[str, Any]], bool] | None = None,
+    max_candidates_per_date: int | None = None,
+    max_candidates_per_start: int | None = None,
 ) -> list[dict[str, Any]]:
     """Return provider/unit pairs that can start two services at the same customer time.
 
     Each leg is projected independently so its own duration and buffers remain in force. A
     second counter-capacity pass rejects a pair when both legs would consume more than the
-    remaining capacity of a shared provider or service unit.
+    remaining capacity of a shared provider or service unit. Candidate filtering and limits
+    are optional search optimizations; callers that omit them receive the complete result set.
     """
     if not service_type_1 or not service_type_2:
         return []
@@ -445,12 +450,19 @@ def get_couple_available_slots(
     if not guest_1_slots or not guest_2_slots:
         return []
 
-    provider_ids = {
-        row.get("provider") for row in guest_1_slots if row.get("provider")
-    } & {row.get("provider") for row in guest_2_slots if row.get("provider")}
     unit_ids = {
         row.get("service_unit") for row in guest_1_slots if row.get("service_unit")
     } & {row.get("service_unit") for row in guest_2_slots if row.get("service_unit")}
+    unit_allows_overlap = _get_unit_overlap_map(unit_ids)
+    unit_ids = {unit_id for unit_id in unit_ids if unit_allows_overlap.get(unit_id, False)}
+    if not unit_ids:
+        return []
+
+    guest_1_slots = [row for row in guest_1_slots if row.get("service_unit") in unit_ids]
+    guest_2_slots = [row for row in guest_2_slots if row.get("service_unit") in unit_ids]
+    provider_ids = {
+        row.get("provider") for row in guest_1_slots if row.get("provider")
+    } & {row.get("provider") for row in guest_2_slots if row.get("provider")}
     excluded_capacity: dict[tuple[str, str, Any, str], float] = defaultdict(float)
     for appointment_name in (exclude_appointment_id_1, exclude_appointment_id_2):
         for key, capacity in _build_excluded_appointment_capacity_map(
@@ -468,8 +480,6 @@ def get_couple_available_slots(
         unit_ids=unit_ids,
         excluded_capacity=excluded_capacity,
     )
-    unit_allows_overlap = _get_unit_overlap_map(unit_ids)
-
     return _combine_couple_slot_rows(
         guest_1_slots=guest_1_slots,
         guest_2_slots=guest_2_slots,
@@ -478,6 +488,9 @@ def get_couple_available_slots(
         slot_size_minutes=_get_slot_size_minutes(),
         remaining_capacity=remaining_capacity,
         unit_allows_overlap=unit_allows_overlap,
+        candidate_filter=candidate_filter,
+        max_candidates_per_date=max_candidates_per_date,
+        max_candidates_per_start=max_candidates_per_start,
     )
 
 
@@ -562,67 +575,82 @@ def _combine_couple_slot_rows(
     slot_size_minutes: int,
     remaining_capacity: dict[tuple[str, str, Any, time], float],
     unit_allows_overlap: dict[str, bool],
+    candidate_filter: Callable[[dict[str, Any]], bool] | None = None,
+    max_candidates_per_date: int | None = None,
+    max_candidates_per_start: int | None = None,
 ) -> list[dict[str, Any]]:
-    guest_2_by_start: dict[tuple[Any, time], list[dict[str, Any]]] = defaultdict(list)
-    for row in guest_2_slots:
-        guest_2_by_start[_couple_slot_key(row)].append(row)
+    allows_leg = getattr(candidate_filter, "allows_leg", None)
+    allows_leg = allows_leg if callable(allows_leg) else None
+    guest_1_by_group = _group_couple_slot_rows(
+        guest_1_slots, leg_name="guest_1", allows_leg=allows_leg
+    )
+    guest_2_by_group = _group_couple_slot_rows(
+        guest_2_slots, leg_name="guest_2", allows_leg=allows_leg
+    )
+    common_group_keys = sorted(guest_1_by_group.keys() & guest_2_by_group.keys())
 
     results: list[dict[str, Any]] = []
     seen_candidates: set[str] = set()
-    for row_1 in guest_1_slots:
-        for row_2 in guest_2_by_start.get(_couple_slot_key(row_1), []):
-            row_1_reserved_slots = _reserved_counter_slot_times(
-                row_1, slot_size_minutes
-            )
-            row_2_reserved_slots = _reserved_counter_slot_times(
-                row_2, slot_size_minutes
-            )
+    candidates_by_date: dict[Any, int] = defaultdict(int)
+    candidates_by_start: dict[tuple[Any, time], int] = defaultdict(int)
+    for date_key, start_time, unit_id in common_group_keys:
+        if max_candidates_per_date and candidates_by_date[date_key] >= max_candidates_per_date:
+            continue
 
-            provider_1 = row_1.get("provider")
-            provider_2 = row_2.get("provider")
-            if provider_1 == provider_2 and provider_1:
-                if not _shared_resource_has_capacity(
-                    resource_type="Service Provider",
-                    resource_reference=provider_1,
-                    date_key=getdate(row_1["date"]),
-                    guest_1_slots=row_1_reserved_slots,
-                    guest_2_slots=row_2_reserved_slots,
-                    remaining_capacity=remaining_capacity,
-                ):
+        start_key = (date_key, start_time)
+        if max_candidates_per_start and candidates_by_start[start_key] >= max_candidates_per_start:
+            continue
+
+        guest_1_group = guest_1_by_group[(date_key, start_time, unit_id)]
+        guest_2_group = guest_2_by_group[(date_key, start_time, unit_id)]
+        guest_1_reserved_slots = _reserved_counter_slot_times(
+            guest_1_group[0], slot_size_minutes
+        )
+        guest_2_reserved_slots = _reserved_counter_slot_times(
+            guest_2_group[0], slot_size_minutes
+        )
+
+        if (
+            guest_1_reserved_slots & guest_2_reserved_slots
+            and not unit_allows_overlap.get(unit_id, False)
+        ):
+            continue
+        if not _shared_resource_has_capacity(
+            resource_type="Service Unit",
+            resource_reference=unit_id,
+            date_key=date_key,
+            guest_1_slots=guest_1_reserved_slots,
+            guest_2_slots=guest_2_reserved_slots,
+            remaining_capacity=remaining_capacity,
+        ):
+            continue
+
+        for row_1 in guest_1_group:
+            for row_2 in guest_2_group:
+                provider_1 = row_1.get("provider")
+                provider_2 = row_2.get("provider")
+                if provider_1 == provider_2 and provider_1:
+                    if not _shared_resource_has_capacity(
+                        resource_type="Service Provider",
+                        resource_reference=provider_1,
+                        date_key=date_key,
+                        guest_1_slots=guest_1_reserved_slots,
+                        guest_2_slots=guest_2_reserved_slots,
+                        remaining_capacity=remaining_capacity,
+                    ):
+                        continue
+
+                guest_1 = _build_couple_guest_row(row_1, service_type_1)
+                guest_2 = _build_couple_guest_row(row_2, service_type_2)
+                candidate_id = _build_couple_candidate_id(guest_1, guest_2)
+                if candidate_id in seen_candidates:
                     continue
 
-            unit_1 = row_1.get("service_unit")
-            unit_2 = row_2.get("service_unit")
-            if not unit_1 or not unit_2 or unit_1 != unit_2:
-                continue
-            if (
-                row_1_reserved_slots & row_2_reserved_slots
-                and not unit_allows_overlap.get(unit_1, False)
-            ):
-                continue
-            if not _shared_resource_has_capacity(
-                resource_type="Service Unit",
-                resource_reference=unit_1,
-                date_key=getdate(row_1["date"]),
-                guest_1_slots=row_1_reserved_slots,
-                guest_2_slots=row_2_reserved_slots,
-                remaining_capacity=remaining_capacity,
-            ):
-                continue
-
-            guest_1 = _build_couple_guest_row(row_1, service_type_1)
-            guest_2 = _build_couple_guest_row(row_2, service_type_2)
-            candidate_id = _build_couple_candidate_id(guest_1, guest_2)
-            if candidate_id in seen_candidates:
-                continue
-            seen_candidates.add(candidate_id)
-
-            results.append(
-                {
+                candidate = {
                     "candidate_id": candidate_id,
                     "is_couple": 1,
-                    "date": getdate(row_1["date"]),
-                    "start_time": get_time(row_1["start_time"]),
+                    "date": date_key,
+                    "start_time": start_time,
                     "end_time": _later_appointment_end(row_1, row_2),
                     "service_type_1": service_type_1,
                     "service_type_2": service_type_2,
@@ -630,9 +658,9 @@ def _combine_couple_slot_rows(
                     "provider_name_1": row_1.get("provider_name"),
                     "provider_2": provider_2,
                     "provider_name_2": row_2.get("provider_name"),
-                    "service_unit_1": unit_1,
+                    "service_unit_1": unit_id,
                     "service_unit_name_1": row_1.get("service_unit_name"),
-                    "service_unit_2": unit_2,
+                    "service_unit_2": unit_id,
                     "service_unit_name_2": row_2.get("service_unit_name"),
                     "end_time_1": get_time(row_1["end_time"]),
                     "end_time_2": get_time(row_2["end_time"]),
@@ -642,7 +670,33 @@ def _combine_couple_slot_rows(
                     "guest_2": guest_2,
                     "slot_ids": [],
                 }
-            )
+                if candidate_filter and not candidate_filter(candidate):
+                    continue
+
+                seen_candidates.add(candidate_id)
+                results.append(candidate)
+                candidates_by_date[date_key] += 1
+                candidates_by_start[start_key] += 1
+
+                if _couple_candidate_limit_reached(
+                    date_key=date_key,
+                    start_key=start_key,
+                    candidates_by_date=candidates_by_date,
+                    candidates_by_start=candidates_by_start,
+                    max_candidates_per_date=max_candidates_per_date,
+                    max_candidates_per_start=max_candidates_per_start,
+                ):
+                    break
+
+            if _couple_candidate_limit_reached(
+                date_key=date_key,
+                start_key=start_key,
+                candidates_by_date=candidates_by_date,
+                candidates_by_start=candidates_by_start,
+                max_candidates_per_date=max_candidates_per_date,
+                max_candidates_per_start=max_candidates_per_start,
+            ):
+                break
 
     results.sort(
         key=lambda row: (
@@ -657,8 +711,57 @@ def _combine_couple_slot_rows(
     return results
 
 
+def _group_couple_slot_rows(
+    rows: list[dict[str, Any]],
+    leg_name: str,
+    allows_leg: Callable[[str, dict[str, Any]], bool] | None,
+) -> dict[tuple[Any, time, str], list[dict[str, Any]]]:
+    grouped: dict[tuple[Any, time, str], list[dict[str, Any]]] = defaultdict(list)
+    for row in sorted(rows, key=_couple_leg_sort_key):
+        if not row.get("service_unit"):
+            continue
+        if allows_leg and not allows_leg(leg_name, row):
+            continue
+        grouped[_couple_unit_slot_key(row)].append(row)
+    return grouped
+
+
+def _couple_candidate_limit_reached(
+    date_key,
+    start_key: tuple[Any, time],
+    candidates_by_date: dict[Any, int],
+    candidates_by_start: dict[tuple[Any, time], int],
+    max_candidates_per_date: int | None,
+    max_candidates_per_start: int | None,
+) -> bool:
+    return bool(
+        max_candidates_per_date
+        and candidates_by_date[date_key] >= max_candidates_per_date
+    ) or bool(
+        max_candidates_per_start
+        and candidates_by_start[start_key] >= max_candidates_per_start
+    )
+
+
+def _couple_leg_sort_key(row: dict[str, Any]) -> tuple[Any, ...]:
+    return (
+        getdate(row["date"]),
+        get_time(row["start_time"]),
+        str(row.get("provider_name") or ""),
+        str(row.get("provider") or ""),
+        str(row.get("service_unit_name") or ""),
+        str(row.get("service_unit") or ""),
+        get_time(row["end_time"]),
+    )
+
+
 def _couple_slot_key(row: dict[str, Any]) -> tuple[Any, time]:
     return (getdate(row["date"]), get_time(row["start_time"]))
+
+
+def _couple_unit_slot_key(row: dict[str, Any]) -> tuple[Any, time, str]:
+    date_key, start_time = _couple_slot_key(row)
+    return (date_key, start_time, row["service_unit"])
 
 
 def _reserved_counter_slot_times(
