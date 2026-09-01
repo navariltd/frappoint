@@ -110,7 +110,9 @@ watch(
 
 const visibleDates = computed(() => {
 	if (!activeMonthKey.value) return props.dates;
-	return props.dates.filter((dateRow) => getMonthMeta(dateRow?.date)?.key === activeMonthKey.value);
+	return props.dates.filter(
+		(dateRow) => getMonthMeta(dateRow?.date)?.key === activeMonthKey.value
+	);
 });
 
 function monthButtonStyle(groupKey) {

@@ -81,7 +81,9 @@ function getTimeGroupKey(slot) {
 }
 
 const timeGroups = computed(() => {
-	const availableGroupKeys = new Set(props.slots.map((slot) => getTimeGroupKey(slot)).filter(Boolean));
+	const availableGroupKeys = new Set(
+		props.slots.map((slot) => getTimeGroupKey(slot)).filter(Boolean)
+	);
 	return TIME_GROUPS.filter((group) => availableGroupKeys.has(group.key));
 });
 
@@ -92,7 +94,9 @@ watch(
 	([slots, selectedSlotId]) => {
 		const selectedSlot = (slots || []).find((slot) => slot.id === selectedSlotId);
 		const selectedGroupKey = getTimeGroupKey(selectedSlot);
-		const availableKeys = new Set((slots || []).map((slot) => getTimeGroupKey(slot)).filter(Boolean));
+		const availableKeys = new Set(
+			(slots || []).map((slot) => getTimeGroupKey(slot)).filter(Boolean)
+		);
 
 		if (selectedGroupKey && availableKeys.has(selectedGroupKey)) {
 			activeGroupKey.value = selectedGroupKey;
