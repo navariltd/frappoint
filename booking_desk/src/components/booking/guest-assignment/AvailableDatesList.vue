@@ -5,12 +5,13 @@
 				v-for="group in monthGroups"
 				:key="group.key"
 				type="button"
-				class="rounded-full border px-3 py-1.5 text-[11px]"
+				class="rounded-full border px-3 py-1.5 text-[11px] transition-colors"
 				:class="
 					activeMonthKey === group.key
-						? 'border-primary bg-primary text-on-primary'
-						: 'border-outline-variant bg-surface text-on-surface hover:bg-surface-container'
+						? 'border-secondary bg-secondary text-on-secondary'
+						: 'border-secondary/30 bg-secondary/10 text-secondary-ink hover:bg-secondary/20'
 				"
+				:style="monthButtonStyle(group.key)"
 				@click="activeMonthKey = group.key"
 			>
 				{{ group.label }}
@@ -38,6 +39,7 @@
 
 <script setup>
 import { computed, ref, watch } from "vue";
+import { branding } from "@/branding";
 
 const props = defineProps({
 	dates: {
@@ -110,4 +112,22 @@ const visibleDates = computed(() => {
 	if (!activeMonthKey.value) return props.dates;
 	return props.dates.filter((dateRow) => getMonthMeta(dateRow?.date)?.key === activeMonthKey.value);
 });
+
+function monthButtonStyle(groupKey) {
+	if (!branding.accentColor) {
+		return null;
+	}
+
+	if (activeMonthKey.value === groupKey) {
+		return {
+			backgroundColor: branding.accentColor,
+			borderColor: branding.accentColor,
+		};
+	}
+
+	return {
+		borderColor: `${branding.accentColor}4d`,
+		backgroundColor: `${branding.accentColor}1a`,
+	};
+}
 </script>
