@@ -517,7 +517,7 @@ def _reserve_appointment_allocation_groups_once(
         )
 
     if commit:
-        frappe.db.commit()
+        frappe.db.commit()  # nosemgrep - caller's retry loop (in _reserve_appointment_allocation_groups) owns the try/except and savepoint rollback around this call.
     return created_names
 
 
