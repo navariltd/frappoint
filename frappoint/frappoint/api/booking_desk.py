@@ -1,9 +1,12 @@
 import json
+import random
 from collections import defaultdict
 from datetime import timedelta
+from time import sleep as _sleep
 
 import frappe
 from frappe import _
+from frappe.exceptions import QueryDeadlockError
 from frappe.query_builder.functions import Max
 from frappe.utils import cint, flt, get_datetime, get_time, getdate, now_datetime
 from frappe.utils.user import is_website_user
@@ -1726,8 +1729,10 @@ def _couple_reservation_request(appointment) -> dict:
 
 def _upsert_couple_appointments(booking, assignment: dict) -> list:
 	from frappoint.frappoint.services.booking_transaction_service import (
+		MAX_DEADLOCK_ATTEMPTS,
 		release_couple_appointment_allocations,
 		reserve_couple_appointment_allocations,
+		safe_rollback_to_savepoint,
 	)
 
 	guest_1 = _normalise_couple_guest(_payload_value(assignment, "guest_1", "guest1"), booking, 1)
@@ -1755,101 +1760,131 @@ def _upsert_couple_appointments(booking, assignment: dict) -> list:
 	if bool(appointment_id_1) != bool(appointment_id_2):
 		frappe.throw(_("Both appointment references are required when updating a couple booking."))
 
-	savepoint = f"couple_booking_{now_datetime().strftime('%H%M%S%f')}"
-	frappe.db.savepoint(savepoint)
-	try:
-		_lock_service_booking_row(booking.name)
-		booking.reload()
-		if booking.docstatus != 0 or booking.status in {"Cancelled", "Closed"}:
-			frappe.throw(_("Only an active draft booking can accept couple appointments."))
-		if not cint(getattr(booking, "is_couple", 0)):
-			booking.db_set("is_couple", 1, update_modified=False)
-			booking.is_couple = 1
-		_validate_couple_booking_items(booking, [member_1, member_2])
-		if appointment_id_1:
-			_lock_service_appointment_rows([appointment_id_1, appointment_id_2])
-			appointments = [
-				frappe.get_doc("Service Appointment", appointment_id_1),
-				frappe.get_doc("Service Appointment", appointment_id_2),
-			]
-			if any(appointment.booking_id != booking.name for appointment in appointments):
-				frappe.throw(_("Both couple appointments must belong to booking {0}.").format(booking.name))
-			if appointments[0].couple_appointment_id != appointments[1].name or (
-				appointments[1].couple_appointment_id != appointments[0].name
-			):
-				frappe.throw(_("The supplied appointments are not a linked couple."))
-			release_couple_appointment_allocations(
-				appointment_names=[appointment.name for appointment in appointments],
-				target_status="Released",
+	for attempt in range(1, MAX_DEADLOCK_ATTEMPTS + 1):
+		savepoint = f"couple_booking_{now_datetime().strftime('%H%M%S%f')}_{attempt}"
+		frappe.db.savepoint(savepoint)
+		try:
+			return _upsert_couple_appointments_once(
+				booking,
+				member_1,
+				member_2,
+				appointment_id_1,
+				appointment_id_2,
+				release_couple_appointment_allocations,
+				reserve_couple_appointment_allocations,
 			)
-		else:
-			existing_couple = frappe.get_all(
-				"Service Appointment",
-				filters={
-					"booking_id": booking.name,
-					"couple_appointment_id": ["is", "set"],
-					"docstatus": ["!=", 2],
-				},
-				pluck="name",
-				limit=1,
-			)
-			if existing_couple:
-				frappe.throw(
-					_(
-						"This booking already has couple appointments. "
-						"Pass both appointment IDs to update them."
-					)
+		except QueryDeadlockError:
+			safe_rollback_to_savepoint(savepoint)
+			if attempt == MAX_DEADLOCK_ATTEMPTS:
+				raise
+			_sleep(random.uniform(0.05, 0.15) * attempt)
+		except Exception:
+			safe_rollback_to_savepoint(savepoint)
+			raise
+	# Unreachable: the loop above always returns on success or re-raises once
+	# ``attempt`` reaches ``MAX_DEADLOCK_ATTEMPTS``. Satisfies static analysis
+	# that can't otherwise prove every path returns or raises.
+	raise frappe.ValidationError(_("Unable to reserve the couple appointment after repeated deadlocks."))
+
+
+def _upsert_couple_appointments_once(
+	booking,
+	member_1,
+	member_2,
+	appointment_id_1,
+	appointment_id_2,
+	release_couple_appointment_allocations,
+	reserve_couple_appointment_allocations,
+) -> list:
+	_lock_service_booking_row(booking.name)
+	booking.reload()
+	if booking.docstatus != 0 or booking.status in {"Cancelled", "Closed"}:
+		frappe.throw(_("Only an active draft booking can accept couple appointments."))
+	if not cint(getattr(booking, "is_couple", 0)):
+		booking.db_set("is_couple", 1, update_modified=False)
+		booking.is_couple = 1
+	_validate_couple_booking_items(booking, [member_1, member_2])
+	if appointment_id_1:
+		_lock_service_appointment_rows([appointment_id_1, appointment_id_2])
+		appointments = [
+			frappe.get_doc("Service Appointment", appointment_id_1),
+			frappe.get_doc("Service Appointment", appointment_id_2),
+		]
+		if any(appointment.booking_id != booking.name for appointment in appointments):
+			frappe.throw(_("Both couple appointments must belong to booking {0}.").format(booking.name))
+		if appointments[0].couple_appointment_id != appointments[1].name or (
+			appointments[1].couple_appointment_id != appointments[0].name
+		):
+			frappe.throw(_("The supplied appointments are not a linked couple."))
+		release_couple_appointment_allocations(
+			appointment_names=[appointment.name for appointment in appointments],
+			target_status="Released",
+		)
+	else:
+		existing_couple = frappe.get_all(
+			"Service Appointment",
+			filters={
+				"booking_id": booking.name,
+				"couple_appointment_id": ["is", "set"],
+				"docstatus": ["!=", 2],
+			},
+			pluck="name",
+			limit=1,
+		)
+		if existing_couple:
+			frappe.throw(
+				_(
+					"This booking already has couple appointments. "
+					"Pass both appointment IDs to update them."
 				)
-			appointments = [frappe.new_doc("Service Appointment"), frappe.new_doc("Service Appointment")]
+			)
+		appointments = [frappe.new_doc("Service Appointment"), frappe.new_doc("Service Appointment")]
 
-		# Updates release their own held rows above, so this exact projection check
-		# evaluates provider/unit correlation against the same counters we reserve.
-		_validate_couple_members_against_projector(member_1, member_2)
+	# Updates release their own held rows above, so this exact projection check
+	# evaluates provider/unit correlation against the same counters we reserve.
+	_validate_couple_members_against_projector(member_1, member_2)
 
-		for appointment, member in zip(appointments, [member_1, member_2], strict=True):
-			appointment.flags.skip_resource_allocation = True
-			appointment.flags.skip_calendar_event = True
-			appointment.flags.skip_couple_validation = True
-			appointment.flags.skip_capacity_validation = True
-			appointment.flags.skip_couple_auto_confirmation = True
-			appointment.flags.allow_couple_update = True
-			_apply_couple_member_to_appointment(appointment, booking, member)
-			if appointment.is_new():
-				appointment.insert(ignore_permissions=True)
-			else:
-				appointment.save(ignore_permissions=True)
+	for appointment, member in zip(appointments, [member_1, member_2], strict=True):
+		appointment.flags.skip_resource_allocation = True
+		appointment.flags.skip_calendar_event = True
+		appointment.flags.skip_couple_validation = True
+		appointment.flags.skip_capacity_validation = True
+		appointment.flags.skip_couple_auto_confirmation = True
+		appointment.flags.allow_couple_update = True
+		_apply_couple_member_to_appointment(appointment, booking, member)
+		if appointment.is_new():
+			appointment.insert(ignore_permissions=True)
+		else:
+			appointment.save(ignore_permissions=True)
 
-		primary, secondary = appointments
-		frappe.db.set_value(
-			"Service Appointment",
-			primary.name,
-			{"couple_appointment_id": secondary.name, "is_primary_in_couple": 1},
-			update_modified=False,
-		)
-		frappe.db.set_value(
-			"Service Appointment",
-			secondary.name,
-			{"couple_appointment_id": primary.name, "is_primary_in_couple": 0},
-			update_modified=False,
-		)
-		primary.couple_appointment_id = secondary.name
-		primary.is_primary_in_couple = 1
-		secondary.couple_appointment_id = primary.name
-		secondary.is_primary_in_couple = 0
+	primary, secondary = appointments
+	frappe.db.set_value(
+		"Service Appointment",
+		primary.name,
+		{"couple_appointment_id": secondary.name, "is_primary_in_couple": 1},
+		update_modified=False,
+	)
+	frappe.db.set_value(
+		"Service Appointment",
+		secondary.name,
+		{"couple_appointment_id": primary.name, "is_primary_in_couple": 0},
+		update_modified=False,
+	)
+	primary.couple_appointment_id = secondary.name
+	primary.is_primary_in_couple = 1
+	secondary.couple_appointment_id = primary.name
+	secondary.is_primary_in_couple = 0
 
-		for appointment in appointments:
-			appointment.flags.skip_couple_validation = False
-			appointment.validate_provider_offers_service()
-			appointment.validate_couple_configuration()
+	for appointment in appointments:
+		appointment.flags.skip_couple_validation = False
+		appointment.validate_provider_offers_service()
+		appointment.validate_couple_configuration()
 
-		reserve_couple_appointment_allocations(
-			appointments=[_couple_reservation_request(appointment) for appointment in appointments]
-		)
-		_queue_couple_calendar_sync(appointments)
-		return appointments
-	except Exception:
-		frappe.db.rollback(save_point=savepoint)
-		raise
+	reserve_couple_appointment_allocations(
+		appointments=[_couple_reservation_request(appointment) for appointment in appointments]
+	)
+	_queue_couple_calendar_sync(appointments)
+	return appointments
 
 
 def _couple_assignment_from_arguments(

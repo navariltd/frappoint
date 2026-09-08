@@ -1,10 +1,13 @@
 from __future__ import annotations
 
+import random
 from datetime import datetime, time, timedelta
+from time import sleep as _sleep
 from typing import Any
 
 import frappe
 from frappe import _
+from frappe.exceptions import QueryDeadlockError
 from frappe.utils import cint, flt, get_time, getdate, now_datetime
 
 from frappoint.frappoint.services.availability_projector import (
@@ -14,10 +17,28 @@ from frappoint.frappoint.services.availability_projector import (
 
 ACTIVE_RESERVATION_STATUSES = ("Draft", "Held", "Confirmed")
 RELEASE_ALLOCATION_STATUSES = ("Released", "Cancelled")
+MAX_DEADLOCK_ATTEMPTS = 3
 
 
 class CapacityReservationError(frappe.ValidationError):
     pass
+
+
+def safe_rollback_to_savepoint(savepoint: str) -> None:
+    """Roll back to ``savepoint``, tolerating a savepoint that no longer exists.
+
+    A deadlock (MySQL error 1213) - and some other InnoDB errors - make the
+    server discard every savepoint recorded so far in the current transaction,
+    not just undo the one statement that failed. Rolling back to a savepoint
+    that InnoDB already dropped raises a second, unrelated error (``SAVEPOINT
+    ... does not exist``) which masks the original failure and turns a
+    recoverable error into a crash. Fall back to rolling back the whole
+    transaction so the original exception can propagate cleanly.
+    """
+    try:
+        frappe.db.rollback(save_point=savepoint)
+    except Exception:
+        frappe.db.rollback()
 
 
 def reserve_and_create_allocations(
@@ -234,7 +255,7 @@ def _release_capacity_for_allocation_scope(
             frappe.db.commit()
         return len(rows)
     except Exception:
-        frappe.db.rollback(save_point=savepoint)
+        safe_rollback_to_savepoint(savepoint)
         raise
 
 
@@ -331,7 +352,7 @@ def _confirm_held_allocations_for_appointments(
             frappe.db.commit()  # nosemgrep - caller requested an explicit transaction boundary.
         return len(rows)
     except Exception:
-        frappe.db.rollback(save_point=savepoint)
+        safe_rollback_to_savepoint(savepoint)
         raise
 
 
@@ -363,109 +384,141 @@ def _reserve_appointment_allocation_groups(
     commit: bool = False,
     couple_booking: bool = False,
 ) -> dict[str, list[str]]:
-    """Reserve one or more appointment allocation groups under one savepoint."""
-    savepoint = _savepoint_name(savepoint_prefix)
-    frappe.db.savepoint(savepoint)
-    try:
-        request_names = [
-            request.get("appointment_name")
-            for request in requests
-            if isinstance(request, dict)
-        ]
-        _lock_service_appointment_rows(request_names)
-        if couple_booking:
-            requests = _validate_couple_reservation_requests(requests)
-        else:
-            # Repeat the singleton guard after taking the appointment lock. A pair
-            # link may have been committed while this reservation was waiting.
-            for appointment_name in request_names:
-                if frappe.db.get_value(
-                    "Service Appointment", appointment_name, "couple_appointment_id"
-                ):
-                    raise CapacityReservationError(
-                        _(
-                            "Couple appointments must reserve capacity through the atomic pair operation"
-                        )
-                    )
+    """Reserve one or more appointment allocation groups under one savepoint.
 
-        created_names = {request["appointment_name"]: [] for request in requests}
-        prepared_requests = []
-        for request in requests:
-            prepared_requests.append(
+    Retries on a MySQL/MariaDB deadlock (error 1213). This function takes row
+    locks across several tables (appointments, counter master resources, the
+    counters themselves) in a fixed order, but other flows that touch the same
+    rows (release, confirm, reschedule, cancel) don't all lock in that exact
+    order, so an occasional deadlock between two concurrent transactions is
+    expected. "Restart the transaction", which is what MySQL's own error
+    message recommends, is the standard, safe recovery: everything in this
+    function runs inside one fresh savepoint per attempt, so retrying re-takes
+    the locks from scratch instead of replaying partial state.
+    """
+    for attempt in range(1, MAX_DEADLOCK_ATTEMPTS + 1):
+        savepoint = _savepoint_name(savepoint_prefix)
+        frappe.db.savepoint(savepoint)
+        try:
+            return _reserve_appointment_allocation_groups_once(
+                requests, savepoint, commit=commit, couple_booking=couple_booking
+            )
+        except QueryDeadlockError:
+            safe_rollback_to_savepoint(savepoint)
+            if attempt == MAX_DEADLOCK_ATTEMPTS:
+                raise
+            _sleep(random.uniform(0.05, 0.15) * attempt)
+        except Exception:
+            safe_rollback_to_savepoint(savepoint)
+            raise
+    # Unreachable: the loop above always returns on success or re-raises once
+    # ``attempt`` reaches ``MAX_DEADLOCK_ATTEMPTS``. Satisfies static analysis
+    # that can't otherwise prove every path returns or raises.
+    raise CapacityReservationError(_("Unable to reserve capacity after repeated deadlocks."))
+
+
+def _reserve_appointment_allocation_groups_once(
+    requests: list[dict[str, Any]],
+    savepoint: str,
+    commit: bool,
+    couple_booking: bool,
+) -> dict[str, list[str]]:
+    request_names = [
+        request.get("appointment_name")
+        for request in requests
+        if isinstance(request, dict)
+    ]
+    _lock_service_appointment_rows(request_names)
+    if couple_booking:
+        requests = _validate_couple_reservation_requests(requests)
+    else:
+        # Repeat the singleton guard after taking the appointment lock. A pair
+        # link may have been committed while this reservation was waiting.
+        for appointment_name in request_names:
+            if frappe.db.get_value(
+                "Service Appointment", appointment_name, "couple_appointment_id"
+            ):
+                raise CapacityReservationError(
+                    _(
+                        "Couple appointments must reserve capacity through the atomic pair operation"
+                    )
+                )
+
+    created_names = {request["appointment_name"]: [] for request in requests}
+    prepared_requests = []
+    for request in requests:
+        prepared_requests.append(
+            {
+                **request,
+                "prepared_allocations": [
+                    _prepare_allocation_payload(row)
+                    for row in request["allocations"]
+                ],
+            }
+        )
+
+    if couple_booking:
+        _validate_couple_prepared_allocations(prepared_requests)
+
+    all_prepared = [
+        row
+        for request in prepared_requests
+        for row in request["prepared_allocations"]
+    ]
+    lock_counter_resource_rows(resources=all_prepared)
+    _ensure_counter_rows(all_prepared)
+    _apply_counter_deltas(all_prepared, direction="reserve")
+
+    couple_metadata: dict[str, Any] = {}
+    if couple_booking:
+        couple_metadata = {
+            "couple_booking": True,
+            "couple_appointment_names": [
+                request["appointment_name"] for request in prepared_requests
+            ],
+            "reservation_group": savepoint,
+        }
+
+    # Counter updates for every appointment happen before the first ledger insert.
+    for request in prepared_requests:
+        appointment_name = request["appointment_name"]
+        metadata = {
+            "source": "booking_transaction_service",
+            **request.get("extra_metadata", {}),
+            **couple_metadata,
+        }
+        for row in request["prepared_allocations"]:
+            doc = frappe.get_doc(
                 {
-                    **request,
-                    "prepared_allocations": [
-                        _prepare_allocation_payload(row)
-                        for row in request["allocations"]
-                    ],
+                    "doctype": "Service Resource Allocation",
+                    "allocation_date": row["allocation_date"],
+                    "service_appointment": appointment_name,
+                    "service_booking": request.get("booking_name"),
+                    "resource_type": row["resource_type"],
+                    "resource_reference": row["resource_reference"],
+                    "start_time": row["start_time"],
+                    "end_time": row["end_time"],
+                    "appointment_start_time": row["appointment_start_time"],
+                    "appointment_end_time": row["appointment_end_time"],
+                    "capacity_consumed": row["capacity_consumed"],
+                    "buffer_before_minutes": row["buffer_before_minutes"],
+                    "buffer_after_minutes": row["buffer_after_minutes"],
+                    "allocation_status": request["allocation_status"],
+                    "metadata_json": metadata,
                 }
             )
+            doc.insert(ignore_permissions=True)
+            created_names[appointment_name].append(doc.name)
 
-        if couple_booking:
-            _validate_couple_prepared_allocations(prepared_requests)
+    # Statuses are updated only after both appointments have complete ledgers.
+    for request in prepared_requests:
+        _update_appointment_allocation_status(
+            request["appointment_name"], request["allocation_status"]
+        )
 
-        all_prepared = [
-            row
-            for request in prepared_requests
-            for row in request["prepared_allocations"]
-        ]
-        lock_counter_resource_rows(resources=all_prepared)
-        _ensure_counter_rows(all_prepared)
-        _apply_counter_deltas(all_prepared, direction="reserve")
-
-        couple_metadata: dict[str, Any] = {}
-        if couple_booking:
-            couple_metadata = {
-                "couple_booking": True,
-                "couple_appointment_names": [
-                    request["appointment_name"] for request in prepared_requests
-                ],
-                "reservation_group": savepoint,
-            }
-
-        # Counter updates for every appointment happen before the first ledger insert.
-        for request in prepared_requests:
-            appointment_name = request["appointment_name"]
-            metadata = {
-                "source": "booking_transaction_service",
-                **request.get("extra_metadata", {}),
-                **couple_metadata,
-            }
-            for row in request["prepared_allocations"]:
-                doc = frappe.get_doc(
-                    {
-                        "doctype": "Service Resource Allocation",
-                        "allocation_date": row["allocation_date"],
-                        "service_appointment": appointment_name,
-                        "service_booking": request.get("booking_name"),
-                        "resource_type": row["resource_type"],
-                        "resource_reference": row["resource_reference"],
-                        "start_time": row["start_time"],
-                        "end_time": row["end_time"],
-                        "appointment_start_time": row["appointment_start_time"],
-                        "appointment_end_time": row["appointment_end_time"],
-                        "capacity_consumed": row["capacity_consumed"],
-                        "buffer_before_minutes": row["buffer_before_minutes"],
-                        "buffer_after_minutes": row["buffer_after_minutes"],
-                        "allocation_status": request["allocation_status"],
-                        "metadata_json": metadata,
-                    }
-                )
-                doc.insert(ignore_permissions=True)
-                created_names[appointment_name].append(doc.name)
-
-        # Statuses are updated only after both appointments have complete ledgers.
-        for request in prepared_requests:
-            _update_appointment_allocation_status(
-                request["appointment_name"], request["allocation_status"]
-            )
-
-        if commit:
-            frappe.db.commit()
-        return created_names
-    except Exception:
-        frappe.db.rollback(save_point=savepoint)
-        raise
+    if commit:
+        frappe.db.commit()
+    return created_names
 
 
 def _validate_couple_reservation_requests(
@@ -484,8 +537,7 @@ def _validate_couple_reservation_requests(
             )
         names.append(str(request["appointment_name"]))
 
-    names = _validate_couple_appointment_names(names)
-    appointment_records = {name: _get_appointment_couple_record(name) for name in names}
+    names, appointment_records = _validate_couple_appointment_names_with_records(names)
 
     booking_ids = {record.get("booking_id") for record in appointment_records.values()}
     if len(booking_ids) != 1 or not next(iter(booking_ids), None):
@@ -595,6 +647,19 @@ def _validate_couple_reservation_requests(
 
 
 def _validate_couple_appointment_names(appointment_names: list[str]) -> list[str]:
+    names, _records = _validate_couple_appointment_names_with_records(appointment_names)
+    return names
+
+
+def _validate_couple_appointment_names_with_records(
+    appointment_names: list[str],
+) -> tuple[list[str], dict[str, dict[str, Any]]]:
+    """Validate a reciprocal couple pair and return the records fetched along the way.
+
+    Callers that also need each appointment's authoritative fields (service type,
+    provider, unit, timing) should use this instead of re-fetching immediately
+    afterwards with :func:`_get_appointment_couple_record`.
+    """
     if not isinstance(appointment_names, list | tuple) or len(appointment_names) != 2:
         raise CapacityReservationError(
             _("Exactly two couple appointment names are required")
@@ -620,7 +685,7 @@ def _validate_couple_appointment_names(appointment_names: list[str]) -> list[str
     ):
         raise CapacityReservationError(_("Couple appointment links must be reciprocal"))
 
-    return names
+    return names, records
 
 
 def _get_appointment_couple_record(appointment_name: str) -> dict[str, Any]:
@@ -1037,15 +1102,10 @@ def _time_str(value) -> str:
 
 
 def _slot_size_minutes() -> int:
-    return max(
-        1,
-        cint(
-            frappe.db.get_single_value(
-                "Service Appointment Settings", "default_slot_size"
-            )
-            or 15
-        ),
-    )
+    # ``get_cached_doc`` avoids a synchronous round trip on every allocation/release
+    # call; ``availability_projector._get_slot_size_minutes`` uses the same pattern.
+    settings = frappe.get_cached_doc("Service Appointment Settings")
+    return max(1, cint(settings.default_slot_size or 15))
 
 
 def _lock_service_appointment_rows(appointment_names: list[str]) -> None:
