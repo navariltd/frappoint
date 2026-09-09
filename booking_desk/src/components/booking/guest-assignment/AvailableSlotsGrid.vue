@@ -18,16 +18,23 @@
 			</button>
 		</div>
 
-		<div class="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
-			<SlotCard
-				v-for="slot in visibleSlots"
-				:key="slot.id"
-				:slot="slot"
-				:selected="selectedSlotId === slot.id || pendingSlotId === slot.id"
-				:pending="pendingSlotId === slot.id"
-				:disabled="disabled"
-				@select="$emit('select-slot', $event)"
-			/>
+		<div :class="gridClass">
+			<template v-for="slot in visibleSlots" :key="slot.id">
+				<slot
+					:slot="slot"
+					:selected="selectedSlotId === slot.id || pendingSlotId === slot.id"
+					:pending="pendingSlotId === slot.id"
+					:disabled="disabled"
+				>
+					<SlotCard
+						:slot="slot"
+						:selected="selectedSlotId === slot.id || pendingSlotId === slot.id"
+						:pending="pendingSlotId === slot.id"
+						:disabled="disabled"
+						@select="$emit('select-slot', $event)"
+					/>
+				</slot>
+			</template>
 		</div>
 	</div>
 </template>
@@ -53,6 +60,10 @@ const props = defineProps({
 	disabled: {
 		type: Boolean,
 		default: false,
+	},
+	gridClass: {
+		type: String,
+		default: "grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3",
 	},
 });
 

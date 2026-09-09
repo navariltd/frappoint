@@ -196,23 +196,12 @@
 				>
 					Finding dates for both providers...
 				</p>
-				<div v-else-if="dates.length" class="flex flex-wrap gap-2">
-					<button
-						v-for="dateRow in dates"
-						:key="dateRow.date"
-						type="button"
-						:disabled="isReserving || isLoadingSlots"
-						class="rounded-full border px-3 py-1.5 text-[11px]"
-						:class="
-							selectedDate === dateRow.date
-								? 'border-primary bg-primary text-on-primary'
-								: 'border-outline-variant bg-surface hover:bg-surface-container'
-						"
-						@click="$emit('select-date', dateRow.date)"
-					>
-						{{ dateRow.label }}
-					</button>
-				</div>
+				<AvailableDatesList
+					v-else-if="dates.length"
+					:dates="dates"
+					:selectedDate="selectedDate"
+					@select="(date) => !(isReserving || isLoadingSlots) && $emit('select-date', date)"
+				/>
 				<p v-else class="text-[11px] text-on-surface-variant">
 					Enter both guests, then refresh to find simultaneous availability.
 				</p>
@@ -253,49 +242,57 @@
 				>
 					No simultaneous slots are available on this date.
 				</p>
-				<div v-else class="grid grid-cols-1 lg:grid-cols-2 gap-2">
-					<button
-						v-for="slot in slots"
-						:key="slot.id"
-						type="button"
-						class="rounded-xl border p-3 text-left transition-colors disabled:cursor-not-allowed disabled:opacity-70"
-						:class="
-							selectedCandidateId === slot.id || reservingSlotId === slot.id
-								? 'border-primary bg-primary text-on-primary'
-								: 'border-outline-variant bg-surface hover:bg-surface-container'
-						"
-						:disabled="isReserving || !canReserve"
-						@click="$emit('select-slot', slot.id)"
-					>
-						<div class="flex items-start justify-between gap-3">
-							<div>
-								<p class="text-[12px] font-semibold">
-									Starts {{ formatTime(slot.startTime) }}
-								</p>
-								<p class="mt-1 text-[11px] opacity-85">
-									Guest 1: {{ formatTime(slot.guest1.startTime) }}–{{
-										formatTime(slot.guest1.endTime)
-									}}
-									·
-									{{ slot.guest1.providerName }}
-								</p>
-								<p class="text-[11px] opacity-85">
-									Guest 2: {{ formatTime(slot.guest2.startTime) }}–{{
-										formatTime(slot.guest2.endTime)
-									}}
-									·
-									{{ slot.guest2.providerName }}
-								</p>
+				<AvailableSlotsGrid
+					v-else
+					:slots="slots"
+					:selectedSlotId="selectedCandidateId"
+					:pendingSlotId="reservingSlotId"
+					:disabled="isReserving || !canReserve"
+					gridClass="grid grid-cols-1 gap-2 lg:grid-cols-2"
+					@select-slot="$emit('select-slot', $event)"
+				>
+					<template #default="{ slot, selected, pending, disabled: slotDisabled }">
+						<button
+							type="button"
+							class="rounded-xl border p-3 text-left transition-colors disabled:cursor-not-allowed disabled:opacity-70"
+							:class="
+								selected
+									? 'border-primary bg-primary text-on-primary'
+									: 'border-outline-variant bg-surface hover:bg-surface-container'
+							"
+							:disabled="slotDisabled"
+							@click="!slotDisabled && $emit('select-slot', slot.id)"
+						>
+							<div class="flex items-start justify-between gap-3">
+								<div>
+									<p class="text-[12px] font-semibold">
+										Starts {{ formatTime(slot.startTime) }}
+									</p>
+									<p class="mt-1 text-[11px] opacity-85">
+										Guest 1: {{ formatTime(slot.guest1.startTime) }}–{{
+											formatTime(slot.guest1.endTime)
+										}}
+										·
+										{{ slot.guest1.providerName }}
+									</p>
+									<p class="text-[11px] opacity-85">
+										Guest 2: {{ formatTime(slot.guest2.startTime) }}–{{
+											formatTime(slot.guest2.endTime)
+										}}
+										·
+										{{ slot.guest2.providerName }}
+									</p>
+								</div>
+								<span
+									v-if="pending"
+									class="material-symbols-outlined text-[17px] animate-spin"
+								>
+									progress_activity
+								</span>
 							</div>
-							<span
-								v-if="reservingSlotId === slot.id"
-								class="material-symbols-outlined text-[17px] animate-spin"
-							>
-								progress_activity
-							</span>
-						</div>
-					</button>
-				</div>
+						</button>
+					</template>
+				</AvailableSlotsGrid>
 			</div>
 		</div>
 	</section>
@@ -303,6 +300,8 @@
 
 <script setup>
 import { computed } from "vue";
+import AvailableDatesList from "./AvailableDatesList.vue";
+import AvailableSlotsGrid from "./AvailableSlotsGrid.vue";
 
 const props = defineProps({
 	pairs: { type: Array, default: () => [] },
