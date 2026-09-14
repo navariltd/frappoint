@@ -118,7 +118,7 @@
 					</div>
 					<div
 						ref="dayHeaderScrollRef"
-						class="min-w-0 flex-1 overflow-x-auto overflow-y-hidden scrollbar-hide"
+						class="min-w-0 flex-1 overflow-x-auto overflow-y-hidden"
 						@scroll="onDayHeaderScroll"
 					>
 						<div
@@ -140,7 +140,7 @@
 
 				<!-- Provider Rows -->
 				<div
-					class="flex-1 min-h-0 bg-surface-container-lowest overflow-y-auto overflow-x-hidden"
+					class="flex-1 min-h-0 bg-surface-container-lowest overflow-y-auto"
 				>
 					<div
 						v-if="!hasAppointmentsForSelectedDate"
