@@ -1,5 +1,4 @@
 import { createResource } from "frappe-ui";
-import { formatTime } from "@/utils/formatters";
 
 const appointmentsListResource = createResource({
 	url: "frappe.client.get_list",
@@ -84,8 +83,8 @@ function normalizeAppointment(row) {
 		providerId: row.appointment_provider || "",
 		service: row.appointment_type || "Service",
 		appointmentDate: row.appointment_date || "",
-		startTime: formatTime(row.start_time),
-		endTime: formatTime(row.end_time),
+		startTime: row.start_time || "",
+		endTime: row.end_time || "",
 		duration: durationMinutes,
 		status: row.status || "Open",
 		paymentStatus: row.payment_status || "Unpaid",
