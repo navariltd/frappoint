@@ -13,7 +13,7 @@
 				<span class="material-symbols-outlined text-outline text-[18px]"
 					>calendar_today</span
 				>
-				<span>{{ booking.bookingDate || "-" }}</span>
+				<span>{{ formatDate(booking.bookingDate) || "-" }}</span>
 			</div>
 			<div class="flex items-center gap-2">
 				<span class="material-symbols-outlined text-outline text-[18px]">event_note</span>
@@ -45,6 +45,7 @@ import { computed } from "vue";
 import BookingAppointmentPreview from "@/components/bookings/BookingAppointmentPreview.vue";
 import BookingCardHeader from "@/components/bookings/BookingCardHeader.vue";
 import BookingQuickActions from "@/components/bookings/BookingQuickActions.vue";
+import { formatTime, formatDate } from "@/utils/formatters";
 
 const props = defineProps({ booking: { type: Object, required: true } });
 
@@ -55,6 +56,6 @@ const upcomingLabel = computed(() => {
 	if (!next) {
 		return "No upcoming";
 	}
-	return `${next.startTime || "--:--"}`;
+	return formatTime(next.startTime) || "--:--";
 });
 </script>

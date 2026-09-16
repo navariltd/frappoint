@@ -629,15 +629,10 @@ function fmt(amount: number) {
 
 function formatDate(dateStr: string) {
 	if (!dateStr) return "";
-	try {
-		return new Date(dateStr).toLocaleDateString(undefined, {
-			weekday: "short",
-			month: "short",
-			day: "numeric",
-		});
-	} catch {
-		return dateStr;
-	}
+	const parts = String(dateStr).split("-");
+	if (parts.length !== 3) return dateStr;
+	const [year, month, day] = parts;
+	return `${day}-${month}-${year}`;
 }
 
 function formatTime(timeStr: string) {

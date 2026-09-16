@@ -189,13 +189,10 @@ const availableReasons = computed(() => cancellationReasonsResource.data || []);
 
 function formatDate(dateStr) {
 	if (!dateStr) return "";
-	const date = new Date(dateStr);
-	return date.toLocaleDateString("en-US", {
-		weekday: "short",
-		month: "short",
-		day: "numeric",
-		year: "numeric",
-	});
+	const parts = String(dateStr).split("-");
+	if (parts.length !== 3) return dateStr;
+	const [year, month, day] = parts;
+	return `${day}-${month}-${year}`;
 }
 
 function formatTime(timeStr) {

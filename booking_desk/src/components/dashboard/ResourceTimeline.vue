@@ -139,9 +139,7 @@
 				</div>
 
 				<!-- Provider Rows -->
-				<div
-					class="flex-1 min-h-0 bg-surface-container-lowest overflow-y-auto"
-				>
+				<div class="flex-1 min-h-0 bg-surface-container-lowest overflow-y-auto">
 					<div
 						v-if="!hasAppointmentsForSelectedDate"
 						class="h-48 flex items-center justify-center text-[13px] text-on-surface-variant"

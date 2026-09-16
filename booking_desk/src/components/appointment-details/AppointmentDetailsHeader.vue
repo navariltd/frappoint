@@ -17,7 +17,7 @@
 						v-if="appointment.appointmentDate"
 						class="h-1 w-1 rounded-full bg-outline"
 					></span>
-					<span>{{ appointment.appointmentDate }}</span>
+					<span>{{ formatDate(appointment.appointmentDate) }}</span>
 				</div>
 				<div>
 					<h1 class="text-xl md:text-2xl font-semibold tracking-tight text-on-surface">
@@ -106,6 +106,8 @@
 </template>
 
 <script setup>
+import { formatDate } from "@/utils/formatters";
+
 defineProps({
 	appointment: { type: Object, required: true },
 	financialSummary: { type: Object, required: true },

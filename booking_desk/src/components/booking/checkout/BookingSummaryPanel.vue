@@ -35,7 +35,7 @@
 					</p>
 				</div>
 				<p class="text-[11px] text-on-surface-variant mt-1">
-					{{ appointment.date }} • {{ appointment.startTime }} -
+					{{ formatDate(appointment.date) }} • {{ appointment.startTime }} -
 					{{ appointment.endTime }}
 				</p>
 				<p class="text-[11px] text-on-surface-variant">
@@ -49,6 +49,7 @@
 </template>
 
 <script setup>
+import { formatDate } from "@/utils/formatters";
 defineProps({
 	booking: {
 		type: Object,
