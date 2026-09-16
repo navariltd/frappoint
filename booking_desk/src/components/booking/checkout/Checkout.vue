@@ -102,7 +102,9 @@
 								{{ appointment.serviceType }}
 							</p>
 							<p class="text-[11px] text-on-surface-variant">
-								<template v-if="appointment.date">{{ appointment.date }}</template>
+								<template v-if="appointment.date">{{
+									formatDate(appointment.date)
+								}}</template>
 								<template v-if="appointment.startTime">
 									· {{ appointment.startTime }} –
 									{{ appointment.endTime }}</template
@@ -257,6 +259,7 @@ import { useRoute, useRouter } from "vue-router";
 import CheckoutLoadingState from "@/components/booking/checkout/CheckoutLoadingState.vue";
 import CheckoutValidationBanner from "@/components/booking/checkout/CheckoutValidationBanner.vue";
 import PaymentStatusBanner from "@/components/booking/checkout/PaymentStatusBanner.vue";
+import { formatDate } from "@/utils/formatters";
 import PaymentTypeSelector from "@/components/booking/checkout/PaymentTypeSelector.vue";
 import CouponCodeSection from "@/components/booking/checkout/CouponCodeSection.vue";
 import PaymentMethodSelector from "@/components/booking/checkout/PaymentMethodSelector.vue";
@@ -329,16 +332,16 @@ const { startPolling, stopPolling } = useMpesaPayment();
 const booking = computed(() => summary.value.booking || {});
 const appointments = computed(() => booking.value.appointments || []);
 const currency = computed(
-	() => financialSummary.value.currency || booking.value.currency || "KES"
+	() => financialSummary.value.currency || booking.value.currency || "KES",
 );
 
 const checkoutTitle = computed(() =>
-	canConfirmWithoutPayment.value ? "Confirm Booking" : "Complete Payment"
+	canConfirmWithoutPayment.value ? "Confirm Booking" : "Complete Payment",
 );
 const checkoutSubtitle = computed(() =>
 	canConfirmWithoutPayment.value
 		? "Collect payment now or confirm the booking without payment."
-		: "Choose a payment channel and settle the booking."
+		: "Choose a payment channel and settle the booking.",
 );
 
 const guestCount = computed(() => {
@@ -352,7 +355,7 @@ const guestCount = computed(() => {
 });
 
 const serviceCount = computed(() =>
-	Number((booking.value.items || []).length || appointments.value.length)
+	Number((booking.value.items || []).length || appointments.value.length),
 );
 
 watch(
@@ -370,7 +373,7 @@ watch(
 		if (Number(totalAmount || 0) > 0 && Number(outstandingAmount || 0) <= 0) {
 			await completeBookingCheckout();
 		}
-	}
+	},
 );
 
 const combinedIssues = computed(() => {
@@ -388,7 +391,7 @@ const combinedIssues = computed(() => {
 });
 
 const canConfirmWithoutPaymentSubmit = computed(
-	() => canConfirmWithoutPayment.value && Boolean(booking.value.name || routeBookingId)
+	() => canConfirmWithoutPayment.value && Boolean(booking.value.name || routeBookingId),
 );
 
 const submitLabel = computed(() => {

@@ -34,3 +34,17 @@ export function formatTime(value, use24Hour = branding.use24HourClockSystem) {
 		return `${displayHour}:${minutes} ${ampm}`;
 	}
 }
+
+/**
+ * Formats a date string (yyyy-mm-dd) into dd-mm-yyyy.
+ * @param {string|null|undefined} value
+ * @returns {string} Formatted date or empty string
+ */
+export function formatDate(value) {
+	if (!value) return "";
+	// Expecting format YYYY-MM-DD
+	const parts = String(value).split("-");
+	if (parts.length !== 3) return value;
+	const [year, month, day] = parts;
+	return `${day}-${month}-${year}`;
+}
