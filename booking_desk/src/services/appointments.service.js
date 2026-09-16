@@ -1,4 +1,5 @@
 import { createResource } from "frappe-ui";
+import { formatTime } from "@/utils/formatters";
 
 const appointmentsListResource = createResource({
 	url: "frappe.client.get_list",
@@ -51,7 +52,7 @@ function buildOrFilters(params = {}) {
 			["appointment_type", "like", needle],
 			["service_provider_name", "like", needle],
 			["appointment_provider", "like", needle],
-			["mobile_no", "like", needle]
+			["mobile_no", "like", needle],
 		);
 	}
 
@@ -60,7 +61,7 @@ function buildOrFilters(params = {}) {
 		orFilters.push(
 			["full_name", "like", needle],
 			["customer", "like", needle],
-			["mobile_no", "like", needle]
+			["mobile_no", "like", needle],
 		);
 	}
 
@@ -83,8 +84,8 @@ function normalizeAppointment(row) {
 		providerId: row.appointment_provider || "",
 		service: row.appointment_type || "Service",
 		appointmentDate: row.appointment_date || "",
-		startTime: row.start_time || "",
-		endTime: row.end_time || "",
+		startTime: formatTime(row.start_time),
+		endTime: formatTime(row.end_time),
 		duration: durationMinutes,
 		status: row.status || "Open",
 		paymentStatus: row.payment_status || "Unpaid",
@@ -118,7 +119,7 @@ function summarizeMetrics(appointments) {
 
 function uniqueSorted(values) {
 	return Array.from(new Set(values.filter(Boolean))).sort((a, b) =>
-		String(a).localeCompare(String(b))
+		String(a).localeCompare(String(b)),
 	);
 }
 
@@ -187,7 +188,7 @@ export async function fetchAppointmentMetrics(params = {}) {
 	});
 
 	const rows = asArray(response?.message || response || appointmentsListResource.data || []).map(
-		normalizeAppointment
+		normalizeAppointment,
 	);
 
 	return {

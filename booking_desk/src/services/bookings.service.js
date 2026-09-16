@@ -1,4 +1,5 @@
 import { fetchBookingsWorkspaceApi } from "@/api/bookings.api";
+import { formatTime } from "@/utils/formatters";
 
 function toCurrencyAmount(value) {
 	return Number(value || 0);
@@ -10,7 +11,7 @@ function toPreviewAppointment(appointment) {
 		serviceType: appointment.serviceType || "Service",
 		provider: appointment.provider || "Unassigned",
 		date: appointment.date || "",
-		startTime: appointment.startTime || "",
+		startTime: formatTime(appointment.startTime),
 		status: appointment.status || "Open",
 	};
 }

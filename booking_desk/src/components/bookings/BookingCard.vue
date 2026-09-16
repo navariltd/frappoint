@@ -45,6 +45,7 @@ import { computed } from "vue";
 import BookingAppointmentPreview from "@/components/bookings/BookingAppointmentPreview.vue";
 import BookingCardHeader from "@/components/bookings/BookingCardHeader.vue";
 import BookingQuickActions from "@/components/bookings/BookingQuickActions.vue";
+import { formatTime } from "@/utils/formatters";
 
 const props = defineProps({ booking: { type: Object, required: true } });
 
@@ -55,6 +56,6 @@ const upcomingLabel = computed(() => {
 	if (!next) {
 		return "No upcoming";
 	}
-	return `${next.startTime || "--:--"}`;
+	return formatTime(next.startTime) || "--:--";
 });
 </script>
