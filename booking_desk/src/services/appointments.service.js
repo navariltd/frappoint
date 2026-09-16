@@ -51,7 +51,7 @@ function buildOrFilters(params = {}) {
 			["appointment_type", "like", needle],
 			["service_provider_name", "like", needle],
 			["appointment_provider", "like", needle],
-			["mobile_no", "like", needle],
+			["mobile_no", "like", needle]
 		);
 	}
 
@@ -60,7 +60,7 @@ function buildOrFilters(params = {}) {
 		orFilters.push(
 			["full_name", "like", needle],
 			["customer", "like", needle],
-			["mobile_no", "like", needle],
+			["mobile_no", "like", needle]
 		);
 	}
 
@@ -118,7 +118,7 @@ function summarizeMetrics(appointments) {
 
 function uniqueSorted(values) {
 	return Array.from(new Set(values.filter(Boolean))).sort((a, b) =>
-		String(a).localeCompare(String(b)),
+		String(a).localeCompare(String(b))
 	);
 }
 
@@ -187,7 +187,7 @@ export async function fetchAppointmentMetrics(params = {}) {
 	});
 
 	const rows = asArray(response?.message || response || appointmentsListResource.data || []).map(
-		normalizeAppointment,
+		normalizeAppointment
 	);
 
 	return {

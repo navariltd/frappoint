@@ -7,7 +7,7 @@
 				<div class="flex flex-wrap items-center gap-2 text-[12px] text-outline">
 					<span class="font-semibold text-on-surface">#{{ booking.bookingId }}</span>
 					<span class="h-1 w-1 rounded-full bg-outline"></span>
-					<span>{{ formatDate(booking.bookingDate) || ""}}</span>
+					<span>{{ formatDate(booking.bookingDate) || "" }}</span>
 				</div>
 				<div>
 					<h1 class="text-xl md:text-2xl font-semibold tracking-tight text-on-surface">

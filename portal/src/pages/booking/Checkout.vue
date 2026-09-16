@@ -455,7 +455,7 @@
 								>
 									<span
 										class="material-symbols-outlined text-[14px]"
-										style="font-variation-settings: &quot;FILL&quot; 1"
+										style="font-variation-settings: 'FILL' 1"
 										>check</span
 									>
 								</div>
@@ -476,7 +476,7 @@
 								>
 									<span
 										class="material-symbols-outlined text-[14px]"
-										style="font-variation-settings: &quot;FILL&quot; 1"
+										style="font-variation-settings: 'FILL' 1"
 										>credit_card</span
 									>
 								</div>

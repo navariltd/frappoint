@@ -262,7 +262,7 @@
 												class="text-error font-label-sm hover:opacity-80 disabled:opacity-40"
 												@click="
 													store.removeAppointmentCoupon(
-														appt.appointmentId,
+														appt.appointmentId
 													)
 												"
 											>
@@ -308,12 +308,12 @@
 															store.setAppointmentCouponDraft(
 																appt.appointmentId,
 																($event.target as HTMLInputElement)
-																	.value,
+																	.value
 															)
 														"
 														@keydown.enter.prevent="
 															store.applyAppointmentCoupon(
-																appt.appointmentId,
+																appt.appointmentId
 															)
 														"
 													/>
@@ -331,7 +331,7 @@
 														class="bg-primary/10 text-primary border border-primary/20 px-8 py-3 rounded-xl font-label-md text-label-md hover:bg-primary hover:text-on-primary transition-all active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed"
 														@click="
 															store.applyAppointmentCoupon(
-																appt.appointmentId,
+																appt.appointmentId
 															)
 														"
 													>
@@ -370,7 +370,7 @@
 						>
 							<span
 								class="material-symbols-outlined"
-								style="font-variation-settings: &quot;FILL&quot; 1"
+								style="font-variation-settings: 'FILL' 1"
 								>lock</span
 							>
 							Proceed to Checkout
@@ -464,7 +464,7 @@
 									type="text"
 									@input="
 										store.setBookingCouponDraft(
-											($event.target as HTMLInputElement).value,
+											($event.target as HTMLInputElement).value
 										)
 									"
 									@keydown.enter.prevent="store.applyBookingCoupon()"
@@ -496,7 +496,7 @@
 							>
 								<span
 									class="material-symbols-outlined"
-									style="font-variation-settings: &quot;FILL&quot; 1"
+									style="font-variation-settings: 'FILL' 1"
 									>lock</span
 								>
 								Proceed to Checkout
@@ -601,7 +601,7 @@ const areAppointmentCouponsLocked = computed(() => store.areAppointmentCouponsLo
 const discountTotal = computed(
 	() =>
 		Number(pricingSummary.value.appointmentDiscountTotal || 0) +
-		Number(pricingSummary.value.bookingDiscountAmount || 0),
+		Number(pricingSummary.value.bookingDiscountAmount || 0)
 );
 
 const bookingId = computed(() => route.params.bookingId as string);
