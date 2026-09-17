@@ -15,12 +15,39 @@
 			</span>
 		</div>
 
+		<label class="block space-y-1">
+			<span class="text-[12px] font-semibold text-on-surface">Complimentary coupon</span>
+			<select
+				:value="selectedComplimentaryCode"
+				class="w-full rounded-lg border border-outline-variant bg-surface-container-lowest px-3 py-2 text-[13px] text-on-surface outline-none focus:border-primary"
+				:disabled="isSubmitting || loading || couponsLoading || !complimentaryCoupons.length"
+				@change="$emit('update:couponDraft', $event.target.value)"
+			>
+				<option value="">
+					{{ couponsLoading ? "Loading coupons..." : "Select a complimentary coupon" }}
+				</option>
+				<option v-for="coupon in complimentaryCoupons" :key="coupon.name" :value="coupon.code || coupon.name">
+					{{ coupon.code || coupon.name }}
+				</option>
+			</select>
+		</label>
+		<p v-if="couponsLoadError" role="alert" class="text-[12px] text-error">
+			{{ couponsLoadError }}
+			<button type="button" class="underline" :disabled="couponsLoading || isSubmitting || loading" @click="loadComplimentaryCoupons">
+				Retry
+			</button>
+		</p>
+		<p v-else-if="!couponsLoading && !complimentaryCoupons.length" class="text-[12px] text-on-surface-variant">
+			No complimentary coupons available.
+		</p>
+
 		<div class="flex flex-col sm:flex-row gap-2">
 			<input
 				:value="couponDraft"
 				type="text"
 				class="min-w-0 flex-1 rounded-lg border border-outline-variant bg-surface-container-lowest px-3 py-2 text-[13px] font-semibold uppercase text-on-surface outline-none focus:border-primary"
-				placeholder="Enter coupon code"
+				placeholder="Or enter a coupon code"
+				aria-label="Coupon code"
 				:disabled="isSubmitting || loading"
 				@input="$emit('update:couponDraft', $event.target.value)"
 				@keydown.enter.prevent="$emit('apply')"
@@ -82,7 +109,8 @@
 </template>
 
 <script setup>
-import { computed } from "vue";
+import { computed, onMounted, ref } from "vue";
+import { getComplimentaryCouponsApi } from "@/api/checkout.api";
 
 const props = defineProps({
 	couponDraft: { type: String, default: "" },
@@ -97,6 +125,29 @@ const props = defineProps({
 });
 
 defineEmits(["update:couponDraft", "apply", "remove"]);
+
+const complimentaryCoupons = ref([]);
+const couponsLoading = ref(true);
+const couponsLoadError = ref("");
+const selectedComplimentaryCode = computed(() =>
+	complimentaryCoupons.value.some((coupon) => (coupon.code || coupon.name) === props.couponDraft)
+		? props.couponDraft
+		: ""
+);
+
+async function loadComplimentaryCoupons() {
+	couponsLoading.value = true;
+	couponsLoadError.value = "";
+	try {
+		complimentaryCoupons.value = await getComplimentaryCouponsApi();
+	} catch {
+		couponsLoadError.value = "Could not load complimentary coupons. You can still enter a code manually.";
+	} finally {
+		couponsLoading.value = false;
+	}
+}
+
+onMounted(loadComplimentaryCoupons);
 
 const loading = computed(() => props.isValidating || props.isApplying);
 const canApply = computed(
