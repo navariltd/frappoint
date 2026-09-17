@@ -21,7 +21,7 @@
 				:value="selectedComplimentaryCode"
 				class="w-full rounded-lg border border-outline-variant bg-surface-container-lowest px-3 py-2 text-[13px] text-on-surface outline-none focus:border-primary"
 				:disabled="isSubmitting || loading || couponsLoading || !complimentaryCoupons.length"
-				@change="$emit('update:couponDraft', $event.target.value)"
+				@change="selectCoupon($event.target.value)"
 			>
 				<option value="">
 					{{ couponsLoading ? "Loading coupons..." : "Select a complimentary coupon" }}
@@ -41,31 +41,9 @@
 			No complimentary coupons available.
 		</p>
 
-		<div class="flex flex-col sm:flex-row gap-2">
-			<input
-				:value="couponDraft"
-				type="text"
-				class="min-w-0 flex-1 rounded-lg border border-outline-variant bg-surface-container-lowest px-3 py-2 text-[13px] font-semibold uppercase text-on-surface outline-none focus:border-primary"
-				placeholder="Or enter a coupon code"
-				aria-label="Coupon code"
-				:disabled="isSubmitting || loading"
-				@input="$emit('update:couponDraft', $event.target.value)"
-				@keydown.enter.prevent="$emit('apply')"
-			/>
-			<button
-				type="button"
-				class="rounded-lg px-4 py-2 text-[12px] font-semibold transition-colors"
-				:class="
-					canApply
-						? 'bg-primary text-on-primary hover:bg-primary-dark'
-						: 'bg-primary/60 text-on-primary cursor-not-allowed'
-				"
-				:disabled="!canApply"
-				@click="$emit('apply')"
-			>
-				{{ loading ? "Checking..." : "Apply" }}
-			</button>
-		</div>
+		<p v-if="loading" role="status" class="text-[12px] text-on-surface-variant">
+			{{ isValidating ? "Checking coupon..." : "Updating coupon..." }}
+		</p>
 
 		<p v-if="couponError" class="text-[12px] text-error">{{ couponError }}</p>
 		<p v-else-if="couponMessage" class="text-[12px] text-secondary-ink">{{ couponMessage }}</p>
@@ -124,7 +102,7 @@ const props = defineProps({
 	isSubmitting: { type: Boolean, default: false },
 });
 
-defineEmits(["update:couponDraft", "apply", "remove"]);
+const emit = defineEmits(["update:couponDraft", "apply", "remove"]);
 
 const complimentaryCoupons = ref([]);
 const couponsLoading = ref(true);
@@ -141,7 +119,7 @@ async function loadComplimentaryCoupons() {
 	try {
 		complimentaryCoupons.value = await getComplimentaryCouponsApi();
 	} catch {
-		couponsLoadError.value = "Could not load complimentary coupons. You can still enter a code manually.";
+		couponsLoadError.value = "Could not load complimentary coupons. Please try again.";
 	} finally {
 		couponsLoading.value = false;
 	}
@@ -150,9 +128,16 @@ async function loadComplimentaryCoupons() {
 onMounted(loadComplimentaryCoupons);
 
 const loading = computed(() => props.isValidating || props.isApplying);
-const canApply = computed(
-	() => Boolean(props.couponDraft?.trim()) && !props.isSubmitting && !loading.value
-);
+function selectCoupon(code) {
+	if (props.isSubmitting || loading.value || couponsLoading.value) return;
+
+	emit("update:couponDraft", code);
+	if (code) {
+		emit("apply", code);
+	} else if (props.appliedCoupon) {
+		emit("remove");
+	}
+}
 const previewDiscount = computed(() => Number(props.validation?.evaluation?.previewDiscount || 0));
 const validationMessage = computed(() => props.validation?.message || "Coupon is valid.");
 const appliedCouponCode = computed(

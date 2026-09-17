@@ -847,7 +847,7 @@ def apply_checkout_coupon(booking_id: str, coupon_code: str):
 	frappe.db.commit()  # nosemgrep
 
 	return {
-		"message": _("Coupon applied successfully."),
+		"message": _(f"Coupon code: {coupon_code} applied successfully."),
 		"checkout": _build_checkout_summary(booking),
 		"evaluation": evaluation,
 	}
