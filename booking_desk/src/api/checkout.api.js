@@ -77,7 +77,8 @@ export async function getComplimentaryCouponsApi() {
 	const resource = createResource({ url: "frappe.client.get_list", auto: false });
 	const coupons = [];
 	const pageSize = 100;
-	while (true) {
+	let hasMore = true;
+	while (hasMore) {
 		const response = await resource.fetch({
 			doctype: "Service Appointment Coupon Code",
 			fields: ["name", "code"],
@@ -89,8 +90,9 @@ export async function getComplimentaryCouponsApi() {
 		const page = unwrapPayload(response, resource.data);
 		if (!Array.isArray(page)) throw new Error("Unable to load complimentary coupons.");
 		coupons.push(...page);
-		if (page.length < pageSize) return coupons;
+		hasMore = page.length === pageSize;
 	}
+	return coupons;
 }
 
 export async function recordManualCheckoutPaymentApi({

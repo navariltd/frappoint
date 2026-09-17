@@ -20,24 +20,38 @@
 			<select
 				:value="selectedComplimentaryCode"
 				class="w-full rounded-lg border border-outline-variant bg-surface-container-lowest px-3 py-2 text-[13px] text-on-surface outline-none focus:border-primary"
-				:disabled="isSubmitting || loading || couponsLoading || !complimentaryCoupons.length"
+				:disabled="
+					isSubmitting || loading || couponsLoading || !complimentaryCoupons.length
+				"
 				@change="selectCoupon($event.target.value)"
 			>
 				<option value="">
 					{{ couponsLoading ? "Loading coupons..." : "Select a complimentary coupon" }}
 				</option>
-				<option v-for="coupon in complimentaryCoupons" :key="coupon.name" :value="coupon.code || coupon.name">
+				<option
+					v-for="coupon in complimentaryCoupons"
+					:key="coupon.name"
+					:value="coupon.code || coupon.name"
+				>
 					{{ coupon.code || coupon.name }}
 				</option>
 			</select>
 		</label>
 		<p v-if="couponsLoadError" role="alert" class="text-[12px] text-error">
 			{{ couponsLoadError }}
-			<button type="button" class="underline" :disabled="couponsLoading || isSubmitting || loading" @click="loadComplimentaryCoupons">
+			<button
+				type="button"
+				class="underline"
+				:disabled="couponsLoading || isSubmitting || loading"
+				@click="loadComplimentaryCoupons"
+			>
 				Retry
 			</button>
 		</p>
-		<p v-else-if="!couponsLoading && !complimentaryCoupons.length" class="text-[12px] text-on-surface-variant">
+		<p
+			v-else-if="!couponsLoading && !complimentaryCoupons.length"
+			class="text-[12px] text-on-surface-variant"
+		>
 			No complimentary coupons available.
 		</p>
 
