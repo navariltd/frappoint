@@ -396,8 +396,7 @@ class _CoupleCandidateEligibility:
 
 	def __call__(self, candidate):
 		return all(
-			self.allows_leg(leg_name, candidate.get(leg_name) or {})
-			for leg_name in ("guest_1", "guest_2")
+			self.allows_leg(leg_name, candidate.get(leg_name) or {}) for leg_name in ("guest_1", "guest_2")
 		)
 
 

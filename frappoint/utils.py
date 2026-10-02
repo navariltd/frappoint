@@ -1,4 +1,5 @@
 import frappe
+from frappe import _
 from frappe.query_builder.functions import Max
 from frappe.utils import add_days, date_diff, get_datetime, getdate, now_datetime
 
@@ -112,7 +113,7 @@ def expire_pending_payment_holds():
 				appointments[0].couple_appointment_id != appointments[1].name
 				or appointments[1].couple_appointment_id != appointments[0].name
 			):
-				frappe.throw("Couple appointment links must be reciprocal during hold expiry.")
+				frappe.throw(_("Couple appointment links must be reciprocal during hold expiry."))
 			if any(
 				row.docstatus != 0 or row.status not in {"Open", "Pending Payment"} for row in appointments
 			):

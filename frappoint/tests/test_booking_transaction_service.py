@@ -23,7 +23,7 @@ def _appointment_records():
 			"booking_id": "BOOKING-1",
 			"appointment_type": "SERVICE-1",
 			"appointment_provider": "PROVIDER-A",
-			"service_unit": None,
+			"service_unit": "UNIT-1",
 			"appointment_date": "2026-08-10",
 			"start_time": "09:00:00",
 			"end_time": "09:45:00",
@@ -34,7 +34,7 @@ def _appointment_records():
 			"booking_id": "BOOKING-1",
 			"appointment_type": "SERVICE-2",
 			"appointment_provider": "PROVIDER-B",
-			"service_unit": None,
+			"service_unit": "UNIT-1",
 			"appointment_date": "2026-08-10",
 			"start_time": "09:00:00",
 			"end_time": "10:00:00",
@@ -59,18 +59,29 @@ def _allocation(provider, end_time, start_time="09:00:00"):
 	}
 
 
+def _unit_allocation(end_time):
+	return {
+		**_allocation("UNIT-1", end_time),
+		"resource_type": "Service Unit",
+	}
+
+
+def _unit_settings():
+	return {"allow_overlap": 1, "capacity": 2, "unit_type": "UNIT-TYPE", "allow_appointments": 1}
+
+
 def _couple_requests():
 	return [
 		{
 			"appointment_name": "APT-1",
 			"booking_name": "BOOKING-1",
-			"allocations": [_allocation("PROVIDER-A", "09:45:00")],
+			"allocations": [_allocation("PROVIDER-A", "09:45:00"), _unit_allocation("09:45:00")],
 			"allocation_status": "Held",
 		},
 		{
 			"appointment_name": "APT-2",
 			"booking_name": "BOOKING-1",
-			"allocations": [_allocation("PROVIDER-B", "10:00:00")],
+			"allocations": [_allocation("PROVIDER-B", "10:00:00"), _unit_allocation("10:00:00")],
 			"allocation_status": "Held",
 		},
 	]
@@ -85,6 +96,8 @@ class TestBookingTransactionService(TestCase):
 				return records[name]
 			if doctype == "Service Type":
 				return {"buffer_before": 0, "buffer_after": 0}
+			if doctype == "Service Unit":
+				return _unit_settings()
 			return None
 
 		return SimpleNamespace(
@@ -106,23 +119,25 @@ class TestBookingTransactionService(TestCase):
 		def get_doc(payload):
 			self.assertEqual(
 				events[:3],
-				["resource_lock", "ensure_counters", ("counter_deltas", 2)],
+				["resource_lock", "ensure_counters", ("counter_deltas", 4)],
 			)
 			doc = _AllocationDoc(payload, f"ALLOC-{len(created_docs) + 1}", events)
 			created_docs.append(doc)
 			return doc
 
 		requests = _couple_requests()
-		requests[0]["allocations"][0].update(
-			start_time="08:45:00",
-			end_time="09:50:00",
-			buffer_before_minutes=15,
-			buffer_after_minutes=5,
-		)
-		requests[1]["allocations"][0].update(
-			end_time="10:15:00",
-			buffer_after_minutes=15,
-		)
+		for allocation in requests[0]["allocations"]:
+			allocation.update(
+				start_time="08:45:00",
+				end_time="09:50:00",
+				buffer_before_minutes=15,
+				buffer_after_minutes=5,
+			)
+		for allocation in requests[1]["allocations"]:
+			allocation.update(
+				end_time="10:15:00",
+				buffer_after_minutes=15,
+			)
 		records = _appointment_records()
 		database.get_value.side_effect = lambda doctype, name, fields=None, as_dict=False: (
 			records[name]
@@ -133,14 +148,20 @@ class TestBookingTransactionService(TestCase):
 					"buffer_after": 5 if name == "SERVICE-1" else 15,
 				}
 				if doctype == "Service Type"
-				else None
+				else (_unit_settings() if doctype == "Service Unit" else None)
 			)
 		)
 
 		with (
 			patch.object(service.frappe, "db", database),
 			patch.object(service.frappe, "get_doc", side_effect=get_doc),
-			patch.object(service.frappe, "get_all", return_value=[]),
+			patch.object(
+				service.frappe,
+				"get_all",
+				side_effect=lambda doctype, **kwargs: ["UNIT-TYPE"]
+				if doctype == "Service Type Unit Type"
+				else [],
+			),
 			patch.object(
 				service,
 				"_ensure_counter_rows",
@@ -161,7 +182,7 @@ class TestBookingTransactionService(TestCase):
 		):
 			result = service.reserve_couple_appointment_allocations(requests)
 
-		self.assertEqual(result, {"APT-1": ["ALLOC-1"], "APT-2": ["ALLOC-2"]})
+		self.assertEqual(result, {"APT-1": ["ALLOC-1", "ALLOC-2"], "APT-2": ["ALLOC-3", "ALLOC-4"]})
 		apply_deltas.assert_called_once()
 		self.assertEqual(apply_deltas.call_args.kwargs, {"direction": "reserve"})
 		self.assertEqual(
@@ -171,10 +192,14 @@ class TestBookingTransactionService(TestCase):
 			],
 			[
 				("08:45:00", "09:50:00", "09:45:00"),
+				("08:45:00", "09:50:00", "09:45:00"),
+				("09:00:00", "10:15:00", "10:00:00"),
 				("09:00:00", "10:15:00", "10:00:00"),
 			],
 		)
-		self.assertEqual([doc.payload["service_appointment"] for doc in created_docs], ["APT-1", "APT-2"])
+		self.assertEqual(
+			[doc.payload["service_appointment"] for doc in created_docs], ["APT-1", "APT-1", "APT-2", "APT-2"]
+		)
 		for doc in created_docs:
 			self.assertEqual(doc.payload["metadata_json"]["reservation_group"], "reserve_couple_test")
 			self.assertEqual(doc.payload["metadata_json"]["couple_appointment_names"], ["APT-1", "APT-2"])
@@ -188,7 +213,13 @@ class TestBookingTransactionService(TestCase):
 
 		with (
 			patch.object(service.frappe, "db", database),
-			patch.object(service.frappe, "get_all", return_value=[]),
+			patch.object(
+				service.frappe,
+				"get_all",
+				side_effect=lambda doctype, **kwargs: ["UNIT-TYPE"]
+				if doctype == "Service Type Unit Type"
+				else [],
+			),
 			patch.object(service, "lock_counter_resource_rows"),
 			patch.object(service, "_ensure_counter_rows"),
 			patch.object(service, "_savepoint_name", return_value="reserve_couple_test"),
@@ -215,21 +246,31 @@ class TestBookingTransactionService(TestCase):
 		get_doc = MagicMock()
 
 		requests = _couple_requests()
-		requests[0]["allocations"] = [_allocation("PROVIDER-A", "09:15:00")]
+		requests[0]["allocations"] = [_allocation("PROVIDER-A", "09:15:00"), _unit_allocation("09:15:00")]
 		records = _appointment_records()
 		records["APT-1"]["end_time"] = "09:15:00"
 		database.get_value.side_effect = lambda doctype, name, fields=None, as_dict=False: (
 			records[name]
 			if doctype == "Service Appointment"
-			else ({"buffer_before": 0, "buffer_after": 0} if doctype == "Service Type" else None)
+			else (
+				{"buffer_before": 0, "buffer_after": 0}
+				if doctype == "Service Type"
+				else (_unit_settings() if doctype == "Service Unit" else None)
+			)
 		)
-		requests[1]["allocations"] = [_allocation("PROVIDER-B", "09:15:00")]
+		requests[1]["allocations"] = [_allocation("PROVIDER-B", "09:15:00"), _unit_allocation("09:15:00")]
 		records["APT-2"]["end_time"] = "09:15:00"
 
 		with (
 			patch.object(service.frappe, "db", database),
 			patch.object(service.frappe, "get_doc", get_doc),
-			patch.object(service.frappe, "get_all", return_value=[]),
+			patch.object(
+				service.frappe,
+				"get_all",
+				side_effect=lambda doctype, **kwargs: ["UNIT-TYPE"]
+				if doctype == "Service Type Unit Type"
+				else [],
+			),
 			patch.object(service, "_ensure_counter_rows"),
 			patch.object(service, "lock_counter_resource_rows"),
 			patch.object(service, "_update_appointment_allocation_status") as update_status,
@@ -330,15 +371,19 @@ class TestBookingTransactionService(TestCase):
 		allocation_rows = [
 			{"name": "ALLOC-1", "service_appointment": "APT-1", **_allocation("PROVIDER-A", "09:45:00")},
 			{"name": "ALLOC-2", "service_appointment": "APT-2", **_allocation("PROVIDER-B", "10:00:00")},
+			{"name": "ALLOC-3", "service_appointment": "APT-1", **_unit_allocation("09:45:00")},
+			{"name": "ALLOC-4", "service_appointment": "APT-2", **_unit_allocation("10:00:00")},
 		]
 		allocation_query_count = 0
 
 		def get_all(doctype, **kwargs):
 			nonlocal allocation_query_count
 			if doctype == "Service Type Unit Type":
-				return []
+				return ["UNIT-TYPE"]
 			allocation_query_count += 1
-			return ["ALLOC-1", "ALLOC-2"] if allocation_query_count == 1 else allocation_rows
+			return (
+				[row["name"] for row in allocation_rows] if allocation_query_count == 1 else allocation_rows
+			)
 
 		with (
 			patch.object(service.frappe, "db", database),

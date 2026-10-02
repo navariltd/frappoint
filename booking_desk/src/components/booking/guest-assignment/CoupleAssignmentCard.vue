@@ -200,7 +200,9 @@
 					v-else-if="dates.length"
 					:dates="dates"
 					:selectedDate="selectedDate"
-					@select="(date) => !(isReserving || isLoadingSlots) && $emit('select-date', date)"
+					@select="
+						(date) => !(isReserving || isLoadingSlots) && $emit('select-date', date)
+					"
 				/>
 				<p v-else class="text-[11px] text-on-surface-variant">
 					Enter both guests, then refresh to find simultaneous availability.
