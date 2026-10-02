@@ -1,8 +1,11 @@
 # Copyright (c) 2025, Navari LTD and contributors
 # For license information, please see license.txt
 
-# import frappe
+import frappe
 from frappe.model.document import Document
+from frappe.utils import add_days, cint, getdate, nowdate
+
+from frappoint.frappoint.services.availability_projector import enqueue_targeted_counter_refresh
 
 
 class ServiceUnit(Document):
@@ -28,4 +31,17 @@ class ServiceUnit(Document):
 		unit_name: DF.Data
 		unit_type: DF.Link
 	# end: auto-generated types
-	pass
+
+	def on_update(self):
+		previous = self.get_doc_before_save()
+		availability_fields = ("capacity", "allow_overlap", "allow_appointments", "disabled")
+		if not previous or not any(self.has_value_changed(field) for field in availability_fields):
+			return
+
+		settings = frappe.get_cached_doc("Service Appointment Settings")
+		today = getdate(nowdate())
+		enqueue_targeted_counter_refresh(
+			start_date=add_days(today, -1),
+			end_date=add_days(today, cint(settings.max_advance_days or 30)),
+			service_unit=self.name,
+		)

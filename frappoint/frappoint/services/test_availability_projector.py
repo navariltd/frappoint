@@ -1,6 +1,6 @@
 from datetime import date, time, timedelta
 from unittest import TestCase
-from unittest.mock import call, patch
+from unittest.mock import Mock, call, patch
 
 from frappe.utils import get_time
 
@@ -44,6 +44,31 @@ def _capacity(resource_type, resource, values, slot_date=date(2026, 8, 10)):
 
 
 class TestCoupleAvailabilityProjection(TestCase):
+    def test_targeted_unit_rebuild_does_not_insert_provider_or_other_unit_counters(self):
+        target_date = date(2026, 10, 3)
+        slots = {
+            ("Service Provider", "PROVIDER-1", "09:00:00"): {"max_capacity": 1},
+            ("Service Unit", "ROOM-1", "09:00:00"): {"max_capacity": 2},
+            ("Service Unit", "ROOM-2", "09:00:00"): {"max_capacity": 2},
+        }
+        with (
+            patch.object(availability_projector, "lock_counter_resource_rows"),
+            patch.object(availability_projector, "_get_slot_size_minutes", return_value=15),
+            patch.object(availability_projector, "_build_shift_capacity_slots", return_value=slots),
+            patch.object(availability_projector, "_build_consumption_map", return_value={}),
+            patch.object(availability_projector, "_delete_existing_counters") as delete,
+            patch.object(availability_projector.frappe, "get_doc", return_value=Mock()) as get_doc,
+        ):
+            result = availability_projector.rebuild_counter_for_date(
+                target_date, resource_type="Service Unit", resource_reference="ROOM-1"
+            )
+
+        delete.assert_called_once_with(target_date, "Service Unit", "ROOM-1")
+        self.assertEqual(result["inserted"], 1)
+        get_doc.assert_called_once()
+        self.assertEqual(get_doc.call_args.args[0]["resource_type"], "Service Unit")
+        self.assertEqual(get_doc.call_args.args[0]["resource_reference"], "ROOM-1")
+
     def test_pairs_only_equal_customer_start_and_preserves_each_duration(self):
         guest_1 = _slot(
             "PROVIDER-1",

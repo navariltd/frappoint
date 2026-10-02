@@ -46,6 +46,13 @@ def rebuild_counter_for_date(
         resource_type=resource_type,
         resource_reference=resource_reference,
     )
+    if resource_type:
+        base_slots = {
+            key: slot
+            for key, slot in base_slots.items()
+            if key[0] == resource_type
+            and (not resource_reference or key[1] == resource_reference)
+        }
     consumption = _build_consumption_map(
         target_date,
         slot_size,
