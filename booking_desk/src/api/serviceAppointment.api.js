@@ -4,6 +4,8 @@ const UPSERT_DRAFT_APPOINTMENT_ENDPOINT =
 	"frappoint.frappoint.api.booking_desk.upsert_draft_service_appointment";
 const UPDATE_DRAFT_APPOINTMENT_NOTES_ENDPOINT =
 	"frappoint.frappoint.api.booking_desk.update_draft_service_appointment_notes";
+const UPSERT_DRAFT_COUPLE_APPOINTMENTS_ENDPOINT =
+	"frappoint.frappoint.api.booking_desk.upsert_draft_couple_appointments";
 
 const upsertDraftAppointmentResource = createResource({
 	url: UPSERT_DRAFT_APPOINTMENT_ENDPOINT,
@@ -12,6 +14,11 @@ const upsertDraftAppointmentResource = createResource({
 
 const updateDraftAppointmentNotesResource = createResource({
 	url: UPDATE_DRAFT_APPOINTMENT_NOTES_ENDPOINT,
+	auto: false,
+});
+
+const upsertDraftCoupleAppointmentsResource = createResource({
+	url: UPSERT_DRAFT_COUPLE_APPOINTMENTS_ENDPOINT,
 	auto: false,
 });
 
@@ -33,3 +40,17 @@ export async function updateDraftServiceAppointmentNotesApi({ appointmentId, not
 	});
 	return unwrapPayload(response ?? updateDraftAppointmentNotesResource.data);
 }
+
+export async function upsertDraftCoupleAppointmentsApi({ bookingId, coupleAssignment }) {
+	const response = await upsertDraftCoupleAppointmentsResource.fetch({
+		booking_id: bookingId,
+		couple_assignment: JSON.stringify(coupleAssignment || {}),
+	});
+	return unwrapPayload(response ?? upsertDraftCoupleAppointmentsResource.data);
+}
+
+export {
+	UPSERT_DRAFT_APPOINTMENT_ENDPOINT,
+	UPSERT_DRAFT_COUPLE_APPOINTMENTS_ENDPOINT,
+	UPDATE_DRAFT_APPOINTMENT_NOTES_ENDPOINT,
+};

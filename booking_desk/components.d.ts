@@ -70,6 +70,7 @@ declare module 'vue' {
     Checkout: typeof import('./src/components/booking/checkout/Checkout.vue')['default']
     CheckoutLoadingState: typeof import('./src/components/booking/checkout/CheckoutLoadingState.vue')['default']
     CheckoutValidationBanner: typeof import('./src/components/booking/checkout/CheckoutValidationBanner.vue')['default']
+    CoupleAssignmentCard: typeof import('./src/components/booking/guest-assignment/CoupleAssignmentCard.vue')['default']
     CouponCodeSection: typeof import('./src/components/booking/checkout/CouponCodeSection.vue')['default']
     DashboardMetricsCards: typeof import('./src/components/dashboard/DashboardMetricsCards.vue')['default']
     DateSelectionSection: typeof import('./src/components/booking/guest-assignment/DateSelectionSection.vue')['default']

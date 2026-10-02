@@ -22,6 +22,12 @@ export function useGuestAssignment() {
 		validationIssues,
 		isComplete,
 		summaryRows,
+		isCoupleMode,
+		coupleEntries,
+		coupleAvailableDates,
+		coupleAvailableSlots,
+		coupleSelectedDate,
+		coupleError,
 	} = storeToRefs(guestStore);
 	const { cartItems, customers, selectedCustomerId, selectedCustomer, grandTotal } =
 		storeToRefs(servicesStore);
@@ -54,6 +60,9 @@ export function useGuestAssignment() {
 	const activeServiceKey = computed(
 		() => assignments.value[activeServiceIndex.value]?.serviceKey || ""
 	);
+	const assignmentGrandTotal = computed(() =>
+		Number(draftBooking.value?.grandTotal ?? grandTotal.value ?? 0)
+	);
 
 	const initialize = async () => {
 		await servicesStore.loadCustomers();
@@ -68,6 +77,7 @@ export function useGuestAssignment() {
 			selectedCustomerId: workflowSelectedCustomerId.value,
 			selectedCustomer: workflowSelectedCustomer.value,
 			appointmentsByGuestKey: appointmentsByGuestKey.value,
+			isCoupleMode: Boolean(workflowStore.draftBooking.isCouple),
 		});
 		await Promise.all(
 			guestStore.assignments.map((service) =>
@@ -92,8 +102,14 @@ export function useGuestAssignment() {
 		validationIssues,
 		isComplete,
 		summaryRows,
+		isCoupleMode,
+		coupleEntries,
+		coupleAvailableDates,
+		coupleAvailableSlots,
+		coupleSelectedDate,
+		coupleError,
 		draftBooking,
-		grandTotal,
+		grandTotal: assignmentGrandTotal,
 		customers,
 		setActiveIndices: guestStore.setActiveIndices,
 		updateGuestFromCustomer: guestStore.updateGuestFromCustomer,
@@ -104,6 +120,9 @@ export function useGuestAssignment() {
 		fetchGuestDates: guestStore.fetchGuestDates,
 		selectGuestDate: guestStore.selectGuestDate,
 		selectGuestSlot: guestStore.selectGuestSlot,
+		fetchCoupleDates: guestStore.fetchCoupleDates,
+		selectCoupleDate: guestStore.selectCoupleDate,
+		selectCoupleSlot: guestStore.selectCoupleSlot,
 		refresh: initialize,
 	};
 }

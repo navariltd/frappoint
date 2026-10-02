@@ -26,12 +26,21 @@ export function useAppointmentActions() {
 	const confirm = (appointmentId = store.appointment.appointmentId) =>
 		store.performAction({ appointmentId, action: "confirm" });
 
-	const cancel = (appointmentId = store.appointment.appointmentId, cancellationReasons = []) =>
-		store.performAction({
+	const cancel = (appointmentId = store.appointment.appointmentId, cancellationReasons = []) => {
+		let cancelCouple;
+		if (store.appointment.coupleAppointmentId && typeof window !== "undefined") {
+			cancelCouple = window.confirm(
+				"This appointment is part of a couple booking. Select OK to cancel both appointments, or Cancel to cancel only this appointment."
+			);
+		}
+
+		return store.performAction({
 			appointmentId,
 			action: "cancel",
 			cancellationReasons,
+			cancelCouple,
 		});
+	};
 
 	const reschedule = (payload = {}) =>
 		store.performAction({

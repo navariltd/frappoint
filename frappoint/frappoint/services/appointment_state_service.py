@@ -34,6 +34,16 @@ class InvalidAppointmentTransition(frappe.ValidationError):
 	pass
 
 
+def _reject_couple_single_mutation(appointment, operation: str) -> None:
+	if appointment.couple_appointment_id:
+		frappe.throw(
+			_("Couple appointments cannot be {0} independently. Use the couple booking action.").format(
+				operation
+			),
+			title=_("Couple Update Required"),
+		)
+
+
 def transition_appointment_status(
 	appointment_name: str,
 	to_status: str,
@@ -43,6 +53,8 @@ def transition_appointment_status(
 	"""Validate and apply appointment lifecycle transition."""
 	appointment = frappe.get_doc("Service Appointment", appointment_name)
 	from_status = appointment.status
+	if to_status in {"Confirmed", "Cancelled", "Rescheduled", "Expired", "Closed", "No Show"}:
+		_reject_couple_single_mutation(appointment, _("changed to {0}").format(to_status))
 
 	if from_status == to_status:
 		if allow_noop:
@@ -75,6 +87,7 @@ def transition_appointment_status(
 def cancel_appointment(appointment_name: str, reason: str | None = None) -> dict[str, Any]:
 	"""Cancel appointment and release active resource allocations atomically."""
 	appointment = frappe.get_doc("Service Appointment", appointment_name)
+	_reject_couple_single_mutation(appointment, _("cancelled"))
 	from_status = appointment.status
 
 	released_count = release_capacity_for_allocations(
@@ -105,6 +118,7 @@ def reschedule_appointment(
 ) -> dict[str, Any]:
 	"""Reschedule appointment by releasing old allocations and reserving new ones."""
 	appointment = frappe.get_doc("Service Appointment", appointment_name)
+	_reject_couple_single_mutation(appointment, _("rescheduled"))
 	old_snapshot = {
 		"appointment_date": appointment.appointment_date,
 		"start_time": appointment.start_time,
@@ -153,8 +167,9 @@ def reschedule_appointment(
 
 def confirm_appointment_allocations(appointment_name: str) -> dict[str, Any]:
 	"""Confirm held allocations and move appointment to Confirmed."""
-	count = confirm_held_allocations(appointment_name)
 	appointment = frappe.get_doc("Service Appointment", appointment_name)
+	_reject_couple_single_mutation(appointment, _("confirmed"))
+	count = confirm_held_allocations(appointment_name)
 	from_status = appointment.status
 	if appointment.status in ("Open", "Pending Payment", "Held"):
 		appointment.db_set("status", "Confirmed")
