@@ -8,7 +8,7 @@
 					Schedule
 				</p>
 				<h2 class="mt-1 text-base font-semibold tracking-tight text-on-surface">
-					{{ appointment.appointmentDate || "No date set" }}
+					{{ formatDate(appointment.appointmentDate) || "No date set" }}
 				</h2>
 			</div>
 			<span class="material-symbols-outlined text-primary">schedule</span>
@@ -59,6 +59,8 @@
 </template>
 
 <script setup>
+import { formatDate } from "@/utils/formatters";
+
 defineProps({
 	appointment: { type: Object, required: true },
 	actions: { type: Object, default: () => ({}) },

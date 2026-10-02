@@ -19,7 +19,7 @@
 					</span>
 				</span>
 				<span class="text-[11px] text-outline"
-					>{{ appointment.startTime }} • {{ appointment.provider }}</span
+					>{{ formatTime(appointment.startTime) }} • {{ appointment.provider }}</span
 				>
 			</li>
 			<li v-if="remainingCount > 0" class="text-[12px] text-primary font-semibold">
@@ -31,6 +31,7 @@
 
 <script setup>
 import { computed } from "vue";
+import { formatTime } from "@/utils/formatters";
 
 const props = defineProps({
 	appointments: { type: Array, default: () => [] },

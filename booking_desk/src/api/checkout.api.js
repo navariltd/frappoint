@@ -73,6 +73,28 @@ export async function getCheckoutSummaryApi(bookingId) {
 	return unwrapPayload(response, checkoutSummaryResource.data);
 }
 
+export async function getComplimentaryCouponsApi() {
+	const resource = createResource({ url: "frappe.client.get_list", auto: false });
+	const coupons = [];
+	const pageSize = 100;
+	let hasMore = true;
+	while (hasMore) {
+		const response = await resource.fetch({
+			doctype: "Service Appointment Coupon Code",
+			fields: ["name", "code"],
+			filters: { coupon_type: "Complimentary", disable: 0 },
+			order_by: "code asc, name asc",
+			limit_start: coupons.length,
+			limit_page_length: pageSize,
+		});
+		const page = unwrapPayload(response, resource.data);
+		if (!Array.isArray(page)) throw new Error("Unable to load complimentary coupons.");
+		coupons.push(...page);
+		hasMore = page.length === pageSize;
+	}
+	return coupons;
+}
+
 export async function recordManualCheckoutPaymentApi({
 	bookingId,
 	amount,

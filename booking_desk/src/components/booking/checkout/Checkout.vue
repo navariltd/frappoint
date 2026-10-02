@@ -102,7 +102,9 @@
 								{{ appointment.serviceType }}
 							</p>
 							<p class="text-[11px] text-on-surface-variant">
-								<template v-if="appointment.date">{{ appointment.date }}</template>
+								<template v-if="appointment.date">{{
+									formatDate(appointment.date)
+								}}</template>
 								<template v-if="appointment.startTime">
 									· {{ appointment.startTime }} –
 									{{ appointment.endTime }}</template
@@ -257,6 +259,7 @@ import { useRoute, useRouter } from "vue-router";
 import CheckoutLoadingState from "@/components/booking/checkout/CheckoutLoadingState.vue";
 import CheckoutValidationBanner from "@/components/booking/checkout/CheckoutValidationBanner.vue";
 import PaymentStatusBanner from "@/components/booking/checkout/PaymentStatusBanner.vue";
+import { formatDate } from "@/utils/formatters";
 import PaymentTypeSelector from "@/components/booking/checkout/PaymentTypeSelector.vue";
 import CouponCodeSection from "@/components/booking/checkout/CouponCodeSection.vue";
 import PaymentMethodSelector from "@/components/booking/checkout/PaymentMethodSelector.vue";

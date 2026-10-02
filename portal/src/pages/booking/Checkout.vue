@@ -592,16 +592,12 @@ function fmt(value: number) {
 	return formatCurrency(Number(value || 0), currency.value);
 }
 
-function formatDate(value: string) {
+function formatDate(value) {
 	if (!value) return "Date pending";
-	const date = new Date(`${value}T00:00:00`);
-	if (Number.isNaN(date.getTime())) return value;
-	return new Intl.DateTimeFormat("en-KE", {
-		weekday: "short",
-		day: "2-digit",
-		month: "short",
-		year: "numeric",
-	}).format(date);
+	const parts = String(value).split("-");
+	if (parts.length !== 3) return value;
+	const [year, month, day] = parts;
+	return `${day}-${month}-${year}`;
 }
 
 function formatTime(value: string) {

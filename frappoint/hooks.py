@@ -191,11 +191,14 @@ after_install = "frappoint.setup.setup.execute"
 # ---------------
 # Hook on document methods and events
 doc_events = {
+	"Item": {
+		"on_update": "frappoint.frappoint.services.item_integration.sync_service_type_item_group",
+	},
 	"Leave Application": {
 		"on_submit": "frappoint.frappoint.services.hrms_integration.sync_leave_application_unavailability",
 		"on_update_after_submit": "frappoint.frappoint.services.hrms_integration.sync_leave_application_unavailability",
 		"on_cancel": "frappoint.frappoint.services.hrms_integration.sync_leave_application_unavailability",
-	}
+	},
 }
 
 

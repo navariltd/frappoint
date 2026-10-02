@@ -34,7 +34,8 @@
 			<div class="flex items-center gap-2 text-outline">
 				<span class="material-symbols-outlined text-[16px]">schedule</span>
 				<span class="text-label-sm"
-					>{{ appointment.startTime }} - {{ appointment.endTime }}</span
+					>{{ formatTime(appointment.startTime) }} -
+					{{ formatTime(appointment.endTime) }}</span
 				>
 			</div>
 			<div class="flex items-center gap-2 text-outline">
@@ -56,6 +57,7 @@
 <script setup>
 import AppointmentQuickActions from "@/components/bookings/appointments/AppointmentQuickActions.vue";
 import AppointmentStatusBadge from "@/components/bookings/appointments/AppointmentStatusBadge.vue";
+import { formatTime } from "@/utils/formatters";
 
 const props = defineProps({
 	appointment: { type: Object, required: true },
