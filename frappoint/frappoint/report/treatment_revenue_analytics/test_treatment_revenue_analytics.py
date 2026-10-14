@@ -28,17 +28,25 @@ class TestTreatmentRevenueAnalytics(unittest.TestCase):
 		self.assertEqual([p["label"] for p in periods], ["Quarter 1 2025", "Quarter 2 2025"])
 
 	def test_week_and_year_boundaries(self):
-		periods = report.get_periods(self.filters(range="Weekly", from_date="2024-12-30", to_date="2025-01-06"))
+		periods = report.get_periods(
+			self.filters(range="Weekly", from_date="2024-12-30", to_date="2025-01-06")
+		)
 		self.assertEqual([p["label"] for p in periods], ["Week 1 2025", "Week 2 2025"])
-		periods = report.get_periods(self.filters(range="Yearly", from_date="2023-06-01", to_date="2026-01-01"))
+		periods = report.get_periods(
+			self.filters(range="Yearly", from_date="2023-06-01", to_date="2026-01-01")
+		)
 		self.assertEqual([p["label"] for p in periods], ["2023", "2024", "2025", "2026"])
 
 	def test_revenue_averages_zero_periods_and_currency_separation(self):
 		appointments = [
-			frappe._dict(appointment_type="Massage", appointment_date=date, currency=currency, grand_total=amount)
+			frappe._dict(
+				appointment_type="Massage", appointment_date=date, currency=currency, grand_total=amount
+			)
 			for date, currency, amount in [
-				("2025-01-20", "KES", 100), ("2025-01-21", "KES", 200),
-				("2025-03-01", "KES", 600), ("2025-01-20", "USD", 20),
+				("2025-01-20", "KES", 100),
+				("2025-01-21", "KES", 200),
+				("2025-03-01", "KES", 600),
+				("2025-01-20", "USD", 20),
 			]
 		]
 		with patch.object(frappe, "get_list", return_value=appointments) as query:
@@ -62,6 +70,11 @@ class TestTreatmentRevenueAnalytics(unittest.TestCase):
 
 	def test_invalid_filters(self):
 		with patch.object(frappe, "throw", side_effect=ValueError):
-			for overrides in ({"from_date": None}, {"to_date": None}, {"from_date": "2026-01-01"}, {"range": "Daily"}):
+			for overrides in (
+				{"from_date": None},
+				{"to_date": None},
+				{"from_date": "2026-01-01"},
+				{"range": "Daily"},
+			):
 				with self.subTest(overrides=overrides), self.assertRaises(ValueError):
 					self.filters(**overrides)

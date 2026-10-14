@@ -72,15 +72,29 @@ def get_periods(filters):
 
 def get_columns(periods):
 	columns = [
-		{"label": _("Treatment"), "fieldname": "treatment", "fieldtype": "Link",
-		 "options": "Service Type", "width": 200},
-		{"label": _("Currency"), "fieldname": "currency", "fieldtype": "Link",
-		 "options": "Currency", "width": 90},
+		{
+			"label": _("Treatment"),
+			"fieldname": "treatment",
+			"fieldtype": "Link",
+			"options": "Service Type",
+			"width": 200,
+		},
+		{
+			"label": _("Currency"),
+			"fieldname": "currency",
+			"fieldtype": "Link",
+			"options": "Currency",
+			"width": 90,
+		},
 	]
 	for prefix, label in [("", ""), *((p["key"] + "_", p["label"]) for p in periods)]:
 		for metric, metric_label, fieldtype in METRICS:
-			column = {"label": f"{label}: {_(metric_label)}" if label else _(metric_label),
-				"fieldname": prefix + metric, "fieldtype": fieldtype, "width": 180}
+			column = {
+				"label": f"{label}: {_(metric_label)}" if label else _(metric_label),
+				"fieldname": prefix + metric,
+				"fieldtype": fieldtype,
+				"width": 180,
+			}
 			if fieldtype == "Currency":
 				column["options"] = "currency"
 			columns.append(column)
@@ -99,9 +113,11 @@ def get_data(filters, periods):
 	if filters.get("service_type"):
 		conditions["appointment_type"] = filters.service_type
 	appointments = frappe.get_list(
-		"Service Appointment", filters=conditions,
+		"Service Appointment",
+		filters=conditions,
 		fields=["appointment_type", "appointment_date", "currency", "grand_total"],
-		limit_page_length=0, order_by="appointment_type asc, currency asc, appointment_date asc",
+		limit_page_length=0,
+		order_by="appointment_type asc, currency asc, appointment_date asc",
 	)
 	rows = {}
 	for appointment in appointments:

@@ -18,7 +18,12 @@ class TestServiceProviderPerformance(unittest.TestCase):
 
 	def test_counts_revenue_and_separate_currencies(self):
 		appointments = [
-			frappe._dict(appointment_provider=provider, service_provider_name=name, currency=currency, grand_total=amount)
+			frappe._dict(
+				appointment_provider=provider,
+				service_provider_name=name,
+				currency=currency,
+				grand_total=amount,
+			)
 			for provider, name, currency, amount in [
 				("P1", "Alice", "KES", "100.10"),
 				("P1", "Alice", "KES", "200.20"),
@@ -49,7 +54,9 @@ class TestServiceProviderPerformance(unittest.TestCase):
 				self.assertEqual(conditions["appointment_provider"], provider or ["is", "set"])
 				self.assertEqual(conditions["status"], "Completed")
 				self.assertEqual(conditions["docstatus"], ["<", 2])
-				self.assertEqual([str(d) for d in conditions["appointment_date"][1]], ["2026-01-01", "2026-10-14"])
+				self.assertEqual(
+					[str(d) for d in conditions["appointment_date"][1]], ["2026-01-01", "2026-10-14"]
+				)
 				self.assertEqual(query.call_args.kwargs["limit_page_length"], 0)
 
 	def test_optional_filters(self):
