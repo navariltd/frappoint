@@ -13,3 +13,4 @@ frappoint/www/portal
 frappoint/public/booking_desk
 frappoint/public/portal
 frappe-semgrep-rules/
+.internal_docs/
