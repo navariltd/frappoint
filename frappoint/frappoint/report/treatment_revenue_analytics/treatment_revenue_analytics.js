@@ -11,6 +11,12 @@ frappe.query_reports["Treatment Revenue Analytics"] = {
 			default: frappe.defaults.get_user_default("Company"),
 		},
 		{
+			fieldname: "service_type",
+			label: __("Service Type"),
+			fieldtype: "Link",
+			options: "Service Type",
+		},
+		{
 			fieldname: "from_date",
 			label: __("From Date"),
 			fieldtype: "Date",

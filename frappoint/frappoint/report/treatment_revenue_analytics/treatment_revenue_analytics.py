@@ -96,6 +96,8 @@ def get_data(filters, periods):
 	}
 	if filters.get("company"):
 		conditions["company"] = filters.company
+	if filters.get("service_type"):
+		conditions["appointment_type"] = filters.service_type
 	appointments = frappe.get_list(
 		"Service Appointment", filters=conditions,
 		fields=["appointment_type", "appointment_date", "currency", "grand_total"],
