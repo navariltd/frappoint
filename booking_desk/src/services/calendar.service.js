@@ -110,6 +110,9 @@ function normalizeEvent(row = {}) {
 		details: row.details || "",
 		mobileNo: row.mobile_no || "",
 		email: row.email || "",
+		isCouple: Boolean(row.couple_appointment_id),
+		coupleAppointmentId: row.couple_appointment_id || "",
+		isPrimaryInCouple: Boolean(row.is_primary_in_couple),
 	};
 }
 
@@ -141,6 +144,8 @@ async function fetchRawRows(params = {}) {
 		"status",
 		"payment_status",
 		"details",
+		"couple_appointment_id",
+		"is_primary_in_couple",
 		"modified",
 	];
 
@@ -177,9 +182,9 @@ export async function fetchCalendarEvents(params = {}) {
 	};
 }
 
-export async function runCalendarAppointmentAction({ appointmentId, action }) {
+export async function runCalendarAppointmentAction({ appointmentId, action, cancelCouple }) {
 	if (!appointmentId || !action) {
 		return null;
 	}
-	return performAppointmentAction({ appointmentId, action });
+	return performAppointmentAction({ appointmentId, action, cancelCouple });
 }

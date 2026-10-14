@@ -3,6 +3,13 @@
 		class="bg-surface-container-lowest p-6 rounded-2xl shadow-[0px_4px_20px_rgba(45,52,54,0.05)] border border-outline-variant flex flex-col gap-4 hover:shadow-[0px_12px_32px_rgba(45,52,54,0.08)] transition-all"
 	>
 		<BookingCardHeader :booking="booking" />
+		<div
+			v-if="booking.isCouple"
+			class="inline-flex w-fit items-center gap-1.5 rounded-full bg-primary-container px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide text-on-primary-container"
+		>
+			<span class="material-symbols-outlined text-[14px]">group</span>
+			Couple booking
+		</div>
 
 		<div class="grid grid-cols-2 gap-4 py-3 border-y border-outline-variant/30 text-[13px]">
 			<div class="flex items-center gap-2">
@@ -13,7 +20,7 @@
 				<span class="material-symbols-outlined text-outline text-[18px]"
 					>calendar_today</span
 				>
-				<span>{{ booking.bookingDate || "-" }}</span>
+				<span>{{ formatDate(booking.bookingDate) || "-" }}</span>
 			</div>
 			<div class="flex items-center gap-2">
 				<span class="material-symbols-outlined text-outline text-[18px]">event_note</span>
@@ -45,6 +52,7 @@ import { computed } from "vue";
 import BookingAppointmentPreview from "@/components/bookings/BookingAppointmentPreview.vue";
 import BookingCardHeader from "@/components/bookings/BookingCardHeader.vue";
 import BookingQuickActions from "@/components/bookings/BookingQuickActions.vue";
+import { formatTime, formatDate } from "@/utils/formatters";
 
 const props = defineProps({ booking: { type: Object, required: true } });
 
@@ -55,6 +63,6 @@ const upcomingLabel = computed(() => {
 	if (!next) {
 		return "No upcoming";
 	}
-	return `${next.startTime || "--:--"}`;
+	return formatTime(next.startTime) || "--:--";
 });
 </script>

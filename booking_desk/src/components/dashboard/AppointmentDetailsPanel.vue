@@ -40,7 +40,7 @@
 			<div class="rounded-md border border-outline-variant/30 bg-surface px-3 py-2.5">
 				<p class="text-on-surface-variant">Date</p>
 				<p class="font-semibold text-on-surface">
-					{{ appointment.date || appointment.appointmentDate || "-" }}
+					{{ formatDate(appointment.date || appointment.appointmentDate) || "-" }}
 				</p>
 			</div>
 			<div class="rounded-md border border-outline-variant/30 bg-surface px-3 py-2.5">

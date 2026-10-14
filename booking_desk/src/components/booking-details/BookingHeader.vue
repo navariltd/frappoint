@@ -7,7 +7,7 @@
 				<div class="flex flex-wrap items-center gap-2 text-[12px] text-outline">
 					<span class="font-semibold text-on-surface">#{{ booking.bookingId }}</span>
 					<span class="h-1 w-1 rounded-full bg-outline"></span>
-					<span>{{ booking.bookingDate || "Created date unavailable" }}</span>
+					<span>{{ formatDate(booking.bookingDate) || "" }}</span>
 				</div>
 				<div>
 					<h1 class="text-xl md:text-2xl font-semibold tracking-tight text-on-surface">
@@ -53,6 +53,7 @@
 import { computed } from "vue";
 import BookingStatusBadge from "@/components/booking-details/BookingStatusBadge.vue";
 import PaymentStatusBadge from "@/components/booking-details/PaymentStatusBadge.vue";
+import { formatDate } from "@/utils/formatters";
 
 const props = defineProps({
 	booking: { type: Object, required: true },

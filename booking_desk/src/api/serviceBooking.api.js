@@ -17,12 +17,23 @@ const getDraftBookingResource = createResource({
 
 const unwrapPayload = (payload) => payload?.message ?? payload ?? null;
 
-export async function createDraftServiceBookingApi({ customer, items, bookedBy }) {
-	const response = await createDraftBookingResource.fetch({
+export async function createDraftServiceBookingApi({
+	customer,
+	items,
+	bookedBy,
+	isCouple,
+	coupleAssignment,
+}) {
+	const params = {
 		customer: JSON.stringify(customer || {}),
 		items: JSON.stringify(items || []),
 		booked_by: bookedBy || "",
-	});
+	};
+	if (isCouple) params.is_couple = 1;
+	if (coupleAssignment) {
+		params.couple_assignment = JSON.stringify(coupleAssignment);
+	}
+	const response = await createDraftBookingResource.fetch(params);
 	return unwrapPayload(response ?? createDraftBookingResource.data);
 }
 

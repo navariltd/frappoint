@@ -12,6 +12,17 @@ function toPreviewAppointment(appointment) {
 		date: appointment.date || "",
 		startTime: appointment.startTime || "",
 		status: appointment.status || "Open",
+		coupleAppointmentId:
+			appointment.coupleAppointmentId || appointment.couple_appointment_id || "",
+		isPrimaryInCouple: Boolean(
+			appointment.isPrimaryInCouple ?? appointment.is_primary_in_couple
+		),
+		isCouple: Boolean(
+			appointment.isCouple ||
+				appointment.is_couple ||
+				appointment.coupleAppointmentId ||
+				appointment.couple_appointment_id
+		),
 	};
 }
 
@@ -48,6 +59,9 @@ export function normalizeServiceBooking(raw) {
 		outstandingAmount: toCurrencyAmount(raw.outstandingAmount),
 		upcomingAppointment,
 		appointments,
+		isCouple: Boolean(
+			raw.isCouple || raw.is_couple || appointments.some((row) => row.isCouple)
+		),
 		items: raw.items || [],
 	};
 }

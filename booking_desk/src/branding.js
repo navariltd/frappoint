@@ -16,6 +16,7 @@ function createEmptyBranding() {
 		pageTitle: "",
 		sidebarLogo: "",
 		favicon: "",
+		use24HourClockSystem: false,
 		primaryColor: "",
 		primaryHoverColor: "",
 		accentColor: "",
@@ -231,6 +232,7 @@ function mapSettings(response = {}) {
 	mapped.pageTitle = response.page_title || "";
 	mapped.sidebarLogo = response.sidebar_logo || "";
 	mapped.favicon = response.favicon || "";
+	mapped.use24HourClockSystem = Boolean(response.use_24_hour_clock_system);
 
 	for (const [frontendField, backendField] of Object.entries(COLOR_FIELDS)) {
 		mapped[frontendField] = normalizeHex(response[backendField], "");

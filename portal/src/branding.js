@@ -6,6 +6,7 @@ const DEFAULTS = {
 	pageTitle: "Customer Portal",
 	sidebarLogo: "",
 	favicon: "",
+	use24HourClockSystem: false,
 	primaryColor: "#006a63",
 	primaryHoverColor: "#00504a",
 	accentColor: "#286b33",
@@ -173,6 +174,7 @@ function mapSettings(response = {}) {
 	mapped.pageTitle = response.page_title || DEFAULTS.pageTitle;
 	mapped.sidebarLogo = response.sidebar_logo || "";
 	mapped.favicon = response.favicon || "";
+	mapped.use24HourClockSystem = Boolean(response.use_24_hour_clock_system);
 
 	for (const [frontendField, backendField] of Object.entries(COLOR_FIELDS)) {
 		mapped[frontendField] = normalizeHex(response[backendField], DEFAULTS[frontendField]);

@@ -20,6 +20,7 @@ def get_booking_desk_branding() -> dict:
 		"page_title": settings.get("page_title"),
 		"sidebar_logo": settings.get("sidebar_logo"),
 		"favicon": settings.get("favicon"),
+		"use_24_hour_clock_system": bool(settings.get("use_24_hour_clock_system")),
 	}
 
 	for field in (

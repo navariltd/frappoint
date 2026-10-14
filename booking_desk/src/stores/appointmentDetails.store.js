@@ -55,6 +55,7 @@ const getErrorMessage = (error, fallback) => {
 export const useAppointmentDetailsStore = defineStore("appointmentDetails", {
 	state: () => ({
 		appointment: createEmptyAppointmentDetails(),
+		coupleAppointment: null,
 		booking: createEmptyBookingContext(),
 		payments: [],
 		timeline: [],
@@ -130,6 +131,7 @@ export const useAppointmentDetailsStore = defineStore("appointmentDetails", {
 			try {
 				const payload = await fetchAppointmentDetails(appointmentId);
 				this.appointment = payload.appointment || createEmptyAppointmentDetails();
+				this.coupleAppointment = payload.coupleAppointment || null;
 				this.booking = payload.booking || createEmptyBookingContext();
 				this.payments = payload.payments || [];
 				this.timeline = payload.timeline || [];
@@ -168,6 +170,8 @@ export const useAppointmentDetailsStore = defineStore("appointmentDetails", {
 					duration,
 					provider,
 					date,
+					appointmentId: this.appointment.appointmentId,
+					coupleAppointment: this.coupleAppointment,
 				});
 				this.availabilityDates = availability.dates || [];
 				this.availabilitySlots = availability.slots || [];
@@ -197,6 +201,8 @@ export const useAppointmentDetailsStore = defineStore("appointmentDetails", {
 				actualStartTime: payload.actualStartTime,
 				actualEndTime: payload.actualEndTime,
 				cancellationReasons: payload.cancellationReasons,
+				cancelCouple: payload.cancelCouple,
+				coupleUpdate: payload.coupleUpdate,
 			};
 
 			this.isSubmittingAction = true;
@@ -209,6 +215,9 @@ export const useAppointmentDetailsStore = defineStore("appointmentDetails", {
 					actionPayload.appointmentId;
 				if (response?.appointment) {
 					this.appointment = response.appointment;
+				}
+				if (response?.coupleAppointment !== undefined) {
+					this.coupleAppointment = response.coupleAppointment || null;
 				}
 				if (response?.booking) {
 					this.booking = response.booking;

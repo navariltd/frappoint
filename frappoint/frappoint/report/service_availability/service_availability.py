@@ -80,6 +80,12 @@ def get_columns():
 			"width": 240,
 		},
 		{
+			"fieldname": "service_unit_capacity",
+			"label": _("Service Unit Capacity"),
+			"fieldtype": "Int",
+			"width": 160,
+		},
+		{
 			"fieldname": "shift_assignments",
 			"label": _("Shift Assignments"),
 			"fieldtype": "Data",
@@ -132,6 +138,18 @@ def get_data(filters):
 		)
 		rows = [row for row in rows if row.get("provider") in allowed]
 
+	service_unit_ids = {row.get("service_unit") for row in rows if row.get("service_unit")}
+	service_unit_capacities = {}
+	if service_unit_ids:
+		service_unit_capacities = {
+			unit["name"]: unit.get("capacity")
+			for unit in frappe.get_all(
+				"Service Unit",
+				filters={"name": ["in", sorted(service_unit_ids)]},
+				fields=["name", "capacity"],
+			)
+		}
+
 	return [
 		{
 			"service_type": service_type,
@@ -142,6 +160,7 @@ def get_data(filters):
 			"provider_count": 1,
 			"providers": row.get("provider_name") or row.get("provider") or "",
 			"service_units": row.get("service_unit_name") or row.get("service_unit") or "",
+			"service_unit_capacity": service_unit_capacities.get(row.get("service_unit")),
 			"shift_assignments": "",
 			"slot_ids_count": 0,
 		}

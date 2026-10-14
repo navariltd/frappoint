@@ -758,6 +758,16 @@ function show_change_service_provider_dialog(frm) {
 		frappe.msgprint(__("Save the appointment before changing the service provider."));
 		return;
 	}
+	if (frm.doc.couple_appointment_id) {
+		frappe.msgprint({
+			title: __("Couple Update Required"),
+			message: __(
+				"This provider belongs to a couple booking. Use Booking Desk to update both guests and reserve their capacity together."
+			),
+			indicator: "orange",
+		});
+		return;
+	}
 
 	frappe.dom.freeze(__("Loading available providers..."));
 	frappe.call({
@@ -1265,6 +1275,17 @@ window.selectPrice = function (card) {
 };
 
 function reschedule_appointment(frm) {
+	if (frm.doc.couple_appointment_id) {
+		frappe.msgprint({
+			title: __("Couple Reschedule Required"),
+			message: __(
+				"Use Booking Desk to choose a shared start time and reschedule both linked appointments together."
+			),
+			indicator: "orange",
+		});
+		return;
+	}
+
 	frappe.confirm(
 		__(
 			"This will create a new appointment with the same details. You can then select a new date and time. Continue?"
@@ -1469,6 +1490,20 @@ function build_cancellation_dialog(frm, reasons) {
 				label: __("Additional Notes"),
 				description: __("Provide any additional information about the cancellation"),
 			},
+			...(frm.doc.couple_appointment_id
+				? [
+						{
+							fieldname: "cancel_both",
+							fieldtype: "Check",
+							label: __("Cancel Both Couple Appointments"),
+							default: 1,
+							description: __(
+								"The linked appointment {0} will also be cancelled. Clear this only if the other guest will keep their service.",
+								[frm.doc.couple_appointment_id]
+							),
+						},
+				  ]
+				: []),
 			// {
 			// 	fieldname: "warning_section",
 			// 	fieldtype: "Section Break",
@@ -1499,6 +1534,37 @@ function build_cancellation_dialog(frm, reasons) {
 			}
 
 			frappe.dom.freeze(__("Cancelling appointment..."));
+
+			if (frm.doc.couple_appointment_id) {
+				frappe.call({
+					method: "frappoint.frappoint.api.booking_desk.perform_appointment_action",
+					args: {
+						appointment_id: frm.doc.name,
+						action: "cancel",
+						cancellation_reasons: JSON.stringify(selected_reasons),
+						cancel_couple: values.cancel_both ? 1 : 0,
+					},
+					callback: function (response) {
+						frappe.dom.unfreeze();
+						d.hide();
+						const result = response.message?.operationResult || {};
+						frappe.show_alert({
+							message: result.message || __("Appointment cancelled successfully."),
+							indicator: "orange",
+						});
+						frm.reload_doc();
+					},
+					error: function () {
+						frappe.dom.unfreeze();
+						frappe.msgprint({
+							title: __("Error"),
+							message: __("Failed to cancel the couple booking. Please try again."),
+							indicator: "red",
+						});
+					},
+				});
+				return;
+			}
 
 			// Clear existing reasons and add new ones
 			frm.clear_table("cancellation_reasons");

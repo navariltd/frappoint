@@ -1,7 +1,11 @@
 {
- "app": "frappoint",
- "charts": [],
- "content": "[{\"id\":\"boWqkujk8K\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\">Frappoint</span>\",\"col\":6}},{\"id\":\"FbUjPfCac_\",\"type\":\"custom_block\",\"data\":{\"custom_block_name\":\"Booking Desk\",\"col\":12}},{\"id\":\"exZkckjiUN\",\"type\":\"spacer\",\"data\":{\"col\":12}},{\"id\":\"kOIIwYzHXe\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Today's Appointments\",\"col\":4}},{\"id\":\"VSXQTSgD1E\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Pending Payments\",\"col\":4}},{\"id\":\"ApwvKSNGwc\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Revenue\",\"col\":4}},{\"id\":\"f_134su7Um\",\"type\":\"spacer\",\"data\":{\"col\":12}},{\"id\":\"MPKXj-4y91\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"New Service Booking\",\"col\":3}},{\"id\":\"0nG0QpDxTB\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Assign Services\",\"col\":3}},{\"id\":\"3SF_I4f_tl\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Manage Shifts\",\"col\":3}},{\"id\":\"hVHdyf19ls\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"New Coupon\",\"col\":3}},{\"id\":\"KiDJo3W_5D\",\"type\":\"spacer\",\"data\":{\"col\":12}},{\"id\":\"ZW-WKDOrDx\",\"type\":\"quick_list\",\"data\":{\"quick_list_name\":\"Draft Appointments\",\"col\":4}},{\"id\":\"C7K0DCNqUs\",\"type\":\"quick_list\",\"data\":{\"quick_list_name\":\"Completed Appointments\",\"col\":4}},{\"id\":\"B-XoSjRUd2\",\"type\":\"quick_list\",\"data\":{\"quick_list_name\":\"Cancelled Appointments\",\"col\":4}},{\"id\":\"Jc8Rf_Xf6N\",\"type\":\"spacer\",\"data\":{\"col\":12}},{\"id\":\"VSPIkYxKF6\",\"type\":\"card\",\"data\":{\"card_name\":\"Sales and Bookings\",\"col\":4}},{\"id\":\"WLR07D6v6O\",\"type\":\"card\",\"data\":{\"card_name\":\"Tools and Settings\",\"col\":4}},{\"id\":\"X8BcoaJ3CP\",\"type\":\"card\",\"data\":{\"card_name\":\"Coupon Code\",\"col\":4}}]",
+ "charts": [
+  {
+   "chart_name": "Average Revenue per Treatment",
+   "label": "Average Revenue per Treatment"
+  }
+ ],
+ "content": "[{\"id\": \"boWqkujk8K\", \"type\": \"header\", \"data\": {\"text\": \"\\u003cspan class=\\\"h4\\\"\\u003eFrappoint\\u003c/span\\u003e\", \"col\": 6}}, {\"id\": \"FbUjPfCac_\", \"type\": \"custom_block\", \"data\": {\"custom_block_name\": \"Booking Desk\", \"col\": 12}}, {\"id\": \"exZkckjiUN\", \"type\": \"spacer\", \"data\": {\"col\": 12}}, {\"id\": \"JayegNA0af\", \"type\": \"chart\", \"data\": {\"chart_name\": \"Average Revenue per Treatment\", \"col\": 12}}, {\"id\": \"l-QjGFV0tl\", \"type\": \"spacer\", \"data\": {\"col\": 12}}, {\"id\": \"kOIIwYzHXe\", \"type\": \"number_card\", \"data\": {\"number_card_name\": \"Today's Appointments\", \"col\": 3}}, {\"id\": \"wnazYl8_M0\", \"type\": \"number_card\", \"data\": {\"number_card_name\": \"Completed Appointments\", \"col\": 3}}, {\"id\": \"VSXQTSgD1E\", \"type\": \"number_card\", \"data\": {\"number_card_name\": \"Pending Payments\", \"col\": 3}}, {\"id\": \"ApwvKSNGwc\", \"type\": \"number_card\", \"data\": {\"number_card_name\": \"Revenue\", \"col\": 3}}, {\"id\": \"f_134su7Um\", \"type\": \"spacer\", \"data\": {\"col\": 12}}, {\"id\": \"MPKXj-4y91\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"New Service Booking\", \"col\": 3}}, {\"id\": \"0nG0QpDxTB\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Assign Services\", \"col\": 3}}, {\"id\": \"3SF_I4f_tl\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Manage Shifts\", \"col\": 3}}, {\"id\": \"hVHdyf19ls\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"New Coupon\", \"col\": 3}}, {\"id\": \"KiDJo3W_5D\", \"type\": \"spacer\", \"data\": {\"col\": 12}}, {\"id\": \"ZW-WKDOrDx\", \"type\": \"quick_list\", \"data\": {\"quick_list_name\": \"Draft Appointments\", \"col\": 4}}, {\"id\": \"C7K0DCNqUs\", \"type\": \"quick_list\", \"data\": {\"quick_list_name\": \"Completed Appointments\", \"col\": 4}}, {\"id\": \"B-XoSjRUd2\", \"type\": \"quick_list\", \"data\": {\"quick_list_name\": \"Cancelled Appointments\", \"col\": 4}}, {\"id\": \"Jc8Rf_Xf6N\", \"type\": \"spacer\", \"data\": {\"col\": 12}}, {\"id\": \"VSPIkYxKF6\", \"type\": \"card\", \"data\": {\"card_name\": \"Sales and Bookings\", \"col\": 3}}, {\"id\": \"WLR07D6v6O\", \"type\": \"card\", \"data\": {\"card_name\": \"Tools and Settings\", \"col\": 3}}, {\"id\": \"ij045t70E6\", \"type\": \"card\", \"data\": {\"card_name\": \"Reports\", \"col\": 3}}, {\"id\": \"X8BcoaJ3CP\", \"type\": \"card\", \"data\": {\"card_name\": \"Coupon Code\", \"col\": 3}}]",
  "creation": "2025-11-26 16:39:03.542220",
  "custom_blocks": [
   {
@@ -155,13 +159,57 @@
    "link_type": "DocType",
    "onboard": 0,
    "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Reports",
+   "link_count": 3,
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Card Break"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Service Availability",
+   "link_count": 0,
+   "link_to": "Service Availability",
+   "link_type": "Report",
+   "onboard": 0,
+   "report_ref_doctype": "Service Provider Appointment Slot",
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 1,
+   "label": "Treatment Revenue Analytics",
+   "link_count": 0,
+   "link_to": "Treatment Revenue Analytics",
+   "link_type": "Report",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 1,
+   "label": "Service Provider Performance",
+   "link_count": 0,
+   "link_to": "Service Provider Performance",
+   "link_type": "Report",
+   "onboard": 0,
+   "type": "Link"
   }
  ],
- "modified": "2026-08-01 13:08:32.777471",
+ "modified": "2026-10-14 21:50:11.278355",
  "modified_by": "Administrator",
  "module": "Frappoint",
  "name": "Frappoint",
  "number_cards": [
+  {
+   "label": "Completed Appointments",
+   "number_card_name": "Completed Appointments"
+  },
   {
    "label": "Today's Appointments",
    "number_card_name": "Today's Appointments"
@@ -229,6 +277,7 @@
    "type": "DocType"
   }
  ],
+ "standard": 1,
  "title": "Frappoint",
  "type": "Workspace"
 }

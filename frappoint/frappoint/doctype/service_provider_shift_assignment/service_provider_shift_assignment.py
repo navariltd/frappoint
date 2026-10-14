@@ -523,6 +523,7 @@ class ServiceProviderShiftAssignment(Document):
 				queue="default",
 				timeout=300,
 				is_async=True,
+				enqueue_after_commit=True,
 			)
 
 		if added_days:
@@ -536,6 +537,7 @@ class ServiceProviderShiftAssignment(Document):
 				queue="default",
 				timeout=300,
 				is_async=True,
+				enqueue_after_commit=True,
 			)
 
 	def deactivate_slots(self):

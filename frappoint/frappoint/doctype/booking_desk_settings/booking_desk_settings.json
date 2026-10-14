@@ -10,6 +10,7 @@
   "page_title",
   "sidebar_logo",
   "favicon",
+  "use_24_hour_clock_system",
   "column_break_tohj",
   "primary_color",
   "primary_hover_color",
@@ -98,13 +99,19 @@
    "fieldname": "favicon",
    "fieldtype": "Attach Image",
    "label": "Favicon"
+  },
+  {
+   "default": "0",
+   "fieldname": "use_24_hour_clock_system",
+   "fieldtype": "Check",
+   "label": "Use 24 hour clock system"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2026-07-29 00:29:06.170532",
+ "modified": "2026-09-16 14:06:50.546558",
  "modified_by": "Administrator",
  "module": "Frappoint",
  "name": "Booking Desk Settings",

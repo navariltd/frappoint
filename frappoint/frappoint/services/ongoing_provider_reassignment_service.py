@@ -44,7 +44,7 @@ def get_ongoing_reassignment_options(
 	}
 
 
-@frappe.whitelist()
+@frappe.whitelist(methods=["POST"])
 def reassign_ongoing_appointment(
 	appointment_name: str | None = None,
 	target_provider: str | None = None,

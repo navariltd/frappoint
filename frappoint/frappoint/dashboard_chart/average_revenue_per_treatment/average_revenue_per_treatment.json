@@ -1,0 +1,39 @@
+{
+ "based_on": "creation",
+ "chart_name": "Average Revenue per Treatment",
+ "chart_type": "Average",
+ "color": "#449CF0",
+ "creation": "2026-10-13 15:36:39.661014",
+ "currency": "KES",
+ "docstatus": 0,
+ "doctype": "Dashboard Chart",
+ "document_type": "Service Appointment",
+ "dynamic_filters_json": "[]",
+ "filters_json": "[[\"Service Appointment\",\"status\",\"=\",\"Confirmed\"],[\"Service Appointment\",\"payment_status\",\"in\",[\"Partly Paid\",\"Paid\"]]]",
+ "group_by_type": "Count",
+ "idx": 0,
+ "is_public": 0,
+ "is_standard": 1,
+ "last_synced_on": "2026-10-13 16:07:29.047904",
+ "modified": "2026-10-13 16:11:12.917216",
+ "modified_by": "Administrator",
+ "module": "Frappoint",
+ "name": "Average Revenue per Treatment",
+ "number_of_groups": 0,
+ "owner": "Administrator",
+ "parent_document_type": "",
+ "roles": [
+  {
+   "role": "Finance Controller"
+  }
+ ],
+ "show_values_over_chart": 0,
+ "source": "",
+ "time_interval": "Monthly",
+ "timeseries": 1,
+ "timespan": "Last Quarter",
+ "type": "Bar",
+ "use_report_chart": 0,
+ "value_based_on": "total_amount",
+ "y_axis": []
+}

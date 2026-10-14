@@ -9,9 +9,17 @@
 				:key="appointment.id"
 				class="text-[13px] flex items-center justify-between gap-2"
 			>
-				<span>{{ appointment.serviceType }}</span>
+				<span class="flex items-center gap-1.5 min-w-0">
+					<span class="truncate">{{ appointment.serviceType }}</span>
+					<span
+						v-if="appointment.isCouple"
+						class="shrink-0 rounded-full bg-primary-container px-1.5 py-0.5 text-[9px] font-semibold text-on-primary-container"
+					>
+						Couple
+					</span>
+				</span>
 				<span class="text-[11px] text-outline"
-					>{{ appointment.startTime }} • {{ appointment.provider }}</span
+					>{{ formatTime(appointment.startTime) }} • {{ appointment.provider }}</span
 				>
 			</li>
 			<li v-if="remainingCount > 0" class="text-[12px] text-primary font-semibold">
@@ -23,6 +31,7 @@
 
 <script setup>
 import { computed } from "vue";
+import { formatTime } from "@/utils/formatters";
 
 const props = defineProps({
 	appointments: { type: Array, default: () => [] },

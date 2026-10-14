@@ -27,6 +27,17 @@ function normalizeAppointment(appointment) {
 		email: appointment.email || "",
 		mobileNo: appointment.mobileNo || "",
 		slotIds: [],
+		coupleAppointmentId:
+			appointment.coupleAppointmentId || appointment.couple_appointment_id || "",
+		isPrimaryInCouple: Boolean(
+			appointment.isPrimaryInCouple ?? appointment.is_primary_in_couple
+		),
+		isCouple: Boolean(
+			appointment.isCouple ||
+				appointment.is_couple ||
+				appointment.coupleAppointmentId ||
+				appointment.couple_appointment_id
+		),
 	};
 }
 
@@ -82,6 +93,9 @@ export async function fetchBookingDetails(bookingId) {
 		outstandingAmount,
 		items: booking.items || [],
 		appointments,
+		isCouple: Boolean(
+			booking.isCouple || booking.is_couple || appointments.some((row) => row.isCouple)
+		),
 		alerts: buildAlerts({
 			...booking,
 			appointments,

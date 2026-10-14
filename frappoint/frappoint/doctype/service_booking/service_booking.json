@@ -17,6 +17,7 @@
   "booking_time",
   "booked_by",
   "status",
+  "is_couple",
   "section_break_ucii",
   "items",
   "total_guests",
@@ -82,6 +83,17 @@
    "fieldtype": "Select",
    "label": "Status",
    "options": "Draft\nPayment Pending\nPartly Paid\nConfirmed\nClosed\nCancelled"
+  },
+  {
+   "allow_on_submit": 1,
+   "default": "0",
+   "fieldname": "is_couple",
+   "fieldtype": "Check",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Couple Booking",
+   "no_copy": 1,
+   "read_only": 1
   },
   {
    "fieldname": "booking_hold_section",

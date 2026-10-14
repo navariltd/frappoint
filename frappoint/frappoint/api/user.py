@@ -24,7 +24,7 @@ def get_user_details():
 	}
 
 
-@frappe.whitelist(allow_guest=True)  # nosemgrep: guest-whitelisted-method
+@frappe.whitelist(allow_guest=True, methods=["POST"])  # nosemgrep: guest-whitelisted-method
 def create_user(**kwargs):
 	try:
 		frappe.db.begin()

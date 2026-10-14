@@ -24,6 +24,7 @@ class BookingDeskSettings(Document):
 		primary_color: DF.Color
 		primary_hover_color: DF.Color
 		sidebar_logo: DF.AttachImage | None
+		use_24_hour_clock_system: DF.Check
 	# end: auto-generated types
 
 	pass

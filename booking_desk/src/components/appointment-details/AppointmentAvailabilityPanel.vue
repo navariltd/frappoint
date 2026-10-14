@@ -48,6 +48,14 @@
 							{{ slot.startTime }} - {{ slot.endTime }}
 						</p>
 						<p class="text-xs text-on-surface-variant">{{ slot.providerSummary }}</p>
+						<template v-if="slot.isCouple">
+							<p class="text-xs text-on-surface-variant">
+								Guest 1: {{ slot.guest1.startTime }}–{{ slot.guest1.endTime }}
+							</p>
+							<p class="text-xs text-on-surface-variant">
+								Guest 2: {{ slot.guest2.startTime }}–{{ slot.guest2.endTime }}
+							</p>
+						</template>
 					</div>
 					<span class="material-symbols-outlined text-primary">event_available</span>
 				</div>

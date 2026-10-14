@@ -14,7 +14,7 @@ const toAmount = (value) => {
 const toCategory = (row) => row.item_group || "General";
 
 const sanitizeDescription = (row) => {
-	const source = row.short_description || "No description available";
+	const source = row.short_description || "";
 	return String(source).trim();
 };
 

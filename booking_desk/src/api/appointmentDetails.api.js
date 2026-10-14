@@ -35,6 +35,8 @@ export async function performAppointmentActionApi(payload) {
 		actual_start_time: payload.actualStartTime,
 		actual_end_time: payload.actualEndTime,
 		cancellation_reasons: payload.cancellationReasons,
+		cancel_couple: payload.cancelCouple,
+		couple_update: payload.coupleUpdate,
 	};
 
 	Object.keys(requestPayload).forEach((key) => {

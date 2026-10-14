@@ -95,6 +95,9 @@ function normalizeAppointment(row) {
 		mobileNo: row.mobile_no || "",
 		email: row.email || "",
 		modified: row.modified || "",
+		coupleAppointmentId: row.couple_appointment_id || "",
+		isPrimaryInCouple: Boolean(row.is_primary_in_couple),
+		isCouple: Boolean(row.couple_appointment_id),
 	};
 }
 
@@ -148,6 +151,8 @@ export async function fetchAppointmentsWorkspace(params = {}) {
 			"total_amount",
 			"outstanding_amount",
 			"details",
+			"couple_appointment_id",
+			"is_primary_in_couple",
 			"modified",
 		],
 		filters: buildFilters(params),
