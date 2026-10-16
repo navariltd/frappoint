@@ -122,9 +122,6 @@ def get_data(filters, start, end, periods) -> list[dict]:
 			order_by="appointment_type asc",
 			ignore_permissions=False,
 		)
-		.where(
-			appointment.status.isin(["Confirmed", "Completed"])
-			| (appointment.payment_status == "Paid")
-		)
+		.where(appointment.status.isin(["Confirmed", "Completed"]) | (appointment.payment_status == "Paid"))
 		.run(as_dict=True)
 	)

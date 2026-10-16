@@ -145,8 +145,11 @@ def get_data(filters, periods):
 		"Service Appointment",
 		filters=conditions,
 		fields=[
-			"appointment_type", "appointment_type.item_group as item_group",
-			"appointment_date", "currency", "grand_total",
+			"appointment_type",
+			"appointment_type.item_group as item_group",
+			"appointment_date",
+			"currency",
+			"grand_total",
 		],
 		limit_page_length=0,
 		order_by="appointment_type asc, currency asc, appointment_date asc",

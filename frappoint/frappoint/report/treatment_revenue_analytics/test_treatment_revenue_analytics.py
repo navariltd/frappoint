@@ -41,8 +41,11 @@ class TestTreatmentRevenueAnalytics(unittest.TestCase):
 	def test_revenue_averages_zero_periods_and_currency_separation(self):
 		appointments = [
 			frappe._dict(
-				appointment_type="Massage", item_group="Treatments",
-				appointment_date=date, currency=currency, grand_total=amount
+				appointment_type="Massage",
+				item_group="Treatments",
+				appointment_date=date,
+				currency=currency,
+				grand_total=amount,
 			)
 			for date, currency, amount in [
 				("2025-01-20", "KES", 100),
@@ -77,9 +80,10 @@ class TestTreatmentRevenueAnalytics(unittest.TestCase):
 			choices = inspect.unwrap(report.get_item_groups)("Item Group", "Treat", "name", 10, 20, {})
 		self.assertEqual(choices, [("Treatments",)])
 		self.assertEqual(query.call_args_list[0].args, ("Service Type",))
-		self.assertEqual(query.call_args.kwargs["filters"], {
-			"name": ["in", ["Treatments"]], "item_group_name": ["like", "%Treat%"]
-		})
+		self.assertEqual(
+			query.call_args.kwargs["filters"],
+			{"name": ["in", ["Treatments"]], "item_group_name": ["like", "%Treat%"]},
+		)
 		self.assertEqual(query.call_args.kwargs["start"], 10)
 		self.assertEqual(query.call_args.kwargs["page_length"], 20)
 

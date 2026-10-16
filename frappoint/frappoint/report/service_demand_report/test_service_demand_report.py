@@ -31,7 +31,9 @@ class TestServiceDemandReport(unittest.TestCase):
 		self.assertEqual(columns[2]["label"], "Sunday (18 Oct)")
 		self.assertEqual(columns[8]["label"], "Saturday (24 Oct)")
 		kwargs = self.qb.get_query.call_args.kwargs
-		self.assertEqual(kwargs["filters"]["appointment_date"], ["between", [date(2026, 10, 18), date(2026, 10, 24)]])
+		self.assertEqual(
+			kwargs["filters"]["appointment_date"], ["between", [date(2026, 10, 18), date(2026, 10, 24)]]
+		)
 		self.assertFalse(kwargs["ignore_permissions"])
 		self.assertEqual(kwargs["group_by"], "appointment_type")
 		self.assertEqual(kwargs["filters"]["docstatus"], ["<", 2])
@@ -50,7 +52,10 @@ class TestServiceDemandReport(unittest.TestCase):
 	def test_filters_and_aggregated_results(self):
 		rows = [{"service_type": "Massage", "monday": 2, "weekly_total": 2}]
 		self.query.run.return_value = rows
-		self.assertEqual(report.execute({"week_start": "2026-01-01", "company": "Test", "service_type": "Massage"})[1], rows)
+		self.assertEqual(
+			report.execute({"week_start": "2026-01-01", "company": "Test", "service_type": "Massage"})[1],
+			rows,
+		)
 		conditions = self.qb.get_query.call_args.kwargs["filters"]
 		self.assertEqual(conditions["company"], "Test")
 		self.assertEqual(conditions["appointment_type"], "Massage")
@@ -64,13 +69,14 @@ class TestServiceDemandReport(unittest.TestCase):
 
 	def test_monthly_columns_and_partial_month_bounds(self):
 		with patch.object(report, "today", return_value="2026-10-16"):
-			columns, rows = report.execute({
-				"view": "Monthly", "from_date": "2025-12-20", "to_date": "2026-02-10"
-			})
+			columns, rows = report.execute(
+				{"view": "Monthly", "from_date": "2025-12-20", "to_date": "2026-02-10"}
+			)
 		self.assertEqual(rows, [])
-		self.assertEqual([column["fieldname"] for column in columns], [
-			"service_type", "period_total", "month_202512", "month_202601", "month_202602"
-		])
+		self.assertEqual(
+			[column["fieldname"] for column in columns],
+			["service_type", "period_total", "month_202512", "month_202601", "month_202602"],
+		)
 		kwargs = self.qb.get_query.call_args.kwargs
 		self.assertEqual(kwargs["filters"]["appointment_date"][1], [date(2025, 12, 20), date(2026, 2, 10)])
 		self.assertIn("2025-12-01", str(kwargs["fields"][1]))
