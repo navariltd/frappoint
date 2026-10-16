@@ -164,20 +164,19 @@
    "hidden": 0,
    "is_query_report": 0,
    "label": "Reports",
-   "link_count": 3,
+   "link_count": 4,
    "link_type": "DocType",
    "onboard": 0,
    "type": "Card Break"
   },
   {
    "hidden": 0,
-   "is_query_report": 0,
+   "is_query_report": 1,
    "label": "Service Availability",
    "link_count": 0,
    "link_to": "Service Availability",
    "link_type": "Report",
    "onboard": 0,
-   "report_ref_doctype": "Service Provider Appointment Slot",
    "type": "Link"
   },
   {
@@ -199,9 +198,19 @@
    "link_type": "Report",
    "onboard": 0,
    "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 1,
+   "label": "Service Demand Report",
+   "link_count": 0,
+   "link_to": "Service Demand Report",
+   "link_type": "Report",
+   "onboard": 0,
+   "type": "Link"
   }
  ],
- "modified": "2026-10-14 21:50:11.278355",
+ "modified": "2026-10-16 16:40:39.372407",
  "modified_by": "Administrator",
  "module": "Frappoint",
  "name": "Frappoint",
