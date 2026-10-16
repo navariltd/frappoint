@@ -23,6 +23,26 @@ def execute(filters=None):
 	return get_columns(periods), get_data(filters, periods)
 
 
+@frappe.whitelist()
+@frappe.validate_and_sanitize_search_inputs
+def get_item_groups(doctype, txt, searchfield, start, page_len, filters):
+	"""Only offer item groups linked to a visible Service Type."""
+	item_groups = frappe.get_list(
+		"Service Type", pluck="item_group", filters={"item_group": ["is", "set"]}, limit_page_length=0
+	)
+	if not item_groups:
+		return []
+	return frappe.get_list(
+		"Item Group",
+		filters={"name": ["in", item_groups], "item_group_name": ["like", f"%{txt}%"]},
+		fields=["name"],
+		order_by="name asc",
+		start=start,
+		page_length=page_len,
+		as_list=True,
+	)
+
+
 def validate_filters(filters):
 	for field, label in (("from_date", "From Date"), ("to_date", "To Date")):
 		if not filters.get(field):
@@ -80,6 +100,13 @@ def get_columns(periods):
 			"width": 200,
 		},
 		{
+			"label": _("Item Group"),
+			"fieldname": "item_group",
+			"fieldtype": "Link",
+			"options": "Item Group",
+			"width": 180,
+		},
+		{
 			"label": _("Currency"),
 			"fieldname": "currency",
 			"fieldtype": "Link",
@@ -112,10 +139,15 @@ def get_data(filters, periods):
 		conditions["company"] = filters.company
 	if filters.get("service_type"):
 		conditions["appointment_type"] = filters.service_type
+	if filters.get("item_group"):
+		conditions["appointment_type.item_group"] = filters.item_group
 	appointments = frappe.get_list(
 		"Service Appointment",
 		filters=conditions,
-		fields=["appointment_type", "appointment_date", "currency", "grand_total"],
+		fields=[
+			"appointment_type", "appointment_type.item_group as item_group",
+			"appointment_date", "currency", "grand_total",
+		],
 		limit_page_length=0,
 		order_by="appointment_type asc, currency asc, appointment_date asc",
 	)
@@ -123,7 +155,7 @@ def get_data(filters, periods):
 	for appointment in appointments:
 		key = (appointment.appointment_type, appointment.currency)
 		if key not in rows:
-			row = {"treatment": key[0], "currency": key[1]}
+			row = {"treatment": key[0], "item_group": appointment.item_group, "currency": key[1]}
 			for prefix in ["", *(p["key"] + "_" for p in periods)]:
 				row[prefix + "completed_appointments"] = 0
 				row[prefix + "total_revenue"] = Decimal("0")

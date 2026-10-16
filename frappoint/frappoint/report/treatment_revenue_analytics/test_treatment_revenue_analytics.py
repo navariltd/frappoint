@@ -1,6 +1,7 @@
 # Copyright (c) 2026, Navari LTD and contributors
 # For license information, please see license.txt
 
+import inspect
 import unittest
 from unittest.mock import patch
 
@@ -40,7 +41,8 @@ class TestTreatmentRevenueAnalytics(unittest.TestCase):
 	def test_revenue_averages_zero_periods_and_currency_separation(self):
 		appointments = [
 			frappe._dict(
-				appointment_type="Massage", appointment_date=date, currency=currency, grand_total=amount
+				appointment_type="Massage", item_group="Treatments",
+				appointment_date=date, currency=currency, grand_total=amount
 			)
 			for date, currency, amount in [
 				("2025-01-20", "KES", 100),
@@ -50,15 +52,17 @@ class TestTreatmentRevenueAnalytics(unittest.TestCase):
 			]
 		]
 		with patch.object(frappe, "get_list", return_value=appointments) as query:
-			columns, rows = report.execute(self.filters(company="Test Company"))
+			columns, rows = report.execute(self.filters(company="Test Company", item_group="Treatments"))
+		self.assertEqual(rows[0]["item_group"], "Treatments")
 		self.assertEqual(rows[0]["completed_appointments"], 3)
 		self.assertEqual(rows[0]["total_revenue"], 900)
 		self.assertEqual(rows[0]["average_revenue"], 300)
 		self.assertEqual(rows[0]["period_20250101_average_revenue"], 150)
 		self.assertEqual(rows[0]["period_20250201_average_revenue"], 0)
 		self.assertEqual(rows[1]["total_revenue"], 20)
-		self.assertEqual(len(columns), 14)
+		self.assertEqual(len(columns), 15)
 		conditions = query.call_args.kwargs["filters"]
+		self.assertEqual(conditions["appointment_type.item_group"], "Treatments")
 		self.assertEqual(conditions["status"], "Completed")
 		self.assertEqual(conditions["docstatus"], ["<", 2])
 		self.assertEqual(conditions["company"], "Test Company")
@@ -67,6 +71,22 @@ class TestTreatmentRevenueAnalytics(unittest.TestCase):
 	def test_empty_results(self):
 		with patch.object(frappe, "get_list", return_value=[]):
 			self.assertEqual(report.execute(self.filters())[1], [])
+
+	def test_item_group_choices_are_limited_to_linked_groups(self):
+		with patch.object(frappe, "get_list", side_effect=[["Treatments"], [("Treatments",)]]) as query:
+			choices = inspect.unwrap(report.get_item_groups)("Item Group", "Treat", "name", 10, 20, {})
+		self.assertEqual(choices, [("Treatments",)])
+		self.assertEqual(query.call_args_list[0].args, ("Service Type",))
+		self.assertEqual(query.call_args.kwargs["filters"], {
+			"name": ["in", ["Treatments"]], "item_group_name": ["like", "%Treat%"]
+		})
+		self.assertEqual(query.call_args.kwargs["start"], 10)
+		self.assertEqual(query.call_args.kwargs["page_length"], 20)
+
+	def test_no_linked_item_groups_returns_no_choices(self):
+		with patch.object(frappe, "get_list", return_value=[]) as query:
+			self.assertEqual(inspect.unwrap(report.get_item_groups)("Item Group", "", "name", 0, 20, {}), [])
+		query.assert_called_once()
 
 	def test_invalid_filters(self):
 		with patch.object(frappe, "throw", side_effect=ValueError):

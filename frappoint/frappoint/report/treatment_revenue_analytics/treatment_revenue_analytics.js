@@ -17,6 +17,17 @@ frappe.query_reports["Treatment Revenue Analytics"] = {
 			options: "Service Type",
 		},
 		{
+			fieldname: "item_group",
+			label: __("Item Group"),
+			fieldtype: "Link",
+			options: "Item Group",
+			get_query() {
+				return {
+					query: "frappoint.frappoint.report.treatment_revenue_analytics.treatment_revenue_analytics.get_item_groups",
+				};
+			},
+		},
+		{
 			fieldname: "from_date",
 			label: __("From Date"),
 			fieldtype: "Date",
