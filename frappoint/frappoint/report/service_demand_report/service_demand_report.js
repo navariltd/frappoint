@@ -26,7 +26,9 @@ frappe.query_reports["Service Demand Report"] = {
 			default: moment().startOf("isoWeek").format("YYYY-MM-DD"),
 			depends_on: 'eval:doc.view === "Weekly"',
 			mandatory_depends_on: 'eval:doc.view === "Weekly"',
-			description: __("Shows seven days starting on Week Start. Counts Confirmed, Completed or Paid appointments."),
+			description: __(
+				"Shows seven days starting on Week Start. Counts Confirmed, Completed or Paid appointments."
+			),
 		},
 		{
 			fieldname: "from_date",
@@ -35,7 +37,9 @@ frappe.query_reports["Service Demand Report"] = {
 			default: moment().subtract(11, "months").startOf("month").format("YYYY-MM-DD"),
 			depends_on: 'eval:doc.view === "Monthly"',
 			mandatory_depends_on: 'eval:doc.view === "Monthly"',
-			description: __("May be up to 12 months ago. Counts only dates within the selected period."),
+			description: __(
+				"May be up to 12 months ago. Counts only dates within the selected period."
+			),
 		},
 		{
 			fieldname: "to_date",
