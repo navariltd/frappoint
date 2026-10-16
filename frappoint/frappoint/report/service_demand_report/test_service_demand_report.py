@@ -24,22 +24,22 @@ class TestServiceDemandReport(unittest.TestCase):
 		self.query.where.return_value = self.query
 		self.query.run.return_value = []
 
-	def test_week_is_monday_to_sunday_with_daily_counts(self):
+	def test_week_has_seven_days_from_selected_start(self):
 		columns, rows = report.execute({"week_start": "2026-10-18"})
 		self.assertEqual(rows, [])
 		self.assertEqual(len(columns), 9)
-		self.assertEqual(columns[1]["label"], "Monday (12 Oct)")
-		self.assertEqual(columns[7]["label"], "Sunday (18 Oct)")
+		self.assertEqual(columns[2]["label"], "Sunday (18 Oct)")
+		self.assertEqual(columns[8]["label"], "Saturday (24 Oct)")
 		kwargs = self.qb.get_query.call_args.kwargs
-		self.assertEqual(kwargs["filters"]["appointment_date"], ["between", [date(2026, 10, 12), date(2026, 10, 18)]])
+		self.assertEqual(kwargs["filters"]["appointment_date"], ["between", [date(2026, 10, 18), date(2026, 10, 24)]])
 		self.assertFalse(kwargs["ignore_permissions"])
 		self.assertEqual(kwargs["group_by"], "appointment_type")
 		self.assertEqual(kwargs["filters"]["docstatus"], ["<", 2])
 		self.assertEqual(kwargs["filters"]["status"], ["!=", "Cancelled"])
 		fields = kwargs["fields"]
 		self.assertIn("SUM(CASE WHEN", str(fields[1]))
-		self.assertIn("2026-10-12", str(fields[1]))
-		self.assertIn("2026-10-18", str(fields[7]))
+		self.assertIn("2026-10-18", str(fields[1]))
+		self.assertIn("2026-10-24", str(fields[7]))
 		self.assertIn("COUNT(", str(fields[8]))
 		criterion = str(self.query.where.call_args.args[0])
 		self.assertIn("'Confirmed','Completed'", criterion)
@@ -54,10 +54,38 @@ class TestServiceDemandReport(unittest.TestCase):
 		conditions = self.qb.get_query.call_args.kwargs["filters"]
 		self.assertEqual(conditions["company"], "Test")
 		self.assertEqual(conditions["appointment_type"], "Massage")
-		self.assertEqual(conditions["appointment_date"][1], [date(2025, 12, 29), date(2026, 1, 4)])
+		self.assertEqual(conditions["appointment_date"][1], [date(2026, 1, 1), date(2026, 1, 7)])
 
 	def test_week_is_required(self):
 		with patch.object(frappe, "throw", side_effect=ValueError):
 			with self.assertRaises(ValueError):
 				report.execute()
 		self.qb.get_query.assert_not_called()
+
+	def test_monthly_columns_and_partial_month_bounds(self):
+		with patch.object(report, "today", return_value="2026-10-16"):
+			columns, rows = report.execute({
+				"view": "Monthly", "from_date": "2025-12-20", "to_date": "2026-02-10"
+			})
+		self.assertEqual(rows, [])
+		self.assertEqual([column["fieldname"] for column in columns], [
+			"service_type", "period_total", "month_202512", "month_202601", "month_202602"
+		])
+		kwargs = self.qb.get_query.call_args.kwargs
+		self.assertEqual(kwargs["filters"]["appointment_date"][1], [date(2025, 12, 20), date(2026, 2, 10)])
+		self.assertIn("2025-12-01", str(kwargs["fields"][1]))
+		self.assertIn("2026-01-01", str(kwargs["fields"][1]))
+		self.assertEqual(kwargs["fields"][-1].alias, "period_total")
+
+	def test_monthly_validation_and_twelve_month_boundary(self):
+		with patch.object(report, "today", return_value="2026-10-16"):
+			report.execute({"view": "Monthly", "from_date": "2025-10-16", "to_date": "2026-10-16"})
+			with patch.object(frappe, "throw", side_effect=ValueError):
+				for filters in (
+					{"view": "Yearly"},
+					{"view": "Monthly"},
+					{"view": "Monthly", "from_date": "2025-10-15", "to_date": "2026-10-16"},
+					{"view": "Monthly", "from_date": "2026-10-16", "to_date": "2026-10-15"},
+				):
+					with self.subTest(filters=filters), self.assertRaises(ValueError):
+						report.execute(filters)
