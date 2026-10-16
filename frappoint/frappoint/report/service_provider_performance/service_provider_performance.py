@@ -39,6 +39,12 @@ def get_columns() -> list[dict]:
 			"width": 200,
 		},
 		{
+			"label": _("Confirmed Appointments"),
+			"fieldname": "confirmed_appointments",
+			"fieldtype": "Int",
+			"width": 180,
+		},
+		{
 			"label": _("Completed Appointments"),
 			"fieldname": "completed_appointments",
 			"fieldtype": "Int",
@@ -68,7 +74,7 @@ def get_data(filters) -> list[dict]:
 	and omit appointments without an assigned provider.
 	"""
 	conditions = {
-		"status": "Completed",
+		"status": ["in", ["Confirmed", "Completed"]],
 		"docstatus": ["<", 2],
 		"appointment_date": ["between", [filters.from_date, filters.to_date]],
 		"appointment_provider": ["is", "set"],
@@ -80,7 +86,7 @@ def get_data(filters) -> list[dict]:
 	appointments = frappe.get_list(
 		"Service Appointment",
 		filters=conditions,
-		fields=["appointment_provider", "service_provider_name", "currency", "grand_total"],
+		fields=["appointment_provider", "service_provider_name", "status", "currency", "grand_total"],
 		limit_page_length=0,
 		order_by="appointment_provider asc, currency asc",
 	)
@@ -92,12 +98,16 @@ def get_data(filters) -> list[dict]:
 				"service_provider": key[0],
 				"provider_name": appointment.service_provider_name or "",
 				"currency": key[1],
+				"confirmed_appointments": 0,
 				"completed_appointments": 0,
 				"total_revenue": Decimal("0"),
 			}
 		row = rows[key]
-		row["completed_appointments"] += 1
-		row["total_revenue"] += Decimal(str(appointment.grand_total or 0))
+		if appointment.status == "Confirmed":
+			row["confirmed_appointments"] += 1
+		elif appointment.status == "Completed":
+			row["completed_appointments"] += 1
+			row["total_revenue"] += Decimal(str(appointment.grand_total or 0))
 		if not row["provider_name"]:
 			row["provider_name"] = appointment.service_provider_name or ""
 	for row in rows.values():
