@@ -62,7 +62,7 @@ frappe.query_reports["Customer Service Demand and Revenue"] = {
 			fieldtype: "Link",
 			options: "Currency",
 			description: __(
-				"Defaults to company currency. Revenue is the grand total of completed appointments, grouped by appointment date.",
+				"Defaults to company currency. Revenue is the grand total of completed appointments, grouped by appointment date."
 			),
 		},
 	],

@@ -3,7 +3,9 @@ from unittest.mock import patch
 
 import frappe
 
-from frappoint.frappoint.report.customer_service_demand_and_revenue import customer_service_demand_and_revenue as report
+from frappoint.frappoint.report.customer_service_demand_and_revenue import (
+	customer_service_demand_and_revenue as report,
+)
 
 
 class TestCustomerServiceDemandAndRevenue(unittest.TestCase):
@@ -15,7 +17,13 @@ class TestCustomerServiceDemandAndRevenue(unittest.TestCase):
 
 	def test_counts_and_completed_revenue(self):
 		appointments = [
-			frappe._dict(customer=customer, full_name="Name", appointment_type=service, status=status, grand_total=amount)
+			frappe._dict(
+				customer=customer,
+				full_name="Name",
+				appointment_type=service,
+				status=status,
+				grand_total=amount,
+			)
 			for customer, service, status, amount in [
 				("C1", "Massage", "Completed", "100.10"),
 				("C1", "Massage", "Completed", "200.20"),
@@ -48,13 +56,24 @@ class TestCustomerServiceDemandAndRevenue(unittest.TestCase):
 		self.assertEqual(sum(row["revenue"] for row in parents), 350.30)
 
 	def test_filters_empty_results_and_currency_default(self):
-		filters = {**self.filters, "currency": None, "customer": "C1", "service_type": "Massage", "status": "Completed"}
-		with patch.object(frappe, "get_cached_value", return_value="KES"), patch.object(frappe, "get_list", return_value=[]) as query:
+		filters = {
+			**self.filters,
+			"currency": None,
+			"customer": "C1",
+			"service_type": "Massage",
+			"status": "Completed",
+		}
+		with (
+			patch.object(frappe, "get_cached_value", return_value="KES"),
+			patch.object(frappe, "get_list", return_value=[]) as query,
+		):
 			result = report.execute(filters)
 		self.assertEqual(result[1], [])
 		self.assertIsNone(result[3])
 		conditions = query.call_args.kwargs["filters"]
-		for field, value in dict(company="Test", currency="KES", customer="C1", appointment_type="Massage", status="Completed").items():
+		for field, value in dict(
+			company="Test", currency="KES", customer="C1", appointment_type="Massage", status="Completed"
+		).items():
 			self.assertEqual(conditions[field], value)
 		self.assertEqual(conditions["docstatus"], ["<", 2])
 		self.assertEqual(query.call_args.kwargs["limit_page_length"], 0)
@@ -73,7 +92,13 @@ class TestCustomerServiceDemandAndRevenue(unittest.TestCase):
 
 	def test_invalid_filters(self):
 		with patch.object(frappe, "throw", side_effect=ValueError), patch.object(frappe, "get_list") as query:
-			for overrides in ({"company": None}, {"from_date": None}, {"to_date": None}, {"from_date": "2027-01-01"}, {"status": "Cancelled"}):
+			for overrides in (
+				{"company": None},
+				{"from_date": None},
+				{"to_date": None},
+				{"from_date": "2027-01-01"},
+				{"status": "Cancelled"},
+			):
 				with self.subTest(overrides=overrides), self.assertRaises(ValueError):
 					report.execute({**self.filters, **overrides})
 			query.assert_not_called()

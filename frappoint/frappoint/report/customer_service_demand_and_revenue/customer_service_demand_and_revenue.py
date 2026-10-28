@@ -8,8 +8,15 @@ from frappe import _
 from frappe.utils import getdate
 
 STATUSES = (
-	"Open", "Pending Payment", "Confirmed", "Checked In", "In Progress",
-	"Rescheduled", "Completed", "Closed", "No Show",
+	"Open",
+	"Pending Payment",
+	"Confirmed",
+	"Checked In",
+	"In Progress",
+	"Rescheduled",
+	"Completed",
+	"Closed",
+	"No Show",
 )
 
 
@@ -29,7 +36,9 @@ def validate_filters(filters):
 		frappe.throw(_("From Date cannot be after To Date"))
 	if filters.get("status") and filters.status not in STATUSES:
 		frappe.throw(_("Select a non-cancelled appointment status"))
-	filters.currency = filters.get("currency") or frappe.get_cached_value("Company", filters.company, "default_currency")
+	filters.currency = filters.get("currency") or frappe.get_cached_value(
+		"Company", filters.company, "default_currency"
+	)
 	if not filters.currency:
 		frappe.throw(_("Currency is required"))
 
@@ -37,13 +46,47 @@ def validate_filters(filters):
 def get_columns():
 	return [
 		{"label": _("Customer / Service"), "fieldname": "label", "fieldtype": "Data", "width": 240},
-		{"label": _("Customer"), "fieldname": "customer", "fieldtype": "Link", "options": "Customer", "width": 180},
+		{
+			"label": _("Customer"),
+			"fieldname": "customer",
+			"fieldtype": "Link",
+			"options": "Customer",
+			"width": 180,
+		},
 		{"label": _("Customer Name"), "fieldname": "customer_name", "fieldtype": "Data", "width": 180},
-		{"label": _("Service Type"), "fieldname": "service_type", "fieldtype": "Link", "options": "Service Type", "width": 180},
-		{"label": _("Appointments Requested"), "fieldname": "appointments_requested", "fieldtype": "Int", "width": 180},
-		{"label": _("Completed Appointments"), "fieldname": "completed_appointments", "fieldtype": "Int", "width": 180},
-		{"label": _("Currency"), "fieldname": "currency", "fieldtype": "Link", "options": "Currency", "width": 90},
-		{"label": _("Revenue"), "fieldname": "revenue", "fieldtype": "Currency", "options": "currency", "width": 160},
+		{
+			"label": _("Service Type"),
+			"fieldname": "service_type",
+			"fieldtype": "Link",
+			"options": "Service Type",
+			"width": 180,
+		},
+		{
+			"label": _("Appointments Requested"),
+			"fieldname": "appointments_requested",
+			"fieldtype": "Int",
+			"width": 180,
+		},
+		{
+			"label": _("Completed Appointments"),
+			"fieldname": "completed_appointments",
+			"fieldtype": "Int",
+			"width": 180,
+		},
+		{
+			"label": _("Currency"),
+			"fieldname": "currency",
+			"fieldtype": "Link",
+			"options": "Currency",
+			"width": 90,
+		},
+		{
+			"label": _("Revenue"),
+			"fieldname": "revenue",
+			"fieldtype": "Currency",
+			"options": "currency",
+			"width": 160,
+		},
 	]
 
 
@@ -58,20 +101,33 @@ def get_data(filters):
 		"customer": ["is", "set"],
 		"appointment_type": ["is", "set"],
 	}
-	for field, source in (("customer", "customer"), ("appointment_type", "service_type"), ("status", "status")):
+	for field, source in (
+		("customer", "customer"),
+		("appointment_type", "service_type"),
+		("status", "status"),
+	):
 		if filters.get(source):
 			conditions[field] = filters[source]
 	appointments = frappe.get_list(
-		"Service Appointment", filters=conditions,
+		"Service Appointment",
+		filters=conditions,
 		fields=["customer", "full_name", "appointment_type", "status", "grand_total"],
-		limit_page_length=0, order_by="customer asc, appointment_type asc",
+		limit_page_length=0,
+		order_by="customer asc, appointment_type asc",
 	)
 	rows = {}
 	for appointment in appointments:
 		key = (appointment.customer, appointment.appointment_type)
 		if key not in rows:
-			rows[key] = dict(customer=key[0], customer_name=appointment.full_name or "", service_type=key[1],
-				appointments_requested=0, completed_appointments=0, currency=filters.currency, revenue=Decimal("0"))
+			rows[key] = dict(
+				customer=key[0],
+				customer_name=appointment.full_name or "",
+				service_type=key[1],
+				appointments_requested=0,
+				completed_appointments=0,
+				currency=filters.currency,
+				revenue=Decimal("0"),
+			)
 		row = rows[key]
 		row["appointments_requested"] += 1
 		if appointment.status == "Completed":
@@ -116,7 +172,10 @@ def get_chart(data, currency):
 	# Pie charts cannot represent negative contributions.
 	if any(value < 0 for value in totals.values()):
 		return None
-	ranked = sorted(((customer, value) for customer, value in totals.items() if value > 0), key=lambda item: (-item[1], item[0]))
+	ranked = sorted(
+		((customer, value) for customer, value in totals.items() if value > 0),
+		key=lambda item: (-item[1], item[0]),
+	)
 	if not ranked:
 		return None
 	labels = [customer for customer, _value in ranked[:10]]
