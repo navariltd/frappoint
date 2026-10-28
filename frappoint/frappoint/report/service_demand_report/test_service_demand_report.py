@@ -61,6 +61,15 @@ class TestServiceDemandReport(unittest.TestCase):
 		self.assertEqual(conditions["appointment_type"], "Massage")
 		self.assertEqual(conditions["appointment_date"][1], [date(2026, 1, 1), date(2026, 1, 7)])
 
+	def test_is_completed_filter(self):
+		for value in (1, "1", 0, "0", None):
+			with self.subTest(is_completed=value):
+				report.execute({"week_start": "2026-10-18", "is_completed": value})
+				conditions = self.qb.get_query.call_args.kwargs["filters"]
+				self.assertEqual(
+					conditions["status"], "Completed" if value in (1, "1") else ["!=", "Cancelled"]
+				)
+
 	def test_week_is_required(self):
 		with patch.object(frappe, "throw", side_effect=ValueError):
 			with self.assertRaises(ValueError):
