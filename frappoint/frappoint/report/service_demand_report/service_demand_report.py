@@ -7,7 +7,7 @@ import frappe
 from frappe import _
 from frappe.query_builder import Case
 from frappe.query_builder.functions import Count, Sum
-from frappe.utils import add_months, getdate, today
+from frappe.utils import add_months, cint, getdate, today
 
 DAYS = ("Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday")
 
@@ -97,6 +97,8 @@ def get_data(filters, start, end, periods) -> list[dict]:
 		conditions["company"] = filters.company
 	if filters.get("service_type"):
 		conditions["appointment_type"] = filters.service_type
+	if cint(filters.get("is_completed")):
+		conditions["status"] = "Completed"
 
 	return (
 		frappe.qb.get_query(

@@ -50,6 +50,13 @@ frappe.query_reports["Service Demand Report"] = {
 			mandatory_depends_on: 'eval:doc.view === "Monthly"',
 		},
 		{
+			fieldname: "is_completed",
+			label: __("Is completed"),
+			fieldtype: "Check",
+			default: 0,
+			description: __("Show only completed appointments."),
+		},
+		{
 			fieldname: "service_type",
 			label: __("Service Type"),
 			fieldtype: "Link",
