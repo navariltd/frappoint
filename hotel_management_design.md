@@ -37,11 +37,11 @@ The solution has seven core ideas:
 4. **The folio is an operational guest subledger**, made of immutable charges, credits, payments, transfers, and reversals. A stay may have several folios with different payees. Non-room accounts (house accounts and group masters) use the same folio engine.
 5. **Three things are kept independent for every item or service:** who consumed it, where it was delivered, and who must pay for it.
 6. **Room-night inventory, rates, and night audit are their own engines.** They are separate from appointment time-slot allocation.
-7. **ERPNext remains the accounting and fiscal system of record.** Folio settlement produces Sales Invoices, Payment Entries, credit notes, and AR. Fiscal submission (for example, KRA eTIMS) runs through the existing ERPNext fiscal integration.
+7. **ERPNext remains the accounting system of record, and Frappoint stays tax-compliance agnostic.** Folio settlement produces standard Sales Invoices, Payment Entries, credit notes, and AR. Frappoint has no fiscal or tax-authority integration (for example, KRA eTIMS). System Managers install a compliance app for their site if they need one, and it works on those standard documents through its own hooks (section 17.6).
 
 The target relationship is:
 
-> A booker makes a booking; the booking contains one or more stay reservations, priced per night from a rate plan; stay reservations occupy one or more rooms; every occupant has a guest profile; services and items identify their consumer; routing rules determine the folio and legal payee that receive each charge; cashiers collect payments in audited shifts; and settlement turns folios into fiscal invoices and receivables in ERPNext.
+> A booker makes a booking; the booking contains one or more stay reservations, priced per night from a rate plan; stay reservations occupy one or more rooms; every occupant has a guest profile; services and items identify their consumer; routing rules determine the folio and legal payee that receive each charge; cashiers collect payments in audited shifts; and settlement turns folios into invoices and receivables in ERPNext.
 
 This keeps what Frappoint already does well: service scheduling, providers, timed capacity, payments, M-Pesa, and ERPNext integration. On top of that it adds what a full PMS needs: date-based inventory, rates, front office, guest ledger, cashiering, housekeeping, and hotel accounting.
 
@@ -57,18 +57,18 @@ The solution should:
 - Quote, hold, confirm, amend, cancel, reinstate, check in, move, extend, shorten, and check out stays.
 - Support solo, couple, family, sharer, group, corporate, travel-agent, walk-in, day-use, and booked-on-behalf scenarios.
 - Assign rooms, items, appointments, and other services to the correct guest or guests.
-- Maintain one or more folios per stay, plus house and group accounts. This includes routing, splitting, transfers, deposits, payments, refunds, cashier shifts, tax, fiscal invoicing, and accounts receivable.
+- Maintain one or more folios per stay, plus house and group accounts. This includes routing, splitting, transfers, deposits, payments, refunds, cashier shifts, tax, invoicing, and accounts receivable.
 - Suggest relevant preferences and previously used service types when a returning guest is selected.
 - Integrate with the Frappoint booking desk, portal, appointment engine, and payments, and with ERPNext Items, Stock, POS, Assets, Accounting, and HRMS.
 - Provide operational boards and reports for front desk, reservations, housekeeping, finance, revenue, and management.
-- Meet fiscal, tax, guest-register, and data-protection obligations of the property's jurisdiction.
+- Meet guest-register and data-protection obligations, and produce standard ERPNext tax documents that any installed tax-compliance app can process.
 - Preserve a complete audit trail and protect guest data.
 
 ### 2.2 Release scope
 
 | Release | Summary |
 |---|---|
-| **Launch** | One property running daily operations end to end: rooms, rates and packages, reservations with companions, front desk, guest profiles, multi-folio billing, cashiering, deposits, AR, fiscal invoicing, appointment posting to folios, housekeeping, maintenance, night audit, core reports, and transactional communication. Full detail in section 32.1. |
+| **Launch** | One property running daily operations end to end: rooms, rates and packages, reservations with companions, front desk, guest profiles, multi-folio billing, cashiering, deposits, AR, invoicing, appointment posting to folios, housekeeping, maintenance, night audit, core reports, and transactional communication. Full detail in section 32.1. |
 | **Release 2** | Independent sharers, groups and blocks, rooming lists, travel-agent commissions, ERPNext POS room posting, Guest Service Orders, day use and paid early/late, front-office extras, portal check-in and payment, foreign-currency tender, and full routing tiers. |
 | **Release 3+** | Observed preference suggestions, multi-property operation and central reservations, plus external integrations (section 2.3). |
 
@@ -93,7 +93,7 @@ The architecture must allow these, but they are not delivered in Launch or Relea
 | Core folio | Durable guest/stay links; multiple folios and payees; immutable charge, payment, tax, and reversal records; pending versus posted activity; routing, splitting, and transfers; deposits and refunds; settlement; invoices and receipts; AR; audit and reconciliation. Without these, the feature is a booking total or invoice screen, not a dependable guest folio. |
 | Hotel PMS | Room types and rooms; rates, restrictions, and policy snapshots; availability and holds; booking, occupancy, stay, and every stay guest; room assignment and moves; check-in/out; housekeeping; cashiering; business date and night audit; front-desk and finance reports. Without these, Frappoint may sell accommodation but cannot safely operate a hotel. |
 | Integrated guest experience | Service Type and Item reuse; service-participant attribution; separation of consumer, location, and payee; returning-guest history; declared preferences and, later, evidence-backed suggestions. This connects the appointment capability to the hotel stay. |
-| Compliance | Fiscal invoices and credit notes, correctly configured taxes and levies, a guest register, and data-protection controls. Without these, the property cannot lawfully operate on the system. |
+| Compliance | Standard ERPNext invoices and credit notes with correctly configured taxes and levies (so any installed tax-compliance app can process them), a guest register, and data-protection controls. Tax-authority submission itself belongs to the compliance app, not Frappoint. |
 
 ## 3. Glossary
 
@@ -123,7 +123,7 @@ The architecture must allow these, but they are not delivered in Launch or Relea
 | Cashier Shift | One cashier's session of collecting and paying out money, closed with a count. |
 | Business Date | The hotel's operational date. It is advanced only by night audit and may differ from the wall-clock date. |
 | Night Audit | Operator-run end-of-day process that posts daily charges, reconciles, and advances the business date. |
-| Information folio | A printed or emailed folio statement. It is not a fiscal invoice. |
+| Information folio | A printed or emailed folio statement. It is not a tax invoice. |
 
 ## 4. Current Frappoint baseline
 
@@ -150,7 +150,7 @@ Relevant definitions include [Service Booking](frappoint/frappoint/doctype/servi
 
 - Do not turn `Service Appointment Guest` into the master guest record. It is an event snapshot and may hold duplicate or incomplete people.
 - Do not use `Service Booking.items` as a folio. Those rows describe what was booked, not an immutable history of financial events.
-- Do not use a `Sales Invoice` as the live folio. The invoice is the fiscal outcome; the folio is the changing subledger before settlement.
+- Do not use a `Sales Invoice` as the live folio. The invoice is the accounting outcome; the folio is the changing subledger before settlement.
 - Do not use the timed slot allocator for hotel occupancy. Build a date-range inventory service with explicit room-night rules.
 - Do reuse ERPNext accounting, Items, Customers, Companies, taxes, warehouses, Payment Entries, Sales Invoices, POS, Assets, and HRMS rather than rebuilding them.
 
@@ -245,7 +245,7 @@ Inventory counts Room Occupancies, not sharer accounts. Two sharers in room 201 
 | Appointments | Service Type, providers, slots, Service Appointment, resource allocations | Room-night inventory |
 | Guest Services | Guest Service Orders, outlet postings, fulfillment, delivery | Final routing rules |
 | Folio and Cashiering | Folios, transactions, routing, allocations, deposits, cashier shifts, settlement | Physical fulfillment or stock movement |
-| Accounting Integration | Sales Invoice, Payment Entry, credit notes, AR, commissions, tax mappings, fiscal log, reconciliation | Guest operational workflow |
+| Accounting Integration | Sales Invoice, Payment Entry, credit notes, AR, commissions, tax mappings, reconciliation | Guest operational workflow; tax-authority submission (an installed compliance app does this) |
 | Hotel Operations | Housekeeping, maintenance, discrepancies, night audit, front-office services | Guest identity master |
 | Communication | Notification rules, templates, the guest portal | Business state changes |
 
@@ -316,7 +316,6 @@ The responsibilities and essential rules of every record, grouped by context. La
 | **House Account** | Non-room folio owner. | Name, type (permanent/dated), dates, status. |
 | **AR Account** | Direct-bill party. | Customer, credit limit, payment terms, billing contact and address, tax id, allowed charge codes, status. |
 | **Commission Agreement** / **Commission Accrual** | Travel-agent commission. | Agent Supplier, plans/segments, percentage, basis, validity / accrual per checked-out stay, posted document. |
-| **Fiscal Document Log** | Fiscal submission status. | Invoice/credit note, status, fiscal number, verification data, retries. |
 
 ### 7.6 Services and outlets
 
@@ -497,7 +496,7 @@ Adult 1 eats breakfast: the outlet charge of 1,000 is offset to 0. Adult 2 does 
 | `code`, `description` | Stable short code shown on folios. |
 | `charge_department` | Reporting and routing scope. |
 | `transaction_type` | Revenue, Tax, Payment, Deposit, Allowance, Paid-out, Transfer, Adjustment, or Write-off. |
-| `item` | ERPNext Item for revenue types. It supplies the income account, Item Tax Template, stock behavior, and fiscal classification. |
+| `item` | ERPNext Item for revenue types. It supplies the income account, Item Tax Template, and stock behavior. Any fields a compliance app needs on the Item are configured according to that app's documentation. |
 | `mode_of_payment` | ERPNext Mode of Payment for payment types. |
 | `posting_permission`, `allow_manual_posting`, `allow_negative` | Posting controls. |
 | `is_room_revenue` | Included in ADR/RevPAR room revenue. |
@@ -599,7 +598,7 @@ flowchart LR
     K --> L[Night audit posts room, package, tax]
     L --> M[Review, pay, and settle each folio]
     M --> N[Check out guests and room occupancy]
-    N --> O[Fiscal invoices, receipts, history, housekeeping]
+    N --> O[Invoices, receipts, history, housekeeping]
 ```
 
 ### 11.5 Deposits, guarantees, cancellation, and no-show
@@ -642,7 +641,7 @@ Every change to a physical interval re-checks overlap under the room lock.
 | Requester | One partner orders room service. | Operational trace and authorization. |
 | Consumer/beneficiary | The other partner receives a massage. | Service history, suggestions, waivers, provider notes. |
 | Payee | The employer pays room and breakfast. | Destination folio and settlement responsibility. |
-| Invoice addressee | The employer's legal name and tax address. | Sales Invoice and fiscal document. |
+| Invoice addressee | The employer's legal name and tax address. | Sales Invoice customer and address. |
 | Payer | The guest's card settles incidentals. | Payment instrument and allocation. |
 
 One person may fill several roles, but the system never derives one role from another.
@@ -816,7 +815,7 @@ A folio is **not**:
 | Hotel Booking | Group or booking-level master folio. | No |
 | House Account | Non-room accounts: walk-in outlet guests, events, staff meals, paid-outs, relocation costs. | No |
 
-Every folio has a required **payee Customer** (ERPNext), because every settled folio invoices a Customer. An optional payee Guest Profile records the person when the payee is an individual. For individuals without a Customer, settlement creates or reuses a Customer linked to the Guest Profile **at invoicing time**. A property walk-in Customer may be used instead where fiscal rules allow (decision D-3).
+Every folio has a required **payee Customer** (ERPNext), because every settled folio invoices a Customer. An optional payee Guest Profile records the person when the payee is an individual. For individuals without a Customer, settlement creates or reuses a Customer linked to the Guest Profile **at invoicing time**. A property walk-in Customer may be used instead where local tax rules allow (decision D-3).
 
 AR balances are not folios. A folio transferred to AR closes as `Transferred to AR`; the receivable then lives in ERPNext (section 17.4).
 
@@ -828,8 +827,8 @@ AR balances are not folios. A folio transferred to AR closes as `Transferred to 
 - Each folio has a payee, an invoice addressee, payment instructions, and a permitted posting period.
 - Guest, companion, sharer, company, travel agent, group master, house, and AR payees are supported.
 - Balances are shown per folio and as stay/booking totals.
-- Information folios can be printed, previewed, emailed, or exported without closing. They are labelled as not being fiscal invoices.
-- Separate fiscal invoices are issued per payee.
+- Information folios can be printed, previewed, emailed, or exported without closing. They are labelled as not being tax invoices.
+- Separate Sales Invoices are issued per payee.
 
 **Charges and credits**
 
@@ -1031,28 +1030,41 @@ sequenceDiagram
     participant Cashier
     participant Folio as Folio Service
     participant ERP as ERPNext
-    participant Fiscal as Fiscal integration
     Cashier->>Folio: Settle folio F
     Folio->>Folio: Validate posted balance, routing complete, no posting errors
-    Folio->>ERP: Create Sales Invoice for payee Customer (lines by print group)
-    ERP->>Fiscal: Submit invoice (fiscal app hook)
-    Fiscal-->>ERP: Fiscal number, QR, status
+    Folio->>ERP: Create and submit Sales Invoice for payee Customer (lines by print group)
+    Note over ERP: Hooks of installed apps (e.g. a tax-compliance app) run on submit
+    alt Submission rejected
+        ERP-->>Folio: Error
+        Folio->>Folio: Roll back; F stays Settlement Pending; show error
+    end
     Folio->>ERP: Reconcile advance Payment Entries allocated to F
     alt Balance remains and payee is an AR Account
         Folio->>Folio: Mark F Transferred to AR
     else Balance is zero
         Folio->>Folio: Mark F Settled, then Closed
     end
-    Folio->>Folio: Fiscal Document Log and audit event
+    Folio->>Folio: Audit event
 ```
 
 Rules:
 
 - The invoice equals posted folio charges net of allowances and reversals, excluding externally accounted sources.
 - Lines use charge-code print groups, so private service details never reach corporate invoices.
-- Post-invoice corrections use a **credit note** (return Sales Invoice) linked to the reversing transactions. The original invoice is not cancelled where fiscal rules forbid it.
+- Post-invoice corrections use a **credit note** (return Sales Invoice) linked to the reversing transactions. Frappoint never cancels a submitted invoice to correct it.
 - Long stays may be invoiced in stages up to a date, while the folio stays open.
 - Repeated settlement requests return the existing invoice rather than creating another.
+
+### 17.6 Tax compliance boundary
+
+Tax-authority integration (for example, KRA eTIMS) is **out of scope for Frappoint**. Compliance apps for ERPNext already exist, and System Managers install whichever one their site needs.
+
+- Frappoint has no dependency on any compliance app. It adds no fiscal fields, logs, retries, or tax-authority API calls, and it does not check whether a compliance app is installed.
+- Frappoint creates and submits Sales Invoices and credit notes through the **standard ERPNext document API** (`insert` and `submit`). Whatever hooks an installed app registers on those DocTypes therefore run unchanged.
+- Corrections always use return Sales Invoices (credit notes), never cancellation of a submitted invoice. This is sound accounting on its own and also matches what fiscal regimes commonly require.
+- If an installed app rejects submission, the settlement transaction rolls back. The folio stays `Settlement Pending` and the error is shown to the cashier. Retrying uses the same idempotency key, so no second invoice is created.
+- Item, Customer, and tax-template fields that a compliance app requires are configured by the site's administrators according to that app's documentation.
+- Submission status, fiscal numbers, QR codes, and retries are the compliance app's responsibility and appear in its own screens and print formats.
 
 ### 17.4 AR Accounts (city ledger)
 
@@ -1204,7 +1216,7 @@ A PMS needs an end-of-day process. Charges are never posted by a scheduler blind
 
 ### 21.1 Responsibilities
 
-- Validate unresolved arrivals, no-shows, departures, open cashier shifts, room discrepancies, fiscal failures, and posting exceptions.
+- Validate unresolved arrivals, no-shows, departures, open cashier shifts, room discrepancies, folios stuck in Settlement Pending, and posting exceptions.
 - Post room, package, allowance, tax, levy, fixed, day-use, cancellation and no-show charges, plus allowance expiry.
 - Post each stay, night, and component once, using its posting key.
 - Update due-in/due-out states and forecasts.
@@ -1218,7 +1230,7 @@ A PMS needs an end-of-day process. Charges are never posted by a scheduler blind
 ```mermaid
 flowchart TD
     A[Open Night Audit for current business date] --> B[Freeze or coordinate date-sensitive posting]
-    B --> C[Pre-checks: arrivals, departures, shifts, rooms, folios, fiscal]
+    B --> C[Pre-checks: arrivals, departures, shifts, rooms, folios]
     C --> D{Blocking exceptions?}
     D -->|Yes| E[Resolve or record authorized override]
     E --> C
@@ -1343,7 +1355,7 @@ Every audit entry captures actor, role, timestamp, property business date, actio
 - Cashier report by shift, tender, and variance; payments by mode, gateway, and batch.
 - Routing and transfer audit.
 - Folio-to-invoice, source-to-folio, POS room-post, and payment reconciliation.
-- Fiscal submission status and failures.
+- Folios in Settlement Pending (invoice submission failed).
 - Package allowance consumption and breakage.
 - Commission accruals by agent.
 - AR aging (ERPNext standard), linked back to stays.
@@ -1366,15 +1378,11 @@ Definitions, inclusion rules (for example, complimentary and house-use rooms, an
 
 ## 25. Local compliance
 
-The default deployment context is Kenya (KES, M-Pesa, KRA). All rules are **configurable per property**. Rates, the fiscal integration, register fields, and retention periods must be confirmed by finance and legal in Phase 0 (decision D-1).
+All rules are **configurable per property**. Tax rates, register fields, and retention periods must be confirmed by finance and legal in Phase 0 (decision D-1). The pilot deployment is assumed to be in Kenya (KES, M-Pesa).
 
-### 25.1 Fiscal invoicing (KRA eTIMS)
+### 25.1 Tax-authority submission
 
-- Fiscal documents are the ERPNext Sales Invoices and credit notes from folio settlement. Information folios are labelled as not being tax invoices.
-- Submission uses the eTIMS integration app the deployment already uses for ERPNext (for example, Navari's Kenya compliance app), through its Sales Invoice hooks. Frappoint does not build its own eTIMS client.
-- The Fiscal Document Log tracks status, fiscal number, verification data, and retries. Failures appear on the night-audit exception list.
-- Corrections use credit notes, never invoice cancellation, unless the rules permit cancellation.
-- Charge-code setup validates that each Item has the fiscal classification and tax codes the fiscal app requires.
+Tax-authority submission is out of scope (section 17.6). Frappoint produces standard Sales Invoices and credit notes, and an installed compliance app (for example, one for KRA eTIMS) handles submission. Information folios are labelled as not being tax invoices.
 
 ### 25.2 Taxes and levies
 
@@ -1465,7 +1473,7 @@ The page answers these questions without opening unrelated forms:
 | Service Resource Allocation | Keeps controlling time slots. It cross-checks lodging only when an appointment needs a room. |
 | Resource Availability Counter | Unchanged for slots; its pattern is copied for Room Type Inventory Day. |
 | Service Appointment Payment | Standalone service payments. For room-charged services, folio allocation is authoritative. |
-| Sales Invoice / Payment Entry | Fiscal and accounting documents produced by settlement. |
+| Sales Invoice / Payment Entry | Standard accounting documents produced by settlement. Any installed compliance app processes them through its own hooks. |
 | ERPNext POS | Outlet sales and Room Post (section 18.4). |
 | ERPNext Asset | Maintenance of room assets (section 20.2). |
 | HRMS | Housekeeping staff and shifts (section 20.1). |
@@ -1483,7 +1491,7 @@ Important boundaries use transactional, idempotent commands and events:
 - Guest registered, checked in, checked out, attached, detached.
 - Room assigned, moved, released, cleaned, inspected, taken out of order.
 - Appointment completed/cancelled/no-show; Guest Service Order fulfilled; POS room post.
-- Folio charge, payment, transfer, or reversal posted; folio settled or closed; invoice submitted, fiscalized, or failed.
+- Folio charge, payment, transfer, or reversal posted; folio settled or closed; invoice submitted or submission failed.
 - Cashier shift opened or closed.
 - Night audit started, checkpointed, failed, or completed; business date advanced.
 
@@ -1543,7 +1551,7 @@ A rebuild function recomputes counters from occupancies, blocks, and room state 
 
 ### 28.5 Idempotency
 
-- Folio Transaction, Folio Payment Allocation, Commission Accrual, outbox events, and Fiscal Document Log carry a unique-indexed `posting_key`.
+- Folio Transaction, Folio Payment Allocation, Commission Accrual, and outbox events carry a unique-indexed `posting_key`. Settlement-generated invoices use a settlement key, so retries return the existing invoice.
 - The service inserts first. On `frappe.DuplicateEntryError` it rolls back to a savepoint and returns the existing document. It never checks first and inserts afterwards.
 - Key formats are deterministic:
   - `night:<stay>:<date>:<component>`
@@ -1573,7 +1581,6 @@ A rebuild function recomputes counters from occupancies, blocks, and room state 
 | Inventory reconciliation | Daily, off-peak | Rebuild and compare counters; report drift. |
 | Post-stay folio closure | Daily | Close zero-balance post-stay folios; list the rest. |
 | Notification rules | Hourly | Send time-based communications. |
-| Fiscal retry | Hourly | Retry failed fiscal submissions. |
 | Lost-and-found retention | Weekly | List items past retention. |
 | Rate regeneration | On demand (enqueued) | Regenerate derived-plan Room Rate Days. |
 
@@ -1900,7 +1907,7 @@ Indexes cover date range, property, room type, room, guest-match fields, stay st
 
 ### 31.4 Observability and recovery
 
-- Dashboards for failed postings, expired holds, routing conflicts, unreconciled payments, fiscal failures, outbox backlog, and night-audit checkpoints.
+- Dashboards for failed postings, expired holds, routing conflicts, unreconciled payments, failed invoice submissions, outbox backlog, and night-audit checkpoints.
 - A source order is traceable through its folio and ERPNext documents.
 - Backups and restore tests include attachments, identity data, folio transactions, business date, and audit logs.
 
@@ -1929,11 +1936,11 @@ Indexes cover date range, property, room type, room, guest-match fields, stay st
 | Guests | Guest Profile, deterministic matching, duplicate review, explicit preferences, reservation requests. |
 | Folio | Multiple folios, House Accounts, immutable postings, reversals, manual transfers and splits, stay-level routing rules, post-stay folios. |
 | Cashiering | Cashier Shift with blind close, payment allocation, deposits, cash/card/M-Pesa, refunds. |
-| Accounting | Settlement invoices per payee, advance reconciliation, AR Accounts and credit limits, credit notes, eTIMS through the existing fiscal app, Fiscal Document Log. |
+| Accounting | Settlement invoices per payee, advance reconciliation, AR Accounts and credit limits, credit notes. Standard documents only; tax-authority submission is left to any installed compliance app. |
 | Services | Appointment posting to folios through Service Participants; standalone appointments unchanged. |
 | Operations | Housekeeping board with HRMS staff, departure-clean automation, maintenance requests with outages. |
 | Night audit | Pre-checks, idempotent room/package/tax/no-show posting, allowance expiry, shift checks, reconciliation, reports, date advance, restart. |
-| Reports | Arrivals/departures/in-house, house position, guest ledger, balances, deposits, cashier, charges/adjustments, fiscal status, occupancy/ADR/RevPAR, guest register. |
+| Reports | Arrivals/departures/in-house, house position, guest ledger, balances, deposits, cashier, charges/adjustments, settlement-pending folios, occupancy/ADR/RevPAR, guest register. |
 | Communication | Confirmation, pre-arrival, and folio-email rules (email and SMS). |
 
 ### 32.2 Launch phases
@@ -1942,10 +1949,10 @@ No phase starts coding until its accounting rules, permissions, data ownership, 
 
 | Phase | Deliverables | Exit criterion |
 |---|---|---|
-| **0 — Decisions** | Property types and scope; business date, time zone, room-night, tax, fiscal, deposit, cancellation, no-show, AR, and closed-period rules; source of truth for rates, taxes, items, payments, stock, and accounting; naming, statuses, charge-code hierarchy, role matrix, retention, migration; the decisions in section 35; scenario-based accounting examples reconciling folio, invoice, Payment Entry, tax, and GL; performance targets. | Finance, front office, operations, and engineering sign off the invariants and example postings. |
+| **0 — Decisions** | Property types and scope; business date, time zone, room-night, tax, deposit, cancellation, no-show, AR, and closed-period rules; source of truth for rates, taxes, items, payments, stock, and accounting; naming, statuses, charge-code hierarchy, role matrix, retention, migration; the decisions in section 35; scenario-based accounting examples reconciling folio, invoice, Payment Entry, tax, and GL; performance targets. | Finance, front office, operations, and engineering sign off the invariants and example postings. |
 | **1 — Foundation** | Hospitality module and settings; property scoping and roles; Hotel Property, Room Type, Hotel Room, room states; Charge Departments and Codes; Rate Plans, Seasons, Room Rate Days, restrictions, occupancy pricing, packages; Room Type Inventory Day; Guest Profile, matching, duplicate review, preferences; read-only guest history; Hospitality Event Log. | Staff can identify returning guests and maintain complete sellable room and rate masters, with existing appointments unaffected. |
 | **2 — Reservations and front desk** | Hotel Booking, Room Occupancy, Occupancy Membership, Stay Reservation, Stay Rate Night, Stay Guest, Room Assignment; quote, holds, expiry, locking; companions, multi-room, walk-in, check-in/out, moves, extensions, no-show, reinstatement; guest register; messages and traces; Front Desk Today, Tape Chart, Reservation 360. | All launch scenarios reserve the correct inventory at the correct prices, with a complete audit trail. |
-| **3 — Folio, cashiering, accounting** | Guest Folio, Folio Transaction, posting service, reversals, transfers, splits, routing; House Accounts; post-stay folios; nightly room/package/tax posting; Cashier Shift, payment allocation, deposits, refunds; settlement, Sales Invoice, credit notes, AR Accounts; fiscal integration and log; Folio Workspace and Cashier pages. | Every Phase 0 accounting example reconciles exactly; duplicate, retry, and closed-period tests pass. |
+| **3 — Folio, cashiering, accounting** | Guest Folio, Folio Transaction, posting service, reversals, transfers, splits, routing; House Accounts; post-stay folios; nightly room/package/tax posting; Cashier Shift, payment allocation, deposits, refunds; settlement, Sales Invoice, credit notes, AR Accounts, handling of rejected invoice submissions; Folio Workspace and Cashier pages. | Every Phase 0 accounting example reconciles exactly; duplicate, retry, and closed-period tests pass. |
 | **4 — Services and operations** | Service Participants and appointment posting; housekeeping tasks with HRMS staff; maintenance and outages; Housekeeping Board. | Spa and room charges reach the correct folios with no double revenue; room readiness drives check-in. |
 | **5 — Night audit and readiness** | Full night audit (pre-checks, reconciliation, reports, restart); management and finance reports; notification rules; performance, concurrency, recovery, security, accessibility, localization, and retention tests; migration and cut-over tooling; training. | **14 consecutive business days** run in parallel at the pilot property with no manual data repair, no unexplained folio/invoice/payment/GL differences, no duplicates after forced restarts, and all launch scenarios passing as automated tests. |
 
@@ -1973,7 +1980,7 @@ Exit: every Release 2 scenario in section 34 passes, and a group stay with mixed
 - The pilot property's masters, rates, policies, charge codes, accounts, and notification templates are configured and validated by the setup checklist.
 - Opening balances are loaded and reconciled (section 29).
 - Role-based training is complete for front desk, cashier, night audit, housekeeping, and finance, with a sandbox site holding realistic data.
-- Runbooks exist for night-audit failure, fiscal outage, payment-gateway outage, and offline front-desk fallback (printed arrivals and in-house lists generated each night).
+- Runbooks exist for night-audit failure, rejected invoice submissions (for example, when an installed compliance app's service is down), payment-gateway outage, and offline front-desk fallback (printed arrivals and in-house lists generated each night).
 - Support escalation and on-call cover are in place for the parallel run and the first month live.
 
 ## 34. Acceptance scenarios
@@ -2012,8 +2019,8 @@ These become executable acceptance specifications. **L** = Launch, **R2** = Rele
 22. **Partial transfer (L):** half a charge moves to another folio; amounts conserve exactly, including rounding, with full lineage on both folios.
 23. **Cancelled service (L):** cancellation follows policy, no fulfillment or stock event occurs, and any fee is a separate traceable posting.
 24. **Closed folio correction (L):** an authorized correction deletes no history and posts in the permitted period with a reason and approval.
-25. **Post-invoice correction (L):** a disputed charge produces a reversing transaction and a linked credit note, which is fiscalized; the original invoice is untouched.
-26. **Fiscal failure (L):** a failed submission is logged and appears on the night-audit exceptions; a retry succeeds with no second invoice.
+25. **Post-invoice correction (L):** a disputed charge produces a reversing transaction and a linked credit note (return Sales Invoice); the original invoice is untouched.
+26. **Rejected invoice submission (L):** when an installed app's hook rejects Sales Invoice submission, settlement rolls back, the folio stays Settlement Pending with the error shown, it appears in the night-audit pre-checks, and a retry creates no second invoice.
 27. **AR transfer with credit limit (L):** a transfer over the limit is blocked; a Finance Manager override succeeds, and the folio closes as Transferred to AR.
 28. **House account (L):** a non-resident's restaurant charge settles on a House Account, and occupancy statistics are unaffected.
 29. **Post-stay charge (L):** a minibar discrepancy posts after checkout with original provenance; zero-balance folios auto-close after the window.
@@ -2038,9 +2045,9 @@ These become executable acceptance specifications. **L** = Launch, **R2** = Rele
 
 | ID | Decision | Recommended starting position |
 |---|---|---|
-| D-1 | Tax, levy, fiscal, and guest-register rules for the pilot jurisdiction | Finance and legal confirm VAT and levy rates and bases, the eTIMS app and its Item requirements, register fields, and retention periods. |
+| D-1 | Tax, levy, and guest-register rules for the pilot jurisdiction | Finance and legal confirm VAT and levy rates and bases, register fields, and retention periods. The site's System Manager chooses and configures any tax-compliance app; that is outside Frappoint's scope. |
 | D-2 | Independent sharers at launch | Defer to Release 2 unless the pilot property regularly issues separate legal invoices to room-sharers. Companions plus multiple folios cover common split billing. The data model supports sharers from day one. |
-| D-3 | Customer creation for individual payees | Create or reuse a Customer per Guest Profile at invoicing time. Use a walk-in Customer only where fiscal rules allow. |
+| D-3 | Customer creation for individual payees | Create or reuse a Customer per Guest Profile at invoicing time. Use a walk-in Customer only where local tax rules allow. |
 | D-4 | Tentative blocks deduct inventory | Configurable per block; default off. |
 | D-5 | POS Room Post accounting | Clear to a guest-ledger clearing account; the folio invoice carries the revenue. Finance validates with worked entries. |
 | D-6 | Room revenue recognition timing | At folio invoicing; an optional accrual journal for long in-house stays at month-end. |
