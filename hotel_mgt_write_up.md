@@ -171,31 +171,63 @@ Status fields are read-only. Every transition is a service command that validate
 
 ### 4.2 Inventory and locking
 
-- Availability is tracked per **room type and night** in `Room Type Inventory Day`. This is a lockable counter row with a unique index on (property, room type, date), the same pattern as the existing `Resource Availability Counter`.
-  - `available = physical − out_of_order − sold − held − block_unpicked + overbooking_limit`. The overbooking limit is 0 at launch.
-- Night intervals are half-open (arrival inclusive, departure exclusive), so a room can turn over on the same day.
-- **Acquiring inventory for a stay**, in one transaction:
-  1. Upsert the counter rows for each night.
-  2. Lock them with `SELECT … FOR UPDATE`, **ordered by room type then date** to avoid deadlocks.
-  3. Check availability on every night.
-  4. Increment the counters and create the Room Occupancy.
+**The problem:** never sell the same room twice, even when two agents book at the same moment.
+
+Hotels solve this in **two steps**. You first sell *a kind of room* for some nights ("a Deluxe, 14–16 Nov"). You choose *which* Deluxe (room 201 or 305) later, usually on arrival day. Each step has its own safety check.
+
+#### Step 1: sell a room type for some nights
+
+For every room type and every night there is one row in `Room Type Inventory Day`. Think of it as a tally sheet:
+
+| Room type | Night | Rooms | Out of order | Sold | Held | **Available** |
+|---|---|---:|---:|---:|---:|---:|
+| Deluxe | 14 Nov | 10 | 1 | 6 | 1 | **2** |
+| Deluxe | 15 Nov | 10 | 0 | 8 | 1 | **1** |
+
+*Available* = rooms − out of order − sold − held. (Rooms promised to unsold group blocks are also subtracted, from Release 2.) A "hold" is a booking that isn't confirmed yet. It reserves the room for a short time and is released automatically if it isn't confirmed.
+
+A stay **uses the nights it sleeps**. Arrival on 14 Nov and departure on 16 Nov uses the 14th and 15th, but not the 16th. That frees the room for someone arriving on the 16th, which is how same-day turnover works.
+
+To book, the system does all of this in **one database transaction**, so either everything happens or nothing does:
+
+1. Find (or create) the tally row for each night of the stay.
+2. **Lock** those rows (`SELECT … FOR UPDATE`). Anyone else trying to book the same room type for any of those nights now waits.
+3. Check that every night has at least 1 available.
+4. Add 1 to *Held* on each night and create the Room Occupancy.
+5. Commit, which releases the locks.
+
+**Example: two agents racing for the last Deluxe on 15 Nov.**
 
 ```mermaid
 sequenceDiagram
-    participant A as Agent A
-    participant B as Agent B
-    participant DB as Inventory Day rows (1 room left)
-    A->>DB: SELECT ... FOR UPDATE (14-16 Nov)
-    B->>DB: SELECT ... FOR UPDATE (15-17 Nov)
-    Note over B,DB: B waits on the 15 Nov row
-    A->>DB: available >= 1, held += 1, insert Room Occupancy
-    A->>DB: COMMIT
-    DB-->>B: lock granted, 15 Nov available = 0
-    B->>B: abort with "sold out on 15 Nov"
+    participant A as Agent A (14–16 Nov)
+    participant DB as Tally rows
+    participant B as Agent B (15–17 Nov)
+    A->>DB: Lock 14 and 15 Nov
+    B->>DB: Lock 15 and 16 Nov
+    Note over B,DB: 15 Nov is locked by A, so B waits
+    A->>DB: 15 Nov has 1 available, take it, save
+    DB-->>B: A is done, B gets the lock
+    B->>B: 15 Nov now has 0 available, show "sold out on 15 Nov"
 ```
 
-- **Assigning a physical room** is a separate step: lock the `Hotel Room` row, then check for **datetime** overlap (including turnover time) with existing assignments. Segments belonging to the same shared occupancy are excluded. Datetimes, not dates, are used here so that day use and early or late checkout work.
-- Counters are caches. A rebuild function recomputes them from occupancies, blocks, and outages, and a nightly job reports any drift.
+Without the lock, both agents could read "1 available" at the same instant and both sell it. With the lock, the second agent always sees the first agent's result.
+
+Rows are always locked **in the same order** (room type, then date). Without that, two bookings could each hold a row the other needs and wait on each other forever, which is a deadlock.
+
+#### Step 2: assign the actual room
+
+Later, front desk picks the physical room, for example room 201. A similar safety check runs here:
+
+1. Lock room 201's row, so nobody else can assign it at the same moment.
+2. Check that nobody else is in room 201 during the stay, **including cleaning time** between guests.
+3. Save the assignment.
+
+This check uses **times as well as dates**. Day use (10:00–16:00), early check-in, and late checkout all need clock times, not just nights. Sharers who are in the same room on purpose (section 2.1) don't count as a clash.
+
+#### Safety net
+
+The tally rows are a fast **summary**, not the source of truth; the real bookings are. A rebuild function can recompute every tally from the actual Room Occupancies, outages, and blocks. A nightly job runs that comparison and reports any row that drifted. The same pattern is already used in Frappoint for appointment slots (`Resource Availability Counter`).
 
 ### 4.3 Pricing
 
