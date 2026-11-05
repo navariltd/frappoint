@@ -12,6 +12,9 @@ from frappoint.frappoint.doctype.service_appointment.service_appointment import 
 	ServiceAppointment,
 	cancel_appointment,
 )
+from frappoint.frappoint.doctype.service_provider_appointment_slot import (
+	service_provider_appointment_slot as slot_module,
+)
 
 
 class TestServiceAppointment(TestCase):
@@ -191,6 +194,43 @@ class TestServiceAppointment(TestCase):
 			self.assertEqual(allocation["end_time"], "10:00:00")
 			self.assertEqual(allocation["appointment_start_time"], time(9, 10))
 			self.assertEqual(allocation["appointment_end_time"], time(9, 55))
+
+	def _check_unit_capacity(self, unit, existing_count, **kwargs):
+		db = SimpleNamespace(
+			get_value=MagicMock(return_value=frappe._dict(unit)),
+			count=MagicMock(return_value=existing_count),
+		)
+		with (
+			patch.object(slot_module.frappe, "db", db),
+			patch.object(slot_module.frappe, "get_doc") as get_doc,
+		):
+			result = slot_module.check_service_unit_capacity(
+				"MAISHA",
+				date(2026, 11, 8),
+				time(10),
+				time(12),
+				"Siyara Spa Ritual",
+				1,
+				**kwargs,
+			)
+		# Capacity must come from the Service Unit only, never from Service Type rows.
+		get_doc.assert_not_called()
+		return result
+
+	def test_unit_capacity_check_uses_service_unit_capacity_when_overlap_allowed(self):
+		unit = {"capacity": 2, "allow_overlap": 1}
+		self.assertTrue(self._check_unit_capacity(unit, existing_count=1))
+		self.assertFalse(self._check_unit_capacity(unit, existing_count=2))
+
+	def test_unit_capacity_check_is_single_occupancy_without_overlap(self):
+		unit = {"capacity": 2, "allow_overlap": 0}
+		self.assertTrue(self._check_unit_capacity(unit, existing_count=0))
+		self.assertFalse(self._check_unit_capacity(unit, existing_count=1))
+
+	def test_exclusive_unit_capacity_check_requires_empty_unit(self):
+		unit = {"capacity": 2, "allow_overlap": 1}
+		self.assertTrue(self._check_unit_capacity(unit, existing_count=0, exclusive=True))
+		self.assertFalse(self._check_unit_capacity(unit, existing_count=1, exclusive=True))
 
 	def test_cancelling_appointment_with_submitted_payment_shows_actionable_message(
 		self,
