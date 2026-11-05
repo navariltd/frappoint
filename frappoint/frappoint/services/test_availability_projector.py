@@ -531,6 +531,7 @@ class TestCoupleAvailabilityProjection(TestCase):
 					required_duration_minutes=45,
 					exclude_appointment_id=None,
 					include_all_service_units=True,
+					solo_booking=False,
 				),
 				call(
 					service_type_id="SERVICE-2",
@@ -541,6 +542,81 @@ class TestCoupleAvailabilityProjection(TestCase):
 					required_duration_minutes=60,
 					exclude_appointment_id=None,
 					include_all_service_units=True,
+					solo_booking=False,
 				),
 			],
 		)
+
+
+def _counter(unit, slot_time, remaining, max_capacity=2, slot_date=date(2026, 11, 8)):
+	return {
+		"resource_type": "Service Unit",
+		"resource_reference": unit,
+		"counter_date": slot_date,
+		"counter_slot_time": slot_time,
+		"max_capacity": max_capacity,
+		"remaining_capacity": remaining,
+		"is_blocked": 0,
+	}
+
+
+class TestCouplesOnlyUnitSharing(TestCase):
+	def test_solo_search_skips_partly_used_couples_only_unit(self):
+		rows = [_counter("MAISHA", "10:00:00", 1), _counter("MAISHA", "10:10:00", 2)]
+
+		slot_map = availability_projector._build_available_slot_map(rows, exclusive_resources={"MAISHA"})
+
+		self.assertEqual(slot_map["MAISHA"][date(2026, 11, 8)], [time(10, 10)])
+
+	def test_shared_overlap_unit_keeps_partial_capacity_for_solo_search(self):
+		rows = [_counter("CHAIR", "10:00:00", 1), _counter("CHAIR", "10:10:00", 2)]
+
+		slot_map = availability_projector._build_available_slot_map(rows, exclusive_resources={"MAISHA"})
+
+		self.assertEqual(slot_map["CHAIR"][date(2026, 11, 8)], [time(10), time(10, 10)])
+
+	def test_full_unit_is_never_free(self):
+		rows = [_counter("MAISHA", "10:00:00", 0)]
+
+		for exclusive in (None, {"MAISHA"}):
+			with self.subTest(exclusive=exclusive):
+				slot_map = availability_projector._build_available_slot_map(
+					rows, exclusive_resources=exclusive
+				)
+				self.assertNotIn("MAISHA", slot_map)
+
+	def test_exclusive_units_are_overlap_units_restricted_to_couples(self):
+		db = Mock()
+		db.has_column.return_value = True
+		with (
+			patch.object(availability_projector.frappe, "db", db),
+			patch.object(
+				availability_projector.frappe,
+				"get_all",
+				return_value=[{"name": "MAISHA", "capacity": 2}],
+			) as get_all,
+		):
+			units = availability_projector.get_solo_exclusive_units({"MAISHA", "CHAIR", None})
+
+		self.assertEqual(units, {"MAISHA": 2.0})
+		self.assertEqual(
+			get_all.call_args.kwargs["filters"],
+			{"name": ["in", ["CHAIR", "MAISHA"]], "allow_overlap": 1, "couples_only_overlap": 1},
+		)
+
+	def test_exclusive_units_are_empty_before_migration_adds_the_column(self):
+		db = Mock()
+		db.has_column.return_value = False
+		with (
+			patch.object(availability_projector.frappe, "db", db),
+			patch.object(availability_projector.frappe, "get_all") as get_all,
+		):
+			self.assertEqual(availability_projector.get_solo_exclusive_units({"MAISHA"}), {})
+		get_all.assert_not_called()
+
+	def test_solo_unit_consumption_is_full_capacity_only_for_couples_only_units(self):
+		with patch.object(availability_projector, "get_solo_exclusive_units", return_value={"MAISHA": 2.0}):
+			self.assertEqual(availability_projector.get_solo_unit_consumption("MAISHA"), 2.0)
+		with patch.object(availability_projector, "get_solo_exclusive_units", return_value={}):
+			self.assertEqual(availability_projector.get_solo_unit_consumption("CHAIR"), 1.0)
+		self.assertEqual(availability_projector.get_solo_unit_consumption(None), 1.0)

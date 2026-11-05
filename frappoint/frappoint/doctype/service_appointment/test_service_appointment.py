@@ -16,6 +16,8 @@ from frappoint.frappoint.doctype.service_provider_appointment_slot import (
 	service_provider_appointment_slot as slot_module,
 )
 
+SERVICE_APPOINTMENT_MODULE = "frappoint.frappoint.doctype.service_appointment.service_appointment"
+
 
 class TestServiceAppointment(TestCase):
 	def test_direct_submit_of_couple_member_is_rejected(self):
@@ -183,10 +185,12 @@ class TestServiceAppointment(TestCase):
 			start_time=time(9, 10),
 			end_time=time(9, 55),
 			service_unit="ROOM-1",
+			couple_appointment_id=None,
 		)
 		appointment._get_buffer_minutes = lambda: (10, 5)
 
-		allocations = ServiceAppointment._build_allocation_payloads(appointment)
+		with patch(f"{SERVICE_APPOINTMENT_MODULE}.get_solo_unit_consumption", return_value=1.0):
+			allocations = ServiceAppointment._build_allocation_payloads(appointment)
 
 		self.assertEqual(len(allocations), 2)
 		for allocation in allocations:
@@ -194,6 +198,49 @@ class TestServiceAppointment(TestCase):
 			self.assertEqual(allocation["end_time"], "10:00:00")
 			self.assertEqual(allocation["appointment_start_time"], time(9, 10))
 			self.assertEqual(allocation["appointment_end_time"], time(9, 55))
+
+	def _allocation_appointment(self, couple_appointment_id=None):
+		appointment = SimpleNamespace(
+			appointment_provider="PROVIDER-1",
+			appointment_date=date(2026, 8, 10),
+			start_time=time(10),
+			end_time=time(12),
+			service_unit="MAISHA",
+			couple_appointment_id=couple_appointment_id,
+		)
+		appointment._get_buffer_minutes = lambda: (0, 0)
+		return appointment
+
+	def _consumed_by_resource(self, allocations):
+		return {row["resource_type"]: row["capacity_consumed"] for row in allocations}
+
+	def test_solo_appointment_reserves_whole_couples_only_unit(self):
+		appointment = self._allocation_appointment()
+
+		with patch(
+			f"{SERVICE_APPOINTMENT_MODULE}.get_solo_unit_consumption", return_value=2.0
+		) as consumption:
+			allocations = ServiceAppointment._build_allocation_payloads(appointment)
+
+		consumption.assert_called_once_with("MAISHA")
+		self.assertEqual(
+			self._consumed_by_resource(allocations),
+			{"Service Provider": 1.0, "Service Unit": 2.0},
+		)
+
+	def test_couple_leg_reserves_one_place_in_couples_only_unit(self):
+		appointment = self._allocation_appointment(couple_appointment_id="APT-PARTNER")
+
+		with patch(
+			f"{SERVICE_APPOINTMENT_MODULE}.get_solo_unit_consumption", return_value=2.0
+		) as consumption:
+			allocations = ServiceAppointment._build_allocation_payloads(appointment)
+
+		consumption.assert_not_called()
+		self.assertEqual(
+			self._consumed_by_resource(allocations),
+			{"Service Provider": 1.0, "Service Unit": 1.0},
+		)
 
 	def _check_unit_capacity(self, unit, existing_count, **kwargs):
 		db = SimpleNamespace(

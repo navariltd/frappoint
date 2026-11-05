@@ -25,6 +25,10 @@ from frappe.utils import (
 )
 from frappe.utils.user import is_website_user
 
+from ...services.availability_projector import (
+	get_solo_exclusive_units,
+	get_solo_unit_consumption,
+)
 from ...services.booking_transaction_service import (
 	confirm_couple_held_allocations,
 	confirm_held_allocations,
@@ -840,6 +844,8 @@ class ServiceAppointment(Document):
 		max_clients = apt_type.max_clients_per_slot or 1
 
 		if requires_unit and self.service_unit:
+			# Solo guests in a couples-only overlap unit need the whole unit.
+			exclusive = not self.couple_appointment_id and bool(get_solo_exclusive_units([self.service_unit]))
 			capacity_ok = check_service_unit_capacity(
 				self.service_unit,
 				self.appointment_date,
@@ -848,6 +854,7 @@ class ServiceAppointment(Document):
 				self.appointment_type,
 				max_clients,
 				exclude_appointment=self.name,
+				exclusive=exclusive,
 			)
 
 			if not capacity_ok:
@@ -1850,6 +1857,11 @@ class ServiceAppointment(Document):
 		]
 
 		if self.service_unit:
+			# A solo appointment in a couples-only overlap unit reserves the whole unit,
+			# so the atomic counter check keeps other bookings out. Couple legs take one place.
+			unit_capacity_consumed = (
+				1.0 if self.couple_appointment_id else get_solo_unit_consumption(self.service_unit)
+			)
 			allocation_payloads.append(
 				{
 					"resource_type": "Service Unit",
@@ -1859,7 +1871,7 @@ class ServiceAppointment(Document):
 					"end_time": allocation_end_time,
 					"appointment_start_time": self.start_time,
 					"appointment_end_time": self.end_time,
-					"capacity_consumed": 1.0,
+					"capacity_consumed": unit_capacity_consumed,
 					"buffer_before_minutes": buffer_before,
 					"buffer_after_minutes": buffer_after,
 				}

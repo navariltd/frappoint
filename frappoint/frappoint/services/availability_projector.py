@@ -197,8 +197,14 @@ def get_available_slots(
 	required_duration_minutes: int | None = None,
 	exclude_appointment_id: str | None = None,
 	include_all_service_units: bool = False,
+	solo_booking: bool = True,
 ) -> list[dict[str, Any]]:
-	"""Return availability windows using precomputed counter rows only."""
+	"""Return availability windows using precomputed counter rows only.
+
+	``solo_booking`` applies couples-only sharing: a solo appointment may only use a
+	couples-only overlap unit when the unit is completely free. Couple searches pass
+	``False`` and check the pair's combined demand separately.
+	"""
 	if not _counter_table_ready():
 		frappe.throw(
 			_("Availability counters are not initialized for this site. Run bench migrate for this site.")
@@ -271,6 +277,7 @@ def get_available_slots(
 
 	unit_counters: list[dict[str, Any]] = []
 	unit_names: dict[str, str] = {}
+	exclusive_unit_ids: set[str] = set()
 	provider_unit_shift_map: dict[str, dict[Any, dict[str, set[time]]]] = {}
 	if requires_unit:
 		units = frappe.get_all("Service Unit", filters=unit_filters, fields=["name", "unit_name"])
@@ -278,6 +285,8 @@ def get_available_slots(
 		unit_names = {row["name"]: row["unit_name"] for row in units}
 		if not unit_ids:
 			return []
+		if solo_booking:
+			exclusive_unit_ids = set(get_solo_exclusive_units(set(unit_ids)))
 
 		provider_unit_shift_map = _build_provider_unit_shift_map(
 			start=start,
@@ -306,7 +315,11 @@ def get_available_slots(
 		)
 
 	provider_slot_map = _build_available_slot_map(provider_counters)
-	unit_slot_map = _build_available_slot_map(unit_counters) if requires_unit else {}
+	unit_slot_map = (
+		_build_available_slot_map(unit_counters, exclusive_resources=exclusive_unit_ids)
+		if requires_unit
+		else {}
+	)
 
 	if exclude_appointment_id:
 		excluded_capacity = _build_excluded_appointment_capacity_map(
@@ -320,7 +333,11 @@ def get_available_slots(
 			if unit_counters:
 				_apply_excluded_capacity(unit_counters, excluded_capacity)
 			provider_slot_map = _build_available_slot_map(provider_counters)
-			unit_slot_map = _build_available_slot_map(unit_counters) if requires_unit else {}
+			unit_slot_map = (
+				_build_available_slot_map(unit_counters, exclusive_resources=exclusive_unit_ids)
+				if requires_unit
+				else {}
+			)
 
 	results: list[dict[str, Any]] = []
 	for provider in provider_ids:
@@ -419,6 +436,7 @@ def get_couple_available_slots(
 		required_duration_minutes=duration_1,
 		exclude_appointment_id=exclude_appointment_id_1,
 		include_all_service_units=True,
+		solo_booking=False,
 	)
 	guest_2_slots = get_available_slots(
 		service_type_id=service_type_2,
@@ -429,6 +447,7 @@ def get_couple_available_slots(
 		required_duration_minutes=duration_2,
 		exclude_appointment_id=exclude_appointment_id_2,
 		include_all_service_units=True,
+		solo_booking=False,
 	)
 	if not guest_1_slots or not guest_2_slots:
 		return []
@@ -546,6 +565,37 @@ def _get_unit_overlap_map(unit_ids: set[str]) -> dict[str, bool]:
 			fields=["name", "allow_overlap"],
 		)
 	}
+
+
+def get_solo_exclusive_units(unit_ids: set[str] | list[str]) -> dict[str, float]:
+	"""Return ``{unit: capacity}`` for overlap units restricted to couple bookings.
+
+	A solo appointment in one of these units must have the unit to itself, so it
+	reserves the unit's full capacity instead of a single place.
+	"""
+	unit_ids = sorted({unit_id for unit_id in unit_ids or [] if unit_id})
+	if not unit_ids or not frappe.db.has_column("Service Unit", "couples_only_overlap"):
+		return {}
+
+	return {
+		row["name"]: max(flt(row.get("capacity") or 1), 1.0)
+		for row in frappe.get_all(
+			"Service Unit",
+			filters={
+				"name": ["in", unit_ids],
+				"allow_overlap": 1,
+				"couples_only_overlap": 1,
+			},
+			fields=["name", "capacity"],
+		)
+	}
+
+
+def get_solo_unit_consumption(service_unit: str | None) -> float:
+	"""Capacity a solo (non-couple) appointment consumes in ``service_unit``."""
+	if not service_unit:
+		return 1.0
+	return get_solo_exclusive_units([service_unit]).get(service_unit, 1.0)
 
 
 def _combine_couple_slot_rows(
@@ -1337,10 +1387,23 @@ def _get_service_providers(service_type_id: str, provider_id: str | None) -> lis
 
 def _build_available_slot_map(
 	counter_rows: list[dict[str, Any]],
+	exclusive_resources: set[str] | None = None,
 ) -> dict[str, dict[Any, list[time]]]:
+	"""Map resource -> date -> free slot times.
+
+	Resources in ``exclusive_resources`` only count as free when no capacity is
+	consumed at all (remaining equals max), e.g. couples-only units for solo guests.
+	"""
 	resource_date_slots: dict[str, dict[Any, list[time]]] = defaultdict(lambda: defaultdict(list))
 	for row in counter_rows:
-		if flt(row.get("remaining_capacity") or 0) <= 0:
+		remaining = flt(row.get("remaining_capacity") or 0)
+		if remaining <= 0:
+			continue
+		if (
+			exclusive_resources
+			and row["resource_reference"] in exclusive_resources
+			and remaining < flt(row.get("max_capacity") or 0)
+		):
 			continue
 		if cint(row.get("is_blocked") or 0) == 1:
 			continue
