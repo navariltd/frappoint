@@ -5,6 +5,18 @@ import {
 	upsertDraftServiceAppointmentApi,
 } from "@/api/serviceAppointment.api";
 
+// Server messages wrap names in markup (frappe.bold -> <strong>), but guest cards
+// render errors as plain text, so reduce them to their text content.
+const toPlainText = (value) => {
+	const text = String(value);
+	if (!text.includes("<")) return text;
+	if (typeof DOMParser !== "undefined") {
+		const parsed = new DOMParser().parseFromString(text, "text/html");
+		return (parsed.body?.textContent || "").trim();
+	}
+	return text.replace(/<[^>]*>/g, "").trim();
+};
+
 const extractErrorMessage = (error, fallback) => {
 	const candidate =
 		error?.messages?.join(" ") || error?.message || error?.exc || error?._server_messages;
@@ -13,7 +25,10 @@ const extractErrorMessage = (error, fallback) => {
 		return fallback;
 	}
 
-	const message = String(candidate);
+	const message = toPlainText(candidate);
+	if (!message) {
+		return fallback;
+	}
 	if (message.includes("slot") && message.includes("available")) {
 		return "Slot no longer available. Please choose another slot.";
 	}
