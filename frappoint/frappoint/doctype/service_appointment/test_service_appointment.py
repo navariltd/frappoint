@@ -12,6 +12,11 @@ from frappoint.frappoint.doctype.service_appointment.service_appointment import 
 	ServiceAppointment,
 	cancel_appointment,
 )
+from frappoint.frappoint.doctype.service_provider_appointment_slot import (
+	service_provider_appointment_slot as slot_module,
+)
+
+SERVICE_APPOINTMENT_MODULE = "frappoint.frappoint.doctype.service_appointment.service_appointment"
 
 
 class TestServiceAppointment(TestCase):
@@ -180,10 +185,12 @@ class TestServiceAppointment(TestCase):
 			start_time=time(9, 10),
 			end_time=time(9, 55),
 			service_unit="ROOM-1",
+			couple_appointment_id=None,
 		)
 		appointment._get_buffer_minutes = lambda: (10, 5)
 
-		allocations = ServiceAppointment._build_allocation_payloads(appointment)
+		with patch(f"{SERVICE_APPOINTMENT_MODULE}.get_solo_unit_consumption", return_value=1.0):
+			allocations = ServiceAppointment._build_allocation_payloads(appointment)
 
 		self.assertEqual(len(allocations), 2)
 		for allocation in allocations:
@@ -191,6 +198,86 @@ class TestServiceAppointment(TestCase):
 			self.assertEqual(allocation["end_time"], "10:00:00")
 			self.assertEqual(allocation["appointment_start_time"], time(9, 10))
 			self.assertEqual(allocation["appointment_end_time"], time(9, 55))
+
+	def _allocation_appointment(self, couple_appointment_id=None):
+		appointment = SimpleNamespace(
+			appointment_provider="PROVIDER-1",
+			appointment_date=date(2026, 8, 10),
+			start_time=time(10),
+			end_time=time(12),
+			service_unit="MAISHA",
+			couple_appointment_id=couple_appointment_id,
+		)
+		appointment._get_buffer_minutes = lambda: (0, 0)
+		return appointment
+
+	def _consumed_by_resource(self, allocations):
+		return {row["resource_type"]: row["capacity_consumed"] for row in allocations}
+
+	def test_solo_appointment_reserves_whole_couples_only_unit(self):
+		appointment = self._allocation_appointment()
+
+		with patch(
+			f"{SERVICE_APPOINTMENT_MODULE}.get_solo_unit_consumption", return_value=2.0
+		) as consumption:
+			allocations = ServiceAppointment._build_allocation_payloads(appointment)
+
+		consumption.assert_called_once_with("MAISHA")
+		self.assertEqual(
+			self._consumed_by_resource(allocations),
+			{"Service Provider": 1.0, "Service Unit": 2.0},
+		)
+
+	def test_couple_leg_reserves_one_place_in_couples_only_unit(self):
+		appointment = self._allocation_appointment(couple_appointment_id="APT-PARTNER")
+
+		with patch(
+			f"{SERVICE_APPOINTMENT_MODULE}.get_solo_unit_consumption", return_value=2.0
+		) as consumption:
+			allocations = ServiceAppointment._build_allocation_payloads(appointment)
+
+		consumption.assert_not_called()
+		self.assertEqual(
+			self._consumed_by_resource(allocations),
+			{"Service Provider": 1.0, "Service Unit": 1.0},
+		)
+
+	def _check_unit_capacity(self, unit, existing_count, **kwargs):
+		db = SimpleNamespace(
+			get_value=MagicMock(return_value=frappe._dict(unit)),
+			count=MagicMock(return_value=existing_count),
+		)
+		with (
+			patch.object(slot_module.frappe, "db", db),
+			patch.object(slot_module.frappe, "get_doc") as get_doc,
+		):
+			result = slot_module.check_service_unit_capacity(
+				"MAISHA",
+				date(2026, 11, 8),
+				time(10),
+				time(12),
+				"Siyara Spa Ritual",
+				1,
+				**kwargs,
+			)
+		# Capacity must come from the Service Unit only, never from Service Type rows.
+		get_doc.assert_not_called()
+		return result
+
+	def test_unit_capacity_check_uses_service_unit_capacity_when_overlap_allowed(self):
+		unit = {"capacity": 2, "allow_overlap": 1}
+		self.assertTrue(self._check_unit_capacity(unit, existing_count=1))
+		self.assertFalse(self._check_unit_capacity(unit, existing_count=2))
+
+	def test_unit_capacity_check_is_single_occupancy_without_overlap(self):
+		unit = {"capacity": 2, "allow_overlap": 0}
+		self.assertTrue(self._check_unit_capacity(unit, existing_count=0))
+		self.assertFalse(self._check_unit_capacity(unit, existing_count=1))
+
+	def test_exclusive_unit_capacity_check_requires_empty_unit(self):
+		unit = {"capacity": 2, "allow_overlap": 1}
+		self.assertTrue(self._check_unit_capacity(unit, existing_count=0, exclusive=True))
+		self.assertFalse(self._check_unit_capacity(unit, existing_count=1, exclusive=True))
 
 	def test_cancelling_appointment_with_submitted_payment_shows_actionable_message(
 		self,

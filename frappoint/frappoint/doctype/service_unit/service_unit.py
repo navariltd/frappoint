@@ -21,6 +21,7 @@ class ServiceUnit(Document):
 		allow_overlap: DF.Check
 		capacity: DF.Int
 		company: DF.Link
+		couples_only_overlap: DF.Check
 		disabled: DF.Check
 		is_group: DF.Check
 		lft: DF.Int
@@ -32,9 +33,20 @@ class ServiceUnit(Document):
 		unit_type: DF.Link
 	# end: auto-generated types
 
+	def validate(self):
+		# Couples-only sharing is a refinement of overlap; it means nothing without it.
+		if not cint(self.allow_overlap):
+			self.couples_only_overlap = 0
+
 	def on_update(self):
 		previous = self.get_doc_before_save()
-		availability_fields = ("capacity", "allow_overlap", "allow_appointments", "disabled")
+		availability_fields = (
+			"capacity",
+			"allow_overlap",
+			"couples_only_overlap",
+			"allow_appointments",
+			"disabled",
+		)
 		if not previous or not any(self.has_value_changed(field) for field in availability_fields):
 			return
 
