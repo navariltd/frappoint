@@ -48,6 +48,44 @@ On the Service Appointment form, click the **Show Available Slots** button to vi
 - [**Frappe UI**](https://github.com/frappe/frappe-ui): A Vue-based UI library, to provide a modern user interface. The Frappe UI library provides a variety of components that can be used to build single-page applications on top of the Frappe Framework.
 
 
+## Upcoming Features
+
+Frappoint is gaining a **Hospitality module**: a hotel property management system (PMS) that runs alongside the existing appointment features. It is switched on per site in **Hospitality Settings**. Existing service bookings and appointments keep working as they do now.
+
+### Launch release
+
+- **Property, rooms and inventory**: properties, room types, physical rooms, amenities, capacity and room outages. Nightly room-type inventory is locked when booked, so the same room can't be sold twice.
+- **Rates and packages**: best-available and derived rate plans, seasons, daily rates and restrictions (closed, closed to arrival/departure, minimum/maximum stay). Also extra-adult and child pricing, and Room Only and Bed & Breakfast packages with meal allowances. Each stay keeps a snapshot of its nightly rates.
+- **Reservations and stays**: quote, hold, confirm, amend, cancel, reinstate, extend, shorten, move rooms, check in and check out. Covers solo guests, couples, families, multi-room bookings, bookings made on someone else's behalf, and walk-ins.
+- **Guest profiles**: a reusable guest record kept separate from the ERPNext Customer. It holds contacts, ID documents, consent, preferences, notes and stay history, with returning-guest matching and duplicate review.
+- **Preference suggestions and room assignment**: when a returning guest is selected, staff see their declared preferences first, then suggestions from past stays and appointments, each with its evidence (for example, "deep-tissue massage on 3 of the last 4 stays"). Cancelled, refunded or no-show activity doesn't count, and only services the guest actually received are used. When a room is assigned, available rooms are ranked against the guest's preferences, with matched and missed preferences shown. Required needs such as step-free access rule out rooms that don't meet them. Nothing is booked, charged or assigned automatically; staff confirm every choice.
+- **Every occupant recorded**: each person in a room is recorded, not just the primary guest. For every charge, the person who used it, where it was delivered and who pays are tracked separately.
+- **Guest folios**: one or more folios per stay, each with its own payee. Postings can't be edited and are safe to retry without double-posting. Corrections are made by reversing, transferring or splitting. Charges are routed by rules, and house accounts and post-stay folios use the same folio engine.
+- **Cashiering and payments**: cashier shifts with a blind close; cash, card and M-Pesa payments; deposits and guarantees; payment allocation and refunds; cancellation and no-show policies.
+- **Accounting through ERPNext**: settling a folio creates a standard Sales Invoice for each payee, plus Payment Entries, credit notes and receivables in AR (city ledger) accounts with credit limits. Frappoint does no tax-authority integration (for example, KRA eTIMS). Any tax-compliance app installed on the site handles that through the standard ERPNext documents.
+- **Appointments on the room bill**: spa and other service appointments can be charged to the right guest's folio. Standalone appointments work as they do today.
+- **Housekeeping and maintenance**: a housekeeping board with HRMS staff, automatic cleaning tasks when guests depart, and maintenance requests that take rooms out of inventory.
+- **Night audit**: an operator-run end-of-day process. It runs pre-checks, posts room, package and tax charges, processes no-shows and expires allowances. It also checks cashier shifts, reconciles, produces reports and moves the business date forward. If interrupted, it restarts safely without duplicate charges.
+- **Front-desk workspaces**: Front Desk Today, a tape chart, Reservation 360 and a folio workspace. Also a guest register, guest messages and traces.
+- **Reports**: arrivals, departures and in-house guests; house position; guest ledger and balances; deposits and cashier reports; settlement-pending folios; occupancy, ADR and RevPAR; guest register.
+- **Guest communication**: rules for confirmation, pre-arrival and folio emails or SMS.
+- **Security and audit**: property-scoped roles and permissions, protected sensitive fields, a hospitality event log and data-protection controls.
+
+### Release 2
+
+- Independent room-sharers who each have their own bill.
+- Group blocks, rooming lists, master folios and travel-agent commissions.
+- Charging ERPNext POS sales to a room, plus guest service orders (minibar, laundry, transport).
+- Day use, and paid early check-in or late checkout.
+- Lost and found, incidents, wake-up calls, overbooking and guest relocation.
+- Online check-in, folio view and payment in the guest portal.
+- Foreign-currency cash payments and more detailed routing templates for companies and groups.
+
+### Later releases
+
+- Multiple properties and central reservations.
+- A public booking engine, OTA/channel-manager connectivity, door locks, ID scanning, telephony, loyalty programmes and revenue optimisation.
+
 ## Production Setup
 
 ### Managed Hosting
