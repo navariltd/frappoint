@@ -12,7 +12,7 @@ from frappoint.frappoint.doctype.service_unit import service_unit
 
 class TestServiceUnit(TestCase):
 	def test_availability_setting_changes_refresh_unit_booking_horizon(self):
-		for field in ("capacity", "allow_overlap", "allow_appointments", "disabled"):
+		for field in ("capacity", "allow_overlap", "couples_only_overlap", "allow_appointments", "disabled"):
 			with self.subTest(field=field):
 				unit = Mock(name="unit")
 				unit.name = "Maisha"
@@ -41,3 +41,12 @@ class TestServiceUnit(TestCase):
 				with patch.object(service_unit, "enqueue_targeted_counter_refresh") as refresh:
 					service_unit.ServiceUnit.on_update(unit)
 				refresh.assert_not_called()
+
+	def test_couples_only_overlap_is_cleared_when_overlap_is_off(self):
+		unit = frappe._dict(allow_overlap=0, couples_only_overlap=1)
+		service_unit.ServiceUnit.validate(unit)
+		self.assertEqual(unit.couples_only_overlap, 0)
+
+		unit = frappe._dict(allow_overlap=1, couples_only_overlap=1)
+		service_unit.ServiceUnit.validate(unit)
+		self.assertEqual(unit.couples_only_overlap, 1)

@@ -17,6 +17,7 @@
   "disabled",
   "allow_appointments",
   "allow_overlap",
+  "couples_only_overlap",
   "capacity",
   "section_break_pkuw",
   "parent_service_unit",
@@ -138,6 +139,14 @@
    "label": "Allow Overlap"
   },
   {
+   "default": "0",
+   "depends_on": "eval: doc.allow_overlap",
+   "description": "Only the two guests of a couple booking can use this unit at the same time. Solo guests take the whole unit.",
+   "fieldname": "couples_only_overlap",
+   "fieldtype": "Check",
+   "label": "Share Only Within Couple Bookings"
+  },
+  {
    "default": "1",
    "fieldname": "allow_appointments",
    "fieldtype": "Check",
@@ -154,7 +163,7 @@
  "index_web_pages_for_search": 1,
  "is_tree": 1,
  "links": [],
- "modified": "2026-02-11 05:49:46.006760",
+ "modified": "2026-11-04 17:30:00.000000",
  "modified_by": "Administrator",
  "module": "Frappoint",
  "name": "Service Unit",
