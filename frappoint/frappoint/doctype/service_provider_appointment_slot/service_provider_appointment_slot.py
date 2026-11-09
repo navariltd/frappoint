@@ -8,6 +8,7 @@ from frappe import _
 from frappe.model.document import Document
 from frappe.utils import (
 	add_days,
+	cint,
 	get_time,
 	getdate,
 	nowdate,
@@ -949,46 +950,27 @@ def check_service_unit_capacity(
 	appointment_type,
 	max_clients_per_slot,
 	exclude_appointment=None,
+	exclusive=False,
 ):
 	"""
 	Check if service unit has capacity for this time slot
 
-	Logic:
-	1. Get service unit capacity (default from Service Unit if not specified in Service Type)
-	2. Check how many appointments already exist for this time slot
-	3. Account for overlapping appointments if allow_overlap is true
-	4. Return True if capacity is available
+	Capacity mirrors the availability projector (see
+	``availability_projector._build_shift_capacity_slots``): the Service Unit's own
+	capacity when overlap is allowed, otherwise single occupancy. Service Type and
+	``max_clients_per_slot`` never raise unit capacity, so a slot the projector
+	offers is never rejected here.
+
+	When ``exclusive`` is true the unit must be empty for the requested interval.
+	This is used for solo appointments in couples-only overlap units.
 	"""
 
-	service_unit_doc = frappe.get_doc("Service Unit", service_unit)
+	unit = frappe.db.get_value("Service Unit", service_unit, ["capacity", "allow_overlap"], as_dict=True)
+	if not unit:
+		return False
 
-	# Determine effective capacity
-	# Service Type Unit Type currently does not define per-type capacity.
-	# Capacity is sourced from the selected Service Unit document.
-	apt_type = frappe.get_doc("Service Type", appointment_type)
-	capacity = None
-
-	# Keep type-match check for future compatibility if per-type capacity is introduced.
-	for row in apt_type.service_unit_types:
-		if row.service_unit_type == service_unit_doc.unit_type:
-			row_capacity = getattr(row, "capacity", None)
-			if row_capacity not in (None, ""):
-				try:
-					row_capacity = int(row_capacity)
-				except (TypeError, ValueError):
-					row_capacity = None
-			if row_capacity and row_capacity > 0:
-				capacity = row_capacity
-			break
-
-	# Fallback to Service Unit's capacity
-	if capacity is None:
-		capacity = service_unit_doc.capacity or 1
-
-	# If overlap is disabled, enforce single occupancy regardless of configured capacities.
-	if service_unit_doc.allow_overlap:
-		# Use max_clients_per_slot if specified, otherwise use capacity
-		effective_capacity = max(capacity, max_clients_per_slot)
+	if cint(unit.allow_overlap):
+		effective_capacity = max(cint(unit.capacity or 1), 1)
 	else:
 		effective_capacity = 1
 
@@ -1007,6 +989,9 @@ def check_service_unit_capacity(
 
 	# Count existing appointments in this time slot
 	existing_count = frappe.db.count("Service Appointment", filters)
+
+	if exclusive:
+		return existing_count == 0
 
 	return existing_count < effective_capacity
 

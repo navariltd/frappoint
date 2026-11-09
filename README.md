@@ -17,11 +17,21 @@
 
 ### Key Features
 
-- **Appointment Handling** - Robust system to manage service appointments, including status tracking (Open, Confirmed, Completed, etc.)
-- **Provider Management** - Manage providers with details such as names, contact information, and availability.
-- **Slot Management** - Create and manage appointment slots for providers, ensuring that appointments do not overlap.
-- **Customer Interaction** - Capture customer details and preferences, including options for video conferencing.
-- **Billing Integration** - Automatically generate and manage sales orders and invoices related to appointments.
+- **Appointment Handling** - Manage appointment statuses, rescheduling, and cancellations, with support for booking past appointments when enabled in settings.
+- **Booking Desk** - Manage bookings and appointments through card and calendar views, with dates grouped by month and available slots grouped into morning, afternoon, and evening.
+- **Customer Portal** - Browse services and service details, build a booking cart, assign guests, review pricing, complete checkout, and view bookings.
+- **Provider Management** - Manage provider availability, shifts, and unavailability, with provider preferences, gender filters, and reassignment options.
+- **Resource and Slot Management** - Allocate providers and service units using capacity-aware availability checks that account for appointment durations and buffers.
+- **Couple Bookings** - Book two linked guest appointments at the same start time in a shared service unit, with independent service choices and coordinated rescheduling and cancellation.
+- **Customer Interaction and Booking Tracking** - Capture customer details, preferences, and appointment notes, and track who created each booking through the Booked By field.
+- **Flexible Billing and Payments** - Create and view Sales Invoices on demand, link invoices and payment entries to bookings, and confirm eligible bookings without immediate payment as an authorized user.
+- **Coupons and Complimentary Services** - Apply booking-level coupon codes during checkout, including complimentary coupons selected directly in the Booking Desk.
+- **Custom Branding** - Configure company names, logos, favicons, and theme colors across the Booking Desk and customer portal, with configurable 12-hour or 24-hour time display in the Booking Desk.
+- **Service Availability Report** - Review provider availability and service unit capacity to support scheduling and resource planning.
+- **Treatment Revenue Analytics** - Track completed appointments, total revenue, and average revenue per treatment across weekly, monthly, quarterly, or yearly periods, with Company, Service Type, and Item Group filters and summary totals.
+- **Service Provider Performance Report** - Compare confirmed and completed appointment counts and revenue by provider and currency, with Company, Date Range, and Service Provider filters.
+- **Service Demand Report** - Review weekly and monthly appointment demand by service type, with Company and Service Type filters.
+- **Dashboard Insights** - Monitor completed appointments and average revenue per treatment through workspace number cards and charts.
 - **Google Calendar Integration** - Sync appointments with Google Calendar for easy management and reminders.
 - **Automated Notifications** - Send SMS confirmations for appointments, ensuring that customers are kept informed.
 
