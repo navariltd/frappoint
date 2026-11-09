@@ -5,6 +5,10 @@ import frappe
 from frappe import _
 from frappe.model.document import Document
 
+HOSPITALITY_DESKTOP_ICON = "Hospitality"
+HOSPITALITY_WORKSPACE = "Hospitality"
+HOSPITALITY_SIDEBAR = "Hospitality"
+FRAPPOINT_DOCK = "frappoint"
 TAPE_CHART_DAYS_RANGE = (7, 62)
 MIN_BOARD_REFRESH_SECONDS = 15
 
@@ -74,6 +78,7 @@ class HospitalitySettings(Document):
 		# Turning the module on or off changes which workspaces, routes, and fields are visible,
 		# so desk caches must be rebuilt for every user.
 		if self.has_value_changed("enable_hospitality"):
+			sync_hospitality_visibility(self.enable_hospitality)
 			frappe.clear_cache()
 
 
@@ -83,3 +88,42 @@ def is_hospitality_enabled() -> bool:
 	Hotel jobs, routes, and hooks should call this first and exit when it returns False.
 	"""
 	return bool(frappe.db.get_single_value("Hospitality Settings", "enable_hospitality", cache=True))
+
+
+def sync_hospitality_visibility(enabled: bool | int | None = None) -> None:
+	"""Show the Hospitality desktop icon, workspace and dock entry only while the module is enabled.
+
+	Uses `db.set_value` so the shipped JSON files (which start hidden) are not re-exported
+	in developer mode. Also runs after every migrate, because a fresh install or a re-imported
+	icon file must follow the site's current setting.
+	"""
+	if enabled is None:
+		enabled = frappe.db.get_single_value("Hospitality Settings", "enable_hospitality")
+	hidden = 0 if enabled else 1
+
+	if frappe.db.exists("Desktop Icon", HOSPITALITY_DESKTOP_ICON):
+		frappe.db.set_value("Desktop Icon", HOSPITALITY_DESKTOP_ICON, "hidden", hidden)
+		from frappe.desk.doctype.desktop_icon.desktop_icon import clear_every_users_desktop_icons
+
+		clear_every_users_desktop_icons()
+
+	if frappe.db.exists("Workspace", HOSPITALITY_WORKSPACE):
+		frappe.db.set_value("Workspace", HOSPITALITY_WORKSPACE, "is_hidden", hidden)
+
+	# "Apps" desktop mode: Hospitality is an entry on the Frappoint app's dock (rail).
+	dock_item = frappe.db.get_value(
+		"Dock Item",
+		{
+			"parenttype": "Dock",
+			"parent": FRAPPOINT_DOCK,
+			"link_type": "Sidebar",
+			"link_to": HOSPITALITY_SIDEBAR,
+		},
+		"name",
+	)
+	if dock_item:
+		frappe.db.set_value("Dock Item", dock_item, "hidden", hidden)
+		frappe.clear_document_cache("Dock", FRAPPOINT_DOCK)
+		from frappe.desk.doctype.dock.dock import drop_dock_caches
+
+		drop_dock_caches(None)

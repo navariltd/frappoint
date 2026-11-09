@@ -7,6 +7,11 @@ import frappe
 from frappe.tests import IntegrationTestCase
 
 from frappoint.frappoint.api.branding import get_booking_desk_branding, get_hospitality_branding
+from frappoint.vuna_hospitality.doctype.hospitality_settings.hospitality_settings import (
+	HOSPITALITY_DESKTOP_ICON,
+	HOSPITALITY_WORKSPACE,
+	sync_hospitality_visibility,
+)
 
 EXTRA_TEST_RECORD_DEPENDENCIES = []
 IGNORE_TEST_RECORD_DEPENDENCIES = ["Company"]
@@ -51,6 +56,35 @@ class IntegrationTestHospitalitySettings(IntegrationTestCase):
 		with self.assertRaises(frappe.ValidationError):
 			_settings(suggestion_min_occurrences=0).validate()
 		_settings(enable_preference_suggestions=0, suggestion_min_occurrences=0).validate()
+
+
+class TestHospitalityVisibility(IntegrationTestCase):
+	def _sync(self, enabled):
+		with (
+			patch("frappe.db.exists", return_value=True),
+			patch("frappe.db.get_value", return_value="dock-item-1"),
+			patch("frappe.db.set_value") as set_value,
+			patch("frappe.clear_document_cache"),
+			patch("frappe.desk.doctype.dock.dock.drop_dock_caches"),
+			patch(
+				"frappe.desk.doctype.desktop_icon.desktop_icon.clear_every_users_desktop_icons"
+			) as clear_icons,
+		):
+			sync_hospitality_visibility(enabled)
+		return set_value, clear_icons
+
+	def test_disabled_hides_icon_and_workspace(self):
+		set_value, clear_icons = self._sync(0)
+		set_value.assert_any_call("Desktop Icon", HOSPITALITY_DESKTOP_ICON, "hidden", 1)
+		set_value.assert_any_call("Workspace", HOSPITALITY_WORKSPACE, "is_hidden", 1)
+		set_value.assert_any_call("Dock Item", "dock-item-1", "hidden", 1)
+		clear_icons.assert_called_once()
+
+	def test_enabled_shows_icon_and_workspace(self):
+		set_value, _clear_icons = self._sync(1)
+		set_value.assert_any_call("Desktop Icon", HOSPITALITY_DESKTOP_ICON, "hidden", 0)
+		set_value.assert_any_call("Workspace", HOSPITALITY_WORKSPACE, "is_hidden", 0)
+		set_value.assert_any_call("Dock Item", "dock-item-1", "hidden", 0)
 
 
 class TestBranding(IntegrationTestCase):

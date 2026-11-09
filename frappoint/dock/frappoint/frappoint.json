@@ -1,0 +1,31 @@
+{
+ "app": "frappoint",
+ "creation": "2026-11-09 19:19:26.683023",
+ "docstatus": 0,
+ "doctype": "Dock",
+ "idx": 0,
+ "items": [
+  {
+   "added": 0,
+   "hidden": 0,
+   "icon": "calendar",
+   "link_to": "Frappoint",
+   "link_type": "Sidebar",
+   "title": "Frappoint"
+  },
+  {
+   "added": 0,
+   "hidden": 0,
+   "icon": "hotel",
+   "link_to": "Hospitality",
+   "link_type": "Sidebar",
+   "title": "Hospitality"
+  }
+ ],
+ "modified": "2026-11-09 19:19:26.683023",
+ "modified_by": "Administrator",
+ "name": "frappoint",
+ "owner": "Administrator",
+ "standard": 1,
+ "user": ""
+}
