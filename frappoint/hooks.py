@@ -64,6 +64,7 @@ fixtures = [
 					"Service Manager",
 					"Operations Manager",
 					"Customer",
+					"Hospitality Manager",
 				],
 			]
 		],

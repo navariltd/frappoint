@@ -1,8 +1,12 @@
 # Copyright (c) 2026, Navari LTD and contributors
 # For license information, please see license.txt
 
-# import frappe
+import frappe
+from frappe import _
 from frappe.model.document import Document
+
+TAPE_CHART_DAYS_RANGE = (7, 62)
+MIN_BOARD_REFRESH_SECONDS = 15
 
 
 class HospitalitySettings(Document):
@@ -15,17 +19,67 @@ class HospitalitySettings(Document):
 		from frappe.types import DF
 
 		accent_color: DF.Color
+		allow_room_charge_for_services: DF.Check
+		allow_walk_ins: DF.Check
+		board_refresh_seconds: DF.Int
 		body_text_color: DF.Color
-		company: DF.Link
+		company: DF.Link | None
+		default_landing_page: DF.Literal["Front Desk Today", "Tape Chart", "Reservations"]
 		enable_hospitality: DF.Check
-		favicon: DF.Attach | None
+		enable_preference_room_ranking: DF.Check
+		enable_preference_suggestions: DF.Check
+		favicon: DF.AttachImage | None
+		hold_expiry_minutes: DF.Int
+		id_document_retention_days: DF.Int
 		light_surface_color: DF.Color
-		logo: DF.Attach | None
+		max_advance_booking_days: DF.Int
+		max_stay_nights: DF.Int
 		page_background_color: DF.Color
 		page_title: DF.Data
 		primary_color: DF.Color
 		primary_hover_color: DF.Color
-		use_24_clock_system: DF.Check
+		sidebar_logo: DF.AttachImage | None
+		suggestion_min_occurrences: DF.Int
+		tape_chart_days: DF.Int
+		use_24_hour_clock_system: DF.Check
 	# end: auto-generated types
 
-	pass
+	def validate(self):
+		self.validate_front_desk()
+		self.validate_reservations()
+		self.validate_suggestions()
+
+	def validate_front_desk(self):
+		low, high = TAPE_CHART_DAYS_RANGE
+		if not low <= (self.tape_chart_days or 0) <= high:
+			frappe.throw(_("Tape Chart Days must be between {0} and {1}.").format(low, high))
+
+		if self.board_refresh_seconds and self.board_refresh_seconds < MIN_BOARD_REFRESH_SECONDS:
+			frappe.throw(
+				_("Board Refresh Interval must be 0 (off) or at least {0} seconds.").format(
+					MIN_BOARD_REFRESH_SECONDS
+				)
+			)
+
+	def validate_reservations(self):
+		for fieldname in ("hold_expiry_minutes", "max_advance_booking_days", "max_stay_nights"):
+			if (self.get(fieldname) or 0) < 1:
+				frappe.throw(_("{0} must be at least 1.").format(_(self.meta.get_label(fieldname))))
+
+	def validate_suggestions(self):
+		if self.enable_preference_suggestions and (self.suggestion_min_occurrences or 0) < 1:
+			frappe.throw(_("Minimum Occurrences for a Suggestion must be at least 1."))
+
+	def on_update(self):
+		# Turning the module on or off changes which workspaces, routes, and fields are visible,
+		# so desk caches must be rebuilt for every user.
+		if self.has_value_changed("enable_hospitality"):
+			frappe.clear_cache()
+
+
+def is_hospitality_enabled() -> bool:
+	"""Return True when the hospitality module is switched on for this site.
+
+	Hotel jobs, routes, and hooks should call this first and exit when it returns False.
+	"""
+	return bool(frappe.db.get_single_value("Hospitality Settings", "enable_hospitality", cache=True))

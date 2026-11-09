@@ -5,36 +5,69 @@
  "doctype": "DocType",
  "engine": "InnoDB",
  "field_order": [
-  "company",
+  "general_section",
   "enable_hospitality",
+  "company",
+  "branding_tab",
   "page_title",
+  "sidebar_logo",
   "favicon",
-  "logo",
-  "use_24_clock_system",
+  "use_24_hour_clock_system",
   "column_break_tarf",
   "primary_color",
   "primary_hover_color",
   "accent_color",
   "light_surface_color",
   "page_background_color",
-  "body_text_color"
+  "body_text_color",
+  "front_desk_tab",
+  "default_landing_page",
+  "tape_chart_days",
+  "board_refresh_seconds",
+  "reservations_tab",
+  "hold_expiry_minutes",
+  "max_advance_booking_days",
+  "max_stay_nights",
+  "column_break_resv",
+  "allow_walk_ins",
+  "guests_tab",
+  "preferences_section",
+  "enable_preference_suggestions",
+  "suggestion_min_occurrences",
+  "column_break_pref",
+  "enable_preference_room_ranking",
+  "privacy_section",
+  "id_document_retention_days",
+  "services_tab",
+  "allow_room_charge_for_services"
  ],
  "fields": [
   {
-   "fieldname": "company",
-   "fieldtype": "Link",
-   "in_list_view": 1,
-   "label": "Company",
-   "options": "Company",
-   "reqd": 1
+   "fieldname": "general_section",
+   "fieldtype": "Section Break",
+   "label": "General"
   },
   {
    "default": "0",
    "fieldname": "enable_hospitality",
    "fieldtype": "Check",
-   "label": "Enable Hospitality"
+   "label": "Enable Hospitality",
+   "description": "When off, hospitality pages, jobs and fields are hidden and existing appointment features are unchanged."
   },
   {
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "label": "Default Company",
+   "options": "Company",
+   "description": "Used until hotel properties are set up. Each Hotel Property has its own company."
+  },
+  {
+   "fieldname": "branding_tab",
+   "fieldtype": "Tab Break",
+   "label": "Branding"
+  },
+  {
+   "default": "Front Desk",
    "fieldname": "page_title",
    "fieldtype": "Data",
    "in_list_view": 1,
@@ -42,20 +75,20 @@
    "reqd": 1
   },
   {
+   "fieldname": "sidebar_logo",
+   "fieldtype": "Attach Image",
+   "label": "Sidebar Logo"
+  },
+  {
    "fieldname": "favicon",
-   "fieldtype": "Attach",
+   "fieldtype": "Attach Image",
    "label": "Favicon"
   },
   {
-   "fieldname": "logo",
-   "fieldtype": "Attach",
-   "label": "Logo"
-  },
-  {
    "default": "0",
-   "fieldname": "use_24_clock_system",
+   "fieldname": "use_24_hour_clock_system",
    "fieldtype": "Check",
-   "label": "Use 24 Clock System"
+   "label": "Use 24 hour clock system"
   },
   {
    "fieldname": "column_break_tarf",
@@ -110,13 +143,146 @@
    "fieldtype": "Color",
    "label": "Body Text Color",
    "reqd": 1
+  },
+  {
+   "fieldname": "front_desk_tab",
+   "fieldtype": "Tab Break",
+   "label": "Front Desk"
+  },
+  {
+   "default": "Front Desk Today",
+   "fieldname": "default_landing_page",
+   "fieldtype": "Select",
+   "label": "Default Landing Page",
+   "options": "Front Desk Today\nTape Chart\nReservations",
+   "description": "The page the hospitality app opens on."
+  },
+  {
+   "default": "14",
+   "fieldname": "tape_chart_days",
+   "fieldtype": "Int",
+   "label": "Tape Chart Days",
+   "non_negative": 1,
+   "description": "Number of days the tape chart shows at once (7 to 62)."
+  },
+  {
+   "default": "60",
+   "fieldname": "board_refresh_seconds",
+   "fieldtype": "Int",
+   "label": "Board Refresh Interval (Seconds)",
+   "non_negative": 1,
+   "description": "How often the front-desk and housekeeping boards refresh. 0 turns auto-refresh off; otherwise at least 15."
+  },
+  {
+   "fieldname": "reservations_tab",
+   "fieldtype": "Tab Break",
+   "label": "Reservations"
+  },
+  {
+   "default": "15",
+   "fieldname": "hold_expiry_minutes",
+   "fieldtype": "Int",
+   "label": "Hold Expiry (Minutes)",
+   "non_negative": 1,
+   "reqd": 1,
+   "description": "How long an unconfirmed hold keeps its rooms before they are released."
+  },
+  {
+   "default": "365",
+   "fieldname": "max_advance_booking_days",
+   "fieldtype": "Int",
+   "label": "Max Advance Booking (Days)",
+   "non_negative": 1,
+   "reqd": 1,
+   "description": "How far ahead a stay can start."
+  },
+  {
+   "default": "30",
+   "fieldname": "max_stay_nights",
+   "fieldtype": "Int",
+   "label": "Max Stay (Nights)",
+   "non_negative": 1,
+   "reqd": 1
+  },
+  {
+   "fieldname": "column_break_resv",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "1",
+   "fieldname": "allow_walk_ins",
+   "fieldtype": "Check",
+   "label": "Allow Walk-ins",
+   "description": "Allow stays that are created and checked in on the same day without a prior reservation."
+  },
+  {
+   "fieldname": "guests_tab",
+   "fieldtype": "Tab Break",
+   "label": "Guests"
+  },
+  {
+   "fieldname": "preferences_section",
+   "fieldtype": "Section Break",
+   "label": "Preferences"
+  },
+  {
+   "default": "1",
+   "fieldname": "enable_preference_suggestions",
+   "fieldtype": "Check",
+   "label": "Enable Preference Suggestions",
+   "description": "Show suggestions from a returning guest's past stays and appointments, with evidence."
+  },
+  {
+   "default": "2",
+   "depends_on": "eval:doc.enable_preference_suggestions",
+   "fieldname": "suggestion_min_occurrences",
+   "fieldtype": "Int",
+   "label": "Minimum Occurrences for a Suggestion",
+   "non_negative": 1,
+   "mandatory_depends_on": "eval:doc.enable_preference_suggestions",
+   "description": "A suggestion is shown only after it has happened at least this many times."
+  },
+  {
+   "fieldname": "column_break_pref",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "1",
+   "fieldname": "enable_preference_room_ranking",
+   "fieldtype": "Check",
+   "label": "Enable Preference-aware Room Ranking",
+   "description": "Rank available rooms against the guest's preferences when assigning a room. Staff still confirm the choice."
+  },
+  {
+   "fieldname": "privacy_section",
+   "fieldtype": "Section Break",
+   "label": "Privacy"
+  },
+  {
+   "fieldname": "id_document_retention_days",
+   "fieldtype": "Int",
+   "label": "ID Document Retention (Days)",
+   "non_negative": 1,
+   "description": "Days after checkout before stored guest ID details are cleared. Leave empty or 0 to keep them."
+  },
+  {
+   "fieldname": "services_tab",
+   "fieldtype": "Tab Break",
+   "label": "Services"
+  },
+  {
+   "default": "0",
+   "fieldname": "allow_room_charge_for_services",
+   "fieldtype": "Check",
+   "label": "Allow Room Charge for Services",
+   "description": "Let in-house guests charge spa and other appointments to their room folio. When off, appointments are paid as they are today."
   }
  ],
  "grid_page_length": 50,
- "index_web_pages_for_search": 1,
+ "index_web_pages_for_search": 0,
  "issingle": 1,
  "links": [],
- "modified": "2026-11-09 18:24:21.891410",
+ "modified": "2026-11-09 20:00:00.000000",
  "modified_by": "Administrator",
  "module": "Vuna Hospitality",
  "name": "Hospitality Settings",
@@ -129,6 +295,15 @@
    "print": 1,
    "read": 1,
    "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "role": "Hospitality Manager",
    "share": 1,
    "write": 1
   }
