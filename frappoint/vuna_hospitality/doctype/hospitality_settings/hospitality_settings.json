@@ -1,0 +1,141 @@
+{
+ "actions": [],
+ "allow_bulk_edit": 1,
+ "creation": "2026-11-09 18:12:10.412058",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "company",
+  "enable_hospitality",
+  "page_title",
+  "favicon",
+  "logo",
+  "use_24_clock_system",
+  "column_break_tarf",
+  "primary_color",
+  "primary_hover_color",
+  "accent_color",
+  "light_surface_color",
+  "page_background_color",
+  "body_text_color"
+ ],
+ "fields": [
+  {
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Company",
+   "options": "Company",
+   "reqd": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "enable_hospitality",
+   "fieldtype": "Check",
+   "label": "Enable Hospitality"
+  },
+  {
+   "fieldname": "page_title",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Page Title",
+   "reqd": 1
+  },
+  {
+   "fieldname": "favicon",
+   "fieldtype": "Attach",
+   "label": "Favicon"
+  },
+  {
+   "fieldname": "logo",
+   "fieldtype": "Attach",
+   "label": "Logo"
+  },
+  {
+   "default": "0",
+   "fieldname": "use_24_clock_system",
+   "fieldtype": "Check",
+   "label": "Use 24 Clock System"
+  },
+  {
+   "fieldname": "column_break_tarf",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "#8a0e04",
+   "description": "Navigation, primary buttons, key controls",
+   "fieldname": "primary_color",
+   "fieldtype": "Color",
+   "in_list_view": 1,
+   "label": "Primary Color",
+   "reqd": 1
+  },
+  {
+   "default": "#6f0a02",
+   "description": "Button and navigation hover states",
+   "fieldname": "primary_hover_color",
+   "fieldtype": "Color",
+   "in_list_view": 1,
+   "label": "Primary Hover Color",
+   "reqd": 1
+  },
+  {
+   "default": "#a06f22",
+   "description": "Focus rings, active indicators and decorative accents",
+   "fieldname": "accent_color",
+   "fieldtype": "Color",
+   "label": "Accent Color",
+   "reqd": 1
+  },
+  {
+   "default": "#feffff",
+   "description": "Cards, top bar and input backgrounds",
+   "fieldname": "light_surface_color",
+   "fieldtype": "Color",
+   "label": "Light Surface Color",
+   "reqd": 1
+  },
+  {
+   "default": "#f8f4ee",
+   "description": "Main application background",
+   "fieldname": "page_background_color",
+   "fieldtype": "Color",
+   "label": "Page Background Color",
+   "reqd": 1
+  },
+  {
+   "default": "#2d2d2d",
+   "description": "Primary readable text",
+   "fieldname": "body_text_color",
+   "fieldtype": "Color",
+   "label": "Body Text Color",
+   "reqd": 1
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "issingle": 1,
+ "links": [],
+ "modified": "2026-11-09 18:24:21.891410",
+ "modified_by": "Administrator",
+ "module": "Vuna Hospitality",
+ "name": "Hospitality Settings",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "rows_threshold_for_grid_search": 20,
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": []
+}
