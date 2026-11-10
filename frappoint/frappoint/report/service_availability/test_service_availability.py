@@ -43,8 +43,19 @@ class TestServiceAvailability(unittest.TestCase):
 			patcher.start()
 			self.addCleanup(patcher.stop)
 
-		capacities = [frappe._dict(name="U1", capacity=1), frappe._dict(name="U2", capacity=2)]
-		get_all = patch.object(report.frappe, "get_all", return_value=capacities)
+		# Answer only the doctypes the report queries. Patching frappe.get_all wholesale also hijacks
+		# Frappe internals (e.g. formatdate loading the Language doc), so pass everything else through.
+		self.get_all_results = {
+			"Service Unit": [frappe._dict(name="U1", capacity=1), frappe._dict(name="U2", capacity=2)],
+		}
+		real_get_all = frappe.get_all
+
+		def fake_get_all(doctype, *args, **kwargs):
+			if doctype in self.get_all_results:
+				return self.get_all_results[doctype]
+			return real_get_all(doctype, *args, **kwargs)
+
+		get_all = patch.object(report.frappe, "get_all", side_effect=fake_get_all)
 		self.get_all = get_all.start()
 		self.addCleanup(get_all.stop)
 
@@ -108,10 +119,11 @@ class TestServiceAvailability(unittest.TestCase):
 			self._run(start_time_from="15:00:00", start_time_to="09:00:00")
 
 	def test_gender_filter(self):
-		self.get_all.side_effect = [["P2"], [frappe._dict(name="U2", capacity=2)]]
+		self.get_all_results["Service Provider"] = ["P2"]
 		data = self._run(gender="Male")
 		providers = {row["provider"] for row in data if row["indent"] == 2}
 		self.assertEqual(providers, {"P2"})
+		self.get_all.assert_any_call("Service Provider", filters={"gender": "Male"}, pluck="name")
 
 	def test_required_filters_missing_returns_nothing(self):
 		_columns, data = report.execute({"service_type": "Massage"})
