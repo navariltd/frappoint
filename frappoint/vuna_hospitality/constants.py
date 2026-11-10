@@ -8,8 +8,7 @@ MODULE = "Vuna Hospitality"
 SETTINGS_DOCTYPE = "Hospitality Settings"
 EVENT_LOG_DOCTYPE = "Hospitality Event Log"
 
-# The DocType that scopes hotel data. It is created in feature F1 (Property and rooms); until then
-# the scoping helpers treat every user as unrestricted.
+# The DocType that scopes hotel data. Users are restricted to properties with User Permissions.
 PROPERTY_DOCTYPE = "Hotel Property"
 PROPERTY_FIELD = "property"
 
@@ -48,4 +47,9 @@ UNRESTRICTED_ROLES = ("System Manager", "Administrator")
 
 # DocTypes that carry a required `property` field and are filtered by property.
 # Each feature appends its DocTypes here; hooks.py builds the permission hooks from this list.
-PROPERTY_SCOPED_DOCTYPES: tuple[str, ...] = ()
+PROPERTY_SCOPED_DOCTYPES: tuple[str, ...] = (
+	# F1 Property and rooms
+	"Room Type",
+	"Hotel Room",
+	"Room State Period",
+)
