@@ -1,0 +1,367 @@
+{
+ "actions": [],
+ "creation": "2026-11-10 12:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "property_name",
+  "property_code",
+  "company",
+  "currency",
+  "column_break_main",
+  "time_zone",
+  "business_date",
+  "is_active",
+  "timings_section",
+  "check_in_time",
+  "check_out_time",
+  "turnover_minutes",
+  "column_break_timings",
+  "day_use_start",
+  "day_use_end",
+  "address_section",
+  "address",
+  "column_break_contact",
+  "phone",
+  "email",
+  "accounting_tab",
+  "default_cost_center",
+  "walk_in_customer",
+  "column_break_acc",
+  "guest_ledger_account",
+  "advance_account",
+  "room_post_clearing_account",
+  "breakage_income_account",
+  "cash_over_short_account",
+  "operations_tab",
+  "post_stay_window_days",
+  "column_break_ops",
+  "night_audit_block_on_open_shifts"
+ ],
+ "fields": [
+  {
+   "fieldname": "property_name",
+   "fieldtype": "Data",
+   "label": "Property Name",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "property_code",
+   "fieldtype": "Data",
+   "label": "Property Code",
+   "reqd": 1,
+   "unique": 1,
+   "set_only_once": 1,
+   "in_list_view": 1,
+   "description": "Short code (2-10 letters or digits), e.g. NBO1. It becomes the record name and is used in document numbers. It cannot be changed later."
+  },
+  {
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "label": "Company",
+   "options": "Company",
+   "reqd": 1,
+   "in_standard_filter": 1
+  },
+  {
+   "fieldname": "currency",
+   "fieldtype": "Link",
+   "label": "Currency",
+   "options": "Currency",
+   "fetch_from": "company.default_currency",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_main",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "time_zone",
+   "fieldtype": "Autocomplete",
+   "label": "Time Zone",
+   "reqd": 1
+  },
+  {
+   "fieldname": "business_date",
+   "fieldtype": "Date",
+   "label": "Business Date",
+   "read_only": 1,
+   "in_list_view": 1,
+   "description": "The hotel's working day. Set when the property is created; only night audit moves it forward."
+  },
+  {
+   "fieldname": "is_active",
+   "fieldtype": "Check",
+   "label": "Is Active",
+   "default": "1"
+  },
+  {
+   "fieldname": "timings_section",
+   "fieldtype": "Section Break",
+   "label": "Timings"
+  },
+  {
+   "fieldname": "check_in_time",
+   "fieldtype": "Time",
+   "label": "Check-in Time",
+   "reqd": 1,
+   "default": "14:00:00"
+  },
+  {
+   "fieldname": "check_out_time",
+   "fieldtype": "Time",
+   "label": "Check-out Time",
+   "reqd": 1,
+   "default": "10:00:00"
+  },
+  {
+   "fieldname": "turnover_minutes",
+   "fieldtype": "Int",
+   "label": "Turnover Time (Minutes)",
+   "default": "60",
+   "non_negative": 1,
+   "description": "Minimum time between one guest leaving a room and the next arriving, for cleaning."
+  },
+  {
+   "fieldname": "column_break_timings",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "day_use_start",
+   "fieldtype": "Time",
+   "label": "Day Use Start",
+   "default": "10:00:00"
+  },
+  {
+   "fieldname": "day_use_end",
+   "fieldtype": "Time",
+   "label": "Day Use End",
+   "default": "18:00:00"
+  },
+  {
+   "fieldname": "address_section",
+   "fieldtype": "Section Break",
+   "label": "Address and Contact"
+  },
+  {
+   "fieldname": "address",
+   "fieldtype": "Small Text",
+   "label": "Address"
+  },
+  {
+   "fieldname": "column_break_contact",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "phone",
+   "fieldtype": "Data",
+   "label": "Phone",
+   "options": "Phone"
+  },
+  {
+   "fieldname": "email",
+   "fieldtype": "Data",
+   "label": "Email",
+   "options": "Email"
+  },
+  {
+   "fieldname": "accounting_tab",
+   "fieldtype": "Tab Break",
+   "label": "Accounting"
+  },
+  {
+   "fieldname": "default_cost_center",
+   "fieldtype": "Link",
+   "label": "Default Cost Center",
+   "options": "Cost Center"
+  },
+  {
+   "fieldname": "walk_in_customer",
+   "fieldtype": "Link",
+   "label": "Walk-in Customer",
+   "options": "Customer",
+   "description": "Used for payees without their own Customer, where local invoicing rules allow it."
+  },
+  {
+   "fieldname": "column_break_acc",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "guest_ledger_account",
+   "fieldtype": "Link",
+   "label": "Guest Ledger Account",
+   "options": "Account"
+  },
+  {
+   "fieldname": "advance_account",
+   "fieldtype": "Link",
+   "label": "Guest Advance Account",
+   "options": "Account"
+  },
+  {
+   "fieldname": "room_post_clearing_account",
+   "fieldtype": "Link",
+   "label": "Room Post Clearing Account",
+   "options": "Account"
+  },
+  {
+   "fieldname": "breakage_income_account",
+   "fieldtype": "Link",
+   "label": "Breakage Income Account",
+   "options": "Account"
+  },
+  {
+   "fieldname": "cash_over_short_account",
+   "fieldtype": "Link",
+   "label": "Cash Over/Short Account",
+   "options": "Account"
+  },
+  {
+   "fieldname": "operations_tab",
+   "fieldtype": "Tab Break",
+   "label": "Operations"
+  },
+  {
+   "fieldname": "post_stay_window_days",
+   "fieldtype": "Int",
+   "label": "Post-stay Folio Window (Days)",
+   "default": "2",
+   "non_negative": 1,
+   "description": "How long a folio stays open after checkout for late charges, such as minibar."
+  },
+  {
+   "fieldname": "column_break_ops",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "night_audit_block_on_open_shifts",
+   "fieldtype": "Check",
+   "label": "Block Night Audit on Open Cashier Shifts",
+   "default": "1"
+  }
+ ],
+ "index_web_pages_for_search": 0,
+ "links": [],
+ "modified": "2026-11-10 12:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Vuna Hospitality",
+ "name": "Hotel Property",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "share": 1,
+   "write": 1,
+   "role": "System Manager"
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "share": 1,
+   "write": 1,
+   "role": "Hospitality Manager"
+  },
+  {
+   "read": 1,
+   "report": 1,
+   "print": 1,
+   "email": 1,
+   "export": 1,
+   "role": "Front Desk Agent"
+  },
+  {
+   "read": 1,
+   "report": 1,
+   "print": 1,
+   "email": 1,
+   "export": 1,
+   "role": "Front Desk Manager"
+  },
+  {
+   "read": 1,
+   "report": 1,
+   "print": 1,
+   "email": 1,
+   "export": 1,
+   "role": "Reservations Agent"
+  },
+  {
+   "read": 1,
+   "report": 1,
+   "print": 1,
+   "email": 1,
+   "export": 1,
+   "role": "Revenue Manager"
+  },
+  {
+   "read": 1,
+   "report": 1,
+   "print": 1,
+   "email": 1,
+   "export": 1,
+   "role": "Housekeeping Supervisor"
+  },
+  {
+   "read": 1,
+   "report": 1,
+   "print": 1,
+   "email": 1,
+   "export": 1,
+   "role": "Housekeeping Attendant"
+  },
+  {
+   "read": 1,
+   "report": 1,
+   "print": 1,
+   "email": 1,
+   "export": 1,
+   "role": "Night Auditor"
+  },
+  {
+   "read": 1,
+   "report": 1,
+   "print": 1,
+   "email": 1,
+   "export": 1,
+   "role": "Cashier"
+  },
+  {
+   "read": 1,
+   "report": 1,
+   "print": 1,
+   "email": 1,
+   "export": 1,
+   "role": "Guest Services Agent"
+  },
+  {
+   "read": 1,
+   "report": 1,
+   "print": 1,
+   "email": 1,
+   "export": 1,
+   "role": "Hotel Accountant"
+  }
+ ],
+ "row_format": "Dynamic",
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": [],
+ "autoname": "field:property_code",
+ "naming_rule": "By fieldname",
+ "title_field": "property_name",
+ "show_title_field_in_link": 1,
+ "search_fields": "property_name,company",
+ "allow_rename": 0
+}

@@ -64,12 +64,12 @@
   },
   {
    "fieldname": "property",
-   "fieldtype": "Data",
+   "fieldtype": "Link",
    "label": "Property",
    "in_standard_filter": 1,
    "search_index": 1,
    "read_only": 1,
-   "description": "Hotel Property of the record. Becomes a Link once Hotel Property exists (feature F1)."
+   "options": "Hotel Property"
   },
   {
    "fieldname": "business_date",
@@ -160,7 +160,7 @@
  "in_create": 1,
  "index_web_pages_for_search": 0,
  "links": [],
- "modified": "2026-11-10 09:00:00.000000",
+ "modified": "2026-11-10 12:00:00.000000",
  "modified_by": "Administrator",
  "module": "Vuna Hospitality",
  "name": "Hospitality Event Log",

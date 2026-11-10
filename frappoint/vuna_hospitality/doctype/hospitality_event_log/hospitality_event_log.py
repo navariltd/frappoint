@@ -26,7 +26,7 @@ class HospitalityEventLog(Document):
 		event_type: DF.Data
 		from_status: DF.Data | None
 		naming_series: DF.Literal["HSP-LOG-.YYYY.-.########"]
-		property: DF.Data | None
+		property: DF.Link | None
 		reason: DF.SmallText | None
 		reference_doctype: DF.Link
 		reference_name: DF.DynamicLink
