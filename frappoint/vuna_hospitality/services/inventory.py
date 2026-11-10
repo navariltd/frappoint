@@ -1,4 +1,4 @@
-"""Room inventory engine (design §9.3, §28.4; feature F2).
+"""Room inventory engine.
 
 Room Type Inventory Day holds one row per property, room type and night:
 
@@ -48,6 +48,21 @@ class InventoryUnavailableError(frappe.ValidationError):
 		super().__init__(message)
 		self.room_type = room_type
 		self.night = night
+
+
+class InventoryConflictError(InventoryUnavailableError):
+	"""Another transaction changed these rows while this one was working; retry in a new transaction.
+
+	On MariaDB 11.6+ (`innodb_snapshot_isolation` on by default), a transaction that has already
+	read data cannot lock a row that another transaction changed and committed since: the lock
+	fails with error 1020 instead of waiting. Earlier versions report a deadlock (1213) in the
+	rarer cases where locks cross. Either way this transaction must roll back and start again;
+	the retry then sees the other booking and either succeeds or gets a normal "sold out".
+	Use `run_with_inventory_retry()` at the place that owns the transaction.
+	"""
+
+
+DEFAULT_RETRY_ATTEMPTS = 3
 
 
 # --------------------------------------------------------------------------- nights
@@ -214,7 +229,7 @@ def lock_rows(room_types: Iterable[str], nights: Iterable[date]) -> dict[tuple[s
 	if not room_types or not nights:
 		return {}
 	table = frappe.qb.DocType(DOCTYPE)
-	rows = (
+	query = (
 		frappe.qb.from_(table)
 		.select(
 			table.name,
@@ -229,8 +244,13 @@ def lock_rows(room_types: Iterable[str], nights: Iterable[date]) -> dict[tuple[s
 		.orderby(table.room_type)
 		.orderby(table.inventory_date)
 		.for_update()
-		.run(as_dict=True)
 	)
+	try:
+		rows = query.run(as_dict=True)
+	except frappe.QueryDeadlockError as error:
+		raise InventoryConflictError(
+			_("Room availability changed while this request was running. Please try again.")
+		) from error
 	return {(row.room_type, getdate(row.inventory_date)): row for row in rows}
 
 
@@ -257,6 +277,22 @@ def peek_rows(room_types: Iterable[str], nights: Iterable[date]) -> dict[tuple[s
 			if key in expected:
 				rows[key] = frappe._dict(expected[key])
 	return rows
+
+
+def run_with_inventory_retry(fn: Callable, attempts: int = DEFAULT_RETRY_ATTEMPTS):
+	"""Run `fn`, retrying in a fresh transaction when inventory rows changed underneath it.
+
+	Call this only where the whole transaction is owned (an API endpoint or a background job),
+	because a retry rolls back everything `fn` did so far. A normal "sold out"
+	(InventoryUnavailableError) is not retried.
+	"""
+	for attempt in range(1, attempts + 1):
+		try:
+			return fn()
+		except InventoryConflictError:
+			frappe.db.rollback()
+			if attempt == attempts:
+				raise
 
 
 # --------------------------------------------------------------------------- acquire / release

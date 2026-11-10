@@ -10,6 +10,7 @@ from frappe.utils import add_days, getdate
 from frappoint.vuna_hospitality.report.house_position import house_position
 from frappoint.vuna_hospitality.services import inventory
 from frappoint.vuna_hospitality.services.inventory import (
+	InventoryConflictError,
 	InventoryUnavailableError,
 	acquire,
 	acquire_many,
@@ -19,6 +20,7 @@ from frappoint.vuna_hospitality.services.inventory import (
 	rebuild,
 	reconcile,
 	release,
+	run_with_inventory_retry,
 )
 from frappoint.vuna_hospitality.tests.utils import make_test_property, run_concurrently
 
@@ -202,14 +204,25 @@ class TestRebuildAndReconcile(InventoryTestCase):
 		self.assertEqual(data[-1][field], 3)  # total available: 2 STD + 1 DLX
 
 
+def _like_mariadb_11_8():
+	"""Behave like MariaDB 11.6+ (CI): a locking read of a row changed since this transaction's
+	first read fails with error 1020 instead of waiting. Older servers ignore this."""
+	try:
+		frappe.db.sql("SET SESSION innodb_snapshot_isolation = ON")
+	except Exception:
+		pass  # variable not available on this server
+	frappe.db.rollback()  # start a fresh transaction with the setting
+
+
 class TestConcurrentSale(IntegrationTestCase):
-	"""Scenario 9 (inventory part): two agents race for the last room; exactly one wins."""
+	"""Scenario 9 (inventory part): concurrent bookings never oversell and never falsely sell out."""
 
 	CODE = "RACE"
+	ROOMS = 1
 
 	def setUp(self):
 		self._cleanup()
-		self.prop, _rooms = make_test_property(code=self.CODE, room_types={"STD": 1})
+		self.prop, _rooms = make_test_property(code=self.CODE, room_types={"STD": self.ROOMS})
 		self.arrival = getdate(self.prop.business_date)
 		ensure_rows([f"{self.CODE}-STD"], nights_between(self.arrival, add_days(self.arrival, 2)))
 		frappe.db.commit()  # the racing connections must see the data
@@ -225,24 +238,44 @@ class TestConcurrentSale(IntegrationTestCase):
 		frappe.db.delete("Hotel Property", {"name": self.CODE})
 		frappe.db.commit()
 
+	def booking(self, arrival_offset, departure_offset):
+		"""A booking request as an endpoint would run it: its own transaction, retried on conflict."""
+		room_type = f"{self.CODE}-STD"
+		arrival, departure = add_days(self.arrival, arrival_offset), add_days(self.arrival, departure_offset)
+
+		def run():
+			_like_mariadb_11_8()
+			return run_with_inventory_retry(lambda: acquire(room_type, arrival, departure, kind="sold"))
+
+		return run
+
+	def sold_on(self, offset):
+		row = inventory.row_name(f"{self.CODE}-STD", add_days(self.arrival, offset))
+		return frappe.db.get_value("Room Type Inventory Day", row, "sold")
+
 	def test_only_one_of_two_concurrent_requests_gets_the_last_room(self):
-		room_type, arrival = f"{self.CODE}-STD", self.arrival
-
-		def book_two_nights():
-			return acquire(room_type, arrival, add_days(arrival, 2), kind="sold")
-
-		def book_second_night():
-			return acquire(room_type, add_days(arrival, 1), add_days(arrival, 2), kind="sold")
-
-		results = run_concurrently(book_two_nights, book_second_night)
+		results = run_concurrently(self.booking(0, 2), self.booking(1, 2))
 
 		winners = [result for result in results if result.ok]
 		losers = [result for result in results if not result.ok]
 		self.assertEqual(len(winners), 1, [result.error for result in results])
+		# After the retry the loser sees the winner's booking: a plain "sold out", not a conflict.
 		self.assertIsInstance(losers[0].error, InventoryUnavailableError)
-		self.assertEqual(
-			frappe.db.get_value(
-				"Room Type Inventory Day", inventory.row_name(room_type, add_days(arrival, 1)), "sold"
-			),
-			1,
-		)
+		self.assertNotIsInstance(losers[0].error, InventoryConflictError)
+		self.assertEqual(self.sold_on(1), 1)
+
+
+class TestConcurrentSaleWithRoomToSpare(TestConcurrentSale):
+	"""Two rooms, two concurrent bookings: both must succeed (no false "sold out" from a conflict)."""
+
+	CODE = "RACE2"
+	ROOMS = 2
+
+	def test_only_one_of_two_concurrent_requests_gets_the_last_room(self):
+		pass  # covered by the parent class; here there is a room to spare
+
+	def test_both_concurrent_requests_get_a_room(self):
+		results = run_concurrently(self.booking(0, 2), self.booking(1, 2))
+
+		self.assertTrue(all(result.ok for result in results), [result.error for result in results])
+		self.assertEqual((self.sold_on(0), self.sold_on(1)), (1, 2))
