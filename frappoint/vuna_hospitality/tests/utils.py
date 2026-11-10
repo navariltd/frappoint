@@ -146,3 +146,87 @@ def make_test_property(
 			for number in range(1, count + 1)
 		]
 	return prop, rooms
+
+
+def make_test_rate_setup(property_name: str, code: str = "BAR"):
+	"""Create what a rate plan needs (charge department, room charge code with an Item, cancellation
+	and deposit policies) and a nightly rate plan. Returns the Rate Plan document. Nothing is committed.
+	"""
+	if not frappe.db.exists("Charge Department", "Rooms"):
+		frappe.get_doc({"doctype": "Charge Department", "department_name": "Rooms"}).insert(
+			ignore_permissions=True
+		)
+
+	item_code = "HSP-TEST-ROOM-NIGHT"
+	if not frappe.db.exists("Item", item_code):
+		frappe.get_doc(
+			{
+				"doctype": "Item",
+				"item_code": item_code,
+				"item_name": "Test Room Night",
+				"item_group": frappe.db.get_value("Item Group", {"is_group": 0}, "name") or "All Item Groups",
+				"stock_uom": frappe.db.get_value("UOM", {}, "name")
+				if not frappe.db.exists("UOM", "Nos")
+				else "Nos",
+				"is_stock_item": 0,
+			}
+		).insert(ignore_permissions=True)
+
+	if not frappe.db.exists("Charge Code", "TROOM"):
+		frappe.get_doc(
+			{
+				"doctype": "Charge Code",
+				"code": "TROOM",
+				"description": "Test Room Charge",
+				"charge_department": "Rooms",
+				"transaction_type": "Revenue",
+				"item": item_code,
+				"is_room_revenue": 1,
+				"print_group": "Accommodation",
+			}
+		).insert(ignore_permissions=True)
+
+	policies = {}
+	for policy_type in ("Cancellation", "Deposit"):
+		policies[policy_type] = (
+			frappe.get_doc(
+				{
+					"doctype": "Hotel Policy",
+					"property": property_name,
+					"policy_name": f"Test {policy_type}",
+					"policy_type": policy_type,
+				}
+			)
+			.insert(ignore_permissions=True)
+			.name
+		)
+
+	return frappe.get_doc(
+		{
+			"doctype": "Rate Plan",
+			"property": property_name,
+			"rate_plan_name": "Best Available Rate",
+			"rate_plan_code": code,
+			"room_charge_code": "TROOM",
+			"cancellation_policy": policies["Cancellation"],
+			"deposit_policy": policies["Deposit"],
+		}
+	).insert(ignore_permissions=True)
+
+
+def make_test_season(rate_plan, from_date, to_date, rates: dict[str, tuple[float, float | None]]):
+	"""A Rate Season for `rate_plan`. `rates` maps room type name -> (weekday rate, weekend rate)."""
+	return frappe.get_doc(
+		{
+			"doctype": "Rate Season",
+			"property": rate_plan.property,
+			"season_name": "Test Season",
+			"rate_plan": rate_plan.name,
+			"from_date": from_date,
+			"to_date": to_date,
+			"rates": [
+				{"room_type": room_type, "weekday_rate": weekday, "weekend_rate": weekend}
+				for room_type, (weekday, weekend) in rates.items()
+			],
+		}
+	).insert(ignore_permissions=True)
