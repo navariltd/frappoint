@@ -34,7 +34,6 @@ DEMAND_KINDS = (HELD, SOLD)
 SUPPLY_FIELDS = ("physical_rooms", "out_of_order", "out_of_service", "overbooking_limit", "day_use_capacity")
 DEMAND_FIELDS = ("held", "sold", "block_unpicked", "day_use_sold")
 COUNTER_FIELDS = SUPPLY_FIELDS + DEMAND_FIELDS
-AVAILABLE_SQL = "physical_rooms - out_of_order - sold - held - block_unpicked + overbooking_limit"
 DEFAULT_HORIZON_DAYS = 365
 
 # Each source: fn(room_types: list[str], nights: list[date]) -> {(room_type, night): {field: count}}
@@ -212,16 +211,25 @@ def ensure_rows(room_types: Iterable[str], nights: Iterable[date]) -> int:
 def lock_rows(room_types: Iterable[str], nights: Iterable[date]) -> dict[tuple[str, date], dict]:
 	"""SELECT ... FOR UPDATE the rows, always ordered by room type then night."""
 	room_types, nights = sorted(set(room_types)), sorted(set(nights))
-	rows = frappe.db.sql(
-		f"""
-		SELECT name, property, room_type, inventory_date, available, {", ".join(COUNTER_FIELDS)}
-		FROM `tab{DOCTYPE}`
-		WHERE room_type IN %(room_types)s AND inventory_date IN %(nights)s
-		ORDER BY room_type, inventory_date
-		FOR UPDATE
-		""",
-		{"room_types": tuple(room_types), "nights": tuple(nights)},
-		as_dict=True,
+	if not room_types or not nights:
+		return {}
+	table = frappe.qb.DocType(DOCTYPE)
+	rows = (
+		frappe.qb.from_(table)
+		.select(
+			table.name,
+			table.property,
+			table.room_type,
+			table.inventory_date,
+			table.available,
+			*(table[field] for field in COUNTER_FIELDS),
+		)
+		.where(table.room_type.isin(room_types))
+		.where(table.inventory_date.isin(nights))
+		.orderby(table.room_type)
+		.orderby(table.inventory_date)
+		.for_update()
+		.run(as_dict=True)
 	)
 	return {(row.room_type, getdate(row.inventory_date)): row for row in rows}
 
@@ -359,19 +367,35 @@ def _needed_per_row(requests: list[dict]) -> dict[tuple[str, date], int]:
 	return dict(needed)
 
 
+def _recompute_available(name: str) -> None:
+	"""available = physical_rooms - out_of_order - sold - held - block_unpicked + overbooking_limit"""
+	table = frappe.qb.DocType(DOCTYPE)
+	(
+		frappe.qb.update(table)
+		.set(
+			table.available,
+			table.physical_rooms
+			- table.out_of_order
+			- table.sold
+			- table.held
+			- table.block_unpicked
+			+ table.overbooking_limit,
+		)
+		.where(table.name == name)
+	).run()
+
+
 def _apply(needed: dict, rows: dict, signs: dict[str, int]) -> list[str]:
 	changed = []
 	for key in sorted(needed):
 		row = rows[key]
-		assignments = ", ".join(f"`{field}` = `{field}` + %(delta_{field})s" for field in signs)
-		params = {"name": row.name, **{f"delta_{field}": sign * needed[key] for field, sign in signs.items()}}
-		frappe.db.sql(
-			f"UPDATE `tab{DOCTYPE}` SET {assignments}, `modified` = NOW(6) WHERE name = %(name)s",
-			params,
-		)
-		frappe.db.sql(
-			f"UPDATE `tab{DOCTYPE}` SET available = {AVAILABLE_SQL} WHERE name = %(name)s", {"name": row.name}
-		)
+		table = frappe.qb.DocType(DOCTYPE)
+		query = frappe.qb.update(table).set(table.modified, now_datetime()).where(table.name == row.name)
+		for field, sign in signs.items():
+			# Relative update (field = field + delta) on a row this transaction has locked.
+			query = query.set(table[field], table[field] + sign * needed[key])
+		query.run()
+		_recompute_available(row.name)
 		changed.append(row.name)
 	return changed
 
@@ -452,10 +476,7 @@ def refresh_supply(room_types: Iterable[str], from_date=None, to_date=None) -> i
 		changes = {field: values[field] for field in SUPPLY_FIELDS if row.get(field) != values[field]}
 		if changes:
 			frappe.db.set_value(DOCTYPE, row.name, changes)
-			frappe.db.sql(
-				f"UPDATE `tab{DOCTYPE}` SET available = {AVAILABLE_SQL} WHERE name = %(name)s",
-				{"name": row.name},
-			)
+			_recompute_available(row.name)
 			changed += 1
 	return changed
 
@@ -513,7 +534,9 @@ def daily_inventory_maintenance():
 		drift = reconcile(property_name)
 		if drift:
 			report_drift(property_name, drift)
-		frappe.db.commit()  # nosemgrep: one property per transaction keeps lock time short
+		# Commit per property so each property's inventory rows are locked only briefly and a
+		# failure in one property does not roll back the others.
+		frappe.db.commit()  # nosemgrep
 
 
 def report_drift(property_name: str, drift: list[dict]) -> None:
