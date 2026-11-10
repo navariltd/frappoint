@@ -5,6 +5,7 @@ import frappe
 from frappe import _
 from frappe.model.document import Document
 
+from frappoint.vuna_hospitality.services import inventory
 from frappoint.vuna_hospitality.services.rooms import STATE_FIELDS, update_room_type_counts
 
 
@@ -96,6 +97,8 @@ class HotelRoom(Document):
 		self.sync_connecting_room()
 		before = self.get_doc_before_save()
 		update_room_type_counts(self.room_type, before.room_type if before else None)
+		if not before or before.is_active != self.is_active or before.room_type != self.room_type:
+			inventory.on_rooms_changed(self.property, self.room_type, before.room_type if before else None)
 
 	def on_trash(self):
 		if self.connecting_room:
@@ -105,6 +108,7 @@ class HotelRoom(Document):
 
 	def after_delete(self):
 		update_room_type_counts(self.room_type)
+		inventory.on_rooms_changed(self.property, self.room_type)
 
 	def sync_connecting_room(self):
 		"""Keep the link two-way: setting A -> B also sets B -> A, and clears A's old partner."""

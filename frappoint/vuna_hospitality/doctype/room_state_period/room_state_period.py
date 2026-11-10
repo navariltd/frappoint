@@ -6,6 +6,7 @@ from frappe import _
 from frappe.model.document import Document
 from frappe.utils import date_diff, getdate
 
+from frappoint.vuna_hospitality.services import inventory
 from frappoint.vuna_hospitality.services.event_log import log_event
 from frappoint.vuna_hospitality.services.rooms import OUT_OF_ORDER, refresh_room_sellability
 
@@ -78,10 +79,12 @@ class RoomStatePeriod(Document):
 
 	def on_submit(self):
 		refresh_room_sellability(self.room)
+		inventory.on_state_period_changed(self.room_type, self.from_date, self.to_date)
 		self.log("Room State Period Started")
 
 	def on_cancel(self):
 		refresh_room_sellability(self.room)
+		inventory.on_state_period_changed(self.room_type, self.from_date, self.to_date)
 		self.log("Room State Period Cancelled")
 
 	def log(self, event_type):

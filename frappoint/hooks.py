@@ -227,6 +227,7 @@ scheduler_events = {
 		"frappoint.utils.purge_old_slots",
 		"frappoint.utils.replenish_slot_window",
 		"frappoint.vuna_hospitality.services.rooms.refresh_all_sellability",
+		"frappoint.vuna_hospitality.services.inventory.daily_inventory_maintenance",
 	],
 	# "weekly": [
 	# 	"frappoint.tasks.weekly"

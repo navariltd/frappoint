@@ -5,6 +5,7 @@ import frappe
 from frappe import _
 from frappe.model.document import Document
 
+from frappoint.vuna_hospitality.services import inventory
 from frappoint.vuna_hospitality.services.rooms import normalize_code
 
 
@@ -61,6 +62,15 @@ class RoomType(Document):
 		if self.max_children > self.max_occupancy:
 			frappe.throw(_("Max Children cannot be more than Max Occupancy."))
 
+	def on_update(self):
+		before = self.get_doc_before_save()
+		if before and any(
+			before.get(field) != self.get(field)
+			for field in ("overbooking_limit", "day_use_capacity", "is_active")
+		):
+			inventory.on_rooms_changed(self.property, self.name)
+
 	def on_trash(self):
 		if frappe.db.exists("Hotel Room", {"room_type": self.name}):
 			frappe.throw(_("Room Type {0} still has rooms. Move or delete them first.").format(self.name))
+		frappe.db.delete("Room Type Inventory Day", {"room_type": self.name})
