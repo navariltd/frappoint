@@ -1,0 +1,230 @@
+{
+ "actions": [],
+ "creation": "2026-11-11 09:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "property",
+  "room_type",
+  "inventory_date",
+  "column_break_main",
+  "available",
+  "last_rebuilt_at",
+  "supply_section",
+  "physical_rooms",
+  "out_of_order",
+  "out_of_service",
+  "column_break_supply",
+  "overbooking_limit",
+  "day_use_capacity",
+  "demand_section",
+  "sold",
+  "held",
+  "column_break_demand",
+  "block_unpicked",
+  "day_use_sold"
+ ],
+ "fields": [
+  {
+   "fieldname": "property",
+   "fieldtype": "Link",
+   "label": "Property",
+   "options": "Hotel Property",
+   "reqd": 1,
+   "read_only": 1,
+   "in_standard_filter": 1,
+   "search_index": 1
+  },
+  {
+   "fieldname": "room_type",
+   "fieldtype": "Link",
+   "label": "Room Type",
+   "options": "Room Type",
+   "reqd": 1,
+   "read_only": 1,
+   "in_list_view": 1,
+   "in_standard_filter": 1
+  },
+  {
+   "fieldname": "inventory_date",
+   "fieldtype": "Date",
+   "label": "Night",
+   "reqd": 1,
+   "read_only": 1,
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "description": "The night starting on this date."
+  },
+  {
+   "fieldname": "column_break_main",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "available",
+   "fieldtype": "Int",
+   "label": "Available",
+   "read_only": 1,
+   "default": "0",
+   "in_list_view": 1,
+   "bold": 1,
+   "description": "Physical \u2212 out of order \u2212 sold \u2212 held \u2212 block unpicked + overbooking limit."
+  },
+  {
+   "fieldname": "last_rebuilt_at",
+   "fieldtype": "Datetime",
+   "label": "Last Rebuilt At",
+   "read_only": 1
+  },
+  {
+   "fieldname": "supply_section",
+   "fieldtype": "Section Break",
+   "label": "Supply"
+  },
+  {
+   "fieldname": "physical_rooms",
+   "fieldtype": "Int",
+   "label": "Physical Rooms",
+   "read_only": 1,
+   "default": "0",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "out_of_order",
+   "fieldtype": "Int",
+   "label": "Out of Order",
+   "read_only": 1,
+   "default": "0",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "out_of_service",
+   "fieldtype": "Int",
+   "label": "Out of Service",
+   "read_only": 1,
+   "default": "0",
+   "description": "Shown for information; out-of-service rooms stay in inventory."
+  },
+  {
+   "fieldname": "column_break_supply",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "overbooking_limit",
+   "fieldtype": "Int",
+   "label": "Overbooking Limit",
+   "read_only": 1,
+   "default": "0"
+  },
+  {
+   "fieldname": "day_use_capacity",
+   "fieldtype": "Int",
+   "label": "Day-use Capacity",
+   "read_only": 1,
+   "default": "0"
+  },
+  {
+   "fieldname": "demand_section",
+   "fieldtype": "Section Break",
+   "label": "Demand"
+  },
+  {
+   "fieldname": "sold",
+   "fieldtype": "Int",
+   "label": "Sold",
+   "read_only": 1,
+   "default": "0",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "held",
+   "fieldtype": "Int",
+   "label": "Held",
+   "read_only": 1,
+   "default": "0",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "column_break_demand",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "block_unpicked",
+   "fieldtype": "Int",
+   "label": "Block Unpicked",
+   "read_only": 1,
+   "default": "0"
+  },
+  {
+   "fieldname": "day_use_sold",
+   "fieldtype": "Int",
+   "label": "Day-use Sold",
+   "read_only": 1,
+   "default": "0"
+  }
+ ],
+ "in_create": 1,
+ "index_web_pages_for_search": 0,
+ "links": [],
+ "modified": "2026-11-11 09:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Vuna Hospitality",
+ "name": "Room Type Inventory Day",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "read": 1,
+   "report": 1,
+   "export": 1,
+   "print": 1,
+   "role": "System Manager"
+  },
+  {
+   "read": 1,
+   "report": 1,
+   "export": 1,
+   "print": 1,
+   "role": "Hospitality Manager"
+  },
+  {
+   "read": 1,
+   "report": 1,
+   "export": 1,
+   "print": 1,
+   "role": "Reservations Agent"
+  },
+  {
+   "read": 1,
+   "report": 1,
+   "export": 1,
+   "print": 1,
+   "role": "Front Desk Agent"
+  },
+  {
+   "read": 1,
+   "report": 1,
+   "export": 1,
+   "print": 1,
+   "role": "Front Desk Manager"
+  },
+  {
+   "read": 1,
+   "report": 1,
+   "export": 1,
+   "print": 1,
+   "role": "Revenue Manager"
+  },
+  {
+   "read": 1,
+   "report": 1,
+   "export": 1,
+   "print": 1,
+   "role": "Night Auditor"
+  }
+ ],
+ "row_format": "Dynamic",
+ "sort_field": "inventory_date",
+ "sort_order": "ASC",
+ "states": [],
+ "title_field": "room_type",
+ "description": "Lockable per-night room-type counters, maintained only by the inventory service. Rebuildable from rooms, state periods and occupancies."
+}

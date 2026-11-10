@@ -52,4 +52,6 @@ PROPERTY_SCOPED_DOCTYPES: tuple[str, ...] = (
 	"Room Type",
 	"Hotel Room",
 	"Room State Period",
+	# F2 Room inventory engine
+	"Room Type Inventory Day",
 )
