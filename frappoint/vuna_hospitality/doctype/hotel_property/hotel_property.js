@@ -44,6 +44,37 @@ frappe.ui.form.on("Hotel Property", {
 			() => frappe.set_route("List", "Room Type", { property: frm.doc.name }),
 			__("View")
 		);
+		frm.add_custom_button(
+			__("House Position"),
+			() => frappe.set_route("query-report", "House Position", { property: frm.doc.name }),
+			__("View")
+		);
+		if (frappe.user.has_role(["System Manager", "Hospitality Manager"])) {
+			frm.add_custom_button(
+				__("Rebuild Inventory"),
+				() =>
+					frappe
+						.xcall(
+							"frappoint.vuna_hospitality.services.inventory.rebuild_property_inventory",
+							{ property_name: frm.doc.name },
+							__("Rebuilding room inventory...")
+						)
+						.then((result) =>
+							frappe.msgprint(
+								__(
+									"Checked {0} room-type nights: {1} created, {2} corrected. Rows still differing: {3}.",
+									[
+										result.rows,
+										result.created,
+										result.updated,
+										result.drift_after,
+									]
+								)
+							)
+						),
+				__("Actions")
+			);
+		}
 	},
 
 	property_code(frm) {
