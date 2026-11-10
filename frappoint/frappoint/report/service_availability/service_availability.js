@@ -2,6 +2,16 @@
 // For license information, please see license.txt
 
 frappe.query_reports["Service Availability"] = {
+	// Rows are grouped Date -> Start Time -> Provider / Service Unit.
+	tree: true,
+	parent_field: "parent_key",
+	initial_depth: 1,
+	formatter(value, row, column, data, default_formatter) {
+		const formatted = default_formatter(value, row, column, data);
+		return data && data.is_group && column.fieldname === "label"
+			? `<strong>${formatted}</strong>`
+			: formatted;
+	},
 	filters: [
 		{
 			fieldname: "service_type",
@@ -27,6 +37,18 @@ frappe.query_reports["Service Availability"] = {
 			fieldtype: "Date",
 		},
 		{
+			fieldname: "start_time_from",
+			label: __("Start Time From"),
+			fieldtype: "Time",
+			description: __("Only show slots starting at or after this time."),
+		},
+		{
+			fieldname: "start_time_to",
+			label: __("Start Time To"),
+			fieldtype: "Time",
+			description: __("Only show slots starting at or before this time."),
+		},
+		{
 			fieldname: "provider",
 			label: __("Provider"),
 			fieldtype: "Link",
@@ -42,12 +64,6 @@ frappe.query_reports["Service Availability"] = {
 			}),
 		},
 		{
-			fieldname: "shift_assignment",
-			label: __("Shift Assignment"),
-			fieldtype: "Link",
-			options: "Service Provider Shift Assignment",
-		},
-		{
 			fieldname: "gender",
 			label: __("Provider Gender"),
 			fieldtype: "Link",
@@ -58,6 +74,7 @@ frappe.query_reports["Service Availability"] = {
 			label: __("Days Ahead"),
 			fieldtype: "Int",
 			default: 30,
+			description: __("Used when Date To is empty."),
 		},
 	],
 };
