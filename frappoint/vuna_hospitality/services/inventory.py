@@ -226,6 +226,31 @@ def lock_rows(room_types: Iterable[str], nights: Iterable[date]) -> dict[tuple[s
 	return {(row.room_type, getdate(row.inventory_date)): row for row in rows}
 
 
+def peek_rows(room_types: Iterable[str], nights: Iterable[date]) -> dict[tuple[str, date], dict]:
+	"""Read rows without creating or locking anything (for quotes).
+
+	Nights with no row yet are computed from the records, exactly as `ensure_rows` would create them.
+	"""
+	room_types, nights = sorted(set(room_types)), sorted(set(nights))
+	if not room_types or not nights:
+		return {}
+	rows = {
+		(row.room_type, getdate(row.inventory_date)): row
+		for row in frappe.get_all(
+			DOCTYPE,
+			filters={"room_type": ["in", room_types], "inventory_date": ["between", [nights[0], nights[-1]]]},
+			fields=["room_type", "inventory_date", "available", *COUNTER_FIELDS],
+		)
+	}
+	missing = [(rt, night) for rt in room_types for night in nights if (rt, night) not in rows]
+	if missing:
+		expected = expected_rows({rt for rt, _ in missing}, {night for _, night in missing})
+		for key in missing:
+			if key in expected:
+				rows[key] = frappe._dict(expected[key])
+	return rows
+
+
 # --------------------------------------------------------------------------- acquire / release
 
 
