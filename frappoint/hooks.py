@@ -1,4 +1,5 @@
 from frappoint.vuna_hospitality.constants import HOSPITALITY_ROLES as _HOSPITALITY_ROLES
+from frappoint.vuna_hospitality.constants import PROPERTY_SCOPED_DOCTYPES as _PROPERTY_SCOPED_DOCTYPES
 
 app_name = "frappoint"
 app_title = "Frappe Appointments"
@@ -177,13 +178,17 @@ after_migrate = (
 # -----------
 # Permissions evaluated in scripted ways
 
-# permission_query_conditions = {
-# 	"Event": "frappe.desk.doctype.event.event.get_permission_query_conditions",
-# }
-#
-# has_permission = {
-# 	"Event": "frappe.desk.doctype.event.event.has_permission",
-# }
+# Hotel data is filtered by Hotel Property (design §28.2). Each hospitality feature adds its
+# DocTypes to PROPERTY_SCOPED_DOCTYPES in vuna_hospitality/constants.py.
+permission_query_conditions = {
+	doctype: "frappoint.vuna_hospitality.services.property_scope.get_permission_query_conditions"
+	for doctype in _PROPERTY_SCOPED_DOCTYPES
+}
+
+has_permission = {
+	doctype: "frappoint.vuna_hospitality.services.property_scope.has_permission"
+	for doctype in _PROPERTY_SCOPED_DOCTYPES
+}
 
 # DocType Class
 # ---------------
