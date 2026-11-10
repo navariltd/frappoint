@@ -1,6 +1,6 @@
 {
  "charts": [],
- "content": "[{\"id\": \"hsp-header\", \"type\": \"header\", \"data\": {\"text\": \"\\u003cspan class=\\\"h4\\\"\\u003eHospitality\\u003c/span\\u003e\", \"col\": 12}}, {\"id\": \"hsp-sc-rooms\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Rooms\", \"col\": 3}}, {\"id\": \"hsp-sc-ooo\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Out of Order / Service\", \"col\": 3}}, {\"id\": \"hsp-sc-props\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Properties\", \"col\": 3}}, {\"id\": \"hsp-sc-settings\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Hospitality Settings\", \"col\": 3}}, {\"id\": \"hsp-spacer-1\", \"type\": \"spacer\", \"data\": {\"col\": 12}}, {\"id\": \"hsp-ql-ooo\", \"type\": \"quick_list\", \"data\": {\"quick_list_name\": \"Rooms Out of Order or Service\", \"col\": 6}}, {\"id\": \"hsp-ql-events\", \"type\": \"quick_list\", \"data\": {\"quick_list_name\": \"Recent Hospitality Events\", \"col\": 6}}, {\"id\": \"hsp-spacer-2\", \"type\": \"spacer\", \"data\": {\"col\": 12}}, {\"id\": \"hsp-card-rooms\", \"type\": \"card\", \"data\": {\"card_name\": \"Property and Rooms\", \"col\": 4}}, {\"id\": \"hsp-card-masters\", \"type\": \"card\", \"data\": {\"card_name\": \"Room Masters\", \"col\": 4}}, {\"id\": \"hsp-card-setup\", \"type\": \"card\", \"data\": {\"card_name\": \"Setup\", \"col\": 4}}, {\"id\": \"hsp-card-audit\", \"type\": \"card\", \"data\": {\"card_name\": \"Audit\", \"col\": 4}}, {\"id\": \"hsp-card-access\", \"type\": \"card\", \"data\": {\"card_name\": \"Users and Access\", \"col\": 4}}]",
+ "content": "[{\"id\": \"hsp-header\", \"type\": \"header\", \"data\": {\"text\": \"\\u003cspan class=\\\"h4\\\"\\u003eHospitality\\u003c/span\\u003e\", \"col\": 12}}, {\"id\": \"hsp-sc-rooms\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Rooms\", \"col\": 3}}, {\"id\": \"hsp-sc-ooo\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Out of Order / Service\", \"col\": 3}}, {\"id\": \"hsp-sc-props\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Properties\", \"col\": 3}}, {\"id\": \"hsp-sc-house\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"House Position\", \"col\": 3}}, {\"id\": \"hsp-sc-settings\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Hospitality Settings\", \"col\": 3}}, {\"id\": \"hsp-spacer-1\", \"type\": \"spacer\", \"data\": {\"col\": 12}}, {\"id\": \"hsp-ql-ooo\", \"type\": \"quick_list\", \"data\": {\"quick_list_name\": \"Rooms Out of Order or Service\", \"col\": 6}}, {\"id\": \"hsp-ql-events\", \"type\": \"quick_list\", \"data\": {\"quick_list_name\": \"Recent Hospitality Events\", \"col\": 6}}, {\"id\": \"hsp-spacer-2\", \"type\": \"spacer\", \"data\": {\"col\": 12}}, {\"id\": \"hsp-card-rooms\", \"type\": \"card\", \"data\": {\"card_name\": \"Property and Rooms\", \"col\": 4}}, {\"id\": \"hsp-card-inventory\", \"type\": \"card\", \"data\": {\"card_name\": \"Inventory\", \"col\": 4}}, {\"id\": \"hsp-card-masters\", \"type\": \"card\", \"data\": {\"card_name\": \"Room Masters\", \"col\": 4}}, {\"id\": \"hsp-card-setup\", \"type\": \"card\", \"data\": {\"card_name\": \"Setup\", \"col\": 4}}, {\"id\": \"hsp-card-audit\", \"type\": \"card\", \"data\": {\"card_name\": \"Audit\", \"col\": 4}}, {\"id\": \"hsp-card-access\", \"type\": \"card\", \"data\": {\"card_name\": \"Users and Access\", \"col\": 4}}]",
  "creation": "2026-11-09 19:04:29.963857",
  "custom_blocks": [],
  "docstatus": 0,
@@ -58,6 +58,36 @@
    "label": "Room State Period",
    "link_count": 0,
    "link_to": "Room State Period",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Inventory",
+   "link_count": 2,
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Card Break"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 1,
+   "label": "House Position",
+   "link_count": 0,
+   "link_to": "House Position",
+   "link_type": "Report",
+   "onboard": 1,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Room Type Inventory Day",
+   "link_count": 0,
+   "link_to": "Room Type Inventory Day",
    "link_type": "DocType",
    "onboard": 0,
    "type": "Link"
@@ -169,7 +199,7 @@
    "type": "Link"
   }
  ],
- "modified": "2026-11-10 18:48:34.243298",
+ "modified": "2026-11-10 19:37:50.836454",
  "modified_by": "Administrator",
  "module": "Vuna Hospitality",
  "name": "Hospitality",
@@ -238,6 +268,14 @@
    "link_to": "Hospitality Event Log",
    "stats_filter": "[]",
    "type": "DocType"
+  },
+  {
+   "color": "Green",
+   "doc_view": "",
+   "label": "House Position",
+   "link_to": "House Position",
+   "report_ref_doctype": "Room Type Inventory Day",
+   "type": "Report"
   }
  ],
  "standard": 1,
