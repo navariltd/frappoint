@@ -25,7 +25,7 @@ class HospitalityEventLog(Document):
 		data: DF.JSON | None
 		event_type: DF.Data
 		from_status: DF.Data | None
-		naming_series: DF.Literal["HSP-LOG-.YYYY.-.########"] # type: ignore
+		naming_series: DF.Literal["HSP-LOG-.YYYY.-.########"]  # type: ignore
 		property: DF.Link | None
 		reason: DF.SmallText | None
 		reference_doctype: DF.Link
