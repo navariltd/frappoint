@@ -89,3 +89,60 @@ def run_concurrently(
 	for thread in threads:
 		thread.join(timeout=start_timeout + 60)
 	return results
+
+
+def make_test_property(
+	code: str = "TST",
+	room_types: dict[str, int] | None = None,
+	company: str | None = None,
+	time_zone: str = "Africa/Nairobi",
+):
+	"""Create a small hotel for tests: a property, room types, and numbered rooms.
+
+	`room_types` maps a room-type code to its number of rooms (default STD: 3, DLX: 2). Rooms are
+	numbered 101, 102, ... per type block (100s for the first type, 200s for the second, ...).
+	Returns (property_doc, {room_type_code: [room names]}). Nothing is committed.
+	"""
+	room_types = room_types or {"STD": 3, "DLX": 2}
+	company = company or frappe.db.get_value("Company", {}, "name")
+	prop = frappe.get_doc(
+		{
+			"doctype": "Hotel Property",
+			"property_name": f"Test Hotel {code}",
+			"property_code": code,
+			"company": company,
+			"time_zone": time_zone,
+			"check_in_time": "14:00:00",
+			"check_out_time": "10:00:00",
+		}
+	).insert(ignore_permissions=True)
+
+	rooms: dict[str, list[str]] = {}
+	for block, (type_code, count) in enumerate(room_types.items(), start=1):
+		room_type = frappe.get_doc(
+			{
+				"doctype": "Room Type",
+				"property": prop.name,
+				"room_type_name": f"{type_code} Room",
+				"code": type_code,
+				"base_adults": 2,
+				"max_adults": 2,
+				"max_children": 1,
+				"max_occupancy": 3,
+			}
+		).insert(ignore_permissions=True)
+		rooms[type_code] = [
+			frappe.get_doc(
+				{
+					"doctype": "Hotel Room",
+					"property": prop.name,
+					"room_number": str(block * 100 + number),
+					"room_type": room_type.name,
+					"floor": block,
+				}
+			)
+			.insert(ignore_permissions=True)
+			.name
+			for number in range(1, count + 1)
+		]
+	return prop, rooms
