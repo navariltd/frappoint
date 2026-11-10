@@ -1,0 +1,238 @@
+{
+ "actions": [],
+ "creation": "2026-11-11 12:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "property",
+  "policy_name",
+  "policy_type",
+  "column_break_main",
+  "is_active",
+  "cancellation_section",
+  "free_until_hours_before_arrival",
+  "fee_type",
+  "fee_value",
+  "deposit_section",
+  "deposit_type",
+  "deposit_value",
+  "column_break_dep",
+  "deposit_due_days_after_booking",
+  "release_if_unpaid",
+  "text_section",
+  "guest_text"
+ ],
+ "fields": [
+  {
+   "fieldname": "property",
+   "fieldtype": "Link",
+   "label": "Property",
+   "options": "Hotel Property",
+   "reqd": 1,
+   "in_standard_filter": 1,
+   "set_only_once": 1
+  },
+  {
+   "fieldname": "policy_name",
+   "fieldtype": "Data",
+   "label": "Policy Name",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "policy_type",
+   "fieldtype": "Select",
+   "label": "Policy Type",
+   "reqd": 1,
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "options": "Cancellation\nDeposit\nNo-show\nEarly Departure",
+   "set_only_once": 1
+  },
+  {
+   "fieldname": "column_break_main",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "is_active",
+   "fieldtype": "Check",
+   "label": "Is Active",
+   "default": "1"
+  },
+  {
+   "fieldname": "cancellation_section",
+   "fieldtype": "Section Break",
+   "label": "Fee",
+   "depends_on": "eval:doc.policy_type!='Deposit'"
+  },
+  {
+   "fieldname": "free_until_hours_before_arrival",
+   "fieldtype": "Int",
+   "label": "Free Until (Hours Before Arrival)",
+   "non_negative": 1,
+   "depends_on": "eval:doc.policy_type=='Cancellation'",
+   "description": "Cancelling earlier than this is free. 0 means any cancellation is charged."
+  },
+  {
+   "fieldname": "fee_type",
+   "fieldtype": "Select",
+   "label": "Fee",
+   "options": "None\nFirst Night\nPercentage of Stay\nFixed Amount\nFull Stay",
+   "default": "None"
+  },
+  {
+   "fieldname": "fee_value",
+   "fieldtype": "Float",
+   "label": "Fee Value",
+   "depends_on": "eval:['Percentage of Stay','Fixed Amount'].includes(doc.fee_type)",
+   "description": "Percentage (e.g. 50) or a fixed amount in the property's currency."
+  },
+  {
+   "fieldname": "deposit_section",
+   "fieldtype": "Section Break",
+   "label": "Deposit",
+   "depends_on": "eval:doc.policy_type=='Deposit'"
+  },
+  {
+   "fieldname": "deposit_type",
+   "fieldtype": "Select",
+   "label": "Deposit",
+   "options": "None\nFirst Night\nPercentage of Stay\nFixed Amount\nFull Stay",
+   "default": "None"
+  },
+  {
+   "fieldname": "deposit_value",
+   "fieldtype": "Float",
+   "label": "Deposit Value",
+   "depends_on": "eval:['Percentage of Stay','Fixed Amount'].includes(doc.deposit_type)"
+  },
+  {
+   "fieldname": "column_break_dep",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "deposit_due_days_after_booking",
+   "fieldtype": "Int",
+   "label": "Due (Days After Booking)",
+   "non_negative": 1,
+   "default": "0"
+  },
+  {
+   "fieldname": "release_if_unpaid",
+   "fieldtype": "Check",
+   "label": "Release Booking If Unpaid",
+   "default": "1",
+   "description": "Cancel the hold if the deposit isn't received by the due date."
+  },
+  {
+   "fieldname": "text_section",
+   "fieldtype": "Section Break",
+   "label": "Guest-facing Text"
+  },
+  {
+   "fieldname": "guest_text",
+   "fieldtype": "Small Text",
+   "label": "Policy Text",
+   "description": "Shown on confirmations, e.g. 'Free cancellation until 48 hours before arrival.'"
+  }
+ ],
+ "index_web_pages_for_search": 0,
+ "links": [],
+ "modified": "2026-11-11 12:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Vuna Hospitality",
+ "name": "Hotel Policy",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "share": 1,
+   "write": 1,
+   "role": "System Manager"
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "share": 1,
+   "write": 1,
+   "role": "Hospitality Manager"
+  },
+  {
+   "create": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "write": 1,
+   "role": "Revenue Manager"
+  },
+  {
+   "read": 1,
+   "report": 1,
+   "print": 1,
+   "email": 1,
+   "export": 1,
+   "role": "Hotel Accountant"
+  },
+  {
+   "read": 1,
+   "report": 1,
+   "print": 1,
+   "email": 1,
+   "export": 1,
+   "role": "Reservations Agent"
+  },
+  {
+   "read": 1,
+   "report": 1,
+   "print": 1,
+   "email": 1,
+   "export": 1,
+   "role": "Front Desk Agent"
+  },
+  {
+   "read": 1,
+   "report": 1,
+   "print": 1,
+   "email": 1,
+   "export": 1,
+   "role": "Front Desk Manager"
+  },
+  {
+   "read": 1,
+   "report": 1,
+   "print": 1,
+   "email": 1,
+   "export": 1,
+   "role": "Night Auditor"
+  },
+  {
+   "read": 1,
+   "report": 1,
+   "print": 1,
+   "email": 1,
+   "export": 1,
+   "role": "Cashier"
+  }
+ ],
+ "row_format": "Dynamic",
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": [],
+ "title_field": "policy_name",
+ "show_title_field_in_link": 1,
+ "search_fields": "policy_name,policy_type,property",
+ "track_changes": 1
+}
