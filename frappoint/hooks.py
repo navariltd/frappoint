@@ -1,3 +1,5 @@
+from frappoint.vuna_hospitality.constants import HOSPITALITY_ROLES as _HOSPITALITY_ROLES
+
 app_name = "frappoint"
 app_title = "Frappe Appointments"
 app_publisher = "Navari LTD"
@@ -64,7 +66,7 @@ fixtures = [
 					"Service Manager",
 					"Operations Manager",
 					"Customer",
-					"Hospitality Manager",
+					*_HOSPITALITY_ROLES,
 				],
 			]
 		],
