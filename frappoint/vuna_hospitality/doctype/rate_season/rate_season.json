@@ -1,0 +1,208 @@
+{
+ "actions": [],
+ "creation": "2026-11-11 12:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "property",
+  "season_name",
+  "rate_plan",
+  "column_break_main",
+  "from_date",
+  "to_date",
+  "last_generated_on",
+  "weekend_section",
+  "weekend_monday",
+  "weekend_tuesday",
+  "weekend_wednesday",
+  "weekend_thursday",
+  "column_break_weekend",
+  "weekend_friday",
+  "weekend_saturday",
+  "weekend_sunday",
+  "rates_section",
+  "rates"
+ ],
+ "fields": [
+  {
+   "fieldname": "property",
+   "fieldtype": "Link",
+   "label": "Property",
+   "options": "Hotel Property",
+   "reqd": 1,
+   "in_standard_filter": 1
+  },
+  {
+   "fieldname": "season_name",
+   "fieldtype": "Data",
+   "label": "Season Name",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "rate_plan",
+   "fieldtype": "Link",
+   "label": "Rate Plan",
+   "options": "Rate Plan",
+   "reqd": 1,
+   "in_list_view": 1,
+   "in_standard_filter": 1
+  },
+  {
+   "fieldname": "column_break_main",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "from_date",
+   "fieldtype": "Date",
+   "label": "From Night",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "to_date",
+   "fieldtype": "Date",
+   "label": "To Night",
+   "reqd": 1,
+   "in_list_view": 1,
+   "description": "Last night included (inclusive)."
+  },
+  {
+   "fieldname": "last_generated_on",
+   "fieldtype": "Datetime",
+   "label": "Rates Last Generated",
+   "read_only": 1
+  },
+  {
+   "fieldname": "weekend_section",
+   "fieldtype": "Section Break",
+   "label": "Weekend Nights",
+   "description": "Nights that use the weekend rate."
+  },
+  {
+   "fieldname": "weekend_monday",
+   "fieldtype": "Check",
+   "label": "Mon Night",
+   "default": "0"
+  },
+  {
+   "fieldname": "weekend_tuesday",
+   "fieldtype": "Check",
+   "label": "Tue Night",
+   "default": "0"
+  },
+  {
+   "fieldname": "weekend_wednesday",
+   "fieldtype": "Check",
+   "label": "Wed Night",
+   "default": "0"
+  },
+  {
+   "fieldname": "weekend_thursday",
+   "fieldtype": "Check",
+   "label": "Thu Night",
+   "default": "0"
+  },
+  {
+   "fieldname": "column_break_weekend",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "weekend_friday",
+   "fieldtype": "Check",
+   "label": "Fri Night",
+   "default": "1"
+  },
+  {
+   "fieldname": "weekend_saturday",
+   "fieldtype": "Check",
+   "label": "Sat Night",
+   "default": "1"
+  },
+  {
+   "fieldname": "weekend_sunday",
+   "fieldtype": "Check",
+   "label": "Sun Night",
+   "default": "0"
+  },
+  {
+   "fieldname": "rates_section",
+   "fieldtype": "Section Break",
+   "label": "Rates"
+  },
+  {
+   "fieldname": "rates",
+   "fieldtype": "Table",
+   "label": "Rates",
+   "options": "Rate Season Rate",
+   "reqd": 1
+  }
+ ],
+ "index_web_pages_for_search": 0,
+ "links": [],
+ "modified": "2026-11-11 12:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Vuna Hospitality",
+ "name": "Rate Season",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "share": 1,
+   "write": 1,
+   "role": "System Manager"
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "share": 1,
+   "write": 1,
+   "role": "Hospitality Manager"
+  },
+  {
+   "create": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "write": 1,
+   "role": "Revenue Manager"
+  },
+  {
+   "read": 1,
+   "report": 1,
+   "print": 1,
+   "email": 1,
+   "export": 1,
+   "role": "Reservations Agent"
+  },
+  {
+   "read": 1,
+   "report": 1,
+   "print": 1,
+   "email": 1,
+   "export": 1,
+   "role": "Front Desk Manager"
+  }
+ ],
+ "row_format": "Dynamic",
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": [],
+ "title_field": "season_name",
+ "show_title_field_in_link": 1,
+ "search_fields": "season_name,rate_plan",
+ "track_changes": 1
+}

@@ -54,4 +54,9 @@ PROPERTY_SCOPED_DOCTYPES: tuple[str, ...] = (
 	"Room State Period",
 	# F2 Room inventory engine
 	"Room Type Inventory Day",
+	# F3 Charge codes, rates, and quote
+	"Hotel Policy",
+	"Rate Plan",
+	"Room Rate Day",
+	"Rate Season",
 )
