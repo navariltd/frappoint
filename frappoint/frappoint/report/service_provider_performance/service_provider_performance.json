@@ -1,5 +1,5 @@
 {
- "add_total_row": 0,
+ "add_total_row": 1,
  "add_translate_data": 0,
  "columns": [],
  "creation": "2026-10-14 21:35:41.052578",
@@ -12,7 +12,7 @@
  "idx": 0,
  "is_standard": "Yes",
  "letter_head": null,
- "modified": "2026-10-14 21:35:41.052578",
+ "modified": "2026-11-10 15:08:26.933499",
  "modified_by": "Administrator",
  "module": "Frappoint",
  "name": "Service Provider Performance",
