@@ -1,0 +1,198 @@
+{
+ "actions": [],
+ "autoname": "naming_series:",
+ "creation": "2026-11-10 09:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "naming_series",
+  "reference_section",
+  "reference_doctype",
+  "reference_name",
+  "property",
+  "business_date",
+  "column_break_ref",
+  "event_type",
+  "from_status",
+  "to_status",
+  "actor_section",
+  "user",
+  "timestamp",
+  "column_break_actor",
+  "roles",
+  "request_id",
+  "details_section",
+  "reason",
+  "data"
+ ],
+ "fields": [
+  {
+   "fieldname": "naming_series",
+   "fieldtype": "Select",
+   "label": "Series",
+   "options": "HSP-LOG-.YYYY.-.########",
+   "default": "HSP-LOG-.YYYY.-.########",
+   "hidden": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "reference_section",
+   "fieldtype": "Section Break",
+   "label": "Record"
+  },
+  {
+   "fieldname": "reference_doctype",
+   "fieldtype": "Link",
+   "label": "Reference DocType",
+   "options": "DocType",
+   "reqd": 1,
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "search_index": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "reference_name",
+   "fieldtype": "Dynamic Link",
+   "label": "Reference Name",
+   "options": "reference_doctype",
+   "reqd": 1,
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "search_index": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "property",
+   "fieldtype": "Data",
+   "label": "Property",
+   "in_standard_filter": 1,
+   "search_index": 1,
+   "read_only": 1,
+   "description": "Hotel Property of the record. Becomes a Link once Hotel Property exists (feature F1)."
+  },
+  {
+   "fieldname": "business_date",
+   "fieldtype": "Date",
+   "label": "Business Date",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_ref",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "event_type",
+   "fieldtype": "Data",
+   "label": "Event Type",
+   "reqd": 1,
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "from_status",
+   "fieldtype": "Data",
+   "label": "From Status",
+   "read_only": 1
+  },
+  {
+   "fieldname": "to_status",
+   "fieldtype": "Data",
+   "label": "To Status",
+   "in_list_view": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "actor_section",
+   "fieldtype": "Section Break",
+   "label": "Actor"
+  },
+  {
+   "fieldname": "user",
+   "fieldtype": "Link",
+   "label": "User",
+   "options": "User",
+   "in_standard_filter": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "timestamp",
+   "fieldtype": "Datetime",
+   "label": "Timestamp",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_actor",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "roles",
+   "fieldtype": "Small Text",
+   "label": "Roles at the Time",
+   "read_only": 1
+  },
+  {
+   "fieldname": "request_id",
+   "fieldtype": "Data",
+   "label": "Request or Job ID",
+   "read_only": 1
+  },
+  {
+   "fieldname": "details_section",
+   "fieldtype": "Section Break",
+   "label": "Details"
+  },
+  {
+   "fieldname": "reason",
+   "fieldtype": "Small Text",
+   "label": "Reason",
+   "read_only": 1
+  },
+  {
+   "fieldname": "data",
+   "fieldtype": "JSON",
+   "label": "Data",
+   "read_only": 1,
+   "description": "Before/after values and other context."
+  }
+ ],
+ "in_create": 1,
+ "index_web_pages_for_search": 0,
+ "links": [],
+ "modified": "2026-11-10 09:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Vuna Hospitality",
+ "name": "Hospitality Event Log",
+ "naming_rule": "By \"Naming Series\" field",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "read": 1,
+   "report": 1,
+   "export": 1,
+   "print": 1,
+   "role": "System Manager"
+  },
+  {
+   "read": 1,
+   "report": 1,
+   "export": 1,
+   "print": 1,
+   "role": "Hospitality Manager"
+  },
+  {
+   "read": 1,
+   "report": 1,
+   "export": 1,
+   "print": 1,
+   "role": "Data Protection Officer"
+  }
+ ],
+ "row_format": "Dynamic",
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": [],
+ "title_field": "event_type",
+ "track_changes": 0
+}
