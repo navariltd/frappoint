@@ -242,8 +242,24 @@
   }
  ],
  "index_web_pages_for_search": 0,
- "links": [],
- "modified": "2026-11-10 12:00:00.000000",
+ "links": [
+  {
+   "group": "Rooms",
+   "link_doctype": "Room Type",
+   "link_fieldname": "property"
+  },
+  {
+   "group": "Rooms",
+   "link_doctype": "Hotel Room",
+   "link_fieldname": "property"
+  },
+  {
+   "group": "Rooms",
+   "link_doctype": "Room State Period",
+   "link_fieldname": "property"
+  }
+ ],
+ "modified": "2026-11-10 15:00:00.000000",
  "modified_by": "Administrator",
  "module": "Vuna Hospitality",
  "name": "Hotel Property",

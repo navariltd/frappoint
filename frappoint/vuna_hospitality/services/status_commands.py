@@ -1,4 +1,4 @@
-"""Status command framework (design §28.3).
+"""Status command framework.
 
 Hotel status fields are read-only. A status changes only through `transition()`, which:
 

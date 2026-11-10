@@ -1,4 +1,4 @@
-"""Write entries to the append-only Hospitality Event Log (design §23.3)."""
+"""Write entries to the append-only Hospitality Event Log."""
 
 from typing import Any
 

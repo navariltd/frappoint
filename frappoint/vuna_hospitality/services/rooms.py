@@ -1,4 +1,4 @@
-"""Room state rules for properties and rooms (design §9.1-9.2).
+"""Room state rules for properties and rooms.
 
 A room has three independent states, each stored as a read-only cache on Hotel Room:
 

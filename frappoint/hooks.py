@@ -178,7 +178,7 @@ after_migrate = (
 # -----------
 # Permissions evaluated in scripted ways
 
-# Hotel data is filtered by Hotel Property (design §28.2). Each hospitality feature adds its
+# Hotel data is filtered by Hotel Property. Each hospitality feature adds its
 # DocTypes to PROPERTY_SCOPED_DOCTYPES in vuna_hospitality/constants.py.
 permission_query_conditions = {
 	doctype: "frappoint.vuna_hospitality.services.property_scope.get_permission_query_conditions"

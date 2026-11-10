@@ -199,8 +199,14 @@
   }
  ],
  "index_web_pages_for_search": 0,
- "links": [],
- "modified": "2026-11-10 12:00:00.000000",
+ "links": [
+  {
+   "group": "Maintenance",
+   "link_doctype": "Room State Period",
+   "link_fieldname": "room"
+  }
+ ],
+ "modified": "2026-11-10 15:00:00.000000",
  "modified_by": "Administrator",
  "module": "Vuna Hospitality",
  "name": "Hotel Room",

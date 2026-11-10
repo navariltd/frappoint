@@ -184,8 +184,19 @@
   }
  ],
  "index_web_pages_for_search": 0,
- "links": [],
- "modified": "2026-11-10 12:00:00.000000",
+ "links": [
+  {
+   "group": "Rooms",
+   "link_doctype": "Hotel Room",
+   "link_fieldname": "room_type"
+  },
+  {
+   "group": "Rooms",
+   "link_doctype": "Room State Period",
+   "link_fieldname": "room_type"
+  }
+ ],
+ "modified": "2026-11-10 15:00:00.000000",
  "modified_by": "Administrator",
  "module": "Vuna Hospitality",
  "name": "Room Type",
@@ -222,7 +233,8 @@
    "read": 1,
    "report": 1,
    "write": 1,
-   "role": "Revenue Manager"
+   "role": "Revenue Manager",
+   "export": 1
   },
   {
    "read": 1,
@@ -247,14 +259,6 @@
    "email": 1,
    "export": 1,
    "role": "Reservations Agent"
-  },
-  {
-   "read": 1,
-   "report": 1,
-   "print": 1,
-   "email": 1,
-   "export": 1,
-   "role": "Revenue Manager"
   },
   {
    "read": 1,

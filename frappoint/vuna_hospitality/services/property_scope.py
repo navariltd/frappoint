@@ -1,4 +1,4 @@
-"""Property scoping (design §28.2).
+"""Property scoping.
 
 Hotel data belongs to a Hotel Property. A user's properties come from Frappe User Permissions
 on Hotel Property, with the usual Frappe meaning:

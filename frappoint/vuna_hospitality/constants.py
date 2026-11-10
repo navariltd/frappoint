@@ -12,7 +12,7 @@ EVENT_LOG_DOCTYPE = "Hospitality Event Log"
 PROPERTY_DOCTYPE = "Hotel Property"
 PROPERTY_FIELD = "property"
 
-# Roles (design §23.1). Maintenance work reuses ERPNext's "Maintenance User" and
+# Roles. Maintenance work reuses ERPNext's "Maintenance User" and
 # "Maintenance Manager" roles instead of defining new ones.
 HOSPITALITY_MANAGER = "Hospitality Manager"
 RESERVATIONS_AGENT = "Reservations Agent"

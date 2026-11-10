@@ -7,7 +7,7 @@ from frappe.model.document import Document
 
 
 class HospitalityEventLog(Document):
-	"""Append-only audit trail for hospitality records (design §23.3).
+	"""Append-only audit trail for hospitality records.
 
 	Entries are written by `services.event_log.log_event`. Once inserted they cannot be edited or
 	deleted, by anyone, through the document API.
@@ -25,7 +25,7 @@ class HospitalityEventLog(Document):
 		data: DF.JSON | None
 		event_type: DF.Data
 		from_status: DF.Data | None
-		naming_series: DF.Literal["HSP-LOG-.YYYY.-.########"]
+		naming_series: DF.Literal["HSP-LOG-.YYYY.-.########"] # type: ignore
 		property: DF.Link | None
 		reason: DF.SmallText | None
 		reference_doctype: DF.Link
