@@ -1,0 +1,308 @@
+{
+ "actions": [],
+ "creation": "2026-11-10 12:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "property",
+  "room_type_name",
+  "code",
+  "column_break_main",
+  "is_active",
+  "sort_order",
+  "room_count",
+  "capacity_section",
+  "base_adults",
+  "max_adults",
+  "max_children",
+  "max_occupancy",
+  "column_break_cap",
+  "bed_configuration",
+  "allows_extra_bed",
+  "allows_cot",
+  "amenities_section",
+  "amenities",
+  "inventory_section",
+  "overbooking_limit",
+  "column_break_inv",
+  "day_use_capacity",
+  "description_section",
+  "description"
+ ],
+ "fields": [
+  {
+   "fieldname": "property",
+   "fieldtype": "Link",
+   "label": "Property",
+   "options": "Hotel Property",
+   "reqd": 1,
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "set_only_once": 1
+  },
+  {
+   "fieldname": "room_type_name",
+   "fieldtype": "Data",
+   "label": "Room Type Name",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "code",
+   "fieldtype": "Data",
+   "label": "Code",
+   "reqd": 1,
+   "set_only_once": 1,
+   "description": "Short code, unique within the property, e.g. DLX."
+  },
+  {
+   "fieldname": "column_break_main",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "is_active",
+   "fieldtype": "Check",
+   "label": "Is Active",
+   "default": "1"
+  },
+  {
+   "fieldname": "sort_order",
+   "fieldtype": "Int",
+   "label": "Sort Order",
+   "default": "0"
+  },
+  {
+   "fieldname": "room_count",
+   "fieldtype": "Int",
+   "label": "Active Rooms",
+   "read_only": 1,
+   "description": "Number of active rooms of this type."
+  },
+  {
+   "fieldname": "capacity_section",
+   "fieldtype": "Section Break",
+   "label": "Capacity"
+  },
+  {
+   "fieldname": "base_adults",
+   "fieldtype": "Int",
+   "label": "Base Adults",
+   "reqd": 1,
+   "default": "2",
+   "non_negative": 1,
+   "description": "Adults included in the room rate."
+  },
+  {
+   "fieldname": "max_adults",
+   "fieldtype": "Int",
+   "label": "Max Adults",
+   "reqd": 1,
+   "default": "2",
+   "non_negative": 1
+  },
+  {
+   "fieldname": "max_children",
+   "fieldtype": "Int",
+   "label": "Max Children",
+   "reqd": 1,
+   "default": "1",
+   "non_negative": 1
+  },
+  {
+   "fieldname": "max_occupancy",
+   "fieldtype": "Int",
+   "label": "Max Occupancy",
+   "reqd": 1,
+   "default": "3",
+   "non_negative": 1,
+   "description": "Most people allowed in the room, adults and children together."
+  },
+  {
+   "fieldname": "column_break_cap",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "bed_configuration",
+   "fieldtype": "Small Text",
+   "label": "Bed Configuration",
+   "description": "e.g. 1 King, or 2 Twin."
+  },
+  {
+   "fieldname": "allows_extra_bed",
+   "fieldtype": "Check",
+   "label": "Allows Extra Bed"
+  },
+  {
+   "fieldname": "allows_cot",
+   "fieldtype": "Check",
+   "label": "Allows Cot"
+  },
+  {
+   "fieldname": "amenities_section",
+   "fieldtype": "Section Break",
+   "label": "Amenities"
+  },
+  {
+   "fieldname": "amenities",
+   "fieldtype": "Table MultiSelect",
+   "label": "Amenities",
+   "options": "Room Type Amenity"
+  },
+  {
+   "fieldname": "inventory_section",
+   "fieldtype": "Section Break",
+   "label": "Inventory"
+  },
+  {
+   "fieldname": "overbooking_limit",
+   "fieldtype": "Int",
+   "label": "Overbooking Limit",
+   "default": "0",
+   "non_negative": 1,
+   "description": "Rooms that may be sold beyond physical availability per night. Leave 0 for no overbooking."
+  },
+  {
+   "fieldname": "column_break_inv",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "day_use_capacity",
+   "fieldtype": "Int",
+   "label": "Day-use Capacity",
+   "default": "0",
+   "non_negative": 1
+  },
+  {
+   "fieldname": "description_section",
+   "fieldtype": "Section Break",
+   "label": "Description"
+  },
+  {
+   "fieldname": "description",
+   "fieldtype": "Text Editor",
+   "label": "Guest-facing Description"
+  }
+ ],
+ "index_web_pages_for_search": 0,
+ "links": [],
+ "modified": "2026-11-10 12:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Vuna Hospitality",
+ "name": "Room Type",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "share": 1,
+   "write": 1,
+   "role": "System Manager"
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "share": 1,
+   "write": 1,
+   "role": "Hospitality Manager"
+  },
+  {
+   "create": 1,
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "write": 1,
+   "role": "Revenue Manager"
+  },
+  {
+   "read": 1,
+   "report": 1,
+   "print": 1,
+   "email": 1,
+   "export": 1,
+   "role": "Front Desk Agent"
+  },
+  {
+   "read": 1,
+   "report": 1,
+   "print": 1,
+   "email": 1,
+   "export": 1,
+   "role": "Front Desk Manager"
+  },
+  {
+   "read": 1,
+   "report": 1,
+   "print": 1,
+   "email": 1,
+   "export": 1,
+   "role": "Reservations Agent"
+  },
+  {
+   "read": 1,
+   "report": 1,
+   "print": 1,
+   "email": 1,
+   "export": 1,
+   "role": "Revenue Manager"
+  },
+  {
+   "read": 1,
+   "report": 1,
+   "print": 1,
+   "email": 1,
+   "export": 1,
+   "role": "Housekeeping Supervisor"
+  },
+  {
+   "read": 1,
+   "report": 1,
+   "print": 1,
+   "email": 1,
+   "export": 1,
+   "role": "Housekeeping Attendant"
+  },
+  {
+   "read": 1,
+   "report": 1,
+   "print": 1,
+   "email": 1,
+   "export": 1,
+   "role": "Night Auditor"
+  },
+  {
+   "read": 1,
+   "report": 1,
+   "print": 1,
+   "email": 1,
+   "export": 1,
+   "role": "Cashier"
+  },
+  {
+   "read": 1,
+   "report": 1,
+   "print": 1,
+   "email": 1,
+   "export": 1,
+   "role": "Guest Services Agent"
+  }
+ ],
+ "row_format": "Dynamic",
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": [],
+ "title_field": "room_type_name",
+ "show_title_field_in_link": 1,
+ "search_fields": "room_type_name,property",
+ "allow_rename": 0
+}
