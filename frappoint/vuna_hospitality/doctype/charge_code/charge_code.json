@@ -1,0 +1,249 @@
+{
+ "actions": [],
+ "creation": "2026-11-11 12:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "code",
+  "description",
+  "charge_department",
+  "transaction_type",
+  "column_break_main",
+  "is_active",
+  "is_room_revenue",
+  "print_group",
+  "accounting_section",
+  "item",
+  "mode_of_payment",
+  "column_break_acc",
+  "accounting_mode",
+  "controls_section",
+  "allow_manual_posting",
+  "allow_negative",
+  "column_break_ctl",
+  "posting_permission"
+ ],
+ "fields": [
+  {
+   "fieldname": "code",
+   "fieldtype": "Data",
+   "label": "Code",
+   "reqd": 1,
+   "unique": 1,
+   "in_list_view": 1,
+   "set_only_once": 1,
+   "description": "Short code shown on folios, e.g. ROOM, BKFST, CASH."
+  },
+  {
+   "fieldname": "description",
+   "fieldtype": "Data",
+   "label": "Description",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "charge_department",
+   "fieldtype": "Link",
+   "label": "Charge Department",
+   "options": "Charge Department",
+   "reqd": 1,
+   "in_list_view": 1,
+   "in_standard_filter": 1
+  },
+  {
+   "fieldname": "transaction_type",
+   "fieldtype": "Select",
+   "label": "Transaction Type",
+   "reqd": 1,
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "options": "Revenue\nTax\nPayment\nDeposit\nAllowance\nPaid-out\nTransfer\nAdjustment\nWrite-off",
+   "default": "Revenue"
+  },
+  {
+   "fieldname": "column_break_main",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "is_active",
+   "fieldtype": "Check",
+   "label": "Is Active",
+   "default": "1"
+  },
+  {
+   "fieldname": "is_room_revenue",
+   "fieldtype": "Check",
+   "label": "Is Room Revenue",
+   "depends_on": "eval:doc.transaction_type=='Revenue'",
+   "description": "Counted as room revenue for ADR and RevPAR."
+  },
+  {
+   "fieldname": "print_group",
+   "fieldtype": "Data",
+   "label": "Print Group",
+   "description": "Lines with the same print group are combined on folios and invoices, e.g. Accommodation, Food and Beverage."
+  },
+  {
+   "fieldname": "accounting_section",
+   "fieldtype": "Section Break",
+   "label": "Accounting"
+  },
+  {
+   "fieldname": "item",
+   "fieldtype": "Link",
+   "label": "Item",
+   "options": "Item",
+   "mandatory_depends_on": "eval:['Revenue','Allowance'].includes(doc.transaction_type)",
+   "depends_on": "eval:!['Payment','Deposit'].includes(doc.transaction_type)",
+   "description": "Supplies the income account and Item Tax Template. Required for Revenue and Allowance codes."
+  },
+  {
+   "fieldname": "mode_of_payment",
+   "fieldtype": "Link",
+   "label": "Mode of Payment",
+   "options": "Mode of Payment",
+   "mandatory_depends_on": "eval:['Payment','Deposit'].includes(doc.transaction_type)",
+   "depends_on": "eval:['Payment','Deposit'].includes(doc.transaction_type)"
+  },
+  {
+   "fieldname": "column_break_acc",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "accounting_mode",
+   "fieldtype": "Select",
+   "label": "Accounting Mode",
+   "options": "Deferred to Folio Invoice\nExternally Accounted",
+   "default": "Deferred to Folio Invoice",
+   "description": "Deferred: revenue reaches the ledger when the folio is invoiced. Externally accounted: another document (e.g. a POS invoice) already recorded it, so the folio must not invoice it again."
+  },
+  {
+   "fieldname": "controls_section",
+   "fieldtype": "Section Break",
+   "label": "Posting Controls"
+  },
+  {
+   "fieldname": "allow_manual_posting",
+   "fieldtype": "Check",
+   "label": "Allow Manual Posting",
+   "default": "1"
+  },
+  {
+   "fieldname": "allow_negative",
+   "fieldtype": "Check",
+   "label": "Allow Negative Amounts"
+  },
+  {
+   "fieldname": "column_break_ctl",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "posting_permission",
+   "fieldtype": "Link",
+   "label": "Role Required to Post",
+   "options": "Role",
+   "description": "Leave empty to let any front-desk role post this code."
+  }
+ ],
+ "index_web_pages_for_search": 0,
+ "links": [],
+ "modified": "2026-11-11 12:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Vuna Hospitality",
+ "name": "Charge Code",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "share": 1,
+   "write": 1,
+   "role": "System Manager"
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "share": 1,
+   "write": 1,
+   "role": "Hospitality Manager"
+  },
+  {
+   "create": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "write": 1,
+   "role": "Hotel Accountant"
+  },
+  {
+   "read": 1,
+   "report": 1,
+   "print": 1,
+   "email": 1,
+   "export": 1,
+   "role": "Revenue Manager"
+  },
+  {
+   "read": 1,
+   "report": 1,
+   "print": 1,
+   "email": 1,
+   "export": 1,
+   "role": "Reservations Agent"
+  },
+  {
+   "read": 1,
+   "report": 1,
+   "print": 1,
+   "email": 1,
+   "export": 1,
+   "role": "Front Desk Agent"
+  },
+  {
+   "read": 1,
+   "report": 1,
+   "print": 1,
+   "email": 1,
+   "export": 1,
+   "role": "Front Desk Manager"
+  },
+  {
+   "read": 1,
+   "report": 1,
+   "print": 1,
+   "email": 1,
+   "export": 1,
+   "role": "Night Auditor"
+  },
+  {
+   "read": 1,
+   "report": 1,
+   "print": 1,
+   "email": 1,
+   "export": 1,
+   "role": "Cashier"
+  }
+ ],
+ "row_format": "Dynamic",
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": [],
+ "autoname": "field:code",
+ "naming_rule": "By fieldname",
+ "title_field": "description",
+ "show_title_field_in_link": 1,
+ "search_fields": "description,charge_department,transaction_type",
+ "track_changes": 1
+}

@@ -79,7 +79,20 @@ class HospitalitySettings(Document):
 		# so desk caches must be rebuilt for every user.
 		if self.has_value_changed("enable_hospitality"):
 			sync_hospitality_visibility(self.enable_hospitality)
+			self.log_module_toggle()
 			frappe.clear_cache()
+
+	def log_module_toggle(self):
+		from frappoint.vuna_hospitality.services.event_log import log_event
+
+		if not frappe.db.exists("DocType", "Hospitality Event Log"):
+			return  # first migrate, before the log DocType is synced
+		log_event(
+			self.doctype,
+			self.name,
+			"Module Enabled" if self.enable_hospitality else "Module Disabled",
+			data={"enable_hospitality": self.enable_hospitality},
+		)
 
 
 def is_hospitality_enabled() -> bool:
