@@ -21,4 +21,7 @@ def get_session_context() -> dict:
 		"user": user,
 		"roles": sorted(user_roles & {*HOSPITALITY_ROLES, "System Manager"}),
 		"properties": get_user_properties(user),
+		# Where the hotel workspace opens: Front Desk Today, Tape Chart or Reservations.
+		"default_landing_page": frappe.db.get_single_value("Hospitality Settings", "default_landing_page")
+		or "Front Desk Today",
 	}
