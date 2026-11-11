@@ -2,6 +2,9 @@
 # For license information, please see license.txt
 
 import frappe
+from erpnext.setup.doctype.brand.brand import get_brand_defaults
+from erpnext.setup.doctype.item_group.item_group import get_item_group_defaults
+from erpnext.stock.doctype.item.item import get_item_defaults
 from frappe import _
 from frappe.model.document import Document
 
@@ -35,3 +38,29 @@ class ChargeCode(Document):
 			self.is_room_revenue = 0
 		if self.item and frappe.db.get_value("Item", self.item, "disabled"):
 			frappe.throw(_("Item {0} is disabled.").format(self.item))
+		if not self.item:
+			self.item_group = None
+		self.validate_income_accounts()
+
+	def validate_income_accounts(self):
+		"""Settlement invoices this Item for every hotel company, so each needs an income account."""
+		if self.transaction_type not in ITEM_TYPES or not self.item:
+			return
+		companies = frappe.get_all("Hotel Property", filters={"is_active": 1}, pluck="company", distinct=True)
+		missing = [company for company in companies if not income_account(self.item, company)]
+		if missing:
+			frappe.throw(
+				_(
+					"Item {0} has no income account for {1}. Set one in the Item's or Item Group's defaults, or set the company's Default Income Account."
+				).format(self.item, ", ".join(missing))
+			)
+
+
+def income_account(item: str, company: str) -> str | None:
+	"""The income account ERPNext will use for `item` in `company` (same order as get_item_details)."""
+	return (
+		get_item_defaults(item, company).get("income_account")
+		or get_item_group_defaults(item, company).get("income_account")
+		or get_brand_defaults(item, company).get("income_account")
+		or frappe.get_cached_value("Company", company, "default_income_account")
+	)

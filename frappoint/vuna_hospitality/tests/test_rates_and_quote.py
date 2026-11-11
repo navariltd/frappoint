@@ -61,7 +61,6 @@ class TestChargeCodesAndPlans(RatesTestCase):
 					"doctype": "Charge Code",
 					"code": "nitem",
 					"description": "x",
-					"charge_department": "Rooms",
 					"transaction_type": "Revenue",
 				}
 			).insert()
@@ -71,7 +70,6 @@ class TestChargeCodesAndPlans(RatesTestCase):
 					"doctype": "Charge Code",
 					"code": "nmop",
 					"description": "x",
-					"charge_department": "Rooms",
 					"transaction_type": "Payment",
 				}
 			).insert()
@@ -82,7 +80,6 @@ class TestChargeCodesAndPlans(RatesTestCase):
 				"doctype": "Charge Code",
 				"code": "cash",
 				"description": "Cash",
-				"charge_department": "Rooms",
 				"transaction_type": "Payment",
 				"mode_of_payment": frappe.db.get_value("Mode of Payment", {}, "name"),
 			}
