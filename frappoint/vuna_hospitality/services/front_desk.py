@@ -456,9 +456,9 @@ def move_room(stay_name: str, new_room: str, move_reason: str, notes: str | None
 		_lock_row(HOTEL_ROOM, room)
 	now = now_datetime()
 	business_date = _business_date(stay.property)
-	info = _check_room(
-		stay, new_room, now, get_datetime(current.end_datetime), business_date, stay.departure_date
-	)
+	# The stay keeps its planned check-out; read it before the current segment is closed at `now`.
+	planned_end = get_datetime(current.end_datetime)
+	info = _check_room(stay, new_room, now, planned_end, business_date, stay.departure_date)
 	if info.housekeeping_condition not in READY_CONDITIONS:
 		frappe.throw(
 			_("Room {0} is {1}, not ready for a guest.").format(
@@ -485,7 +485,7 @@ def move_room(stay_name: str, new_room: str, move_reason: str, notes: str | None
 			"start_date": business_date,
 			"end_date": stay.departure_date,
 			"start_datetime": now,
-			"end_datetime": current.end_datetime,
+			"end_datetime": planned_end,
 			"previous_assignment": current.name,
 			"move_reason": move_reason,
 			"notes": notes,

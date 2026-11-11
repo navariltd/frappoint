@@ -42,6 +42,8 @@ class FrontDeskTestCase(IntegrationTestCase):
 		self.prop, self.plan, self.guest = make_booking_fixtures(self.CODE, rooms=2)
 		self.today = getdate(self.prop.business_date)
 		self.room_a, self.room_b = f"{self.CODE}-101", f"{self.CODE}-102"
+		# Installed with the other defaults only while hospitality is on, which a fresh CI site isn't.
+		front_desk.install_default_move_reasons()
 		frappe.db.set_value("Room Type", f"{self.CODE}-STD", "overbooking_limit", 0)
 
 	def tearDown(self):
@@ -91,7 +93,12 @@ class TestCoupleStay(FrontDeskTestCase):
 		self.assertEqual({g.status for g in self.guests(stay)}, {"Checked In"})
 		self.assertEqual(self.room(self.room_a)[0], "Occupied")
 
-		move_room(stay.name, self.room_b, "Noise")
+		planned_check_out = frappe.db.get_value(
+			"Room Assignment", {"stay_reservation": stay.name, "status": "Occupied"}, "end_datetime"
+		)
+		moved_to = move_room(stay.name, self.room_b, "Noise")
+		# The new room is held until the stay's planned check-out, not just until the move.
+		self.assertEqual(frappe.db.get_value("Room Assignment", moved_to, "end_datetime"), planned_check_out)
 		self.assertEqual(self.room(self.room_a), ("Vacant", "Dirty"))
 		self.assertEqual(self.room(self.room_b)[0], "Occupied")
 
