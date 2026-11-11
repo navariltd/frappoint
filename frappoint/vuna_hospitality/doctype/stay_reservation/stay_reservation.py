@@ -14,7 +14,9 @@ register_transitions(
 	"Stay Reservation",
 	{
 		"Held": {"Confirmed", "Expired", "Cancelled"},
-		"Confirmed": {"Due In", "Cancelled"},
+		# Confirmed -> In House: check-in on the arrival business date before night audit (F8) marks
+		# the stay Due In.
+		"Confirmed": {"Due In", "In House", "Cancelled"},
 		"Due In": {"In House", "No Show", "Cancelled"},
 		"In House": {"Due Out", "Checked Out"},
 		"Due Out": {"In House", "Checked Out"},

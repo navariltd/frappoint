@@ -1,0 +1,284 @@
+{
+ "actions": [],
+ "creation": "2026-11-11 14:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "property",
+  "stay_reservation",
+  "guest_profile",
+  "guest_name",
+  "status",
+  "column_break_main",
+  "role",
+  "age_category",
+  "guardian",
+  "charge_privileges",
+  "times_section",
+  "expected_arrival",
+  "expected_departure",
+  "column_break_times",
+  "actual_check_in",
+  "actual_check_out",
+  "registration_section",
+  "registration_complete",
+  "registered_at",
+  "column_break_reg",
+  "portal_access",
+  "removed_reason",
+  "snapshot_section",
+  "name_snapshot",
+  "contact_snapshot"
+ ],
+ "fields": [
+  {
+   "fieldname": "property",
+   "fieldtype": "Link",
+   "label": "Property",
+   "options": "Hotel Property",
+   "reqd": 1,
+   "in_standard_filter": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "stay_reservation",
+   "fieldtype": "Link",
+   "label": "Stay Reservation",
+   "options": "Stay Reservation",
+   "reqd": 1,
+   "read_only": 1,
+   "in_standard_filter": 1
+  },
+  {
+   "fieldname": "guest_profile",
+   "fieldtype": "Link",
+   "label": "Guest",
+   "options": "Guest Profile",
+   "reqd": 1,
+   "read_only": 1,
+   "in_standard_filter": 1
+  },
+  {
+   "fieldname": "guest_name",
+   "fieldtype": "Data",
+   "label": "Guest Name",
+   "fetch_from": "guest_profile.full_name",
+   "read_only": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "label": "Status",
+   "options": "Expected\nRegistered\nChecked In\nChecked Out\nDid Not Stay\nRemoved",
+   "default": "Expected",
+   "reqd": 1,
+   "read_only": 1,
+   "in_list_view": 1,
+   "in_standard_filter": 1
+  },
+  {
+   "fieldname": "column_break_main",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "role",
+   "fieldtype": "Select",
+   "label": "Role",
+   "options": "Primary\nCompanion",
+   "default": "Companion",
+   "reqd": 1,
+   "read_only": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "age_category",
+   "fieldtype": "Select",
+   "label": "Age Category",
+   "options": "Adult\nChild\nInfant",
+   "default": "Adult",
+   "reqd": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "guardian",
+   "fieldtype": "Link",
+   "label": "Guardian",
+   "options": "Guest Profile",
+   "read_only": 1,
+   "depends_on": "eval:doc.age_category!='Adult'"
+  },
+  {
+   "fieldname": "charge_privileges",
+   "fieldtype": "Select",
+   "label": "Charge Privileges",
+   "options": "None\nRoom Charges\nAll",
+   "default": "None"
+  },
+  {
+   "fieldname": "times_section",
+   "fieldtype": "Section Break",
+   "label": "Times"
+  },
+  {
+   "fieldname": "expected_arrival",
+   "fieldtype": "Datetime",
+   "label": "Expected Arrival",
+   "read_only": 1
+  },
+  {
+   "fieldname": "expected_departure",
+   "fieldtype": "Datetime",
+   "label": "Expected Departure",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_times",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "actual_check_in",
+   "fieldtype": "Datetime",
+   "label": "Checked In At",
+   "read_only": 1
+  },
+  {
+   "fieldname": "actual_check_out",
+   "fieldtype": "Datetime",
+   "label": "Checked Out At",
+   "read_only": 1
+  },
+  {
+   "fieldname": "registration_section",
+   "fieldtype": "Section Break",
+   "label": "Registration"
+  },
+  {
+   "fieldname": "registration_complete",
+   "fieldtype": "Check",
+   "label": "Registration Complete",
+   "read_only": 1
+  },
+  {
+   "fieldname": "registered_at",
+   "fieldtype": "Datetime",
+   "label": "Registered At",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_reg",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "portal_access",
+   "fieldtype": "Check",
+   "label": "Portal Access"
+  },
+  {
+   "fieldname": "removed_reason",
+   "fieldtype": "Small Text",
+   "label": "Removal Reason",
+   "read_only": 1,
+   "depends_on": "eval:doc.status=='Removed'"
+  },
+  {
+   "fieldname": "snapshot_section",
+   "fieldtype": "Section Break",
+   "label": "As Registered",
+   "collapsible": 1
+  },
+  {
+   "fieldname": "name_snapshot",
+   "fieldtype": "Data",
+   "label": "Name (as registered)",
+   "read_only": 1
+  },
+  {
+   "fieldname": "contact_snapshot",
+   "fieldtype": "JSON",
+   "label": "Contact (as registered)",
+   "read_only": 1
+  }
+ ],
+ "index_web_pages_for_search": 0,
+ "links": [],
+ "modified": "2026-11-11 14:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Vuna Hospitality",
+ "name": "Stay Guest",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "role": "System Manager",
+   "read": 1,
+   "report": 1,
+   "print": 1,
+   "export": 1,
+   "delete": 1
+  },
+  {
+   "role": "Hospitality Manager",
+   "read": 1,
+   "report": 1,
+   "print": 1,
+   "export": 1
+  },
+  {
+   "role": "Reservations Agent",
+   "read": 1,
+   "report": 1,
+   "print": 1
+  },
+  {
+   "role": "Front Desk Agent",
+   "read": 1,
+   "report": 1,
+   "print": 1
+  },
+  {
+   "role": "Front Desk Manager",
+   "read": 1,
+   "report": 1,
+   "print": 1
+  },
+  {
+   "role": "Cashier",
+   "read": 1,
+   "report": 1,
+   "print": 1
+  },
+  {
+   "role": "Hotel Accountant",
+   "read": 1,
+   "report": 1,
+   "print": 1
+  },
+  {
+   "role": "Night Auditor",
+   "read": 1,
+   "report": 1,
+   "print": 1
+  },
+  {
+   "role": "Guest Services Agent",
+   "read": 1,
+   "report": 1,
+   "print": 1
+  },
+  {
+   "role": "Revenue Manager",
+   "read": 1,
+   "report": 1,
+   "print": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1,
+ "autoname": "hash",
+ "naming_rule": "Random",
+ "title_field": "guest_name",
+ "in_create": 1
+}

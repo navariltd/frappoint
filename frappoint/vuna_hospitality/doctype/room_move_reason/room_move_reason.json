@@ -1,0 +1,112 @@
+{
+ "actions": [],
+ "creation": "2026-11-11 14:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "reason",
+  "is_active",
+  "description"
+ ],
+ "fields": [
+  {
+   "fieldname": "reason",
+   "fieldtype": "Data",
+   "label": "Reason",
+   "reqd": 1,
+   "unique": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "is_active",
+   "fieldtype": "Check",
+   "label": "Is Active",
+   "default": "1",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "description",
+   "fieldtype": "Small Text",
+   "label": "Description"
+  }
+ ],
+ "index_web_pages_for_search": 0,
+ "links": [],
+ "modified": "2026-11-11 14:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Vuna Hospitality",
+ "name": "Room Move Reason",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "role": "System Manager",
+   "create": 1,
+   "read": 1,
+   "write": 1,
+   "report": 1,
+   "print": 1,
+   "email": 1,
+   "share": 1,
+   "export": 1,
+   "delete": 1
+  },
+  {
+   "role": "Hospitality Manager",
+   "create": 1,
+   "read": 1,
+   "write": 1,
+   "report": 1,
+   "print": 1,
+   "email": 1,
+   "share": 1,
+   "export": 1,
+   "delete": 1
+  },
+  {
+   "role": "Front Desk Manager",
+   "create": 1,
+   "read": 1,
+   "write": 1,
+   "report": 1,
+   "print": 1,
+   "email": 1,
+   "share": 1,
+   "export": 1
+  },
+  {
+   "role": "Reservations Agent",
+   "read": 1
+  },
+  {
+   "role": "Front Desk Agent",
+   "read": 1
+  },
+  {
+   "role": "Cashier",
+   "read": 1
+  },
+  {
+   "role": "Hotel Accountant",
+   "read": 1
+  },
+  {
+   "role": "Night Auditor",
+   "read": 1
+  },
+  {
+   "role": "Guest Services Agent",
+   "read": 1
+  },
+  {
+   "role": "Revenue Manager",
+   "read": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1,
+ "autoname": "field:reason",
+ "naming_rule": "By fieldname"
+}

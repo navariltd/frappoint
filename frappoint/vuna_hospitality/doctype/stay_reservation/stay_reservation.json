@@ -337,6 +337,16 @@
  "index_web_pages_for_search": 0,
  "links": [
   {
+   "link_doctype": "Stay Guest",
+   "link_fieldname": "stay_reservation",
+   "group": "Guests"
+  },
+  {
+   "link_doctype": "Room Assignment",
+   "link_fieldname": "stay_reservation",
+   "group": "Room"
+  },
+  {
    "link_doctype": "Stay Rate Night",
    "link_fieldname": "stay_reservation",
    "group": "Price"

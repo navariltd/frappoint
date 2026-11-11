@@ -6,4 +6,5 @@ from frappe.model.document import Document
 
 class HotelBookingSource(Document):
 	"""Where a booking came from: Walk-in, Phone, Website, a travel agent, and so on."""
+
 	pass

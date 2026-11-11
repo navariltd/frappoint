@@ -43,6 +43,8 @@ RELEASED = "Released"
 INACTIVE_STAY_STATUSES = (CANCELLED, EXPIRED)
 CANCELLABLE_STAY_STATUSES = (HELD, CONFIRMED, "Due In")
 ACTIVE_ALLOCATIONS = (HELD, CONFIRMED)
+# A booking whose remaining stays are all finished is Closed.
+FINISHED_STAY_STATUSES = ("Checked Out", "No Show")
 
 DEFAULT_HOLD_MINUTES = 15
 DEFAULT_MAX_STAY_NIGHTS = 30
@@ -341,6 +343,9 @@ def _create_stay(booking, p, expires_at) -> str:
 			"deposit_policy_snapshot": _policy_snapshot(p.deposit_policy),
 		},
 	)
+	from frappoint.vuna_hospitality.services.front_desk import add_primary_guest
+
+	add_primary_guest(reservation)
 	_new(
 		MEMBERSHIP,
 		{
@@ -460,6 +465,7 @@ def cancel(stay_name: str, reason: str) -> dict:
 		frappe.throw(_("Give a reason for cancelling stay {0}.").format(stay.name))
 
 	_release_occupancy(stay.room_occupancy, CANCELLED)
+	_cancel_room_assignment(stay)
 	transition(
 		stay,
 		CANCELLED,
@@ -563,6 +569,15 @@ def _release_occupancy(occupancy_name: str, to_state: str) -> None:
 	)
 
 
+def _cancel_room_assignment(stay) -> None:
+	"""A cancelled stay gives up the room it was assigned before arrival."""
+	from frappoint.vuna_hospitality.services.front_desk import current_assignment
+
+	assignment = current_assignment(stay.room_occupancy)
+	if assignment and assignment.status == "Assigned":
+		transition(assignment, "Cancelled", event_type="Room Unassigned", ignore_permissions=True)
+
+
 def _cancel_pending_nights(stay_name: str) -> None:
 	table = frappe.qb.DocType(RATE_NIGHT)
 	(
@@ -593,6 +608,8 @@ def booking_status(stay_statuses: list[str]) -> str:
 		return "Option"
 	if not active:
 		return "Cancelled"
+	if all(status in FINISHED_STAY_STATUSES for status in active):
+		return "Closed"
 	if all(status == HELD for status in active):
 		return "Option"
 	return "Partly Cancelled" if len(active) < len(stay_statuses) else "Confirmed"
@@ -724,10 +741,13 @@ def occupancy_demand(room_types: list[str], nights: list[date]) -> dict:
 
 @hospitality_job
 def install_default_booking_sources() -> None:
-	"""Create the usual booking sources once, so a site can take bookings straight away.
+	"""Create the usual booking sources and room move reasons once, so a site can start straight away.
 
 	Runs after migrate and when hospitality is switched on.
 	"""
+	from frappoint.vuna_hospitality.services.front_desk import install_default_move_reasons
+
+	install_default_move_reasons()
 	if not frappe.db.table_exists("Hotel Booking Source"):
 		return
 	for source in DEFAULT_BOOKING_SOURCES:

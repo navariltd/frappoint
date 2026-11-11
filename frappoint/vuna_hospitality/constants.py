@@ -65,6 +65,9 @@ PROPERTY_SCOPED_DOCTYPES: tuple[str, ...] = (
 	"Room Occupancy",
 	"Occupancy Membership",
 	"Stay Rate Night",
+	# F6 Stay guests, room assignment, check-in and check-out
+	"Stay Guest",
+	"Room Assignment",
 )
 
 # Roles that take reservations (hold, confirm, cancel).
