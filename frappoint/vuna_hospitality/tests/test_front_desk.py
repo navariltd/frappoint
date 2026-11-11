@@ -52,7 +52,7 @@ class FrontDeskTestCase(IntegrationTestCase):
 		summary = hold(
 			self.CODE,
 			[stay_request(self.CODE, self.plan, guest or self.guest, arrival or self.today, nights)],
-			booking_details={"booking_source": "Phone"},
+			booking_details={"booking_source": "Phone Calls"},
 		)
 		confirm(summary["stays"][0]["name"])
 		return frappe.get_doc("Stay Reservation", summary["stays"][0]["name"])

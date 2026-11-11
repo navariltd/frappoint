@@ -15,7 +15,7 @@
   "booking_source",
   "market_segment",
   "column_break_source",
-  "travel_agent",
+  "sales_partner",
   "external_reference",
   "guarantee_type",
   "totals_section",
@@ -90,9 +90,10 @@
    "fieldname": "booking_source",
    "fieldtype": "Link",
    "label": "Booking Source",
-   "options": "Hotel Booking Source",
+   "options": "UTM Source",
    "reqd": 1,
-   "in_standard_filter": 1
+   "in_standard_filter": 1,
+   "description": "Where the booking came from. Copied to the Sales Invoice's UTM Source when the folio is settled."
   },
   {
    "fieldname": "market_segment",
@@ -105,10 +106,12 @@
    "fieldtype": "Column Break"
   },
   {
-   "fieldname": "travel_agent",
+   "fieldname": "sales_partner",
    "fieldtype": "Link",
-   "label": "Travel Agent",
-   "options": "Supplier"
+   "label": "Sales Partner",
+   "options": "Sales Partner",
+   "in_standard_filter": 1,
+   "description": "The travel agent or other partner who brought the booking. Their commission is calculated on the Sales Invoice."
   },
   {
    "fieldname": "external_reference",
@@ -179,7 +182,7 @@
    "group": "Stays"
   }
  ],
- "modified": "2026-11-11 14:00:00.000000",
+ "modified": "2026-11-11 18:00:00.000000",
  "modified_by": "Administrator",
  "module": "Vuna Hospitality",
  "name": "Hotel Booking",

@@ -81,10 +81,10 @@ class HospitalitySettings(Document):
 			sync_hospitality_visibility(self.enable_hospitality)
 			self.log_module_toggle()
 			if self.enable_hospitality:
-				from frappoint.vuna_hospitality.services.reservations import install_default_booking_sources
+				from frappoint.vuna_hospitality.services.reservations import install_hospitality_defaults
 
 				# Call past the feature-flag guard: its cached flag may still read "off" in this save.
-				install_default_booking_sources.__wrapped__()
+				install_hospitality_defaults.__wrapped__()
 			frappe.clear_cache()
 
 	def log_module_toggle(self):

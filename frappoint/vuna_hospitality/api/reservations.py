@@ -53,9 +53,7 @@ def get_booking_desk_context() -> dict:
 		fields=["name", "property_name", "business_date", "currency", "check_in_time", "check_out_time"],
 		order_by="property_name asc",
 	)
-	sources = frappe.get_all(
-		"Hotel Booking Source", filters={"is_active": 1}, pluck="name", order_by="source_name asc"
-	)
+	sources = reservations.booking_sources()
 	limits = reservations._limits()
 	return {
 		"properties": properties,

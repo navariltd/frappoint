@@ -41,10 +41,8 @@ def make_booking_fixtures(code: str, rooms: int = 2):
 	generate_from_season(
 		make_test_season(plan, today, today + timedelta(days=29), {f"{code}-STD": (10000, 12000)}).name
 	)
-	if not frappe.db.exists("Hotel Booking Source", "Phone"):
-		frappe.get_doc({"doctype": "Hotel Booking Source", "source_name": "Phone"}).insert(
-			ignore_permissions=True
-		)
+	if not frappe.db.exists("UTM Source", "Phone Calls"):
+		frappe.get_doc({"doctype": "UTM Source", "name": "Phone Calls"}).insert(ignore_permissions=True)
 	guest = frappe.get_doc(
 		{"doctype": "Guest Profile", "first_name": "Wanjiku", "last_name": f"Test{code}"}
 	).insert(ignore_permissions=True)
@@ -86,7 +84,7 @@ class ReservationTestCase(IntegrationTestCase):
 		return hold(
 			self.CODE,
 			[stay_request(self.CODE, self.plan, self.guest, arrival or self.arrival, nights, **extra)],
-			booking_details={"booking_source": "Phone", "booker_guest_profile": self.guest.name},
+			booking_details={"booking_source": "Phone Calls", "booker_guest_profile": self.guest.name},
 		)
 
 	def stay(self, summary, index=0):
@@ -156,7 +154,7 @@ class TestHold(ReservationTestCase):
 	def test_multi_room_hold_is_all_or_nothing(self):
 		requests = [stay_request(self.CODE, self.plan, self.guest, self.arrival) for _ in range(3)]
 		with self.assertRaises(InventoryUnavailableError):
-			hold(self.CODE, requests, booking_details={"booking_source": "Phone"})
+			hold(self.CODE, requests, booking_details={"booking_source": "Phone Calls"})
 		self.assertFalse(frappe.db.exists("Stay Reservation", {"property": self.CODE}))
 
 	def test_stays_can_be_added_to_an_existing_booking(self):
@@ -172,7 +170,7 @@ class TestHold(ReservationTestCase):
 	def test_records_cannot_be_created_or_edited_outside_the_service(self):
 		with self.assertRaises(frappe.ValidationError):
 			frappe.get_doc(
-				{"doctype": "Hotel Booking", "property": self.CODE, "booking_source": "Phone"}
+				{"doctype": "Hotel Booking", "property": self.CODE, "booking_source": "Phone Calls"}
 			).insert()
 		stay = self.stay(self.hold())
 		stay.departure_date = stay.departure_date + timedelta(days=1)
@@ -234,7 +232,7 @@ class TestConfirmAndCancel(ReservationTestCase):
 		self.assertEqual(booking_status(["Cancelled", "Expired"]), "Cancelled")
 
 		requests = [stay_request(self.CODE, self.plan, self.guest, self.arrival) for _ in range(2)]
-		summary = hold(self.CODE, requests, booking_details={"booking_source": "Phone"})
+		summary = hold(self.CODE, requests, booking_details={"booking_source": "Phone Calls"})
 		first, second = (stay["name"] for stay in summary["stays"])
 		confirm(first)
 		self.assertEqual(cancel(second, "One room is enough")["status"], "Partly Cancelled")
@@ -254,7 +252,8 @@ class TestHoldExpiry(ReservationTestCase):
 
 		# The job commits after each hold; keep this test inside its savepoint.
 		with hospitality_enabled(True), patch.object(frappe.db, "commit"):
-			self.assertEqual(expire_holds(), 1)
+			# Other expired holds on the site may be released too; this one must be among them.
+			self.assertGreaterEqual(expire_holds(), 1)
 			self.assertEqual(expire_holds(), 0)
 		self.assertFalse(expire_hold(stay.name))
 
@@ -298,7 +297,7 @@ class TestReservationApi(ReservationTestCase):
 		with hospitality_enabled(True):
 			context = get_booking_desk_context()
 		self.assertIn(self.CODE, [p.name for p in context["properties"]])
-		self.assertIn("Phone", context["booking_sources"])
+		self.assertIn("Phone Calls", context["booking_sources"])
 
 	def test_lock_conflict_becomes_a_retryable_error(self):
 		stay = self.stay(self.hold())
@@ -353,7 +352,7 @@ class ConcurrentReservationTestCase(IntegrationTestCase):
 				lambda: hold(
 					self.CODE,
 					[stay_request(self.CODE, self.plan, self.guest, self.arrival)],
-					booking_details={"booking_source": "Phone"},
+					booking_details={"booking_source": "Phone Calls"},
 				)
 			)
 

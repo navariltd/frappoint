@@ -4,7 +4,5 @@
 from frappe.model.document import Document
 
 
-class HotelBookingSource(Document):
-	"""Where a booking came from: Walk-in, Phone, Website, a travel agent, and so on."""
-
-	pass
+class HospitalityBookingSource(Document):
+	"""A UTM Source offered as a booking source on the booking desk."""

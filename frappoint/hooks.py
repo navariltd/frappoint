@@ -144,7 +144,7 @@ app_include_js = ["/assets/frappoint/booking_desk/booking_desk.bundle.js"]
 after_install = "frappoint.setup.setup.execute"
 after_migrate = [
 	"frappoint.vuna_hospitality.doctype.hospitality_settings.hospitality_settings.sync_hospitality_visibility",
-	"frappoint.vuna_hospitality.services.reservations.install_default_booking_sources",
+	"frappoint.vuna_hospitality.services.reservations.install_hospitality_defaults",
 ]
 
 # Uninstallation

@@ -48,7 +48,10 @@ FINISHED_STAY_STATUSES = ("Checked Out", "No Show")
 
 DEFAULT_HOLD_MINUTES = 15
 DEFAULT_MAX_STAY_NIGHTS = 30
-DEFAULT_BOOKING_SOURCES = ("Walk-in", "Phone", "Email", "Website", "Travel Agent", "Corporate")
+# Booking sources are ERPNext UTM Sources. The first four use the names ERPNext's setup already
+# creates, so sites don't end up with "Walk In" and "Walk-in" side by side.
+DEFAULT_BOOKING_SOURCES = ("Walk In", "Phone Calls", "Emails", "Website", "Travel Agent", "Corporate")
+UTM_SOURCE = "UTM Source"
 EXPIRY_BATCH = 500
 
 # Set on records created by this service; the DocTypes refuse inserts without it.
@@ -274,12 +277,17 @@ def _create_booking(property_name: str, details: dict):
 		"booker_guest_profile",
 		"booker_customer",
 		"market_segment",
-		"travel_agent",
+		"sales_partner",
 		"external_reference",
 		"guarantee_type",
 		"notes",
 	)
 	values = {field: details.get(field) for field in allowed if details.get(field)}
+	if not values.get("sales_partner") and values.get("booker_customer"):
+		# A customer booked through an agent or partner by default: ERPNext stores that on the Customer.
+		values["sales_partner"] = frappe.db.get_value(
+			"Customer", values["booker_customer"], "default_sales_partner"
+		)
 	booking = _new(BOOKING, {"property": property_name, "status": "Option", **values})
 	log_event(BOOKING, booking.name, "Booking Created", to_status=booking.status, property_name=property_name)
 	return booking
@@ -701,6 +709,7 @@ def booking_summary(booking: str) -> dict:
 		"booker_guest_profile": doc.booker_guest_profile,
 		"booker_name": doc.booker_name,
 		"booker_customer": doc.booker_customer,
+		"sales_partner": doc.sales_partner,
 		"external_reference": doc.external_reference,
 		"currency": doc.currency,
 		"total_amount": doc.total_amount,
@@ -739,19 +748,52 @@ def occupancy_demand(room_types: list[str], nights: list[date]) -> dict:
 # --------------------------------------------------------------------------- setup
 
 
-@hospitality_job
-def install_default_booking_sources() -> None:
-	"""Create the usual booking sources and room move reasons once, so a site can start straight away.
+def booking_sources() -> list[str]:
+	"""The UTM Sources the booking desk offers: Hospitality Settings' list, or every UTM Source."""
+	chosen = frappe.get_all(
+		"Hospitality Booking Source",
+		filters={"parenttype": SETTINGS, "parent": SETTINGS},
+		pluck="utm_source",
+		order_by="idx asc",
+	)
+	return chosen or frappe.get_all(UTM_SOURCE, pluck="name", order_by="name asc")
 
-	Runs after migrate and when hospitality is switched on.
+
+@hospitality_job
+def install_hospitality_defaults() -> None:
+	"""Create what a site needs to start taking bookings. Runs after migrate and when hospitality is
+	switched on; safe to run again.
+
+	- the default booking sources as UTM Sources, offered on the booking desk;
+	- the default room move reasons;
+	- read access to Sales Partner for hospitality roles, so they can pick a booking's partner.
 	"""
 	from frappoint.vuna_hospitality.services.front_desk import install_default_move_reasons
 
 	install_default_move_reasons()
-	if not frappe.db.table_exists("Hotel Booking Source"):
-		return
+	_install_booking_sources()
+	_grant_sales_partner_access()
+
+
+def _install_booking_sources() -> None:
 	for source in DEFAULT_BOOKING_SOURCES:
-		if not frappe.db.exists("Hotel Booking Source", source):
-			frappe.get_doc({"doctype": "Hotel Booking Source", "source_name": source}).insert(
-				ignore_permissions=True
-			)
+		if not frappe.db.exists(UTM_SOURCE, source):
+			frappe.get_doc({"doctype": UTM_SOURCE, "name": source}).insert(ignore_permissions=True)
+	settings = frappe.get_single(SETTINGS)
+	if settings.meta.has_field("booking_sources") and not settings.booking_sources:
+		for source in DEFAULT_BOOKING_SOURCES:
+			settings.append("booking_sources", {"utm_source": source})
+		settings.flags.ignore_permissions = True
+		settings.save()
+
+
+def _grant_sales_partner_access() -> None:
+	from frappe.permissions import add_permission
+
+	from frappoint.vuna_hospitality.constants import HOSPITALITY_ROLES
+
+	for role in HOSPITALITY_ROLES:
+		if not frappe.db.exists("Role", role):
+			continue
+		if not frappe.db.exists("Custom DocPerm", {"parent": "Sales Partner", "role": role, "permlevel": 0}):
+			add_permission("Sales Partner", role, 0, "select")

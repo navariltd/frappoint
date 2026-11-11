@@ -255,8 +255,8 @@ const blocked = computed(() => {
 onMounted(async () => {
 	await hotel.load();
 	resetDates();
-	bookingSource.value = hotel.bookingSources.includes("Walk-in")
-		? "Walk-in"
+	bookingSource.value = hotel.bookingSources.includes("Walk In")
+		? "Walk In"
 		: hotel.bookingSources[0] || "";
 });
 
