@@ -141,7 +141,7 @@
    "is_default_module": 0,
    "keep_closed": 0,
    "label": "Booking Sources",
-   "link_to": "Hotel Booking Source",
+   "link_to": "UTM Source",
    "link_type": "DocType",
    "open_in_new_tab": 1,
    "show_arrow": 0,
@@ -392,8 +392,8 @@
    "indent": 0,
    "is_default_module": 0,
    "keep_closed": 0,
-   "label": "Charge Departments",
-   "link_to": "Charge Department",
+   "label": "Item Groups",
+   "link_to": "Item Group",
    "link_type": "DocType",
    "open_in_new_tab": 1,
    "show_arrow": 0,
@@ -568,7 +568,7 @@
    "type": "Link"
   }
  ],
- "modified": "2026-11-11 16:00:00.000000",
+ "modified": "2026-11-11 18:00:00.000000",
  "modified_by": "Administrator",
  "module": "Vuna Hospitality",
  "name": "Hospitality",
