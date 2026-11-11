@@ -10,13 +10,8 @@ GUEST_PROFILE = guest_service.GUEST_PROFILE
 
 
 def _check(permission: str, guest_profile: str | None = None) -> None:
-	allowed = (
-		frappe.has_permission(GUEST_PROFILE, permission, doc=guest_profile)
-		if guest_profile
-		else frappe.has_permission(GUEST_PROFILE, permission)
-	)
-	if not allowed:
-		raise frappe.PermissionError(_("You are not allowed to {0} guest profiles.").format(_(permission)))
+	"""Raise PermissionError unless the user has `permission` on guest profiles (or this one)."""
+	frappe.has_permission(GUEST_PROFILE, permission, doc=guest_profile, throw=True)
 
 
 @frappe.whitelist()

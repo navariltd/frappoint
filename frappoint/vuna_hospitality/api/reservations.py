@@ -66,7 +66,12 @@ def get_booking_desk_context() -> dict:
 
 @frappe.whitelist(methods=["POST"])
 @require_hospitality
-def hold_stays(property: str, stays, booking: str | None = None, booking_details=None) -> dict:
+def hold_stays(
+	property: str,
+	stays: str | list[dict],
+	booking: str | None = None,
+	booking_details: str | dict | None = None,
+) -> dict:
 	"""Hold rooms for one or more stays (all or none). Returns the booking with its stays."""
 	_check_can_book(property)
 	if booking:
