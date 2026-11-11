@@ -219,8 +219,15 @@ def ensure_rows(room_types: Iterable[str], nights: Iterable[date]) -> int:
 			+ [row[field] for field in COUNTER_FIELDS]
 			+ [row["property"]]
 		)
-	# Concurrent requests may insert the same rows; the unique key makes that harmless.
-	frappe.db.bulk_insert(DOCTYPE, fields, values, ignore_duplicates=True)
+	# Concurrent requests may insert the same rows; the unique key makes that harmless. On MariaDB
+	# 11.6+ the duplicate check on a row another request just committed fails with error 1020
+	# instead, which is a conflict to retry, like a lock.
+	try:
+		frappe.db.bulk_insert(DOCTYPE, fields, values, ignore_duplicates=True)
+	except frappe.QueryDeadlockError as error:
+		raise InventoryConflictError(
+			_("Room availability changed while this request was running. Please try again.")
+		) from error
 	return len(values)
 
 
