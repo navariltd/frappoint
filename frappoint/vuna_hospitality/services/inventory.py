@@ -213,6 +213,7 @@ def ensure_rows(room_types: Iterable[str], nights: Iterable[date]) -> int:
 		row = expected.get((room_type, night))
 		if not row:
 			frappe.throw(_("Room Type {0} does not exist.").format(room_type))
+			return 0
 		values.append(
 			[row_name(room_type, night), user, user, now, now, 0, 0, room_type, night, now, row["available"]]
 			+ [row[field] for field in COUNTER_FIELDS]
@@ -223,7 +224,7 @@ def ensure_rows(room_types: Iterable[str], nights: Iterable[date]) -> int:
 	return len(values)
 
 
-def lock_rows(room_types: Iterable[str], nights: Iterable[date]) -> dict[tuple[str, date], dict]:
+def lock_rows(room_types: Iterable[str], nights: Iterable[date]) -> dict[tuple[str, date], frappe._dict]:
 	"""SELECT ... FOR UPDATE the rows, always ordered by room type then night."""
 	room_types, nights = sorted(set(room_types)), sorted(set(nights))
 	if not room_types or not nights:
@@ -254,7 +255,7 @@ def lock_rows(room_types: Iterable[str], nights: Iterable[date]) -> dict[tuple[s
 	return {(row.room_type, getdate(row.inventory_date)): row for row in rows}
 
 
-def peek_rows(room_types: Iterable[str], nights: Iterable[date]) -> dict[tuple[str, date], dict]:
+def peek_rows(room_types: Iterable[str], nights: Iterable[date]) -> dict[tuple[str, date], frappe._dict]:
 	"""Read rows without creating or locking anything (for quotes).
 
 	Nights with no row yet are computed from the records, exactly as `ensure_rows` would create them.
