@@ -78,8 +78,16 @@ jobs:
 
       - name: Install MariaDB Client
         run: |
-          sudo apt-get update
-          sudo apt-get install -y mariadb-client
+          # The runner's package mirror sometimes fails to resolve for a minute or two; retry.
+          for attempt in 1 2 3; do
+            if sudo apt-get update -o Acquire::Retries=3 \
+              && sudo apt-get install -y -o Acquire::Retries=3 mariadb-client; then
+              exit 0
+            fi
+            echo "apt-get failed (attempt $attempt of 3); retrying in 30 seconds..."
+            sleep 30
+          done
+          exit 1
 
       - name: Setup
         run: |
