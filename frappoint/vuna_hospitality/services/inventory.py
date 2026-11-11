@@ -13,8 +13,9 @@ Rules:
   occupancies, group blocks) are the truth; `rebuild()` recomputes rows from them and
   `reconcile()` reports any row that drifted.
 
-Demand sources arrive with later features: Room Occupancy (F5) and Group Block (Release 2)
-register a function in DEMAND_SOURCES that returns their counts per room type and night.
+Demand sources return their counts per room type and night. Apps and features register them with
+the `hospitality_inventory_demand_sources` hook (Room Occupancy in F5, Group Block in Release 2);
+DEMAND_SOURCES holds extra sources added at runtime, such as test doubles.
 """
 
 from collections import defaultdict
@@ -37,7 +38,8 @@ COUNTER_FIELDS = SUPPLY_FIELDS + DEMAND_FIELDS
 DEFAULT_HORIZON_DAYS = 365
 
 # Each source: fn(room_types: list[str], nights: list[date]) -> {(room_type, night): {field: count}}
-# with fields from DEMAND_FIELDS. Room Occupancy (F5) and Group Block (R2) add theirs here.
+# with fields from DEMAND_FIELDS.
+DEMAND_SOURCE_HOOK = "hospitality_inventory_demand_sources"
 DEMAND_SOURCES: list[Callable[[list[str], list[date]], dict]] = []
 
 
@@ -146,11 +148,16 @@ def compute_demand(room_types: Iterable[str], nights: Iterable[date]) -> dict[tu
 	"""Held, sold and blocked counts per room type and night, from every registered demand source."""
 	room_types, nights = sorted(set(room_types)), sorted(set(nights))
 	demand = defaultdict(lambda: dict.fromkeys(DEMAND_FIELDS, 0))
-	for source in DEMAND_SOURCES:
+	for source in demand_sources():
 		for key, counts in (source(room_types, nights) or {}).items():
 			for field, value in counts.items():
 				demand[key][field] += cint(value)
 	return demand
+
+
+def demand_sources() -> list[Callable[[list[str], list[date]], dict]]:
+	"""Hooked demand sources, then any registered at runtime."""
+	return [*(frappe.get_attr(path) for path in frappe.get_hooks(DEMAND_SOURCE_HOOK)), *DEMAND_SOURCES]
 
 
 def expected_rows(room_types: Iterable[str], nights: Iterable[date]) -> dict[tuple[str, date], dict]:
