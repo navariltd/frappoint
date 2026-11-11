@@ -2,6 +2,20 @@ import { defineStore } from "pinia";
 import { createResource } from "frappe-ui";
 import { navigateTo } from "@/utils";
 
+// Roles that may open the hotel pages (see vuna_hospitality/constants.py).
+const HOTEL_DESK_ROLES = [
+	"System Manager",
+	"Hospitality Manager",
+	"Reservations Agent",
+	"Front Desk Agent",
+	"Front Desk Manager",
+	"Cashier",
+	"Night Auditor",
+	"Hotel Accountant",
+	"Guest Services Agent",
+	"Revenue Manager",
+];
+
 function getSessionUser() {
 	const cookies = new URLSearchParams(document.cookie.split("; ").join("&"));
 	let user = cookies.get("user_id");
@@ -30,6 +44,7 @@ export const useAuthStore = defineStore("auth", {
 		userId: (state) => state.user?.user || null,
 		userName: (state) => state.user?.userName || null,
 		userImage: (state) => state.user?.userImage || null,
+		canUseHotelDesk: (state) => HOTEL_DESK_ROLES.some((role) => state.roles?.includes(role)),
 		canAccessDashboard: (state) => {
 			return (
 				state.roles?.includes("Service Provider") ||

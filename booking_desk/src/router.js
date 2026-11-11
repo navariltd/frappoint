@@ -57,6 +57,24 @@ const routes = [
 		meta: { requiresLogin: true },
 	},
 	{
+		name: "HotelBookings",
+		path: "/hotel/bookings",
+		component: () => import("@/pages/hotel/HotelBookings.vue"),
+		meta: { requiresLogin: true, hotel: true },
+	},
+	{
+		name: "NewReservation",
+		path: "/hotel/reservations/new",
+		component: () => import("@/pages/hotel/NewReservation.vue"),
+		meta: { requiresLogin: true, hotel: true },
+	},
+	{
+		name: "HotelBooking",
+		path: "/hotel/bookings/:bookingId",
+		component: () => import("@/pages/hotel/HotelBooking.vue"),
+		meta: { requiresLogin: true, hotel: true },
+	},
+	{
 		name: "Forbidden",
 		path: "/forbidden",
 		component: () => import("@/pages/Forbidden.vue"),
@@ -81,6 +99,16 @@ router.beforeEach(async (to) => {
 
 	if (to.name === "Login" && auth.isLoggedIn) {
 		return { name: "Dashboard" };
+	}
+
+	// Hotel pages are for hospitality roles; the hotel APIs check property access and permissions.
+	if (to.meta.hotel) {
+		return auth.canUseHotelDesk || to.name === "Forbidden" ? true : { name: "Forbidden" };
+	}
+
+	// Hotel staff without appointment access land on the hotel bookings page.
+	if (to.name === "Dashboard" && !auth.canAccessDashboard && auth.canUseHotelDesk) {
+		return { name: "HotelBookings" };
 	}
 
 	// Check for Service Provider permission on protected routes

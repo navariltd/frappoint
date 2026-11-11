@@ -33,6 +33,13 @@
 				icon="event_note"
 				label="Bookings"
 			/>
+			<SidebarItem
+				v-if="showHotel"
+				:to="{ name: 'HotelBookings' }"
+				:activeWhen="['HotelBookings', 'HotelBooking', 'NewReservation']"
+				icon="hotel"
+				label="Hotel"
+			/>
 		</nav>
 
 		<div class="p-4 border-t border-white/20">
@@ -51,11 +58,22 @@
 </template>
 
 <script setup>
+import { computed, watch } from "vue";
 import { branding } from "@/branding";
+import { useHotelStore } from "@/stores/hotel.store";
 import { useAuthStore } from "@/stores/auth";
 import SidebarItem from "./SidebarItem.vue";
 
 const auth = useAuthStore();
+const hotel = useHotelStore();
+const showHotel = computed(() => auth.canUseHotelDesk && hotel.enabled);
+
+// Roles arrive after the first route check, so load hotel access once they do.
+watch(
+	() => auth.canUseHotelDesk,
+	(canUse) => canUse && hotel.load(),
+	{ immediate: true }
+);
 
 async function handleLogout() {
 	await auth.logout();
