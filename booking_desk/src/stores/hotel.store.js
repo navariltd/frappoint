@@ -19,6 +19,7 @@ export const useHotelStore = defineStore("hotel", {
 		bookingSources: [],
 		holdExpiryMinutes: 15,
 		maxStayNights: 30,
+		defaultLandingPage: "Front Desk Today",
 		canBook: false,
 		property: readSavedProperty(),
 		loaded: false,
@@ -41,6 +42,7 @@ export const useHotelStore = defineStore("hotel", {
 				const session = await fetchSessionContextApi();
 				this.enabled = !!session?.enabled;
 				this.roles = session?.roles || [];
+				this.defaultLandingPage = session?.default_landing_page || "Front Desk Today";
 				if (this.enabled && this.roles.length) {
 					const context = await fetchDeskContextApi();
 					this.properties = context?.properties || [];
@@ -50,11 +52,12 @@ export const useHotelStore = defineStore("hotel", {
 					this.canBook = !!context?.can_book;
 					if (!this.currentProperty) this.setProperty(this.properties[0]?.name || null);
 				}
+				this.loaded = true;
 			} catch (error) {
+				// Not marked loaded, so the next navigation tries again.
 				this.error = hotelErrorMessage(error);
 			} finally {
 				this.loading = false;
-				this.loaded = true;
 			}
 		},
 
