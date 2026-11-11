@@ -57,6 +57,18 @@ const routes = [
 		meta: { requiresLogin: true },
 	},
 	{
+		name: "FrontDeskToday",
+		path: "/hotel/front-desk",
+		component: () => import("@/pages/hotel/FrontDeskToday.vue"),
+		meta: { requiresLogin: true, hotel: true },
+	},
+	{
+		name: "HotelStay",
+		path: "/hotel/reservations/:stayId",
+		component: () => import("@/pages/hotel/ReservationStay.vue"),
+		meta: { requiresLogin: true, hotel: true },
+	},
+	{
 		name: "HotelBookings",
 		path: "/hotel/bookings",
 		component: () => import("@/pages/hotel/HotelBookings.vue"),
@@ -106,9 +118,9 @@ router.beforeEach(async (to) => {
 		return auth.canUseHotelDesk || to.name === "Forbidden" ? true : { name: "Forbidden" };
 	}
 
-	// Hotel staff without appointment access land on the hotel bookings page.
+	// Hotel staff without appointment access land on the front desk.
 	if (to.name === "Dashboard" && !auth.canAccessDashboard && auth.canUseHotelDesk) {
-		return { name: "HotelBookings" };
+		return { name: "FrontDeskToday" };
 	}
 
 	// Check for Service Provider permission on protected routes

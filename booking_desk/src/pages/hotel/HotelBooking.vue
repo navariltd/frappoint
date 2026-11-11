@@ -74,6 +74,11 @@
 									{{ stay.room_type_name }} · {{ stay.rate_plan_name }}
 								</h2>
 								<HotelStatusBadge :status="stay.status" />
+								<RouterLink
+									:to="{ name: 'HotelStay', params: { stayId: stay.name } }"
+									class="text-[12px] font-semibold text-primary"
+									>Open stay</RouterLink
+								>
 							</div>
 							<p class="text-[12px] text-on-surface-variant">
 								{{ stay.name }} · {{ stay.lead_guest_name }} ·

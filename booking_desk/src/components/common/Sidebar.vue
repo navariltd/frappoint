@@ -35,8 +35,14 @@
 			/>
 			<SidebarItem
 				v-if="showHotel"
-				:to="{ name: 'HotelBookings' }"
-				:activeWhen="['HotelBookings', 'HotelBooking', 'NewReservation']"
+				:to="{ name: 'FrontDeskToday' }"
+				:activeWhen="[
+					'FrontDeskToday',
+					'HotelStay',
+					'HotelBookings',
+					'HotelBooking',
+					'NewReservation',
+				]"
 				icon="hotel"
 				label="Hotel"
 			/>

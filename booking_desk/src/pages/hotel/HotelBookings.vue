@@ -23,6 +23,12 @@
 					</select>
 				</label>
 				<RouterLink
+					:to="{ name: 'FrontDeskToday' }"
+					class="rounded-lg border border-outline-variant px-4 py-2 text-[13px] font-semibold"
+				>
+					Front desk
+				</RouterLink>
+				<RouterLink
 					v-if="hotel.canBook"
 					:to="{ name: 'NewReservation' }"
 					class="rounded-lg bg-primary text-on-primary px-4 py-2 text-[13px] font-semibold"
