@@ -1,37 +1,17 @@
 <template>
 	<div class="px-6 py-5 space-y-5 max-w-6xl">
-		<header class="flex flex-wrap items-end justify-between gap-3">
-			<div>
-				<h1 class="text-[22px] font-semibold text-on-surface">New Reservation</h1>
-				<p class="text-[13px] text-on-surface-variant">
-					Search, pick a room and rate, choose the guest, then hold. Holds are released
-					after
-					{{ hotel.holdExpiryMinutes }} minutes unless confirmed.
-				</p>
-			</div>
-			<RouterLink
-				:to="{ name: 'HotelBookings' }"
-				class="text-[12px] font-semibold text-primary"
-			>
-				Recent bookings
-			</RouterLink>
-		</header>
+		<p class="text-[13px] text-on-surface-variant">
+			Search, pick a room and rate, choose the guest, then hold. Holds are released after
+			{{ hotel.holdExpiryMinutes }} minutes unless confirmed.
+		</p>
 
 		<HotelUnavailable v-if="blocked" :message="blocked" />
 
 		<template v-else>
 			<form
-				class="grid grid-cols-2 md:grid-cols-6 gap-3 items-end rounded-xl border border-outline-variant bg-surface-container-lowest p-4"
+				class="grid grid-cols-2 md:grid-cols-5 gap-3 items-end rounded-xl border border-outline-variant bg-surface-container-lowest p-4"
 				@submit.prevent="search"
 			>
-				<label class="col-span-2 text-[12px] text-on-surface-variant">
-					Property
-					<select v-model="propertyName" class="hotel-input" required>
-						<option v-for="p in hotel.properties" :key="p.name" :value="p.name">
-							{{ p.property_name }}
-						</option>
-					</select>
-				</label>
 				<label class="text-[12px] text-on-surface-variant">
 					Arrival
 					<input
@@ -66,7 +46,7 @@
 					Children
 					<input v-model.number="children" type="number" min="0" class="hotel-input" />
 				</label>
-				<p class="col-span-2 md:col-span-5 text-[12px] text-on-surface-variant">
+				<p class="order-last col-span-2 md:col-span-5 text-[12px] text-on-surface-variant">
 					{{ nights }} night{{ nights === 1 ? "" : "s" }}
 					<span v-if="businessDate">
 						· Business date {{ formatNight(businessDate) }}</span
@@ -259,16 +239,13 @@ const searched = ref(false);
 const holding = ref(false);
 const error = ref("");
 
-const propertyName = computed({
-	get: () => hotel.property,
-	set: (value) => hotel.setProperty(value),
-});
+const propertyName = computed(() => hotel.property);
 const businessDate = computed(() => hotel.currentProperty?.business_date || "");
 const minDeparture = computed(() => (arrival.value ? addDays(arrival.value, 1) : ""));
 const nights = computed(() => nightsBetween(arrival.value, departure.value));
 const blocked = computed(() => {
-	if (!hotel.loaded) return "";
 	if (hotel.error) return hotel.error;
+	if (!hotel.loaded) return "";
 	if (!hotel.enabled) return "Hospitality is not enabled on this site.";
 	if (!hotel.canBook) return "You don't have a role that can take reservations.";
 	if (!hotel.properties.length) return "You don't have access to any active hotel property.";

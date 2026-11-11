@@ -1,43 +1,5 @@
 <template>
 	<div class="px-6 py-5 space-y-5 max-w-5xl">
-		<header class="flex flex-wrap items-end justify-between gap-3">
-			<div>
-				<h1 class="text-[22px] font-semibold text-on-surface">Hotel Bookings</h1>
-				<p class="text-[13px] text-on-surface-variant">
-					The latest bookings at this property.
-				</p>
-			</div>
-			<div class="flex items-end gap-3">
-				<label
-					v-if="hotel.properties.length > 1"
-					class="text-[12px] text-on-surface-variant"
-				>
-					Property
-					<select
-						v-model="propertyName"
-						class="mt-1 block rounded-lg border border-outline-variant bg-surface-container-lowest px-3 py-2 text-[13px]"
-					>
-						<option v-for="p in hotel.properties" :key="p.name" :value="p.name">
-							{{ p.property_name }}
-						</option>
-					</select>
-				</label>
-				<RouterLink
-					:to="{ name: 'FrontDeskToday' }"
-					class="rounded-lg border border-outline-variant px-4 py-2 text-[13px] font-semibold"
-				>
-					Front desk
-				</RouterLink>
-				<RouterLink
-					v-if="hotel.canBook"
-					:to="{ name: 'NewReservation' }"
-					class="rounded-lg bg-primary text-on-primary px-4 py-2 text-[13px] font-semibold"
-				>
-					New reservation
-				</RouterLink>
-			</div>
-		</header>
-
 		<HotelUnavailable v-if="blocked" :message="blocked" />
 		<p v-else-if="error" class="rounded-lg bg-error-container/40 px-4 py-3 text-[13px]">
 			{{ error }}
@@ -90,13 +52,10 @@ const bookings = ref([]);
 const loading = ref(false);
 const error = ref("");
 
-const propertyName = computed({
-	get: () => hotel.property,
-	set: (value) => hotel.setProperty(value),
-});
+const propertyName = computed(() => hotel.property);
 const blocked = computed(() => {
-	if (!hotel.loaded) return "";
 	if (hotel.error) return hotel.error;
+	if (!hotel.loaded) return "";
 	if (!hotel.enabled) return "Hospitality is not enabled on this site.";
 	if (!hotel.properties.length) return "You don't have access to any active hotel property.";
 	return "";

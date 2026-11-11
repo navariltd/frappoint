@@ -114,5 +114,6 @@ declare module 'vue' {
     SlotSelectionSection: typeof import('./src/components/booking/guest-assignment/SlotSelectionSection.vue')['default']
     StatusIndicatorBadges: typeof import('./src/components/dashboard/StatusIndicatorBadges.vue')['default']
     Topbar: typeof import('./src/components/common/Topbar.vue')['default']
+    WorkspaceSwitcher: typeof import('./src/components/common/WorkspaceSwitcher.vue')['default']
   }
 }

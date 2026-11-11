@@ -1,36 +1,14 @@
 <template>
 	<div class="px-6 py-5 space-y-5 max-w-6xl">
-		<header class="flex flex-wrap items-end justify-between gap-3">
-			<div>
-				<h1 class="text-[22px] font-semibold text-on-surface">Front Desk Today</h1>
-				<p class="text-[13px] text-on-surface-variant">
-					<span v-if="today">Business date {{ formatNight(today.business_date) }}</span>
-				</p>
-			</div>
-			<div class="flex items-end gap-3">
-				<label
-					v-if="hotel.properties.length > 1"
-					class="text-[12px] text-on-surface-variant"
-				>
-					Property
-					<select
-						v-model="propertyName"
-						class="mt-1 block rounded-lg border border-outline-variant bg-surface-container-lowest px-3 py-2 text-[13px]"
-					>
-						<option v-for="p in hotel.properties" :key="p.name" :value="p.name">
-							{{ p.property_name }}
-						</option>
-					</select>
-				</label>
-				<button
-					type="button"
-					class="rounded-lg border border-outline-variant px-3 py-2 text-[12px] font-semibold"
-					@click="load"
-				>
-					Refresh
-				</button>
-			</div>
-		</header>
+		<div class="flex justify-end">
+			<button
+				type="button"
+				class="rounded-lg border border-outline-variant px-3 py-2 text-[12px] font-semibold"
+				@click="load"
+			>
+				Refresh
+			</button>
+		</div>
 
 		<HotelUnavailable v-if="blocked" :message="blocked" />
 		<template v-else>
@@ -153,14 +131,11 @@ const tabs = [
 	{ key: "departures", label: "Departures" },
 ];
 
-const propertyName = computed({
-	get: () => hotel.property,
-	set: (value) => hotel.setProperty(value),
-});
+const propertyName = computed(() => hotel.property);
 const rows = computed(() => today.value?.[activeTab.value] || []);
 const blocked = computed(() => {
-	if (!hotel.loaded) return "";
 	if (hotel.error) return hotel.error;
+	if (!hotel.loaded) return "";
 	if (!hotel.enabled) return "Hospitality is not enabled on this site.";
 	if (!hotel.properties.length) return "You don't have access to any active hotel property.";
 	return "";
