@@ -1,6 +1,6 @@
 {
  "charts": [],
- "content": "[{\"id\": \"hsp-header\", \"type\": \"header\", \"data\": {\"text\": \"\\u003cspan class=\\\"h4\\\"\\u003eHospitality\\u003c/span\\u003e\", \"col\": 12}}, {\"id\": \"hsp-sc-new-resv\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"New Reservation\", \"col\": 3}}, {\"id\": \"hsp-sc-held\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Held Stays\", \"col\": 3}}, {\"id\": \"hsp-sc-bookings\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Bookings\", \"col\": 3}}, {\"id\": \"hsp-sc-rooms\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Rooms\", \"col\": 3}}, {\"id\": \"hsp-sc-ooo\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Out of Order / Service\", \"col\": 3}}, {\"id\": \"hsp-sc-props\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Properties\", \"col\": 3}}, {\"id\": \"hsp-sc-house\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"House Position\", \"col\": 3}}, {\"id\": \"hsp-sc-rates\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Rates by Night\", \"col\": 3}}, {\"id\": \"hsp-sc-guests\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Guests\", \"col\": 3}}, {\"id\": \"hsp-sc-settings\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Hospitality Settings\", \"col\": 3}}, {\"id\": \"hsp-spacer-1\", \"type\": \"spacer\", \"data\": {\"col\": 12}}, {\"id\": \"hsp-ql-ooo\", \"type\": \"quick_list\", \"data\": {\"quick_list_name\": \"Rooms Out of Order or Service\", \"col\": 6}}, {\"id\": \"hsp-ql-events\", \"type\": \"quick_list\", \"data\": {\"quick_list_name\": \"Recent Hospitality Events\", \"col\": 6}}, {\"id\": \"hsp-spacer-2\", \"type\": \"spacer\", \"data\": {\"col\": 12}}, {\"id\": \"hsp-card-reservations\", \"type\": \"card\", \"data\": {\"card_name\": \"Reservations\", \"col\": 4}}, {\"id\": \"hsp-card-rooms\", \"type\": \"card\", \"data\": {\"card_name\": \"Property and Rooms\", \"col\": 4}}, {\"id\": \"hsp-card-inventory\", \"type\": \"card\", \"data\": {\"card_name\": \"Inventory\", \"col\": 4}}, {\"id\": \"hsp-card-rates\", \"type\": \"card\", \"data\": {\"card_name\": \"Rates\", \"col\": 4}}, {\"id\": \"hsp-card-guests\", \"type\": \"card\", \"data\": {\"card_name\": \"Guests\", \"col\": 4}}, {\"id\": \"hsp-card-charges\", \"type\": \"card\", \"data\": {\"card_name\": \"Charge Codes\", \"col\": 4}}, {\"id\": \"hsp-card-masters\", \"type\": \"card\", \"data\": {\"card_name\": \"Room Masters\", \"col\": 4}}, {\"id\": \"hsp-card-setup\", \"type\": \"card\", \"data\": {\"card_name\": \"Setup\", \"col\": 4}}, {\"id\": \"hsp-card-audit\", \"type\": \"card\", \"data\": {\"card_name\": \"Audit\", \"col\": 4}}, {\"id\": \"hsp-card-access\", \"type\": \"card\", \"data\": {\"card_name\": \"Users and Access\", \"col\": 4}}]",
+ "content": "[{\"id\": \"hsp-header\", \"type\": \"header\", \"data\": {\"text\": \"\\u003cspan class=\\\"h4\\\"\\u003eHospitality\\u003c/span\\u003e\", \"col\": 12}}, {\"id\": \"hsp-sc-front-desk\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Front Desk Today\", \"col\": 3}}, {\"id\": \"hsp-sc-new-resv\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"New Reservation\", \"col\": 3}}, {\"id\": \"hsp-sc-held\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Held Stays\", \"col\": 3}}, {\"id\": \"hsp-sc-bookings\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Bookings\", \"col\": 3}}, {\"id\": \"hsp-sc-rooms\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Rooms\", \"col\": 3}}, {\"id\": \"hsp-sc-ooo\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Out of Order / Service\", \"col\": 3}}, {\"id\": \"hsp-sc-props\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Properties\", \"col\": 3}}, {\"id\": \"hsp-sc-house\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"House Position\", \"col\": 3}}, {\"id\": \"hsp-sc-rates\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Rates by Night\", \"col\": 3}}, {\"id\": \"hsp-sc-guests\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Guests\", \"col\": 3}}, {\"id\": \"hsp-sc-settings\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Hospitality Settings\", \"col\": 3}}, {\"id\": \"hsp-spacer-1\", \"type\": \"spacer\", \"data\": {\"col\": 12}}, {\"id\": \"hsp-ql-ooo\", \"type\": \"quick_list\", \"data\": {\"quick_list_name\": \"Rooms Out of Order or Service\", \"col\": 6}}, {\"id\": \"hsp-ql-events\", \"type\": \"quick_list\", \"data\": {\"quick_list_name\": \"Recent Hospitality Events\", \"col\": 6}}, {\"id\": \"hsp-spacer-2\", \"type\": \"spacer\", \"data\": {\"col\": 12}}, {\"id\": \"hsp-card-reservations\", \"type\": \"card\", \"data\": {\"card_name\": \"Reservations\", \"col\": 4}}, {\"id\": \"hsp-card-rooms\", \"type\": \"card\", \"data\": {\"card_name\": \"Property and Rooms\", \"col\": 4}}, {\"id\": \"hsp-card-inventory\", \"type\": \"card\", \"data\": {\"card_name\": \"Inventory\", \"col\": 4}}, {\"id\": \"hsp-card-rates\", \"type\": \"card\", \"data\": {\"card_name\": \"Rates\", \"col\": 4}}, {\"id\": \"hsp-card-guests\", \"type\": \"card\", \"data\": {\"card_name\": \"Guests\", \"col\": 4}}, {\"id\": \"hsp-card-charges\", \"type\": \"card\", \"data\": {\"card_name\": \"Charge Codes\", \"col\": 4}}, {\"id\": \"hsp-card-masters\", \"type\": \"card\", \"data\": {\"card_name\": \"Room Masters\", \"col\": 4}}, {\"id\": \"hsp-card-setup\", \"type\": \"card\", \"data\": {\"card_name\": \"Setup\", \"col\": 4}}, {\"id\": \"hsp-card-audit\", \"type\": \"card\", \"data\": {\"card_name\": \"Audit\", \"col\": 4}}, {\"id\": \"hsp-card-access\", \"type\": \"card\", \"data\": {\"card_name\": \"Users and Access\", \"col\": 4}}]",
  "creation": "2026-11-09 19:04:29.963857",
  "custom_blocks": [],
  "docstatus": 0,
@@ -145,7 +145,7 @@
    "hidden": 0,
    "is_query_report": 0,
    "label": "Reservations",
-   "link_count": 4,
+   "link_count": 7,
    "link_type": "DocType",
    "onboard": 0,
    "type": "Card Break"
@@ -176,6 +176,36 @@
    "label": "Room Occupancy",
    "link_count": 0,
    "link_to": "Room Occupancy",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Stay Guest",
+   "link_count": 0,
+   "link_to": "Stay Guest",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Room Assignment",
+   "link_count": 0,
+   "link_to": "Room Assignment",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Room Move Reason",
+   "link_count": 0,
+   "link_to": "Room Move Reason",
    "link_type": "DocType",
    "onboard": 0,
    "type": "Link"
@@ -355,7 +385,7 @@
    "type": "Link"
   }
  ],
- "modified": "2026-11-11 14:00:00.000000",
+ "modified": "2026-11-11 16:00:00.000000",
  "modified_by": "Administrator",
  "module": "Vuna Hospitality",
  "name": "Hospitality",
@@ -384,6 +414,15 @@
  ],
  "sequence_id": 0.0,
  "shortcuts": [
+  {
+   "color": "Grey",
+   "doc_view": "",
+   "format": "",
+   "label": "Front Desk Today",
+   "link_to": "",
+   "type": "URL",
+   "url": "/booking_desk/hotel/front-desk"
+  },
   {
    "color": "Grey",
    "doc_view": "",

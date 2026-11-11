@@ -6,6 +6,12 @@ const RESERVATION_API = "frappoint.vuna_hospitality.api.reservations";
 frappe.ui.form.on("Stay Reservation", {
 	refresh(frm) {
 		if (frm.is_new()) return;
+		frm.add_custom_button(__("Open in Booking Desk"), () =>
+			window.open(
+				`/booking_desk/hotel/reservations/${encodeURIComponent(frm.doc.name)}`,
+				"_blank"
+			)
+		);
 		if (frm.doc.status === "Held" && frm.doc.hold_expires_at) {
 			frm.dashboard.set_headline_alert(
 				__("Rooms held until {0}. Confirm before then or the hold is released.", [
