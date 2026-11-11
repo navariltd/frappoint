@@ -3,7 +3,6 @@
 
 frappe.ui.form.on("Charge Code", {
 	setup(frm) {
-		frm.set_query("charge_department", () => ({ filters: { is_active: 1 } }));
 		frm.set_query("item", () => ({ filters: { disabled: 0 } }));
 	},
 

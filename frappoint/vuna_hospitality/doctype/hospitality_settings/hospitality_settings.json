@@ -30,6 +30,8 @@
   "max_stay_nights",
   "column_break_resv",
   "allow_walk_ins",
+  "booking_sources_section",
+  "booking_sources",
   "guests_tab",
   "preferences_section",
   "enable_preference_suggestions",
@@ -216,6 +218,18 @@
    "description": "Allow stays that are created and checked in on the same day without a prior reservation."
   },
   {
+   "fieldname": "booking_sources_section",
+   "fieldtype": "Section Break",
+   "label": "Booking Sources"
+  },
+  {
+   "fieldname": "booking_sources",
+   "fieldtype": "Table MultiSelect",
+   "label": "Booking Sources",
+   "options": "Hospitality Booking Source",
+   "description": "Where bookings come from, offered on the booking desk. These are ERPNext UTM Sources, so revenue by source shows in ERPNext reports. Leave empty to offer every UTM Source."
+  },
+  {
    "fieldname": "guests_tab",
    "fieldtype": "Tab Break",
    "label": "Guests"
@@ -282,7 +296,7 @@
  "index_web_pages_for_search": 0,
  "issingle": 1,
  "links": [],
- "modified": "2026-11-09 20:00:00.000000",
+ "modified": "2026-11-11 18:00:00.000000",
  "modified_by": "Administrator",
  "module": "Vuna Hospitality",
  "name": "Hospitality Settings",

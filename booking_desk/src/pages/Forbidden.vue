@@ -34,10 +34,19 @@
 			<div class="space-y-2">
 				<p class="text-on-surface font-medium">Permission Denied</p>
 				<p class="text-sm text-on-surface-variant">
-					You don't have the required permissions to access this application. Please
-					contact your administrator for access.
+					You don't have the permissions this page needs. Please contact your
+					administrator if you should have access.
 				</p>
 			</div>
+
+			<!-- Users who can use another part of the app get a way back to it. -->
+			<RouterLink
+				v-if="workspace.available.length"
+				:to="workspace.homeRoute()"
+				class="block w-full px-4 py-3 rounded-lg border border-outline-variant text-on-surface font-medium text-sm transition-colors hover:bg-surface-container"
+			>
+				Go to {{ workspace.current?.label || "home" }}
+			</RouterLink>
 
 			<!-- Action Button -->
 			<button
@@ -66,8 +75,10 @@
 
 <script setup>
 import { useAuthStore } from "@/stores/auth";
+import { useWorkspaceStore } from "@/stores/workspace.store";
 
 const auth = useAuthStore();
+const workspace = useWorkspaceStore();
 
 const handleLogout = async () => {
 	await auth.logout();

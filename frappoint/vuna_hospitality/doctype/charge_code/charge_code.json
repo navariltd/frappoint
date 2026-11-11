@@ -6,7 +6,6 @@
  "field_order": [
   "code",
   "description",
-  "charge_department",
   "transaction_type",
   "column_break_main",
   "is_active",
@@ -14,6 +13,7 @@
   "print_group",
   "accounting_section",
   "item",
+  "item_group",
   "mode_of_payment",
   "column_break_acc",
   "accounting_mode",
@@ -42,23 +42,15 @@
    "in_list_view": 1
   },
   {
-   "fieldname": "charge_department",
-   "fieldtype": "Link",
-   "label": "Charge Department",
-   "options": "Charge Department",
-   "reqd": 1,
-   "in_list_view": 1,
-   "in_standard_filter": 1
-  },
-  {
    "fieldname": "transaction_type",
    "fieldtype": "Select",
    "label": "Transaction Type",
    "reqd": 1,
    "in_list_view": 1,
    "in_standard_filter": 1,
-   "options": "Revenue\nTax\nPayment\nDeposit\nAllowance\nPaid-out\nTransfer\nAdjustment\nWrite-off",
-   "default": "Revenue"
+   "options": "Revenue\nPayment\nDeposit\nAllowance\nPaid-out\nTransfer\nAdjustment\nWrite-off",
+   "default": "Revenue",
+   "description": "Tax is not a charge code: it comes from the Item's Item Tax Template and the property's sales tax template."
   },
   {
    "fieldname": "column_break_main",
@@ -96,6 +88,17 @@
    "mandatory_depends_on": "eval:['Revenue','Allowance'].includes(doc.transaction_type)",
    "depends_on": "eval:!['Payment','Deposit'].includes(doc.transaction_type)",
    "description": "Supplies the income account and Item Tax Template. Required for Revenue and Allowance codes."
+  },
+  {
+   "fieldname": "item_group",
+   "fieldtype": "Link",
+   "label": "Item Group",
+   "options": "Item Group",
+   "fetch_from": "item.item_group",
+   "read_only": 1,
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "description": "Groups revenue codes in reports (Rooms, Food and Beverage, Spa...). Set on the Item."
   },
   {
    "fieldname": "mode_of_payment",
@@ -147,7 +150,7 @@
  ],
  "index_web_pages_for_search": 0,
  "links": [],
- "modified": "2026-11-11 12:00:00.000000",
+ "modified": "2026-11-11 18:00:00.000000",
  "modified_by": "Administrator",
  "module": "Vuna Hospitality",
  "name": "Charge Code",
@@ -244,6 +247,6 @@
  "naming_rule": "By fieldname",
  "title_field": "description",
  "show_title_field_in_link": 1,
- "search_fields": "description,charge_department,transaction_type",
+ "search_fields": "description,item_group,transaction_type",
  "track_changes": 1
 }

@@ -142,9 +142,10 @@ app_include_js = ["/assets/frappoint/booking_desk/booking_desk.bundle.js"]
 
 # before_install = "frappoint.install.before_install"
 after_install = "frappoint.setup.setup.execute"
-after_migrate = (
-	"frappoint.vuna_hospitality.doctype.hospitality_settings.hospitality_settings.sync_hospitality_visibility"
-)
+after_migrate = [
+	"frappoint.vuna_hospitality.doctype.hospitality_settings.hospitality_settings.sync_hospitality_visibility",
+	"frappoint.vuna_hospitality.services.reservations.install_hospitality_defaults",
+]
 
 # Uninstallation
 # ------------
@@ -213,6 +214,11 @@ doc_events = {
 }
 
 
+# Hospitality inventory: functions that count demand (held/sold rooms) per room type and night.
+hospitality_inventory_demand_sources = [
+	"frappoint.vuna_hospitality.services.reservations.occupancy_demand",
+]
+
 # Scheduled Tasks
 # ---------------
 
@@ -220,6 +226,12 @@ scheduler_events = {
 	"all": [
 		"frappoint.utils.expire_pending_payment_holds",
 	],
+	"cron": {
+		# Release hotel holds as soon as they expire.
+		"* * * * *": [
+			"frappoint.vuna_hospitality.services.reservations.expire_holds",
+		],
+	},
 	"hourly": [
 		"frappoint.frappoint.scheduler.refresh_availability_counters.execute",
 	],

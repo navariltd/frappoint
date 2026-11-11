@@ -1,0 +1,457 @@
+{
+ "actions": [],
+ "creation": "2026-11-11 14:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "naming_series",
+  "property",
+  "hotel_booking",
+  "status",
+  "hold_expires_at",
+  "column_break_head",
+  "lead_guest",
+  "lead_guest_name",
+  "adults",
+  "children",
+  "stay_section",
+  "arrival_date",
+  "departure_date",
+  "nights",
+  "stay_type",
+  "column_break_stay",
+  "room_type",
+  "rate_plan",
+  "room_occupancy",
+  "eta",
+  "etd",
+  "price_section",
+  "currency",
+  "tax_inclusive",
+  "column_break_price",
+  "total_amount",
+  "average_rate",
+  "policy_section",
+  "cancellation_policy",
+  "cancellation_policy_snapshot",
+  "column_break_policy",
+  "deposit_policy",
+  "deposit_policy_snapshot",
+  "history_section",
+  "confirmed_at",
+  "confirmed_by",
+  "column_break_history",
+  "cancelled_at",
+  "cancelled_by",
+  "cancellation_reason",
+  "notes_section",
+  "notes"
+ ],
+ "fields": [
+  {
+   "fieldname": "naming_series",
+   "fieldtype": "Select",
+   "label": "Series",
+   "options": "SR-.property.-.YY.-.#####",
+   "default": "SR-.property.-.YY.-.#####",
+   "hidden": 1,
+   "set_only_once": 1
+  },
+  {
+   "fieldname": "property",
+   "fieldtype": "Link",
+   "label": "Property",
+   "options": "Hotel Property",
+   "reqd": 1,
+   "in_standard_filter": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "hotel_booking",
+   "fieldtype": "Link",
+   "label": "Hotel Booking",
+   "options": "Hotel Booking",
+   "reqd": 1,
+   "read_only": 1,
+   "in_standard_filter": 1
+  },
+  {
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "label": "Status",
+   "options": "Held\nConfirmed\nDue In\nIn House\nDue Out\nChecked Out\nNo Show\nCancelled\nExpired",
+   "default": "Held",
+   "read_only": 1,
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "no_copy": 1
+  },
+  {
+   "fieldname": "hold_expires_at",
+   "fieldtype": "Datetime",
+   "label": "Hold Expires At",
+   "read_only": 1,
+   "depends_on": "eval:doc.status=='Held'",
+   "no_copy": 1
+  },
+  {
+   "fieldname": "column_break_head",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "lead_guest",
+   "fieldtype": "Link",
+   "label": "Lead Guest",
+   "options": "Guest Profile",
+   "reqd": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "lead_guest_name",
+   "fieldtype": "Data",
+   "label": "Lead Guest Name",
+   "fetch_from": "lead_guest.full_name",
+   "read_only": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "adults",
+   "fieldtype": "Int",
+   "label": "Adults",
+   "default": "1",
+   "read_only": 1
+  },
+  {
+   "fieldname": "children",
+   "fieldtype": "Int",
+   "label": "Children",
+   "default": "0",
+   "read_only": 1
+  },
+  {
+   "fieldname": "stay_section",
+   "fieldtype": "Section Break",
+   "label": "Stay"
+  },
+  {
+   "fieldname": "arrival_date",
+   "fieldtype": "Date",
+   "label": "Arrival",
+   "reqd": 1,
+   "read_only": 1,
+   "in_list_view": 1,
+   "in_standard_filter": 1
+  },
+  {
+   "fieldname": "departure_date",
+   "fieldtype": "Date",
+   "label": "Departure",
+   "reqd": 1,
+   "read_only": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "nights",
+   "fieldtype": "Int",
+   "label": "Nights",
+   "read_only": 1
+  },
+  {
+   "fieldname": "stay_type",
+   "fieldtype": "Select",
+   "label": "Stay Type",
+   "options": "Overnight\nDay Use",
+   "default": "Overnight",
+   "reqd": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_stay",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "room_type",
+   "fieldtype": "Link",
+   "label": "Room Type",
+   "options": "Room Type",
+   "reqd": 1,
+   "read_only": 1,
+   "in_list_view": 1,
+   "in_standard_filter": 1
+  },
+  {
+   "fieldname": "rate_plan",
+   "fieldtype": "Link",
+   "label": "Rate Plan",
+   "options": "Rate Plan",
+   "reqd": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "room_occupancy",
+   "fieldtype": "Link",
+   "label": "Room Occupancy",
+   "options": "Room Occupancy",
+   "read_only": 1
+  },
+  {
+   "fieldname": "eta",
+   "fieldtype": "Time",
+   "label": "Expected Arrival Time"
+  },
+  {
+   "fieldname": "etd",
+   "fieldtype": "Time",
+   "label": "Expected Departure Time"
+  },
+  {
+   "fieldname": "price_section",
+   "fieldtype": "Section Break",
+   "label": "Price"
+  },
+  {
+   "fieldname": "currency",
+   "fieldtype": "Link",
+   "label": "Currency",
+   "options": "Currency",
+   "read_only": 1
+  },
+  {
+   "fieldname": "tax_inclusive",
+   "fieldtype": "Check",
+   "label": "Rates Include Tax",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_price",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "total_amount",
+   "fieldtype": "Currency",
+   "label": "Room Total",
+   "options": "currency",
+   "read_only": 1
+  },
+  {
+   "fieldname": "average_rate",
+   "fieldtype": "Currency",
+   "label": "Average Nightly Rate",
+   "options": "currency",
+   "read_only": 1
+  },
+  {
+   "fieldname": "policy_section",
+   "fieldtype": "Section Break",
+   "label": "Policies",
+   "collapsible": 1
+  },
+  {
+   "fieldname": "cancellation_policy",
+   "fieldtype": "Link",
+   "label": "Cancellation Policy",
+   "options": "Hotel Policy",
+   "read_only": 1
+  },
+  {
+   "fieldname": "cancellation_policy_snapshot",
+   "fieldtype": "JSON",
+   "label": "Cancellation Policy (as booked)",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_policy",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "deposit_policy",
+   "fieldtype": "Link",
+   "label": "Deposit Policy",
+   "options": "Hotel Policy",
+   "read_only": 1
+  },
+  {
+   "fieldname": "deposit_policy_snapshot",
+   "fieldtype": "JSON",
+   "label": "Deposit Policy (as booked)",
+   "read_only": 1
+  },
+  {
+   "fieldname": "history_section",
+   "fieldtype": "Section Break",
+   "label": "History",
+   "collapsible": 1
+  },
+  {
+   "fieldname": "confirmed_at",
+   "fieldtype": "Datetime",
+   "label": "Confirmed At",
+   "read_only": 1,
+   "no_copy": 1
+  },
+  {
+   "fieldname": "confirmed_by",
+   "fieldtype": "Link",
+   "label": "Confirmed By",
+   "options": "User",
+   "read_only": 1,
+   "no_copy": 1
+  },
+  {
+   "fieldname": "column_break_history",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "cancelled_at",
+   "fieldtype": "Datetime",
+   "label": "Cancelled At",
+   "read_only": 1,
+   "no_copy": 1
+  },
+  {
+   "fieldname": "cancelled_by",
+   "fieldtype": "Link",
+   "label": "Cancelled By",
+   "options": "User",
+   "read_only": 1,
+   "no_copy": 1
+  },
+  {
+   "fieldname": "cancellation_reason",
+   "fieldtype": "Small Text",
+   "label": "Cancellation Reason",
+   "read_only": 1,
+   "no_copy": 1
+  },
+  {
+   "fieldname": "notes_section",
+   "fieldtype": "Section Break",
+   "label": "Notes"
+  },
+  {
+   "fieldname": "notes",
+   "fieldtype": "Small Text",
+   "label": "Notes"
+  }
+ ],
+ "index_web_pages_for_search": 0,
+ "links": [
+  {
+   "link_doctype": "Stay Guest",
+   "link_fieldname": "stay_reservation",
+   "group": "Guests"
+  },
+  {
+   "link_doctype": "Room Assignment",
+   "link_fieldname": "stay_reservation",
+   "group": "Room"
+  },
+  {
+   "link_doctype": "Stay Rate Night",
+   "link_fieldname": "stay_reservation",
+   "group": "Price"
+  },
+  {
+   "link_doctype": "Occupancy Membership",
+   "link_fieldname": "stay_reservation",
+   "group": "Room"
+  }
+ ],
+ "modified": "2026-11-11 14:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Vuna Hospitality",
+ "name": "Stay Reservation",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "role": "System Manager",
+   "create": 1,
+   "read": 1,
+   "write": 1,
+   "report": 1,
+   "print": 1,
+   "email": 1,
+   "share": 1,
+   "export": 1,
+   "delete": 1
+  },
+  {
+   "role": "Hospitality Manager",
+   "create": 1,
+   "read": 1,
+   "write": 1,
+   "report": 1,
+   "print": 1,
+   "email": 1,
+   "share": 1,
+   "export": 1
+  },
+  {
+   "role": "Reservations Agent",
+   "create": 1,
+   "read": 1,
+   "write": 1,
+   "report": 1,
+   "print": 1,
+   "email": 1
+  },
+  {
+   "role": "Front Desk Agent",
+   "create": 1,
+   "read": 1,
+   "write": 1,
+   "report": 1,
+   "print": 1,
+   "email": 1
+  },
+  {
+   "role": "Front Desk Manager",
+   "create": 1,
+   "read": 1,
+   "write": 1,
+   "report": 1,
+   "print": 1,
+   "email": 1
+  },
+  {
+   "role": "Cashier",
+   "read": 1,
+   "report": 1,
+   "print": 1
+  },
+  {
+   "role": "Hotel Accountant",
+   "read": 1,
+   "report": 1,
+   "print": 1
+  },
+  {
+   "role": "Night Auditor",
+   "read": 1,
+   "report": 1,
+   "print": 1
+  },
+  {
+   "role": "Guest Services Agent",
+   "read": 1,
+   "report": 1,
+   "print": 1
+  },
+  {
+   "role": "Revenue Manager",
+   "read": 1,
+   "report": 1,
+   "print": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1,
+ "autoname": "naming_series:",
+ "naming_rule": "By \"Naming Series\" field",
+ "title_field": "lead_guest_name",
+ "in_create": 1,
+ "search_fields": "lead_guest_name,hotel_booking,arrival_date,status"
+}

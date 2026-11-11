@@ -77,8 +77,11 @@ declare module 'vue' {
     EmptyAppointmentsState: typeof import('./src/components/bookings/appointments/EmptyAppointmentsState.vue')['default']
     GuestAssignmentRow: typeof import('./src/components/booking/guest-assignment/GuestAssignmentRow.vue')['default']
     GuestAssignmentSection: typeof import('./src/components/booking/guest-assignment/GuestAssignmentSection.vue')['default']
+    GuestPicker: typeof import('./src/components/hotel/GuestPicker.vue')['default']
     GuestQuickCreate: typeof import('./src/components/booking/guest-assignment/GuestQuickCreate.vue')['default']
     GuestSelector: typeof import('./src/components/booking/guest-assignment/GuestSelector.vue')['default']
+    HotelStatusBadge: typeof import('./src/components/hotel/HotelStatusBadge.vue')['default']
+    HotelUnavailable: typeof import('./src/components/hotel/HotelUnavailable.vue')['default']
     LiveReceptionQueue: typeof import('./src/components/dashboard/LiveReceptionQueue.vue')['default']
     LiveResourceTimeline: typeof import('./src/components/dashboard/LiveResourceTimeline.vue')['default']
     LoadingAppointmentsState: typeof import('./src/components/bookings/appointments/LoadingAppointmentsState.vue')['default']
@@ -111,5 +114,6 @@ declare module 'vue' {
     SlotSelectionSection: typeof import('./src/components/booking/guest-assignment/SlotSelectionSection.vue')['default']
     StatusIndicatorBadges: typeof import('./src/components/dashboard/StatusIndicatorBadges.vue')['default']
     Topbar: typeof import('./src/components/common/Topbar.vue')['default']
+    WorkspaceSwitcher: typeof import('./src/components/common/WorkspaceSwitcher.vue')['default']
   }
 }

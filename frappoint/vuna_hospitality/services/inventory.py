@@ -13,8 +13,9 @@ Rules:
   occupancies, group blocks) are the truth; `rebuild()` recomputes rows from them and
   `reconcile()` reports any row that drifted.
 
-Demand sources arrive with later features: Room Occupancy (F5) and Group Block (Release 2)
-register a function in DEMAND_SOURCES that returns their counts per room type and night.
+Demand sources return their counts per room type and night. Apps and features register them with
+the `hospitality_inventory_demand_sources` hook (Room Occupancy in F5, Group Block in Release 2);
+DEMAND_SOURCES holds extra sources added at runtime, such as test doubles.
 """
 
 from collections import defaultdict
@@ -37,7 +38,8 @@ COUNTER_FIELDS = SUPPLY_FIELDS + DEMAND_FIELDS
 DEFAULT_HORIZON_DAYS = 365
 
 # Each source: fn(room_types: list[str], nights: list[date]) -> {(room_type, night): {field: count}}
-# with fields from DEMAND_FIELDS. Room Occupancy (F5) and Group Block (R2) add theirs here.
+# with fields from DEMAND_FIELDS.
+DEMAND_SOURCE_HOOK = "hospitality_inventory_demand_sources"
 DEMAND_SOURCES: list[Callable[[list[str], list[date]], dict]] = []
 
 
@@ -146,11 +148,16 @@ def compute_demand(room_types: Iterable[str], nights: Iterable[date]) -> dict[tu
 	"""Held, sold and blocked counts per room type and night, from every registered demand source."""
 	room_types, nights = sorted(set(room_types)), sorted(set(nights))
 	demand = defaultdict(lambda: dict.fromkeys(DEMAND_FIELDS, 0))
-	for source in DEMAND_SOURCES:
+	for source in demand_sources():
 		for key, counts in (source(room_types, nights) or {}).items():
 			for field, value in counts.items():
 				demand[key][field] += cint(value)
 	return demand
+
+
+def demand_sources() -> list[Callable[[list[str], list[date]], dict]]:
+	"""Hooked demand sources, then any registered at runtime."""
+	return [*(frappe.get_attr(path) for path in frappe.get_hooks(DEMAND_SOURCE_HOOK)), *DEMAND_SOURCES]
 
 
 def expected_rows(room_types: Iterable[str], nights: Iterable[date]) -> dict[tuple[str, date], dict]:
@@ -213,17 +220,25 @@ def ensure_rows(room_types: Iterable[str], nights: Iterable[date]) -> int:
 		row = expected.get((room_type, night))
 		if not row:
 			frappe.throw(_("Room Type {0} does not exist.").format(room_type))
+			return 0
 		values.append(
 			[row_name(room_type, night), user, user, now, now, 0, 0, room_type, night, now, row["available"]]
 			+ [row[field] for field in COUNTER_FIELDS]
 			+ [row["property"]]
 		)
-	# Concurrent requests may insert the same rows; the unique key makes that harmless.
-	frappe.db.bulk_insert(DOCTYPE, fields, values, ignore_duplicates=True)
+	# Concurrent requests may insert the same rows; the unique key makes that harmless. On MariaDB
+	# 11.6+ the duplicate check on a row another request just committed fails with error 1020
+	# instead, which is a conflict to retry, like a lock.
+	try:
+		frappe.db.bulk_insert(DOCTYPE, fields, values, ignore_duplicates=True)
+	except frappe.QueryDeadlockError as error:
+		raise InventoryConflictError(
+			_("Room availability changed while this request was running. Please try again.")
+		) from error
 	return len(values)
 
 
-def lock_rows(room_types: Iterable[str], nights: Iterable[date]) -> dict[tuple[str, date], dict]:
+def lock_rows(room_types: Iterable[str], nights: Iterable[date]) -> dict[tuple[str, date], frappe._dict]:
 	"""SELECT ... FOR UPDATE the rows, always ordered by room type then night."""
 	room_types, nights = sorted(set(room_types)), sorted(set(nights))
 	if not room_types or not nights:
@@ -254,7 +269,7 @@ def lock_rows(room_types: Iterable[str], nights: Iterable[date]) -> dict[tuple[s
 	return {(row.room_type, getdate(row.inventory_date)): row for row in rows}
 
 
-def peek_rows(room_types: Iterable[str], nights: Iterable[date]) -> dict[tuple[str, date], dict]:
+def peek_rows(room_types: Iterable[str], nights: Iterable[date]) -> dict[tuple[str, date], frappe._dict]:
 	"""Read rows without creating or locking anything (for quotes).
 
 	Nights with no row yet are computed from the records, exactly as `ensure_rows` would create them.

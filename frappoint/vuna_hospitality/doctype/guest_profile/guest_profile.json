@@ -1,0 +1,484 @@
+{
+ "actions": [],
+ "creation": "2026-11-11 12:40:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "naming_series",
+  "salutation",
+  "first_name",
+  "last_name",
+  "preferred_name",
+  "column_break_name",
+  "full_name",
+  "is_provisional",
+  "merged_into",
+  "contact_section",
+  "email",
+  "mobile_no",
+  "column_break_contact",
+  "language",
+  "nationality",
+  "status_section",
+  "vip_level",
+  "column_break_status",
+  "restriction_flag",
+  "restriction_reason",
+  "identity_section",
+  "date_of_birth",
+  "column_break_identity",
+  "id_document_type",
+  "id_document_number",
+  "id_document_hint",
+  "links_section",
+  "customer",
+  "contact",
+  "column_break_links",
+  "user",
+  "consent_section",
+  "marketing_consent",
+  "column_break_consent",
+  "consent_date",
+  "consent_source",
+  "relationships_section",
+  "relationships_html"
+ ],
+ "fields": [
+  {
+   "fieldname": "naming_series",
+   "fieldtype": "Select",
+   "label": "Series",
+   "options": "GP-.#####",
+   "default": "GP-.#####",
+   "hidden": 1,
+   "set_only_once": 1
+  },
+  {
+   "fieldname": "salutation",
+   "fieldtype": "Link",
+   "label": "Title",
+   "options": "Salutation"
+  },
+  {
+   "fieldname": "first_name",
+   "fieldtype": "Data",
+   "label": "First Name",
+   "reqd": 1
+  },
+  {
+   "fieldname": "last_name",
+   "fieldtype": "Data",
+   "label": "Last Name"
+  },
+  {
+   "fieldname": "preferred_name",
+   "fieldtype": "Data",
+   "label": "Preferred Name",
+   "description": "What the guest likes to be called, if not their first name."
+  },
+  {
+   "fieldname": "column_break_name",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "full_name",
+   "fieldtype": "Data",
+   "label": "Full Name",
+   "read_only": 1,
+   "in_list_view": 1,
+   "search_index": 1,
+   "bold": 1
+  },
+  {
+   "fieldname": "is_provisional",
+   "fieldtype": "Check",
+   "label": "Provisional",
+   "in_standard_filter": 1,
+   "description": "A placeholder for a guest whose details aren't known yet, e.g. 'Guest of Mr Otieno'. Complete it before check-in."
+  },
+  {
+   "fieldname": "merged_into",
+   "fieldtype": "Link",
+   "label": "Merged Into",
+   "options": "Guest Profile",
+   "read_only": 1,
+   "depends_on": "eval:doc.merged_into"
+  },
+  {
+   "fieldname": "contact_section",
+   "fieldtype": "Section Break",
+   "label": "Contact"
+  },
+  {
+   "fieldname": "email",
+   "fieldtype": "Data",
+   "label": "Email",
+   "options": "Email",
+   "in_list_view": 1,
+   "search_index": 1
+  },
+  {
+   "fieldname": "mobile_no",
+   "fieldtype": "Data",
+   "label": "Mobile No",
+   "options": "Phone",
+   "in_list_view": 1,
+   "search_index": 1,
+   "description": "Stored as digits only, with + for international numbers."
+  },
+  {
+   "fieldname": "column_break_contact",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "language",
+   "fieldtype": "Link",
+   "label": "Language",
+   "options": "Language"
+  },
+  {
+   "fieldname": "nationality",
+   "fieldtype": "Link",
+   "label": "Nationality",
+   "options": "Country",
+   "in_standard_filter": 1
+  },
+  {
+   "fieldname": "status_section",
+   "fieldtype": "Section Break",
+   "label": "Guest Status"
+  },
+  {
+   "fieldname": "vip_level",
+   "fieldtype": "Select",
+   "label": "VIP Level",
+   "options": "\nVIP 1\nVIP 2\nVIP 3",
+   "in_standard_filter": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "column_break_status",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "restriction_flag",
+   "fieldtype": "Check",
+   "label": "Do Not Rent",
+   "permlevel": 2,
+   "in_standard_filter": 1,
+   "description": "Warn staff before booking or checking in this guest. Changes are recorded in the event log."
+  },
+  {
+   "fieldname": "restriction_reason",
+   "fieldtype": "Small Text",
+   "label": "Restriction Reason",
+   "permlevel": 2,
+   "depends_on": "eval:doc.restriction_flag",
+   "mandatory_depends_on": "eval:doc.restriction_flag"
+  },
+  {
+   "fieldname": "identity_section",
+   "fieldtype": "Section Break",
+   "label": "Identity",
+   "collapsible": 1,
+   "description": "Only collect what the stay or the law requires. Visible to front-desk and management roles."
+  },
+  {
+   "fieldname": "date_of_birth",
+   "fieldtype": "Date",
+   "label": "Date of Birth",
+   "permlevel": 1
+  },
+  {
+   "fieldname": "column_break_identity",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "id_document_type",
+   "fieldtype": "Select",
+   "label": "ID Document Type",
+   "permlevel": 1,
+   "options": "\nNational ID\nPassport\nAlien ID\nDriving Licence\nOther"
+  },
+  {
+   "fieldname": "id_document_number",
+   "fieldtype": "Password",
+   "label": "ID Document Number",
+   "permlevel": 1,
+   "description": "Stored encrypted. Use 'Show ID Number' to see it; each view is recorded."
+  },
+  {
+   "fieldname": "id_document_hint",
+   "fieldtype": "Data",
+   "label": "ID Number (Masked)",
+   "permlevel": 1,
+   "read_only": 1,
+   "depends_on": "eval:doc.id_document_hint"
+  },
+  {
+   "fieldname": "links_section",
+   "fieldtype": "Section Break",
+   "label": "Linked Records"
+  },
+  {
+   "fieldname": "customer",
+   "fieldtype": "Link",
+   "label": "Customer",
+   "options": "Customer",
+   "in_standard_filter": 1,
+   "description": "Who pays when this guest is billed personally. A company Customer may be linked to many guests."
+  },
+  {
+   "fieldname": "contact",
+   "fieldtype": "Link",
+   "label": "Contact",
+   "options": "Contact"
+  },
+  {
+   "fieldname": "column_break_links",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "user",
+   "fieldtype": "Link",
+   "label": "User",
+   "options": "User",
+   "description": "The guest's portal login, if they have one."
+  },
+  {
+   "fieldname": "consent_section",
+   "fieldtype": "Section Break",
+   "label": "Consent"
+  },
+  {
+   "fieldname": "marketing_consent",
+   "fieldtype": "Check",
+   "label": "Marketing Consent",
+   "description": "The guest agreed to receive offers. Changes are recorded in the event log."
+  },
+  {
+   "fieldname": "column_break_consent",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "consent_date",
+   "fieldtype": "Datetime",
+   "label": "Consent Date",
+   "read_only": 1
+  },
+  {
+   "fieldname": "consent_source",
+   "fieldtype": "Data",
+   "label": "Consent Source",
+   "description": "Where consent was given or withdrawn, e.g. Registration Card, Website."
+  },
+  {
+   "fieldname": "relationships_section",
+   "fieldtype": "Section Break",
+   "label": "Relationships",
+   "depends_on": "eval:!doc.__islocal"
+  },
+  {
+   "fieldname": "relationships_html",
+   "fieldtype": "HTML",
+   "label": "Relationships"
+  }
+ ],
+ "index_web_pages_for_search": 0,
+ "links": [
+  {
+   "link_doctype": "Guest Relationship",
+   "link_fieldname": "guest_profile",
+   "group": "Guests"
+  }
+ ],
+ "modified": "2026-11-11 12:40:00.000000",
+ "modified_by": "Administrator",
+ "module": "Vuna Hospitality",
+ "name": "Guest Profile",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "role": "System Manager",
+   "create": 1,
+   "read": 1,
+   "write": 1,
+   "report": 1,
+   "print": 1,
+   "email": 1,
+   "share": 1,
+   "export": 1,
+   "delete": 1
+  },
+  {
+   "role": "Hospitality Manager",
+   "create": 1,
+   "read": 1,
+   "write": 1,
+   "report": 1,
+   "print": 1,
+   "email": 1,
+   "share": 1,
+   "export": 1
+  },
+  {
+   "role": "Reservations Agent",
+   "create": 1,
+   "read": 1,
+   "write": 1,
+   "report": 1,
+   "print": 1,
+   "email": 1
+  },
+  {
+   "role": "Front Desk Agent",
+   "create": 1,
+   "read": 1,
+   "write": 1,
+   "report": 1,
+   "print": 1,
+   "email": 1
+  },
+  {
+   "role": "Front Desk Manager",
+   "create": 1,
+   "read": 1,
+   "write": 1,
+   "report": 1,
+   "print": 1,
+   "email": 1
+  },
+  {
+   "role": "Guest Services Agent",
+   "create": 1,
+   "read": 1,
+   "write": 1,
+   "report": 1,
+   "print": 1,
+   "email": 1
+  },
+  {
+   "role": "Cashier",
+   "read": 1,
+   "report": 1,
+   "print": 1
+  },
+  {
+   "role": "Hotel Accountant",
+   "read": 1,
+   "report": 1,
+   "print": 1
+  },
+  {
+   "role": "Night Auditor",
+   "read": 1,
+   "report": 1,
+   "print": 1
+  },
+  {
+   "role": "Data Protection Officer",
+   "create": 1,
+   "read": 1,
+   "write": 1,
+   "report": 1,
+   "print": 1,
+   "email": 1,
+   "share": 1,
+   "export": 1,
+   "delete": 1
+  },
+  {
+   "role": "System Manager",
+   "permlevel": 1,
+   "read": 1,
+   "write": 1
+  },
+  {
+   "role": "Hospitality Manager",
+   "permlevel": 1,
+   "read": 1,
+   "write": 1
+  },
+  {
+   "role": "Front Desk Manager",
+   "permlevel": 1,
+   "read": 1,
+   "write": 1
+  },
+  {
+   "role": "Front Desk Agent",
+   "permlevel": 1,
+   "read": 1,
+   "write": 1
+  },
+  {
+   "role": "Data Protection Officer",
+   "permlevel": 1,
+   "read": 1,
+   "write": 1
+  },
+  {
+   "role": "System Manager",
+   "permlevel": 2,
+   "read": 1,
+   "write": 1
+  },
+  {
+   "role": "Hospitality Manager",
+   "permlevel": 2,
+   "read": 1,
+   "write": 1
+  },
+  {
+   "role": "Front Desk Manager",
+   "permlevel": 2,
+   "read": 1,
+   "write": 1
+  },
+  {
+   "role": "Reservations Agent",
+   "permlevel": 2,
+   "read": 1
+  },
+  {
+   "role": "Front Desk Agent",
+   "permlevel": 2,
+   "read": 1
+  },
+  {
+   "role": "Guest Services Agent",
+   "permlevel": 2,
+   "read": 1
+  },
+  {
+   "role": "Cashier",
+   "permlevel": 2,
+   "read": 1
+  },
+  {
+   "role": "Hotel Accountant",
+   "permlevel": 2,
+   "read": 1
+  },
+  {
+   "role": "Night Auditor",
+   "permlevel": 2,
+   "read": 1
+  },
+  {
+   "role": "Data Protection Officer",
+   "permlevel": 2,
+   "read": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1,
+ "autoname": "naming_series:",
+ "naming_rule": "By \"Naming Series\" field",
+ "title_field": "full_name",
+ "show_title_field_in_link": 1,
+ "search_fields": "full_name,email,mobile_no"
+}

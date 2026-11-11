@@ -104,7 +104,12 @@ def make_test_property(
 	Returns (property_doc, {room_type_code: [room names]}). Nothing is committed.
 	"""
 	room_types = room_types or {"STD": 3, "DLX": 2}
-	company = company or frappe.db.get_value("Company", {}, "name")
+	# Prefer a company that can invoice: charge codes need an income account for every hotel company.
+	company = (
+		company
+		or frappe.db.get_value("Company", {"default_income_account": ["is", "set"]}, "name")
+		or frappe.db.get_value("Company", {}, "name")
+	)
 	prop = frappe.get_doc(
 		{
 			"doctype": "Hotel Property",
@@ -149,13 +154,9 @@ def make_test_property(
 
 
 def make_test_rate_setup(property_name: str, code: str = "BAR"):
-	"""Create what a rate plan needs (charge department, room charge code with an Item, cancellation
-	and deposit policies) and a nightly rate plan. Returns the Rate Plan document. Nothing is committed.
+	"""Create what a rate plan needs (a room charge code with an Item, cancellation and deposit
+	policies) and a nightly rate plan. Returns the Rate Plan document. Nothing is committed.
 	"""
-	if not frappe.db.exists("Charge Department", "Rooms"):
-		frappe.get_doc({"doctype": "Charge Department", "department_name": "Rooms"}).insert(
-			ignore_permissions=True
-		)
 
 	item_code = "HSP-TEST-ROOM-NIGHT"
 	if not frappe.db.exists("Item", item_code):
@@ -178,7 +179,6 @@ def make_test_rate_setup(property_name: str, code: str = "BAR"):
 				"doctype": "Charge Code",
 				"code": "TROOM",
 				"description": "Test Room Charge",
-				"charge_department": "Rooms",
 				"transaction_type": "Revenue",
 				"item": item_code,
 				"is_room_revenue": 1,

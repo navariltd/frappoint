@@ -110,23 +110,54 @@ def set_housekeeping_condition(room: str, condition: str, reason: str | None = N
 	if not HOUSEKEEPING_ROLES & set(frappe.get_roles()):
 		raise frappe.PermissionError(_("You are not allowed to change a room's housekeeping condition."))
 
-	doc = frappe.get_doc("Hotel Room", room)
-	assert_property_access(doc.property)
-	previous = doc.housekeeping_condition
-	if previous == condition:
-		return {"room": room, "housekeeping_condition": condition, "changed": False}
+	assert_property_access(frappe.db.get_value("Hotel Room", room, "property"))
+	changed = mark_room(room, housekeeping_condition=condition, reason=reason)
+	return {"room": room, "housekeeping_condition": condition, "changed": changed}
 
-	doc.db_set("housekeeping_condition", condition)
-	log_event(
-		"Hotel Room",
-		room,
-		"Housekeeping Condition Changed",
-		from_status=previous,
-		to_status=condition,
-		reason=reason,
-		property_name=doc.property,
-	)
-	return {"room": room, "housekeeping_condition": condition, "changed": True}
+
+OCCUPANCY_STATUSES = ("Vacant", "Reserved", "Due In", "Occupied", "Due Out", "Day Use")
+
+
+def mark_room(
+	room: str,
+	*,
+	occupancy_status: str | None = None,
+	housekeeping_condition: str | None = None,
+	reason: str | None = None,
+) -> bool:
+	"""Set a room's occupancy status and/or housekeeping condition, logging each change.
+
+	For the services that own these states (front desk, housekeeping); callers check permissions.
+	Returns True if anything changed.
+	"""
+	if occupancy_status and occupancy_status not in OCCUPANCY_STATUSES:
+		frappe.throw(_("Occupancy status must be one of: {0}.").format(", ".join(OCCUPANCY_STATUSES)))
+	if housekeeping_condition and housekeeping_condition not in HOUSEKEEPING_CONDITIONS:
+		frappe.throw(
+			_("Housekeeping condition must be one of: {0}.").format(", ".join(HOUSEKEEPING_CONDITIONS))
+		)
+
+	doc = frappe.get_doc("Hotel Room", room)
+	changed = False
+	for field, value, event in (
+		("occupancy_status", occupancy_status, "Occupancy Status Changed"),
+		("housekeeping_condition", housekeeping_condition, "Housekeeping Condition Changed"),
+	):
+		previous = doc.get(field)
+		if not value or previous == value:
+			continue
+		doc.db_set(field, value)
+		log_event(
+			"Hotel Room",
+			room,
+			event,
+			from_status=previous,
+			to_status=value,
+			reason=reason,
+			property_name=doc.property,
+		)
+		changed = True
+	return changed
 
 
 def update_room_type_counts(*room_types: str | None) -> None:
