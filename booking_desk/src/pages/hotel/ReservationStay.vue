@@ -391,8 +391,10 @@ async function run(command) {
 		details.value = await command();
 		await loadRooms();
 	} catch (e) {
-		error.value = hotelErrorMessage(e);
+		const message = hotelErrorMessage(e);
+		// Reload first: loading clears the error, and the message must stay on screen.
 		await load();
+		error.value = message;
 	} finally {
 		busy.value = false;
 	}
