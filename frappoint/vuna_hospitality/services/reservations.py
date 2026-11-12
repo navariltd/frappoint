@@ -213,6 +213,7 @@ def _prepare_stay(property_name: str, prop, limits, stay: dict):
 		stay.rate_plan,
 		cint(stay.get("adults") or 1),
 		cint(stay.get("children")),
+		stay.get("child_ages"),
 	)
 	sold_out = next((night for night in stay_quote.nights if night.reason == SOLD_OUT), None)
 	if sold_out:
@@ -332,6 +333,7 @@ def _create_stay(booking, p, expires_at) -> str:
 			"lead_guest": stay.lead_guest,
 			"adults": adults,
 			"children": children,
+			"child_ages": frappe.as_json(q.child_ages) if q.child_ages else None,
 			"arrival_date": p.arrival,
 			"departure_date": p.departure,
 			"nights": len(q.nights),
@@ -367,6 +369,10 @@ def _create_stay(booking, p, expires_at) -> str:
 	)
 	for night in q.nights:
 		amount = from_minor(night.amount_minor, q.currency)
+		components = [
+			{**component, "amount": from_minor(component["amount_minor"], q.currency)}
+			for component in night.components
+		]
 		_new(
 			RATE_NIGHT,
 			{
@@ -379,8 +385,11 @@ def _create_stay(booking, p, expires_at) -> str:
 				"children": children,
 				"currency": q.currency,
 				"tax_inclusive": int(q.tax_inclusive),
-				"room_rate": amount,
+				"room_rate": from_minor(night.room_rate_minor, q.currency),
+				"extras_amount": from_minor(night.extras_minor, q.currency),
+				"package_amount": from_minor(night.package_minor, q.currency),
 				"total": amount,
+				"components": frappe.as_json(components),
 				"posting_state": "Pending",
 			},
 		)
