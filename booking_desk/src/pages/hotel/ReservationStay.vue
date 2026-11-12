@@ -262,6 +262,39 @@
 				</section>
 			</div>
 
+			<section
+				v-if="details.folios.length"
+				class="rounded-xl border border-outline-variant bg-surface-container-lowest p-4 space-y-2"
+			>
+				<div class="flex items-center justify-between">
+					<h2 class="text-[15px] font-semibold">Folios</h2>
+					<RouterLink
+						v-if="actions.can_view_folios"
+						:to="{ name: 'HotelFolios', params: { stayId: stay.name } }"
+						class="text-[12px] font-semibold text-primary"
+						>Open folios →</RouterLink
+					>
+				</div>
+				<ul class="divide-y divide-outline-variant text-[13px]">
+					<li
+						v-for="folio in details.folios"
+						:key="folio.name"
+						class="flex items-center justify-between gap-3 py-2"
+					>
+						<span>
+							<b>{{ folio.folio_label }}</b>
+							<span class="text-on-surface-variant">
+								· {{ folio.payee_name || "Payee not set" }}</span
+							>
+						</span>
+						<span class="flex items-center gap-3">
+							<HotelStatusBadge :status="folio.status" />
+							<b>{{ formatMoney(folio.balance, folio.currency) }}</b>
+						</span>
+					</li>
+				</ul>
+			</section>
+
 			<div class="grid md:grid-cols-2 gap-5">
 				<section
 					class="rounded-xl border border-outline-variant bg-surface-container-lowest p-4"
@@ -417,9 +450,21 @@ function pickRoom(room) {
 }
 
 function checkOut() {
-	if (window.confirm(`Check out ${stay.value.lead_guest_name}?`)) {
-		run(() => checkOutApi(stay.value.name));
+	const name = stay.value.lead_guest_name;
+	const owing = Number(details.value.open_balance || 0);
+	if (!owing) {
+		if (window.confirm(`Check out ${name}?`)) run(() => checkOutApi(stay.value.name));
+		return;
 	}
+	const amount = formatMoney(owing, stay.value.currency);
+	if (!actions.value.can_override_check_out) {
+		error.value = `${name} still owes ${amount}. Settle the folio first, or ask a Front Desk Manager.`;
+		return;
+	}
+	const reason = window.prompt(
+		`${name} still owes ${amount}. Why check out anyway? The balance stays on the folio for settlement.`
+	);
+	if (reason && reason.trim()) run(() => checkOutApi(stay.value.name, reason.trim()));
 }
 
 function removeGuest(guest) {

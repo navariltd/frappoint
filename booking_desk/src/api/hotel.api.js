@@ -30,6 +30,12 @@ export const HOTEL_ENDPOINTS = {
 	setPrimaryGuest: `${HOSPITALITY_API}.front_desk.set_primary_guest`,
 	registerGuest: `${HOSPITALITY_API}.front_desk.register_guest`,
 	checkInGuest: `${HOSPITALITY_API}.front_desk.check_in_guest`,
+	stayFolios: `${HOSPITALITY_API}.folios.get_stay_folios`,
+	searchFolioItems: `${HOSPITALITY_API}.folios.search_items`,
+	folioItemRate: `${HOSPITALITY_API}.folios.get_item_rate`,
+	postFolioCharge: `${HOSPITALITY_API}.folios.post_charge`,
+	reverseFolioTransaction: `${HOSPITALITY_API}.folios.reverse_transaction`,
+	rebuildFolioBalance: `${HOSPITALITY_API}.folios.rebuild_folio_balance`,
 };
 
 const unwrapPayload = (payload) => payload?.message ?? payload ?? null;
@@ -98,7 +104,8 @@ export const moveRoomApi = (stay, room, moveReason) =>
 	request(HOTEL_ENDPOINTS.moveRoom, { stay, room, move_reason: moveReason });
 export const checkInApi = (stay, room) =>
 	request(HOTEL_ENDPOINTS.checkIn, { stay, room: room || null });
-export const checkOutApi = (stay) => request(HOTEL_ENDPOINTS.checkOut, { stay });
+export const checkOutApi = (stay, overrideReason = null) =>
+	request(HOTEL_ENDPOINTS.checkOut, { stay, override_reason: overrideReason });
 export const addStayGuestApi = (stay, guestProfile, ageCategory = "Adult") =>
 	request(HOTEL_ENDPOINTS.addStayGuest, {
 		stay,
@@ -113,3 +120,35 @@ export const registerGuestApi = (stayGuest) =>
 	request(HOTEL_ENDPOINTS.registerGuest, { stay_guest: stayGuest });
 export const checkInGuestApi = (stayGuest) =>
 	request(HOTEL_ENDPOINTS.checkInGuest, { stay_guest: stayGuest });
+
+// Folios (F7)
+export const fetchStayFoliosApi = (stay) => request(HOTEL_ENDPOINTS.stayFolios, { stay });
+export const searchFolioItemsApi = (folio, text) =>
+	request(HOTEL_ENDPOINTS.searchFolioItems, { folio_name: folio, text });
+export const fetchFolioItemRateApi = (folio, item) =>
+	request(HOTEL_ENDPOINTS.folioItemRate, { folio_name: folio, item });
+/** `requestId` stays the same across retries of one charge, so it posts once. */
+export const postFolioChargeApi = ({
+	folio,
+	item,
+	quantity,
+	rate,
+	description,
+	stayGuest,
+	notes,
+	requestId,
+}) =>
+	request(HOTEL_ENDPOINTS.postFolioCharge, {
+		folio_name: folio,
+		item,
+		quantity,
+		rate,
+		description: description || null,
+		stay_guest: stayGuest || null,
+		notes: notes || null,
+		request_id: requestId,
+	});
+export const reverseFolioTransactionApi = (transaction, reason) =>
+	request(HOTEL_ENDPOINTS.reverseFolioTransaction, { transaction, reason });
+export const rebuildFolioBalanceApi = (folio) =>
+	request(HOTEL_ENDPOINTS.rebuildFolioBalance, { folio_name: folio });
