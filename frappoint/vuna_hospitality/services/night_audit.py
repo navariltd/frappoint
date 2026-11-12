@@ -5,12 +5,14 @@ as a background job on the `long` queue, as one **Night Audit Run** per property
 date, in three stages:
 
 1. **Post room charges.** Every in-house stay's Stay Rate Night for the day is posted to the stay's
-   default folio with the key `night:<stay>:<date>:room`, carrying the business date being closed.
-   The job commits after each night, so a run that dies keeps what it posted.
-2. **Roll statuses.** Stays arriving on the next business date become Due In, and stays leaving
+   default folio, carrying the business date being closed: the room line (key
+   `night:<stay>:<date>:room`), extra-adult, child and package lines, and the property's nightly
+   levies (F9). The job commits after each night, so a run that dies keeps what it posted.
+2. **Expire allowances.** Unused package allowances whose last valid day closes move to breakage.
+3. **Roll statuses.** Stays arriving on the next business date become Due In, and stays leaving
    by then become Due Out. Arrivals that never checked in are listed as no-show candidates;
    no-show charges and status come with F12.
-3. **Advance the business date**, as the last step and in its own transaction.
+4. **Advance the business date**, as the last step and in its own transaction.
 
 A failed run is started again from the Night Audit page: completed stages are skipped and the
 unfinished stage runs again. Posting keys make the repeat safe, so no night is charged twice. A run
@@ -48,9 +50,10 @@ ACTIVE_STATUSES = (QUEUED, RUNNING)
 PENDING = "Pending"
 
 POST_ROOM_CHARGES = "Post Room Charges"
+EXPIRE_ALLOWANCES = "Expire Allowances"
 ROLL_STATUSES = "Roll Statuses"
 ADVANCE_BUSINESS_DATE = "Advance Business Date"
-STAGES = (POST_ROOM_CHARGES, ROLL_STATUSES, ADVANCE_BUSINESS_DATE)
+STAGES = (POST_ROOM_CHARGES, EXPIRE_ALLOWANCES, ROLL_STATUSES, ADVANCE_BUSINESS_DATE)
 
 IN_HOUSE_STATUSES = ("In House", "Due Out")
 NO_SHOW_CANDIDATE_STATUSES = ("Confirmed", "Due In")
@@ -85,14 +88,30 @@ def run_name(property_name: str, business_date) -> str:
 def post_room_night(night_name: str, business_date=None) -> dict | None:
 	"""Post one Stay Rate Night to its stay's default folio, exactly once.
 
-	Returns {"name", "created"} like `folio.post`, or None when the night was waived (a zero rate)
-	or is no longer pending. `business_date` is the day the posting belongs to; it defaults to the
-	property's current business date.
+	The night posts as the components snapshotted when the stay was held (room, extra adults,
+	child bands, package components), each under its own charge code and key
+	`night:<stay>:<date>:<component>`, then the property's nightly levies. Allowance components
+	also grant their allowance. Taxes follow the stay's rate plan: inclusive or added on top.
+
+	Returns {"name", "created"} for the room line (`created` is True if any line was new), or None
+	when the night was waived (a zero rate) or is no longer pending. `business_date` is the day the
+	postings belong to; it defaults to the property's current business date.
 	"""
+	from frappoint.vuna_hospitality.services import allowances
+
 	night = _row(
 		RATE_NIGHT,
 		night_name,
-		["name", "stay_reservation", "night_date", "total", "posting_state", "posting_key"],
+		[
+			"name",
+			"stay_reservation",
+			"night_date",
+			"total",
+			"tax_inclusive",
+			"components",
+			"posting_state",
+			"posting_key",
+		],
 	)
 	if not night:
 		frappe.throw(_("Stay Rate Night {0} does not exist.").format(night_name), frappe.DoesNotExistError)
@@ -102,38 +121,95 @@ def post_room_night(night_name: str, business_date=None) -> dict | None:
 	if night.posting_state != PENDING:
 		return None
 
-	stay = _row(STAY, night.stay_reservation, ["name", "property", "rate_plan", "default_folio", "currency"])
-	key = f"night:{stay.name}:{getdate(night.night_date)}:room"
+	stay = _row(
+		STAY,
+		night.stay_reservation,
+		["name", "property", "rate_plan", "default_folio", "currency", "adults", "children"],
+	)
+	night_date = getdate(night.night_date)
+	prefix = f"night:{stay.name}:{night_date}"
 	if not to_minor(night.total, stay.currency):
 		# A complimentary night has nothing to charge.
 		frappe.db.set_value(
-			RATE_NIGHT,
-			night.name,
-			{"posting_state": "Waived", "override_reason": _("Zero rate")},
+			RATE_NIGHT, night.name, {"posting_state": "Waived", "override_reason": _("Zero rate")}
 		)
 		return None
 
 	folio_name = stay.default_folio or folio.ensure_default_folio(stay.name)
-	charge_code = frappe.db.get_value("Rate Plan", stay.rate_plan, "room_charge_code")
 	primary_guest = frappe.db.get_value(
 		"Stay Guest",
 		{"stay_reservation": stay.name, "role": "Primary", "status": ["!=", "Removed"]},
 		"name",
 	)
-	result = folio.post(
-		folio_name,
-		charge_code,
-		night.total,
-		posting_key=key,
-		business_date=business_date,
-		service_date=night.night_date,
-		source_doctype=RATE_NIGHT,
-		source_name=night.name,
-		stay_guest=primary_guest,
-	)
+	components = frappe.parse_json(night.components) if night.components else None
+	if not components:
+		# Stays held before F9 have no split: the whole night is room revenue.
+		room_code = frappe.db.get_value("Rate Plan", stay.rate_plan, "room_charge_code")
+		components = [{"key": "room", "charge_code": room_code, "label": None, "amount": night.total}]
+
+	common = {
+		"business_date": business_date,
+		"service_date": night_date,
+		"source_doctype": RATE_NIGHT,
+		"source_name": night.name,
+		"stay_guest": primary_guest,
+	}
+	room_result, created = None, False
+	for component in components:
+		if not to_minor(component["amount"], stay.currency):
+			continue
+		result = folio.post(
+			folio_name,
+			component["charge_code"],
+			component["amount"],
+			posting_key=f"{prefix}:{component['key']}",
+			description=None if component["key"] == "room" else component.get("label"),
+			source_line=component["key"],
+			tax_inclusive=bool(night.tax_inclusive),
+			**common,
+		)
+		created = created or result["created"]
+		if component["key"] == "room":
+			room_result = result
+		if component.get("allowance"):
+			allowances.grant(stay.name, folio_name, night, component, result["name"])
+
+	for levy in _nightly_levies(stay.property):
+		count = {"Per Adult": stay.adults, "Per Person": stay.adults + stay.children}.get(levy.basis, 1)
+		amount_minor = to_minor(levy.amount, stay.currency) * cint(count)
+		if amount_minor <= 0:
+			continue
+		result = folio.post(
+			folio_name,
+			levy.charge_code,
+			from_minor(amount_minor, stay.currency),
+			posting_key=f"{prefix}:levy:{levy.charge_code}",
+			quantity=count,
+			source_line=f"levy:{levy.charge_code}",
+			# A levy is a fixed amount: any tax on it is added, never carved out of it.
+			tax_inclusive=False,
+			**common,
+		)
+		created = created or result["created"]
+
+	key = f"{prefix}:room"
 	frappe.db.set_value(RATE_NIGHT, night.name, {"posting_state": "Posted", "posting_key": key})
 	folio.refresh_pending(folio_name)
-	return result
+	room_name = (
+		room_result["name"]
+		if room_result
+		else frappe.db.get_value(folio.TRANSACTION, {"posting_key": key}, "name")
+	)
+	return {"name": room_name, "created": created}
+
+
+def _nightly_levies(property_name: str) -> list:
+	return frappe.get_all(
+		"Hotel Nightly Levy",
+		filters={"parent": property_name, "parenttype": PROPERTY},
+		fields=["charge_code", "basis", "amount"],
+		order_by="idx asc",
+	)
 
 
 def post_due_nights(stay_name: str, before, business_date=None) -> list[dict]:
@@ -415,6 +491,47 @@ def _post_night_with_retry(night_name: str, business_date) -> dict | None:
 		return result
 
 
+def _expire_allowances(run, stage) -> tuple[dict, str | None]:
+	"""Stage 2 (F9): package allowances whose last valid day is the closing date move to breakage."""
+	from frappoint.vuna_hospitality.services import allowances
+
+	counts: Counter = Counter()
+	failures: dict[str, str] = {}
+	stays = frappe.get_all(
+		allowances.ENTRY,
+		filters={
+			"property": run.property,
+			"entry_type": allowances.GRANT,
+			"expires_on": ["<=", getdate(run.business_date)],
+		},
+		pluck="stay_reservation",
+		distinct=True,
+		order_by="stay_reservation asc",
+	)
+	for stay_name in stays:
+		frappe.db.savepoint(NIGHT_SAVEPOINT)
+		try:
+			expired = allowances.expire(stay_name, run.business_date)
+		except Exception as error:
+			_rollback_to(NIGHT_SAVEPOINT)
+			failures[stay_name] = str(error) or error.__class__.__name__
+			frappe.log_error(
+				title=f"Night audit {run.name}: allowances {stay_name}",
+				reference_doctype=STAY,
+				reference_name=stay_name,
+			)
+			continue
+		counts["processed"] += 1
+		counts["posted" if expired else "skipped"] += expired or 1
+		frappe.db.commit()  # nosemgrep
+	counts["failed"] = len(failures)
+	message = None
+	if failures:
+		listed = "; ".join(f"{name}: {error}" for name, error in list(failures.items())[:LISTED_FAILURES])
+		message = _("{0} stay(s) not expired. {1}").format(len(failures), listed)
+	return dict(counts), message
+
+
 def _roll_statuses(run, stage) -> tuple[dict, str | None]:
 	"""Stage 2: stays arriving on the next business date are Due In, stays leaving by it Due Out."""
 	next_date = add_days(getdate(run.business_date), 1)
@@ -489,6 +606,7 @@ def _advance_business_date(run, stage) -> tuple[dict, str | None]:
 
 STAGE_RUNNERS = {
 	POST_ROOM_CHARGES: _post_room_charges,
+	EXPIRE_ALLOWANCES: _expire_allowances,
 	ROLL_STATUSES: _roll_statuses,
 	ADVANCE_BUSINESS_DATE: _advance_business_date,
 }

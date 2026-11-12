@@ -255,7 +255,7 @@ class TestNightAuditApi(NightAuditTestCase):
 			frappe.set_user(auditor)
 			overview = night_audit_api.start_night_audit(self.CODE)
 		self.assertEqual((overview["run"]["status"], overview["can_start"]), ("Queued", True))
-		self.assertEqual(len(overview["run"]["stages"]), 3)
+		self.assertEqual(len(overview["run"]["stages"]), 4)
 
 	def test_overview_previews_tonight(self):
 		stay = self.in_house_stay(nights=2)

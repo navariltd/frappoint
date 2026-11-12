@@ -23,7 +23,7 @@ from frappe import _
 from frappe.utils import add_days, cint, get_datetime, getdate, now_datetime
 
 from frappoint.vuna_hospitality.constants import FOLIO_MANAGER_ROLES
-from frappoint.vuna_hospitality.services import folio, inventory, night_audit, reservations
+from frappoint.vuna_hospitality.services import allowances, folio, inventory, night_audit, reservations
 from frappoint.vuna_hospitality.services.event_log import log_event
 from frappoint.vuna_hospitality.services.guests import assert_registrable
 from frappoint.vuna_hospitality.services.money import from_minor, to_minor
@@ -619,6 +619,8 @@ def check_out(stay_name: str, override_reason: str | None = None) -> None:
 	# Nights the guest used that night audit hasn't posted yet (a same-day departure) are charged
 	# now, with night audit's posting keys, so they are settled before the guest leaves.
 	night_audit.post_due_nights(stay.name, leaving_on, business_date)
+	# Unused package allowances end with the stay (F9); this leaves the balance unchanged.
+	allowances.expire(stay.name, business_date, everything=True)
 	assert_ready_to_check_out(stay, override_reason)
 
 	early = getdate(leaving_on) < getdate(stay.departure_date)
