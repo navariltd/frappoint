@@ -30,6 +30,7 @@ from frappe.utils import cint, flt, getdate, now_datetime
 
 from frappoint.vuna_hospitality.constants import FOLIO_MANAGER_ROLES
 from frappoint.vuna_hospitality.doctype.charge_code.charge_code import income_account, is_in_group
+from frappoint.vuna_hospitality.services import taxes
 from frappoint.vuna_hospitality.services.event_log import log_event
 from frappoint.vuna_hospitality.services.inventory import InventoryConflictError
 from frappoint.vuna_hospitality.services.money import from_minor, to_minor
@@ -373,7 +374,9 @@ def post(
 	direction: str | None = None,
 	quantity=1,
 	unit_rate=None,
-	tax_amount=0,
+	tax_amount=None,
+	tax_inclusive: bool | None = None,
+	tax_breakdown=None,
 	item: str | None = None,
 	description: str | None = None,
 	business_date=None,
@@ -390,9 +393,14 @@ def post(
 ) -> dict:
 	"""Post one transaction to `folio`, exactly once per `posting_key`.
 
-	`amount` is the gross amount, always positive; `direction` (Debit or Credit) defaults to the
-	code's natural direction. Returns {"name", "created"}: `created` is False when the key was
-	already posted, and the existing transaction is returned unchanged.
+	`amount` is always positive; `direction` (Debit or Credit) defaults to the code's natural
+	direction. Revenue and allowance lines with an Item are taxed by ERPNext (services/taxes.py):
+	with `tax_inclusive` (default: the property's "Front-Desk Prices Include Tax") `amount` is the
+	gross and is split into net and tax; otherwise it is the net and the tax is added. A caller that
+	already knows the tax (a reversal) passes `tax_amount` and `amount` as the gross.
+
+	Returns {"name", "created"}: `created` is False when the key was already posted, and the
+	existing transaction is returned unchanged.
 	"""
 	posting_key = (posting_key or "").strip()
 	if not posting_key or len(posting_key) > POSTING_KEY_LENGTH:
@@ -418,12 +426,9 @@ def post(
 
 	direction = _direction(code, direction, is_reversal=bool(reverses))
 	currency = folio_doc.currency
-	gross_minor = to_minor(amount, currency)
-	tax_minor = to_minor(tax_amount, currency)
-	if gross_minor <= 0:
+	amount_minor = to_minor(amount, currency)
+	if amount_minor <= 0:
 		frappe.throw(_("The amount must be more than zero."), PostingError)
-	if tax_minor < 0 or tax_minor > gross_minor:
-		frappe.throw(_("The tax can't be negative or more than the amount."), PostingError)
 	quantity = flt(quantity) or 1
 	if quantity <= 0:
 		frappe.throw(_("The quantity must be more than zero."), PostingError)
@@ -435,6 +440,26 @@ def post(
 		else frappe._dict(item_name=None, item_group=None)
 	)
 	business_date = getdate(business_date or _business_date(folio_doc.property))
+	if tax_amount is not None:
+		gross_minor, tax_minor = amount_minor, to_minor(tax_amount, currency)
+	elif item and code.transaction_type in ITEM_TYPES:
+		if tax_inclusive is None:
+			tax_inclusive = bool(
+				frappe.db.get_value("Hotel Property", folio_doc.property, "prices_include_tax")
+			)
+		taxed = taxes.compute(
+			folio_doc.property,
+			item,
+			from_minor(amount_minor, currency),
+			inclusive=tax_inclusive,
+			quantity=quantity,
+			on_date=business_date,
+		)
+		gross_minor, tax_minor, tax_breakdown = taxed.gross_minor, taxed.tax_minor, taxed.breakdown
+	else:
+		gross_minor, tax_minor = amount_minor, 0
+	if tax_minor < 0 or tax_minor > gross_minor:
+		frappe.throw(_("The tax can't be negative or more than the amount."), PostingError)
 	guest = _stay_guest(folio_doc, stay_guest)
 	room = _room_snapshot(folio_doc.stay_reservation)
 
@@ -461,9 +486,10 @@ def post(
 			"quantity": quantity,
 			"unit_rate": flt(unit_rate)
 			if unit_rate is not None
-			else from_minor(round(gross_minor / quantity), currency),
+			else from_minor(round(amount_minor / quantity), currency),
 			"net_amount": from_minor(gross_minor - tax_minor, currency),
 			"tax_amount": from_minor(tax_minor, currency),
+			"tax_breakdown": frappe.as_json(tax_breakdown) if tax_breakdown else None,
 			"gross_amount": gross,
 			"currency": currency,
 			"exchange_rate": 1,
@@ -670,7 +696,7 @@ def post_manual_charge(
 		frappe.throw(_("Give a rate for Item {0}: it has no selling price.").format(item), PostingError)
 	amount = from_minor(to_minor(Decimal(str(unit_rate)) * Decimal(str(quantity)), currency), currency)
 	key = f"manual:{folio}:{(request_id or '').strip() or frappe.generate_hash(length=16)}"
-	return post(
+	result = post(
 		folio,
 		code.name,
 		amount,
@@ -683,6 +709,11 @@ def post_manual_charge(
 		notes=notes,
 		is_manual=True,
 	)
+	# A package allowance (breakfast, a spa credit) covers the charge if it can (F9).
+	from frappoint.vuna_hospitality.services.allowances import offset_charge
+
+	result["allowance_credits"] = offset_charge(result["name"])
+	return result
 
 
 def get_item_rate(item: str, property_name: str) -> float:
@@ -725,6 +756,7 @@ def reverse_transaction(transaction: str, reason: str, notes: str | None = None)
 			"direction",
 			"gross_amount",
 			"tax_amount",
+			"tax_breakdown",
 			"quantity",
 			"unit_rate",
 			"item",
@@ -732,6 +764,7 @@ def reverse_transaction(transaction: str, reason: str, notes: str | None = None)
 			"service_date",
 			"stay_guest",
 			"reverses",
+			"transaction_type",
 		],
 	)
 	if not original or original.docstatus != 1:
@@ -743,7 +776,7 @@ def reverse_transaction(transaction: str, reason: str, notes: str | None = None)
 			),
 			PostingError,
 		)
-	return post(
+	result = post(
 		original.guest_folio,
 		original.charge_code,
 		original.gross_amount,
@@ -752,6 +785,7 @@ def reverse_transaction(transaction: str, reason: str, notes: str | None = None)
 		quantity=original.quantity,
 		unit_rate=original.unit_rate,
 		tax_amount=original.tax_amount,
+		tax_breakdown=frappe.parse_json(original.tax_breakdown) if original.tax_breakdown else None,
 		item=original.item,
 		description=_("Reversal: {0}").format(original.description_snapshot),
 		# The correction posts today; the guest still received the service on the original date.
@@ -763,6 +797,12 @@ def reverse_transaction(transaction: str, reason: str, notes: str | None = None)
 		notes=notes,
 		is_manual=True,
 	)
+	if result["created"] and original.transaction_type == REVENUE and original.direction == DEBIT:
+		# The allowance that covered this charge is available again (F9).
+		from frappoint.vuna_hospitality.services.allowances import restore_for_reversal
+
+		restore_for_reversal(original.name, reason)
+	return result
 
 
 # --------------------------------------------------------------------------- balances

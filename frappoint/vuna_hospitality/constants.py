@@ -73,6 +73,10 @@ PROPERTY_SCOPED_DOCTYPES: tuple[str, ...] = (
 	"Folio Transaction",
 	# F8 Night audit (minimal)
 	"Night Audit Run",
+	# F9 Taxes, packages, and occupancy pricing
+	"Occupancy Pricing Rule",
+	"Hotel Package",
+	"Package Allowance Entry",
 )
 
 # Roles that post charges to a folio by hand (§23.1: front desk posts within limits).

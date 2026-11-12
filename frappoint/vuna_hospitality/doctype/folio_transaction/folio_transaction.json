@@ -29,6 +29,7 @@
   "unit_rate",
   "net_amount",
   "tax_amount",
+  "tax_breakdown",
   "column_break_amount",
   "gross_amount",
   "currency",
@@ -231,6 +232,13 @@
    "read_only": 1
   },
   {
+   "fieldname": "tax_breakdown",
+   "fieldtype": "JSON",
+   "label": "Tax Breakdown",
+   "read_only": 1,
+   "description": "Tax per account, as ERPNext calculated it."
+  },
+  {
    "fieldname": "column_break_amount",
    "fieldtype": "Column Break"
   },
@@ -402,7 +410,7 @@
   }
  ],
  "index_web_pages_for_search": 0,
- "modified": "2026-11-12 10:00:00.000000",
+ "modified": "2026-11-13 12:00:00.000000",
  "modified_by": "Administrator",
  "module": "Vuna Hospitality",
  "owner": "Administrator",
