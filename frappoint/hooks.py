@@ -75,7 +75,22 @@ fixtures = [
 	{"doctype": "Custom HTML Block", "filters": [["name", "in", ["Booking Desk"]]]},
 	{
 		"doctype": "Custom Field",
-		"filters": [["name", "in", ["Customer-custom_visible_on_booking_desk"]]],
+		"filters": [
+			[
+				"name",
+				"in",
+				[
+					"Customer-custom_visible_on_booking_desk",
+					# Sales Partner commission payout
+					"Sales Partner-custom_supplier",
+					"Sales Invoice-custom_commission_purchase_invoice",
+					"Selling Settings-custom_partner_commission_tab",
+					"Selling Settings-custom_commission_payable_on",
+					"Selling Settings-custom_commission_item",
+					"Selling Settings-custom_commission_supplier_group",
+				],
+			]
+		],
 	},
 ]
 
@@ -101,7 +116,7 @@ app_include_js = ["/assets/frappoint/booking_desk/booking_desk.bundle.js"]
 # page_js = {"page" : "public/js/file.js"}
 
 # include js in doctype views
-# doctype_js = {"doctype" : "public/js/doctype.js"}
+doctype_js = {"Sales Partner": "public/js/sales_partner.js"}
 # doctype_list_js = {"doctype" : "public/js/doctype_list.js"}
 # doctype_tree_js = {"doctype" : "public/js/doctype_tree.js"}
 # doctype_calendar_js = {"doctype" : "public/js/doctype_calendar.js"}
@@ -203,6 +218,11 @@ has_permission = {
 # ---------------
 # Hook on document methods and events
 doc_events = {
+	# A cancelled or deleted commission Purchase Invoice makes its Sales Invoices payable again.
+	"Purchase Invoice": {
+		"on_cancel": "frappoint.frappoint.services.partner_commission.release_commission_invoices",
+		"on_trash": "frappoint.frappoint.services.partner_commission.release_commission_invoices",
+	},
 	"Item": {
 		"on_update": "frappoint.frappoint.services.item_integration.sync_service_type_item_group",
 	},
