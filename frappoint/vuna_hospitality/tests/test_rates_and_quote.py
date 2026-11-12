@@ -78,13 +78,13 @@ class TestChargeCodesAndPlans(RatesTestCase):
 		code = frappe.get_doc(
 			{
 				"doctype": "Charge Code",
-				"code": "cash",
+				"code": "rtecash",
 				"description": "Cash",
 				"transaction_type": "Payment",
 				"mode_of_payment": frappe.db.get_value("Mode of Payment", {}, "name"),
 			}
 		).insert()
-		self.assertEqual(code.name, "CASH")
+		self.assertEqual(code.name, "RTECASH")
 
 	def test_rate_plan_policies_must_match_their_type(self):
 		self.plan.cancellation_policy = self.plan.deposit_policy
@@ -135,6 +135,7 @@ class TestSeasonGeneration(RatesTestCase):
 		season = self.season(days=7)
 		generate_from_season(season.name)
 		day = frappe.get_doc("Room Rate Day", rate_day_name("RTE-BAR", "STD", self.today))
+		season_rate = day.rate  # weekday or weekend rate, depending on the business date
 		day.rate = 8000
 		day.save()
 		self.assertEqual((day.source, day.is_manual_override), ("Manual", 1))
@@ -144,7 +145,7 @@ class TestSeasonGeneration(RatesTestCase):
 
 		generate_from_season(season.name, overwrite_manual=True)
 		self.assertEqual(
-			frappe.db.get_value("Room Rate Day", day.name, ["rate", "is_manual_override"]), (10000, 0)
+			frappe.db.get_value("Room Rate Day", day.name, ["rate", "is_manual_override"]), (season_rate, 0)
 		)
 
 	def test_one_rate_per_plan_room_type_and_night(self):

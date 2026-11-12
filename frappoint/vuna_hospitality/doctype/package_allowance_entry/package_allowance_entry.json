@@ -1,0 +1,210 @@
+{
+ "actions": [],
+ "autoname": "hash",
+ "creation": "2026-11-13 12:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "property",
+  "stay_reservation",
+  "guest_folio",
+  "entry_type",
+  "grant",
+  "column_break_head",
+  "component_name",
+  "revenue_charge_code",
+  "allowance_charge_code",
+  "breakage_rule",
+  "amount_section",
+  "amount",
+  "night_date",
+  "expires_on",
+  "column_break_amount",
+  "folio_transaction",
+  "posting_key"
+ ],
+ "fields": [
+  {
+   "fieldname": "property",
+   "fieldtype": "Link",
+   "label": "Property",
+   "options": "Hotel Property",
+   "reqd": 1,
+   "in_standard_filter": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "stay_reservation",
+   "fieldtype": "Link",
+   "label": "Stay Reservation",
+   "options": "Stay Reservation",
+   "reqd": 1,
+   "in_standard_filter": 1,
+   "in_list_view": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "guest_folio",
+   "fieldtype": "Link",
+   "label": "Guest Folio",
+   "options": "Guest Folio",
+   "reqd": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "entry_type",
+   "fieldtype": "Select",
+   "label": "Entry Type",
+   "options": "Grant\nConsume\nExpire",
+   "reqd": 1,
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "grant",
+   "fieldtype": "Link",
+   "label": "Grant",
+   "options": "Package Allowance Entry",
+   "search_index": 1,
+   "description": "The grant a Consume or Expire entry draws from.",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_head",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "component_name",
+   "fieldtype": "Data",
+   "label": "Component",
+   "read_only": 1
+  },
+  {
+   "fieldname": "revenue_charge_code",
+   "fieldtype": "Link",
+   "label": "Revenue Charge Code",
+   "options": "Charge Code",
+   "read_only": 1
+  },
+  {
+   "fieldname": "allowance_charge_code",
+   "fieldtype": "Link",
+   "label": "Allowance Charge Code",
+   "options": "Charge Code",
+   "reqd": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "breakage_rule",
+   "fieldtype": "Data",
+   "label": "Unused Allowance",
+   "read_only": 1
+  },
+  {
+   "fieldname": "amount_section",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "amount",
+   "fieldtype": "Currency",
+   "label": "Amount",
+   "reqd": 1,
+   "in_list_view": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "night_date",
+   "fieldtype": "Date",
+   "label": "Night",
+   "read_only": 1
+  },
+  {
+   "fieldname": "expires_on",
+   "fieldtype": "Date",
+   "label": "Expires On",
+   "description": "The business date whose night audit expires what is left.",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_amount",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "folio_transaction",
+   "fieldtype": "Link",
+   "label": "Folio Transaction",
+   "options": "Folio Transaction",
+   "read_only": 1
+  },
+  {
+   "fieldname": "posting_key",
+   "fieldtype": "Data",
+   "label": "Posting Key",
+   "reqd": 1,
+   "unique": 1,
+   "read_only": 1
+  }
+ ],
+ "index_web_pages_for_search": 0,
+ "modified": "2026-11-13 12:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Vuna Hospitality",
+ "owner": "Administrator",
+ "row_format": "Dynamic",
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": [],
+ "name": "Package Allowance Entry",
+ "naming_rule": "Random",
+ "track_changes": 0,
+ "in_create": 1,
+ "title_field": "component_name",
+ "search_fields": "stay_reservation,entry_type",
+ "permissions": [
+  {
+   "role": "System Manager",
+   "read": 1,
+   "report": 1,
+   "print": 1,
+   "export": 1
+  },
+  {
+   "role": "Hospitality Manager",
+   "read": 1,
+   "report": 1,
+   "print": 1,
+   "export": 1
+  },
+  {
+   "role": "Front Desk Manager",
+   "read": 1,
+   "report": 1,
+   "print": 1
+  },
+  {
+   "role": "Front Desk Agent",
+   "read": 1,
+   "report": 1,
+   "print": 1
+  },
+  {
+   "role": "Cashier",
+   "read": 1,
+   "report": 1,
+   "print": 1
+  },
+  {
+   "role": "Hotel Accountant",
+   "read": 1,
+   "report": 1,
+   "print": 1
+  },
+  {
+   "role": "Night Auditor",
+   "read": 1,
+   "report": 1,
+   "print": 1
+  }
+ ]
+}

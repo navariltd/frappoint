@@ -36,6 +36,16 @@ export const HOTEL_ENDPOINTS = {
 	postFolioCharge: `${HOSPITALITY_API}.folios.post_charge`,
 	reverseFolioTransaction: `${HOSPITALITY_API}.folios.reverse_transaction`,
 	rebuildFolioBalance: `${HOSPITALITY_API}.folios.rebuild_folio_balance`,
+	nightAudit: `${HOSPITALITY_API}.night_audit.get_night_audit`,
+	startNightAudit: `${HOSPITALITY_API}.night_audit.start_night_audit`,
+	cashier: `${HOSPITALITY_API}.cashiering.get_cashier`,
+	openShift: `${HOSPITALITY_API}.cashiering.open_shift`,
+	closeShift: `${HOSPITALITY_API}.cashiering.close_shift`,
+	reviewShift: `${HOSPITALITY_API}.cashiering.review_shift`,
+	takePayment: `${HOSPITALITY_API}.cashiering.take_payment`,
+	payment: `${HOSPITALITY_API}.cashiering.get_payment`,
+	cancelPayment: `${HOSPITALITY_API}.cashiering.cancel_payment`,
+	refundPayment: `${HOSPITALITY_API}.cashiering.refund_payment`,
 };
 
 const unwrapPayload = (payload) => payload?.message ?? payload ?? null;
@@ -56,13 +66,21 @@ export function hotelErrorMessage(error) {
 export const fetchSessionContextApi = () => request(HOTEL_ENDPOINTS.sessionContext);
 export const fetchDeskContextApi = () => request(HOTEL_ENDPOINTS.deskContext);
 
-export const searchAvailabilityApi = ({ property, arrival, departure, adults, children }) =>
+export const searchAvailabilityApi = ({
+	property,
+	arrival,
+	departure,
+	adults,
+	children,
+	childAges = [],
+}) =>
 	request(HOTEL_ENDPOINTS.searchAvailability, {
 		property,
 		arrival,
 		departure,
 		adults,
 		children,
+		child_ages: JSON.stringify(childAges),
 	});
 
 export const searchGuestsApi = (text) => request(HOTEL_ENDPOINTS.searchGuests, { text });
@@ -152,3 +170,49 @@ export const reverseFolioTransactionApi = (transaction, reason) =>
 	request(HOTEL_ENDPOINTS.reverseFolioTransaction, { transaction, reason });
 export const rebuildFolioBalanceApi = (folio) =>
 	request(HOTEL_ENDPOINTS.rebuildFolioBalance, { folio_name: folio });
+
+// Night audit (F8)
+export const fetchNightAuditApi = (property) => request(HOTEL_ENDPOINTS.nightAudit, { property });
+export const startNightAuditApi = (property) =>
+	request(HOTEL_ENDPOINTS.startNightAudit, { property });
+
+// Payments and cashier shifts (F10)
+export const fetchCashierApi = (property) => request(HOTEL_ENDPOINTS.cashier, { property });
+export const openShiftApi = (property, openingFloat, workstation) =>
+	request(HOTEL_ENDPOINTS.openShift, {
+		property,
+		opening_float: openingFloat || 0,
+		workstation: workstation || null,
+	});
+export const closeShiftApi = (shift, declared, reasons) =>
+	request(HOTEL_ENDPOINTS.closeShift, {
+		shift,
+		declared: JSON.stringify(declared),
+		reasons: JSON.stringify(reasons),
+	});
+export const reviewShiftApi = (shift, notes) =>
+	request(HOTEL_ENDPOINTS.reviewShift, { shift, notes: notes || null });
+/** `requestId` stays the same across retries of one payment, so it is taken once. */
+export const takePaymentApi = ({
+	property,
+	splits,
+	modeOfPayment,
+	paymentGateway,
+	phone,
+	referenceNo,
+	requestId,
+}) =>
+	request(HOTEL_ENDPOINTS.takePayment, {
+		property,
+		splits: JSON.stringify(splits),
+		mode_of_payment: modeOfPayment || null,
+		payment_gateway: paymentGateway || null,
+		phone: phone || null,
+		reference_no: referenceNo || null,
+		request_id: requestId,
+	});
+export const fetchPaymentApi = (payment) => request(HOTEL_ENDPOINTS.payment, { payment });
+export const cancelPaymentApi = (payment, reason) =>
+	request(HOTEL_ENDPOINTS.cancelPayment, { payment, reason });
+export const refundPaymentApi = (payment, amounts, reason) =>
+	request(HOTEL_ENDPOINTS.refundPayment, { payment, amounts: JSON.stringify(amounts), reason });

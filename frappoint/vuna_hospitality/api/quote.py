@@ -24,10 +24,13 @@ def get_quote(
 	rate_plan: str,
 	adults: int = 1,
 	children: int = 0,
+	child_ages: str | list | None = None,
 ) -> dict:
 	"""Price one room type on one rate plan. Nothing is held or stored."""
 	_check_access(property)
-	return quote_service.quote(property, arrival, departure, room_type, rate_plan, adults, children).as_dict()
+	return quote_service.quote(
+		property, arrival, departure, room_type, rate_plan, adults, children, child_ages
+	).as_dict()
 
 
 @frappe.whitelist()
@@ -40,12 +43,13 @@ def search_availability(
 	children: int = 0,
 	rate_plan: str | None = None,
 	room_type: str | None = None,
+	child_ages: str | list | None = None,
 ) -> list[dict]:
 	"""Quote every room type and rate plan for the stay; offered options first, cheapest first."""
 	_check_access(property)
 	return [
 		result.as_dict()
 		for result in quote_service.search(
-			property, arrival, departure, adults, children, rate_plan, room_type
+			property, arrival, departure, adults, children, rate_plan, room_type, child_ages
 		)
 	]

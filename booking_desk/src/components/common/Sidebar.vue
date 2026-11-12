@@ -52,11 +52,13 @@ import { computed } from "vue";
 import { branding } from "@/branding";
 import { useAuthStore } from "@/stores/auth";
 import { HOTEL, SERVICES, useWorkspaceStore } from "@/stores/workspace.store";
+import { useHotelStore } from "@/stores/hotel.store";
 import SidebarItem from "./SidebarItem.vue";
 import WorkspaceSwitcher from "./WorkspaceSwitcher.vue";
 
 const auth = useAuthStore();
 const workspace = useWorkspaceStore();
+const hotel = useHotelStore();
 
 const NAVIGATION = {
 	[SERVICES]: [
@@ -98,10 +100,35 @@ const NAVIGATION = {
 			to: { name: "NewReservation" },
 			activeWhen: ["NewReservation"],
 		},
+		{
+			label: "Cashier",
+			icon: "point_of_sale",
+			to: { name: "Cashier" },
+			activeWhen: ["Cashier"],
+			roles: [
+				"System Manager",
+				"Hospitality Manager",
+				"Cashier",
+				"Front Desk Manager",
+				"Front Desk Agent",
+			],
+		},
+		{
+			label: "Night Audit",
+			icon: "nights_stay",
+			to: { name: "NightAudit" },
+			activeWhen: ["NightAudit"],
+			roles: ["System Manager", "Hospitality Manager", "Night Auditor"],
+		},
 	],
 };
 
-const items = computed(() => NAVIGATION[workspace.active] || []);
+// An item with `roles` shows only to users with one of them.
+const items = computed(() =>
+	(NAVIGATION[workspace.active] || []).filter(
+		(item) => !item.roles || item.roles.some((role) => hotel.roles.includes(role))
+	)
+);
 
 async function handleLogout() {
 	await auth.logout();

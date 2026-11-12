@@ -1,0 +1,184 @@
+{
+ "actions": [],
+ "creation": "2026-11-13 12:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "property",
+  "rule_name",
+  "is_active",
+  "column_break_head",
+  "rate_plan",
+  "room_type",
+  "adults_section",
+  "extra_adult_amount",
+  "column_break_adult",
+  "extra_adult_charge_code",
+  "children_section",
+  "child_bands"
+ ],
+ "fields": [
+  {
+   "fieldname": "property",
+   "fieldtype": "Link",
+   "label": "Property",
+   "options": "Hotel Property",
+   "reqd": 1,
+   "in_standard_filter": 1
+  },
+  {
+   "fieldname": "rule_name",
+   "fieldtype": "Data",
+   "label": "Rule Name",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "is_active",
+   "fieldtype": "Check",
+   "label": "Is Active",
+   "default": "1",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "column_break_head",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "rate_plan",
+   "fieldtype": "Link",
+   "label": "Rate Plan",
+   "options": "Rate Plan",
+   "reqd": 1,
+   "in_list_view": 1,
+   "in_standard_filter": 1
+  },
+  {
+   "fieldname": "room_type",
+   "fieldtype": "Link",
+   "label": "Room Type",
+   "options": "Room Type",
+   "in_list_view": 1,
+   "description": "Leave empty to apply to every room type of the plan. A rule for the room type wins over one for all."
+  },
+  {
+   "fieldname": "adults_section",
+   "fieldtype": "Section Break",
+   "label": "Extra Adults"
+  },
+  {
+   "fieldname": "extra_adult_amount",
+   "fieldtype": "Currency",
+   "label": "Extra Adult per Night",
+   "description": "For each adult above the room type's base adults."
+  },
+  {
+   "fieldname": "column_break_adult",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "extra_adult_charge_code",
+   "fieldtype": "Link",
+   "label": "Extra Adult Charge Code",
+   "options": "Charge Code",
+   "mandatory_depends_on": "eval:doc.extra_adult_amount>0"
+  },
+  {
+   "fieldname": "children_section",
+   "fieldtype": "Section Break",
+   "label": "Children",
+   "description": "A child's age on the arrival date sets the band for the whole stay."
+  },
+  {
+   "fieldname": "child_bands",
+   "fieldtype": "Table",
+   "label": "Child Bands",
+   "options": "Occupancy Child Band"
+  }
+ ],
+ "index_web_pages_for_search": 0,
+ "modified": "2026-11-13 12:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Vuna Hospitality",
+ "owner": "Administrator",
+ "row_format": "Dynamic",
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": [],
+ "name": "Occupancy Pricing Rule",
+ "track_changes": 1,
+ "title_field": "rule_name",
+ "search_fields": "property,rate_plan,room_type",
+ "permissions": [
+  {
+   "role": "System Manager",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 1,
+   "report": 1,
+   "print": 1,
+   "email": 1,
+   "export": 1,
+   "share": 1
+  },
+  {
+   "role": "Hospitality Manager",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 1,
+   "report": 1,
+   "print": 1,
+   "email": 1,
+   "export": 1,
+   "share": 1
+  },
+  {
+   "role": "Revenue Manager",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "report": 1,
+   "print": 1,
+   "email": 1,
+   "export": 1
+  },
+  {
+   "role": "Reservations Agent",
+   "read": 1,
+   "report": 1,
+   "print": 1
+  },
+  {
+   "role": "Front Desk Agent",
+   "read": 1,
+   "report": 1,
+   "print": 1
+  },
+  {
+   "role": "Front Desk Manager",
+   "read": 1,
+   "report": 1,
+   "print": 1
+  },
+  {
+   "role": "Night Auditor",
+   "read": 1,
+   "report": 1,
+   "print": 1
+  },
+  {
+   "role": "Cashier",
+   "read": 1,
+   "report": 1,
+   "print": 1
+  },
+  {
+   "role": "Hotel Accountant",
+   "read": 1,
+   "report": 1,
+   "print": 1
+  }
+ ]
+}

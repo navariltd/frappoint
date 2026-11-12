@@ -19,6 +19,7 @@ class RatePlan(Document):
 	def validate(self):
 		self.rate_plan_code = normalize_code(self.rate_plan_code, "Code")
 		self.validate_room_charge_code()
+		self.validate_package()
 		self.validate_policy(self.cancellation_policy, "Cancellation")
 		self.validate_policy(self.deposit_policy, "Deposit")
 
@@ -37,6 +38,15 @@ class RatePlan(Document):
 					self.room_charge_code
 				)
 			)
+
+	def validate_package(self):
+		if not self.package:
+			return
+		package = frappe.db.get_value("Hotel Package", self.package, ["property", "is_active"], as_dict=True)
+		if package.property != self.property:
+			frappe.throw(_("Package {0} belongs to another property.").format(self.package))
+		if not package.is_active:
+			frappe.throw(_("Package {0} is inactive.").format(self.package))
 
 	def validate_policy(self, policy, policy_type):
 		row = frappe.db.get_value(

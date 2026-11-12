@@ -17,15 +17,19 @@ const badgeClass = computed(() => {
 		case "Held":
 		case "Option":
 		case "Settlement Pending":
+		case "Queued":
+		case "Running":
 			return "bg-tertiary-container text-on-tertiary-container";
 		case "Confirmed":
 		case "Due In":
 		case "In House":
 		case "Open":
+		case "Completed":
 			return "bg-secondary-container text-on-secondary-container";
 		case "Cancelled":
 		case "No Show":
 		case "Partly Cancelled":
+		case "Failed":
 			return "bg-error-container text-on-error-container";
 		default:
 			return "bg-surface-container text-on-surface-variant";

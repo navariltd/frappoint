@@ -213,6 +213,7 @@ def _prepare_stay(property_name: str, prop, limits, stay: dict):
 		stay.rate_plan,
 		cint(stay.get("adults") or 1),
 		cint(stay.get("children")),
+		stay.get("child_ages"),
 	)
 	sold_out = next((night for night in stay_quote.nights if night.reason == SOLD_OUT), None)
 	if sold_out:
@@ -332,6 +333,7 @@ def _create_stay(booking, p, expires_at) -> str:
 			"lead_guest": stay.lead_guest,
 			"adults": adults,
 			"children": children,
+			"child_ages": frappe.as_json(q.child_ages) if q.child_ages else None,
 			"arrival_date": p.arrival,
 			"departure_date": p.departure,
 			"nights": len(q.nights),
@@ -367,6 +369,10 @@ def _create_stay(booking, p, expires_at) -> str:
 	)
 	for night in q.nights:
 		amount = from_minor(night.amount_minor, q.currency)
+		components = [
+			{**component, "amount": from_minor(component["amount_minor"], q.currency)}
+			for component in night.components
+		]
 		_new(
 			RATE_NIGHT,
 			{
@@ -379,8 +385,11 @@ def _create_stay(booking, p, expires_at) -> str:
 				"children": children,
 				"currency": q.currency,
 				"tax_inclusive": int(q.tax_inclusive),
-				"room_rate": amount,
+				"room_rate": from_minor(night.room_rate_minor, q.currency),
+				"extras_amount": from_minor(night.extras_minor, q.currency),
+				"package_amount": from_minor(night.package_minor, q.currency),
 				"total": amount,
+				"components": frappe.as_json(components),
 				"posting_state": "Pending",
 			},
 		)
@@ -774,13 +783,17 @@ def install_hospitality_defaults() -> None:
 
 	- the default booking sources as UTM Sources, offered on the booking desk;
 	- the default room move reasons;
-	- read access to Sales Partner for hospitality roles, so they can pick a booking's partner.
+	- read access to Sales Partner for hospitality roles, so they can pick a booking's partner;
+	- select access to Account for the roles that take payments (F10), because ERPNext's Payment
+	  Entry checks that its user may select the receivable and cash accounts. Select doesn't let
+	  them read balances.
 	"""
 	from frappoint.vuna_hospitality.services.front_desk import install_default_move_reasons
 
 	install_default_move_reasons()
 	_install_booking_sources()
 	_grant_sales_partner_access()
+	_grant_account_select_access()
 
 
 def _install_booking_sources() -> None:
@@ -805,3 +818,23 @@ def _grant_sales_partner_access() -> None:
 			continue
 		if not frappe.db.exists("Custom DocPerm", {"parent": "Sales Partner", "role": role, "permlevel": 0}):
 			add_permission("Sales Partner", role, 0, "select")
+
+
+def _grant_account_select_access() -> None:
+	from frappe.permissions import add_permission
+
+	from frappoint.vuna_hospitality.constants import CASHIER_ROLES
+
+	granted = False
+	for role in CASHIER_ROLES:
+		if role == "System Manager" or not frappe.db.exists("Role", role):
+			continue
+		if not frappe.db.exists("Custom DocPerm", {"parent": "Account", "role": role, "permlevel": 0}):
+			add_permission("Account", role, 0, "select")
+			# A new rule also gets read by default; these roles only pick accounts.
+			frappe.db.set_value(
+				"Custom DocPerm", {"parent": "Account", "role": role, "permlevel": 0}, "read", 0
+			)
+			granted = True
+	if granted:
+		frappe.clear_cache(doctype="Account")

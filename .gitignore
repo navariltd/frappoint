@@ -15,3 +15,4 @@ frappoint/public/portal
 frappe-semgrep-rules/
 .internal_docs/
 .agents/
+pr.md

@@ -1,0 +1,81 @@
+{
+ "actions": [],
+ "creation": "2026-11-13 12:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "band_name",
+  "from_age",
+  "to_age",
+  "price_as_adult",
+  "amount",
+  "charge_code"
+ ],
+ "fields": [
+  {
+   "fieldname": "band_name",
+   "fieldtype": "Data",
+   "label": "Band",
+   "reqd": 1,
+   "in_list_view": 1,
+   "columns": 2,
+   "description": "e.g. Infant, Child."
+  },
+  {
+   "fieldname": "from_age",
+   "fieldtype": "Int",
+   "label": "From Age",
+   "reqd": 1,
+   "in_list_view": 1,
+   "columns": 1
+  },
+  {
+   "fieldname": "to_age",
+   "fieldtype": "Int",
+   "label": "To Age",
+   "reqd": 1,
+   "in_list_view": 1,
+   "columns": 1,
+   "description": "Inclusive."
+  },
+  {
+   "fieldname": "price_as_adult",
+   "fieldtype": "Check",
+   "label": "Price as Adult",
+   "in_list_view": 1,
+   "columns": 1,
+   "description": "The child counts as an adult for pricing."
+  },
+  {
+   "fieldname": "amount",
+   "fieldtype": "Currency",
+   "label": "Amount per Night",
+   "in_list_view": 1,
+   "columns": 2,
+   "depends_on": "eval:!doc.price_as_adult"
+  },
+  {
+   "fieldname": "charge_code",
+   "fieldtype": "Link",
+   "label": "Charge Code",
+   "options": "Charge Code",
+   "in_list_view": 1,
+   "columns": 2,
+   "depends_on": "eval:!doc.price_as_adult",
+   "description": "Required when the amount is more than zero."
+  }
+ ],
+ "index_web_pages_for_search": 0,
+ "modified": "2026-11-13 12:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Vuna Hospitality",
+ "owner": "Administrator",
+ "row_format": "Dynamic",
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": [],
+ "name": "Occupancy Child Band",
+ "istable": 1,
+ "editable_grid": 1,
+ "permissions": []
+}

@@ -7,9 +7,10 @@
   property's turnover time, so early check-in and late check-out are respected. A move ends one
   segment and starts the next, so the stay's history keeps every room.
 - **Check-in** needs a ready room (housekeeping Inspected or Clean, until F17), every adult
-  registered, and a satisfied guarantee (F12). **Check-out** needs every open folio at zero (F7),
-  unless a Front Desk Manager overrides it with a reason; leaving before the booked departure gives
-  the remaining nights back to inventory. Folios with nothing to invoice close at check-out.
+  registered, and a satisfied guarantee (F12). **Check-out** first posts the nights the guest used
+  that night audit hasn't (F8), then needs every open folio at zero (F7), unless a Front Desk
+  Manager overrides it with a reason. Leaving before the booked departure gives the remaining
+  nights back to inventory. Folios with nothing to invoice close at check-out.
 
 Lock order follows reservations.py: the stay first, then rooms (by name), then inventory rows,
 then the booking.
@@ -22,7 +23,7 @@ from frappe import _
 from frappe.utils import add_days, cint, get_datetime, getdate, now_datetime
 
 from frappoint.vuna_hospitality.constants import FOLIO_MANAGER_ROLES
-from frappoint.vuna_hospitality.services import folio, inventory, reservations
+from frappoint.vuna_hospitality.services import allowances, folio, inventory, night_audit, reservations
 from frappoint.vuna_hospitality.services.event_log import log_event
 from frappoint.vuna_hospitality.services.guests import assert_registrable
 from frappoint.vuna_hospitality.services.money import from_minor, to_minor
@@ -610,12 +611,18 @@ def check_out(stay_name: str, override_reason: str | None = None) -> None:
 	stay = _lock_stay(stay_name)
 	if stay.status not in IN_HOUSE_STATUSES:
 		frappe.throw(_("Stay {0} is {1} and can't be checked out.").format(stay.name, _(stay.status)))
-	assert_ready_to_check_out(stay, override_reason)
 
 	now = now_datetime()
 	business_date = _business_date(stay.property)
 	# The guest is charged at least the first night.
 	leaving_on = max(business_date, add_days(stay.arrival_date, 1))
+	# Nights the guest used that night audit hasn't posted yet (a same-day departure) are charged
+	# now, with night audit's posting keys, so they are settled before the guest leaves.
+	night_audit.post_due_nights(stay.name, leaving_on, business_date)
+	# Unused package allowances end with the stay (F9); this leaves the balance unchanged.
+	allowances.expire(stay.name, business_date, everything=True)
+	assert_ready_to_check_out(stay, override_reason)
+
 	early = getdate(leaving_on) < getdate(stay.departure_date)
 	if early:
 		_shorten_stay(stay, getdate(leaving_on))

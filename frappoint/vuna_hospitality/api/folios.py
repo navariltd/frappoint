@@ -10,11 +10,12 @@ import frappe
 from frappe import _
 
 from frappoint.vuna_hospitality.constants import (
+	CASHIER_ROLES,
 	FOLIO_MANAGER_ROLES,
 	FOLIO_POSTING_ROLES,
 	FOLIO_REBUILD_ROLES,
 )
-from frappoint.vuna_hospitality.services import folio
+from frappoint.vuna_hospitality.services import cashiering, folio
 from frappoint.vuna_hospitality.services.feature_flag import require_hospitality
 from frappoint.vuna_hospitality.services.inventory import run_with_inventory_retry
 from frappoint.vuna_hospitality.services.property_scope import assert_property_access
@@ -58,6 +59,14 @@ def get_stay_folios(stay: str) -> dict:
 	_check(STAY, stay)
 	details = folio.stay_folio_details(stay)
 	details["actions"] = _actions()
+	# Payments (F10): each folio's payments and refunds, the user's shift, and the tenders.
+	for entry in details["folios"]:
+		entry["payments"] = cashiering.folio_payments(entry["folio"]["name"])
+	property_name = details["stay"]["property"]
+	can_take = bool(set(frappe.get_roles()) & set(CASHIER_ROLES))
+	details["actions"]["can_take_payment"] = can_take
+	details["cashier_shift"] = cashiering.current_shift(property_name) if can_take else None
+	details["payment_options"] = cashiering.payment_options(property_name) if can_take else None
 	return details
 
 

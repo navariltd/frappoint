@@ -102,7 +102,8 @@ class TestCoupleStay(FrontDeskTestCase):
 		self.assertEqual(self.room(self.room_a), ("Vacant", "Dirty"))
 		self.assertEqual(self.room(self.room_b)[0], "Occupied")
 
-		check_out(stay.name)
+		# Leaving on the arrival day charges the first night (F8); this test is about the rooms.
+		check_out(stay.name, override_reason="Paid at the desk")
 		history = front_desk.stay_details(stay.name)
 		self.assertEqual([a["hotel_room"] for a in history["assignments"]], [self.room_a, self.room_b])
 		self.assertEqual({a["status"] for a in history["assignments"]}, {"Released"})
@@ -233,7 +234,7 @@ class TestCheckInAndOut(FrontDeskTestCase):
 		check_in(stay.name, self.room_a)
 		frappe.db.set_value("Hotel Property", self.CODE, "business_date", self.today + timedelta(days=1))
 
-		check_out(stay.name)
+		check_out(stay.name, override_reason="Paid at the desk")
 		stay.reload()
 		self.assertEqual((getdate(stay.departure_date), stay.nights), (self.today + timedelta(days=1), 1))
 		self.assertEqual(counters(self.CODE, self.today)[:2], (0, 1))
@@ -244,7 +245,8 @@ class TestCheckInAndOut(FrontDeskTestCase):
 			pluck="posting_state",
 			order_by="night_date",
 		)
-		self.assertEqual(posting, ["Pending", "Cancelled", "Cancelled"])
+		# The night the guest used is charged at check-out; the rest are given back.
+		self.assertEqual(posting, ["Posted", "Cancelled", "Cancelled"])
 		self.assertEqual(
 			stay.total_amount,
 			frappe.db.get_value(

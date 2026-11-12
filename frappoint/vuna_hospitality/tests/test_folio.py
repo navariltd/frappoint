@@ -365,9 +365,11 @@ class TestCheckOut(FolioTestCase):
 
 		check_out(stay.name, override_reason="Company will pay")
 		self.assertEqual(frappe.db.get_value("Stay Reservation", stay.name, "status"), "Checked Out")
-		# The balance stays open for settlement (F11), and the override is on record.
+		# The balance (the massage and the first night, posted at check-out) stays open for
+		# settlement (F11), and the override is on record.
 		self.assertEqual(
-			frappe.db.get_value("Guest Folio", folio_name, ["status", "balance"]), ("Open", 4500)
+			frappe.db.get_value("Guest Folio", folio_name, ["status", "balance"]),
+			("Open", 4500 + stay.total_amount),
 		)
 		self.assertTrue(
 			frappe.db.exists(
@@ -376,9 +378,11 @@ class TestCheckOut(FolioTestCase):
 			)
 		)
 
-	def test_a_folio_with_nothing_to_invoice_closes_at_check_out(self):
+	def test_a_complimentary_stay_with_nothing_to_invoice_closes_its_folio(self):
 		stay = self.in_house_stay(nights=1)
 		folio_name = self.folio_of(stay)
+		# A zero-rate night is waived, not posted, so there is nothing to invoice.
+		frappe.db.set_value("Stay Rate Night", {"stay_reservation": stay.name}, "total", 0)
 		reverse_transaction(self.massage(folio_name)["name"], "Not ours")
 		check_out(stay.name)
 		self.assertEqual(frappe.db.get_value("Guest Folio", folio_name, "status"), "Closed")
