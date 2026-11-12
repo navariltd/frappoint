@@ -71,6 +71,8 @@ PROPERTY_SCOPED_DOCTYPES: tuple[str, ...] = (
 	# F7 Folio and posting engine
 	"Guest Folio",
 	"Folio Transaction",
+	# F8 Night audit (minimal)
+	"Night Audit Run",
 )
 
 # Roles that post charges to a folio by hand (§23.1: front desk posts within limits).
@@ -87,6 +89,9 @@ FOLIO_MANAGER_ROLES = ("System Manager", HOSPITALITY_MANAGER, FRONT_DESK_MANAGER
 
 # Roles that rebuild cached folio balances from their transactions.
 FOLIO_REBUILD_ROLES = ("System Manager", HOSPITALITY_MANAGER, HOTEL_ACCOUNTANT)
+
+# Roles that start night audit (§23.1). It is always started by a person, never scheduled.
+NIGHT_AUDIT_ROLES = ("System Manager", HOSPITALITY_MANAGER, NIGHT_AUDITOR)
 
 # Roles that take reservations (hold, confirm, cancel).
 RESERVATION_ROLES = (
