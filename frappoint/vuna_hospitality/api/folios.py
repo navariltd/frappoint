@@ -2,7 +2,8 @@
 
 Reading needs read access to Guest Folio and the property. Posting is for front-desk roles and
 cashiers; reversing is for Front Desk Managers (design §23.1); rebuilding cached balances is for
-managers and the Hotel Accountant. Each command owns its request's transaction.
+managers and the Hotel Accountant. Each command owns its request's transaction and runs through
+`run_with_inventory_retry`, so a lock conflict with another request is retried, not shown.
 """
 
 import frappe
@@ -15,6 +16,7 @@ from frappoint.vuna_hospitality.constants import (
 )
 from frappoint.vuna_hospitality.services import folio
 from frappoint.vuna_hospitality.services.feature_flag import require_hospitality
+from frappoint.vuna_hospitality.services.inventory import run_with_inventory_retry
 from frappoint.vuna_hospitality.services.property_scope import assert_property_access
 
 STAY = "Stay Reservation"
@@ -94,15 +96,19 @@ def post_charge(
 ) -> dict:
 	"""Post a charge by Item. Send the same `request_id` on a retry so it posts once."""
 	_check(folio.FOLIO, folio_name, "write", roles=FOLIO_POSTING_ROLES)
-	result = folio.post_manual_charge(
-		folio_name,
-		item,
-		quantity=quantity,
-		rate=rate,
-		description=description,
-		stay_guest=stay_guest,
-		notes=notes,
-		request_id=request_id,
+	# One key for every attempt, so a retry after a lock conflict can't post twice.
+	request_id = (request_id or "").strip() or frappe.generate_hash(length=16)
+	result = run_with_inventory_retry(
+		lambda: folio.post_manual_charge(
+			folio_name,
+			item,
+			quantity=quantity,
+			rate=rate,
+			description=description,
+			stay_guest=stay_guest,
+			notes=notes,
+			request_id=request_id,
+		)
 	)
 	details = _workspace(folio_name)
 	details["posted"] = result
@@ -117,7 +123,7 @@ def reverse_transaction(transaction: str, reason: str, notes: str | None = None)
 	if not folio_name:
 		raise frappe.DoesNotExistError(_("Folio Transaction {0} does not exist.").format(transaction))
 	_check(folio.FOLIO, folio_name, "write", roles=FOLIO_MANAGER_ROLES)
-	result = folio.reverse_transaction(transaction, reason, notes=notes)
+	result = run_with_inventory_retry(lambda: folio.reverse_transaction(transaction, reason, notes=notes))
 	details = _workspace(folio_name)
 	details["posted"] = result
 	return details
@@ -128,4 +134,4 @@ def reverse_transaction(transaction: str, reason: str, notes: str | None = None)
 def rebuild_folio_balance(folio_name: str) -> dict:
 	"""Recompute a folio's cached totals from its transactions and report any drift."""
 	_check(folio.FOLIO, folio_name, roles=FOLIO_REBUILD_ROLES)
-	return folio.rebuild_folio_balance(folio_name)
+	return run_with_inventory_retry(lambda: folio.rebuild_folio_balance(folio_name))

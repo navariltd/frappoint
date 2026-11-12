@@ -21,6 +21,7 @@ recomputes the totals from them. Amounts are added in integer minor units, so to
 """
 
 from decimal import Decimal
+from functools import wraps
 
 import frappe
 from frappe import _
@@ -92,6 +93,31 @@ class NoChargeCodeError(PostingError):
 
 class FolioClosedError(PostingError):
 	"""The folio no longer takes postings."""
+
+
+class FolioConflictError(InventoryConflictError):
+	"""Another request changed the folio, its lines, or a naming series while this one ran.
+
+	MariaDB 11.6+ (`innodb_snapshot_isolation`) refuses such a locking read or insert with error
+	1020, and older servers can report a deadlock (1213). Frappe raises both as
+	QueryDeadlockError. The caller that owns the transaction retries it with
+	`run_with_inventory_retry()`, and the posting key keeps a retry from posting twice.
+	"""
+
+
+def _retryable(fn):
+	"""Turn a lock conflict anywhere in `fn` into FolioConflictError, which callers retry."""
+
+	@wraps(fn)
+	def wrapper(*args, **kwargs):
+		try:
+			return fn(*args, **kwargs)
+		except frappe.QueryDeadlockError as error:
+			raise FolioConflictError(
+				_("The folio changed while this request was running. Please try again.")
+			) from error
+
+	return wrapper
 
 
 class CheckOutBalanceError(frappe.ValidationError):
@@ -224,7 +250,7 @@ def lock_folio(folio_name: str) -> frappe._dict:
 	try:
 		row = frappe.db.get_value(FOLIO, folio_name, LOCKED_FOLIO_FIELDS, as_dict=True, for_update=True)
 	except frappe.QueryDeadlockError as error:
-		raise InventoryConflictError(
+		raise FolioConflictError(
 			_("Folio {0} changed while this request was running. Please try again.").format(folio_name)
 		) from error
 	if not row:
@@ -337,6 +363,7 @@ def _code(name: str) -> frappe._dict:
 # --------------------------------------------------------------------------- posting
 
 
+@_retryable
 def post(
 	folio: str,
 	charge_code: str,
@@ -741,6 +768,7 @@ def reverse_transaction(transaction: str, reason: str, notes: str | None = None)
 # --------------------------------------------------------------------------- balances
 
 
+@_retryable
 def rebuild_folio_balance(folio: str) -> dict:
 	"""Recompute the folio's cached totals from its transactions. Reports any drift it fixed."""
 	folio_doc = lock_folio(folio)
@@ -809,6 +837,7 @@ def has_billable_activity(folio: str) -> bool:
 	return any(not row.reverses and row.name not in reversed_names for row in rows)
 
 
+@_retryable
 def close_idle_folios(stay_name: str, reason: str | None = None) -> list[str]:
 	"""Close the stay's open folios that have nothing to invoice. The others wait for settlement."""
 	closed = []
@@ -831,6 +860,7 @@ def close_idle_folios(stay_name: str, reason: str | None = None) -> list[str]:
 # --------------------------------------------------------------------------- check-out
 
 
+@_retryable
 def assert_folios_settled(stay, override_reason: str | None = None) -> None:
 	"""Check-out needs every open folio of the stay at zero (F6 rule, enforced from F7).
 
