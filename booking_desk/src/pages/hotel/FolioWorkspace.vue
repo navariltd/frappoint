@@ -15,6 +15,12 @@
 		<p v-if="error" class="rounded-lg bg-error-container/40 px-4 py-3 text-[13px]">
 			{{ error }}
 		</p>
+		<ActionBanner
+			:banner="banner"
+			:busy="busy"
+			@confirm="confirmBanner"
+			@cancel="cancelBanner"
+		/>
 
 		<template v-if="data">
 			<header class="flex flex-wrap items-start justify-between gap-4">
@@ -337,12 +343,15 @@ import {
 	reverseFolioTransactionApi,
 	searchFolioItemsApi,
 } from "@/api/hotel.api";
+import ActionBanner from "@/components/hotel/ActionBanner.vue";
 import HotelStatusBadge from "@/components/hotel/HotelStatusBadge.vue";
+import { useActionBanner } from "@/composables/hotel/useActionBanner";
 import { formatMoney, formatNight } from "@/utils/hotelFormat";
 
 const POSTABLE = ["Open", "Post-Stay Open"];
 
 const route = useRoute();
+const { banner, ask, notify, confirm: confirmBanner, cancel: cancelBanner } = useActionBanner();
 const data = ref(null);
 const loading = ref(false);
 const busy = ref(false);
@@ -489,25 +498,37 @@ async function postCharge() {
 	if (posted) resetForm();
 }
 
-function reverse(line) {
-	const reason = window.prompt(
-		`Why is "${line.description_snapshot}" (${money(line.gross_amount)}) being reversed?`
-	);
-	if (reason && reason.trim()) {
-		run(() => reverseFolioTransactionApi(line.name, reason.trim()));
-	}
+async function reverse(line) {
+	const answer = await ask({
+		tone: "danger",
+		title: `Reverse "${line.description_snapshot}" (${money(line.gross_amount)})?`,
+		message: "A reversing line is posted. The original line stays on the folio.",
+		reasonLabel: "Reason for the reversal",
+		confirmLabel: "Reverse",
+	});
+	if (answer) run(() => reverseFolioTransactionApi(line.name, answer.reason));
 }
 
 async function rebuild(folio) {
-	await run(async () => {
-		const result = await rebuildFolioBalanceApi(folio);
-		if (result?.drift) {
-			window.alert(
-				`The cached balance was ${money(result.before.balance)}. ` +
-					`It now matches the posted lines: ${money(result.after.balance)}.`
-			);
-		}
+	let result = null;
+	const checked = await run(async () => {
+		result = await rebuildFolioBalanceApi(folio);
 	});
+	if (!checked || !result) return;
+	notify(
+		result.drift
+			? {
+					tone: "warning",
+					title: "The folio balance was corrected",
+					message: `It showed ${money(
+						result.before.balance
+					)}. It now matches the posted lines: ${money(result.after.balance)}.`,
+			  }
+			: {
+					title: "The balance matches the posted lines",
+					message: `${folio}: ${money(result.after.balance)}.`,
+			  }
+	);
 }
 
 onMounted(load);
