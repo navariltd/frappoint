@@ -22,7 +22,9 @@ from frappoint.vuna_hospitality.services.folio import (
 	reverse_transaction,
 )
 from frappoint.vuna_hospitality.services.front_desk import assign_room, check_in, check_out, register_guest
+from frappoint.vuna_hospitality.services.inventory import run_with_inventory_retry
 from frappoint.vuna_hospitality.services.reservations import cancel, confirm, hold
+from frappoint.vuna_hospitality.tests.test_inventory import _like_mariadb_11_8
 from frappoint.vuna_hospitality.tests.test_reservations import make_booking_fixtures, stay_request
 from frappoint.vuna_hospitality.tests.utils import hospitality_enabled, run_concurrently
 
@@ -471,9 +473,17 @@ class TestConcurrentPosting(IntegrationTestCase):
 		return frappe.db.get_value("Stay Reservation", summary["stays"][0]["name"], "default_folio")
 
 	def charge(self, request_id, folio_name=None):
-		return lambda: post_manual_charge(
-			folio_name or self.folio, "HSP-TEST-DEEP-TISSUE", request_id=request_id
-		)
+		"""One request as the endpoint runs it: MariaDB 11.6+ locking, retried on a conflict."""
+
+		def run():
+			_like_mariadb_11_8()
+			return run_with_inventory_retry(
+				lambda: post_manual_charge(
+					folio_name or self.folio, "HSP-TEST-DEEP-TISSUE", request_id=request_id
+				)
+			)
+
+		return run
 
 	def test_two_requests_with_one_key_post_one_line(self):
 		results = run_concurrently(self.charge("same"), self.charge("same"))
