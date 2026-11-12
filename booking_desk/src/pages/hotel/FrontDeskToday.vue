@@ -157,13 +157,16 @@ async function load() {
 async function run(stay, command) {
 	busy.value = stay.name;
 	error.value = "";
+	let message = "";
 	try {
 		await command();
 	} catch (e) {
-		error.value = `${stay.lead_guest_name}: ${hotelErrorMessage(e)}`;
+		message = `${stay.lead_guest_name}: ${hotelErrorMessage(e)}`;
 	} finally {
 		busy.value = "";
+		// Reload first: loading clears the error, and the message must stay on screen.
 		await load();
+		error.value = message;
 	}
 }
 
