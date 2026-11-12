@@ -79,7 +79,7 @@ def open_shift(property_name: str, opening_float=0, workstation: str | None = No
 			"opened_at": now_datetime(),
 			"currency": prop.currency,
 			"opening_float": flt(opening_float),
-			"float_mode_of_payment": cash_mode_of_payment(prop.company),
+			"float_mode_of_payment": cash_mode_of_payment(prop.company, property_name),
 		},
 	)
 	log_event(SHIFT, shift.name, "Shift Opened", to_status=OPEN, data={"opening_float": flt(opening_float)})
@@ -99,11 +99,18 @@ def require_shift(property_name: str) -> str:
 	return shift
 
 
-def cash_mode_of_payment(company: str) -> str | None:
-	"""The enabled Mode of Payment of type Cash with an account in `company`."""
+def cash_mode_of_payment(company: str, property_name: str | None = None) -> str | None:
+	"""The enabled Mode of Payment of type Cash with an account in `company` that holds the float.
+
+	A Cash mode the desk takes payments in (one with a payment charge code) comes first, so the
+	float is counted in the same drawer as the cash the cashier receives.
+	"""
 	modes = frappe.get_all(
 		"Mode of Payment", filters={"type": "Cash", "enabled": 1}, pluck="name", order_by="name"
 	)
+	if property_name:
+		tenders = set(payment_options(property_name)["modes"])
+		modes = sorted(modes, key=lambda mode: mode not in tenders)
 	for mode in modes:
 		if mode_account(mode, company, required=False):
 			return mode

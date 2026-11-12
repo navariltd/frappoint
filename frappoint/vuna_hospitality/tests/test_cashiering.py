@@ -64,6 +64,11 @@ class CashierTestCase(FolioTestCase):
 		):
 			make_mode(mode, mode_type, company, account)
 			make_payment_code(code, mode)
+		# The float goes to a Cash mode; keep the site's own ones (such as "Cash") out of it.
+		for mode in frappe.get_all(
+			"Mode of Payment", filters={"type": "Cash", "name": ["!=", CASH]}, pluck="name"
+		):
+			frappe.db.set_value("Mode of Payment", mode, "enabled", 0)
 		if not frappe.db.exists("Payment Gateway", "Mpesa-Test"):
 			frappe.get_doc({"doctype": "Payment Gateway", "gateway": "Mpesa-Test"}).insert(
 				ignore_permissions=True
