@@ -96,7 +96,7 @@
    "hidden": 0,
    "is_query_report": 0,
    "label": "Rates",
-   "link_count": 4,
+   "link_count": 7,
    "link_type": "DocType",
    "onboard": 0,
    "type": "Card Break"
@@ -137,6 +137,36 @@
    "label": "Hotel Policy",
    "link_count": 0,
    "link_to": "Hotel Policy",
+   "link_type": "DocType",
+   "onboard": 1,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Hotel Package",
+   "link_count": 0,
+   "link_to": "Hotel Package",
+   "link_type": "DocType",
+   "onboard": 1,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Occupancy Pricing Rule",
+   "link_count": 0,
+   "link_to": "Occupancy Pricing Rule",
+   "link_type": "DocType",
+   "onboard": 1,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Package Allowance Entry",
+   "link_count": 0,
+   "link_to": "Package Allowance Entry",
    "link_type": "DocType",
    "onboard": 1,
    "type": "Link"
@@ -424,7 +454,7 @@
    "type": "Link"
   }
  ],
- "modified": "2026-11-13 10:00:00.000000",
+ "modified": "2026-11-13 12:00:00.000000",
  "modified_by": "Administrator",
  "module": "Vuna Hospitality",
  "name": "Hospitality",
