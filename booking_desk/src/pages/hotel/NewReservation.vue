@@ -46,6 +46,23 @@
 					Children
 					<input v-model.number="children" type="number" min="0" class="hotel-input" />
 				</label>
+				<div
+					v-if="children > 0"
+					class="col-span-2 md:col-span-5 flex flex-wrap items-end gap-2 text-[12px] text-on-surface-variant"
+				>
+					<span class="w-full">Ages on arrival (they set each child's price band)</span>
+					<label v-for="(_, index) in childAges" :key="index" class="w-20">
+						Child {{ index + 1 }}
+						<input
+							v-model.number="childAges[index]"
+							type="number"
+							min="0"
+							max="17"
+							placeholder="Age"
+							class="hotel-input"
+						/>
+					</label>
+				</div>
 				<p class="order-last col-span-2 md:col-span-5 text-[12px] text-on-surface-variant">
 					{{ nights }} night{{ nights === 1 ? "" : "s" }}
 					<span v-if="businessDate">
@@ -112,6 +129,18 @@
 									{{ formatMoney(option.average_rate, option.currency) }} average
 									per night
 								</p>
+								<p
+									v-if="option.offered && option.tax"
+									class="text-[11px] text-on-surface-variant"
+								>
+									<template v-if="option.tax_inclusive">
+										incl. tax {{ formatMoney(option.tax, option.currency) }}
+									</template>
+									<template v-else>
+										+ tax {{ formatMoney(option.tax, option.currency) }} =
+										{{ formatMoney(option.grand_total, option.currency) }}
+									</template>
+								</p>
 							</div>
 						</div>
 						<div class="mt-3 flex flex-wrap gap-1.5">
@@ -169,7 +198,18 @@
 								>
 							</p>
 							<p class="mt-1 text-[16px] font-semibold">
-								{{ formatMoney(selected.total, selected.currency) }}
+								{{
+									formatMoney(
+										selected.grand_total || selected.total,
+										selected.currency
+									)
+								}}
+								<span
+									v-if="selected.tax"
+									class="text-[11px] font-normal text-on-surface-variant"
+									>{{ selected.tax_inclusive ? "incl." : "with" }} tax
+									{{ formatMoney(selected.tax, selected.currency) }}</span
+								>
 							</p>
 						</div>
 
@@ -229,6 +269,16 @@ const arrival = ref("");
 const departure = ref("");
 const adults = ref(2);
 const children = ref(0);
+// One age per child; an empty age is priced in the oldest child band.
+const childAges = ref([]);
+watch(children, (count) => {
+	const size = Math.max(0, Number(count) || 0);
+	childAges.value = Array.from({ length: size }, (_, i) => childAges.value[i] ?? null);
+});
+
+function knownAges() {
+	return childAges.value.map((age) => (age === "" || age == null ? null : Number(age)));
+}
 const options = ref([]);
 const selected = ref(null);
 const guest = ref(null);
@@ -302,6 +352,7 @@ async function search() {
 				departure: departure.value,
 				adults: adults.value,
 				children: children.value,
+				childAges: knownAges(),
 			})) || [];
 	} catch (e) {
 		error.value = hotelErrorMessage(e);
@@ -325,6 +376,7 @@ async function holdRooms() {
 					departure: selected.value.departure,
 					adults: selected.value.adults,
 					children: selected.value.children,
+					child_ages: selected.value.child_ages,
 					lead_guest: guest.value.name,
 					notes: notes.value || null,
 				},

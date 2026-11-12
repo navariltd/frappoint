@@ -270,6 +270,9 @@
 									>
 									<span class="block text-[11px] text-on-surface-variant">
 										{{ line.charge_code }}
+										<template v-if="line.tax_amount">
+											· tax {{ money(line.tax_amount) }}</template
+										>
 										<template v-if="line.reversed_by"> · reversed</template>
 										<template v-if="line.reason">
 											· {{ line.reason }}</template

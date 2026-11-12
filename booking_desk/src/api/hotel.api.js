@@ -58,13 +58,21 @@ export function hotelErrorMessage(error) {
 export const fetchSessionContextApi = () => request(HOTEL_ENDPOINTS.sessionContext);
 export const fetchDeskContextApi = () => request(HOTEL_ENDPOINTS.deskContext);
 
-export const searchAvailabilityApi = ({ property, arrival, departure, adults, children }) =>
+export const searchAvailabilityApi = ({
+	property,
+	arrival,
+	departure,
+	adults,
+	children,
+	childAges = [],
+}) =>
 	request(HOTEL_ENDPOINTS.searchAvailability, {
 		property,
 		arrival,
 		departure,
 		adults,
 		children,
+		child_ages: JSON.stringify(childAges),
 	});
 
 export const searchGuestsApi = (text) => request(HOTEL_ENDPOINTS.searchGuests, { text });
