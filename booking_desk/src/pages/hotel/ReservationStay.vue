@@ -16,6 +16,12 @@
 		<p v-if="error" class="rounded-lg bg-error-container/40 px-4 py-3 text-[13px]">
 			{{ error }}
 		</p>
+		<ActionBanner
+			:banner="banner"
+			:busy="busy"
+			@confirm="confirmBanner"
+			@cancel="cancelBanner"
+		/>
 
 		<template v-if="details">
 			<header class="flex flex-wrap items-start justify-between gap-3">
@@ -262,6 +268,39 @@
 				</section>
 			</div>
 
+			<section
+				v-if="details.folios.length"
+				class="rounded-xl border border-outline-variant bg-surface-container-lowest p-4 space-y-2"
+			>
+				<div class="flex items-center justify-between">
+					<h2 class="text-[15px] font-semibold">Folios</h2>
+					<RouterLink
+						v-if="actions.can_view_folios"
+						:to="{ name: 'HotelFolios', params: { stayId: stay.name } }"
+						class="text-[12px] font-semibold text-primary"
+						>Open folios →</RouterLink
+					>
+				</div>
+				<ul class="divide-y divide-outline-variant text-[13px]">
+					<li
+						v-for="folio in details.folios"
+						:key="folio.name"
+						class="flex items-center justify-between gap-3 py-2"
+					>
+						<span>
+							<b>{{ folio.folio_label }}</b>
+							<span class="text-on-surface-variant">
+								· {{ folio.payee_name || "Payee not set" }}</span
+							>
+						</span>
+						<span class="flex items-center gap-3">
+							<HotelStatusBadge :status="folio.status" />
+							<b>{{ formatMoney(folio.balance, folio.currency) }}</b>
+						</span>
+					</li>
+				</ul>
+			</section>
+
 			<div class="grid md:grid-cols-2 gap-5">
 				<section
 					class="rounded-xl border border-outline-variant bg-surface-container-lowest p-4"
@@ -331,11 +370,14 @@ import {
 	setPrimaryGuestApi,
 	setRoomLockApi,
 } from "@/api/hotel.api";
+import ActionBanner from "@/components/hotel/ActionBanner.vue";
 import GuestPicker from "@/components/hotel/GuestPicker.vue";
 import HotelStatusBadge from "@/components/hotel/HotelStatusBadge.vue";
+import { useActionBanner } from "@/composables/hotel/useActionBanner";
 import { formatMoney, formatNight } from "@/utils/hotelFormat";
 
 const route = useRoute();
+const { banner, ask, notify, confirm: confirmBanner, cancel: cancelBanner } = useActionBanner();
 const details = ref(null);
 const rooms = ref([]);
 const moveReasons = ref([]);
@@ -391,38 +433,73 @@ async function run(command) {
 		details.value = await command();
 		await loadRooms();
 	} catch (e) {
-		error.value = hotelErrorMessage(e);
+		const message = hotelErrorMessage(e);
+		// Reload first: loading clears the error, and the message must stay on screen.
 		await load();
+		error.value = message;
 	} finally {
 		busy.value = false;
 	}
 }
 
-function pickRoom(room) {
+async function pickRoom(room) {
 	if (actions.value.can_move) {
 		if (!moveReason.value) {
 			error.value = "Choose a move reason first.";
 			return;
 		}
-		if (
-			window.confirm(`Move ${stay.value.lead_guest_name} to room ${room.room_number} now?`)
-		) {
-			run(() => moveRoomApi(stay.value.name, room.name, moveReason.value));
-		}
+		const answer = await ask({
+			title: `Move ${stay.value.lead_guest_name} to room ${room.room_number} now?`,
+			message: `Reason: ${moveReason.value}. Room ${stay.value.room_number} stays in the stay's history.`,
+			confirmLabel: `Move to ${room.room_number}`,
+		});
+		if (answer) run(() => moveRoomApi(stay.value.name, room.name, moveReason.value));
 	} else {
 		run(() => assignRoomApi(stay.value.name, room.name));
 	}
 }
 
-function checkOut() {
-	if (window.confirm(`Check out ${stay.value.lead_guest_name}?`)) {
-		run(() => checkOutApi(stay.value.name));
+async function checkOut() {
+	const name = stay.value.lead_guest_name;
+	const owing = Number(details.value.open_balance || 0);
+	if (!owing) {
+		const answer = await ask({
+			title: `Check out ${name}?`,
+			message: stay.value.room_number
+				? `Room ${stay.value.room_number} becomes vacant and is marked dirty.`
+				: "",
+			confirmLabel: "Check out",
+		});
+		if (answer) run(() => checkOutApi(stay.value.name));
+		return;
 	}
+	const amount = formatMoney(owing, stay.value.currency);
+	if (!actions.value.can_override_check_out) {
+		notify({
+			tone: "danger",
+			title: `${name} still owes ${amount}`,
+			message: "Settle the folio first, or ask a Front Desk Manager to check the guest out.",
+		});
+		return;
+	}
+	const answer = await ask({
+		tone: "danger",
+		title: `${name} still owes ${amount}`,
+		message: "Check out anyway? The balance stays on the folio for settlement.",
+		reasonLabel: "Why check out with a balance?",
+		confirmLabel: "Check out anyway",
+	});
+	if (answer) run(() => checkOutApi(stay.value.name, answer.reason));
 }
 
-function removeGuest(guest) {
-	const reason = window.prompt(`Why is ${guest.guest_name} being removed from this stay?`);
-	if (reason && reason.trim()) run(() => removeStayGuestApi(guest.name, reason.trim()));
+async function removeGuest(guest) {
+	const answer = await ask({
+		tone: "danger",
+		title: `Remove ${guest.guest_name} from this stay?`,
+		reasonLabel: "Reason",
+		confirmLabel: "Remove guest",
+	});
+	if (answer) run(() => removeStayGuestApi(guest.name, answer.reason));
 }
 
 async function addGuest() {

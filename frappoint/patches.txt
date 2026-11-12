@@ -7,3 +7,4 @@
 frappoint.patches.migrate_appointments_to_resource_allocations
 frappoint.patches.submit_active_provider_unavailability
 frappoint.patches.drop_orphan_service_type_unit_type_columns
+frappoint.patches.create_default_guest_folios

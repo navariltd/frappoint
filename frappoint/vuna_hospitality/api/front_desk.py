@@ -115,9 +115,10 @@ def check_in(stay: str, room: str | None = None) -> dict:
 
 @frappe.whitelist(methods=["POST"])
 @require_hospitality
-def check_out(stay: str) -> dict:
+def check_out(stay: str, override_reason: str | None = None) -> dict:
+	"""Check out. With a balance on a folio, a Front Desk Manager must give `override_reason`."""
 	_check_stay(stay)
-	return _run(lambda: front_desk.check_out(stay), stay)
+	return _run(lambda: front_desk.check_out(stay, override_reason=override_reason), stay)
 
 
 @frappe.whitelist(methods=["POST"])

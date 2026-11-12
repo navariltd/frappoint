@@ -1,0 +1,480 @@
+{
+ "actions": [],
+ "autoname": "naming_series:",
+ "creation": "2026-11-12 10:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "naming_series",
+  "property",
+  "guest_folio",
+  "stay_reservation",
+  "hotel_booking",
+  "column_break_head",
+  "direction",
+  "transaction_type",
+  "charge_code",
+  "reverses",
+  "item_section",
+  "item",
+  "item_group",
+  "description_snapshot",
+  "print_group",
+  "column_break_item",
+  "is_room_revenue",
+  "accounting_mode",
+  "is_manual",
+  "amount_section",
+  "quantity",
+  "unit_rate",
+  "net_amount",
+  "tax_amount",
+  "column_break_amount",
+  "gross_amount",
+  "currency",
+  "exchange_rate",
+  "base_gross_amount",
+  "dates_section",
+  "business_date",
+  "service_date",
+  "column_break_dates",
+  "posting_datetime",
+  "guest_section",
+  "consumer_guest_profile",
+  "stay_guest",
+  "column_break_guest",
+  "room_occupancy",
+  "room_number_snapshot",
+  "source_section",
+  "posting_key",
+  "source_doctype",
+  "source_name",
+  "source_line",
+  "column_break_source",
+  "reason",
+  "approved_by",
+  "notes",
+  "amended_from"
+ ],
+ "fields": [
+  {
+   "fieldname": "naming_series",
+   "fieldtype": "Select",
+   "label": "Series",
+   "options": "FT-.property.-.YY.-.########",
+   "default": "FT-.property.-.YY.-.########",
+   "hidden": 1,
+   "set_only_once": 1
+  },
+  {
+   "fieldname": "property",
+   "fieldtype": "Link",
+   "label": "Property",
+   "options": "Hotel Property",
+   "reqd": 1,
+   "in_standard_filter": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "guest_folio",
+   "fieldtype": "Link",
+   "label": "Guest Folio",
+   "options": "Guest Folio",
+   "reqd": 1,
+   "in_standard_filter": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "stay_reservation",
+   "fieldtype": "Link",
+   "label": "Stay Reservation",
+   "options": "Stay Reservation",
+   "in_standard_filter": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "hotel_booking",
+   "fieldtype": "Link",
+   "label": "Hotel Booking",
+   "options": "Hotel Booking",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_head",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "direction",
+   "fieldtype": "Select",
+   "label": "Direction",
+   "options": "Debit\nCredit",
+   "reqd": 1,
+   "in_list_view": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "transaction_type",
+   "fieldtype": "Select",
+   "label": "Transaction Type",
+   "options": "Revenue\nPayment\nDeposit\nAllowance\nPaid-out\nTransfer\nAdjustment\nWrite-off",
+   "reqd": 1,
+   "in_standard_filter": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "charge_code",
+   "fieldtype": "Link",
+   "label": "Charge Code",
+   "options": "Charge Code",
+   "reqd": 1,
+   "in_standard_filter": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "reverses",
+   "fieldtype": "Link",
+   "label": "Reverses",
+   "options": "Folio Transaction",
+   "search_index": 1,
+   "description": "Set on a reversal: the transaction it cancels out.",
+   "read_only": 1
+  },
+  {
+   "fieldname": "item_section",
+   "fieldtype": "Section Break",
+   "label": "Charge"
+  },
+  {
+   "fieldname": "item",
+   "fieldtype": "Link",
+   "label": "Item",
+   "options": "Item",
+   "read_only": 1
+  },
+  {
+   "fieldname": "item_group",
+   "fieldtype": "Link",
+   "label": "Item Group",
+   "options": "Item Group",
+   "read_only": 1
+  },
+  {
+   "fieldname": "description_snapshot",
+   "fieldtype": "Data",
+   "label": "Description",
+   "reqd": 1,
+   "in_list_view": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "print_group",
+   "fieldtype": "Data",
+   "label": "Print Group",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_item",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "is_room_revenue",
+   "fieldtype": "Check",
+   "label": "Is Room Revenue",
+   "read_only": 1
+  },
+  {
+   "fieldname": "accounting_mode",
+   "fieldtype": "Select",
+   "label": "Accounting Mode",
+   "options": "Deferred to Folio Invoice\nExternally Accounted",
+   "reqd": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "is_manual",
+   "fieldtype": "Check",
+   "label": "Posted Manually",
+   "read_only": 1
+  },
+  {
+   "fieldname": "amount_section",
+   "fieldtype": "Section Break",
+   "label": "Amount"
+  },
+  {
+   "fieldname": "quantity",
+   "fieldtype": "Float",
+   "label": "Quantity",
+   "read_only": 1
+  },
+  {
+   "fieldname": "unit_rate",
+   "fieldtype": "Currency",
+   "label": "Rate",
+   "options": "currency",
+   "read_only": 1
+  },
+  {
+   "fieldname": "net_amount",
+   "fieldtype": "Currency",
+   "label": "Net Amount",
+   "options": "currency",
+   "reqd": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "tax_amount",
+   "fieldtype": "Currency",
+   "label": "Tax",
+   "options": "currency",
+   "description": "Tax comes with F9; zero until then.",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_amount",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "gross_amount",
+   "fieldtype": "Currency",
+   "label": "Amount",
+   "options": "currency",
+   "reqd": 1,
+   "in_list_view": 1,
+   "description": "Always positive; the direction says whether it is a charge or a credit.",
+   "read_only": 1
+  },
+  {
+   "fieldname": "currency",
+   "fieldtype": "Link",
+   "label": "Currency",
+   "options": "Currency",
+   "read_only": 1
+  },
+  {
+   "fieldname": "exchange_rate",
+   "fieldtype": "Float",
+   "label": "Exchange Rate",
+   "default": "1",
+   "read_only": 1
+  },
+  {
+   "fieldname": "base_gross_amount",
+   "fieldtype": "Currency",
+   "label": "Amount (Property Currency)",
+   "options": "currency",
+   "read_only": 1
+  },
+  {
+   "fieldname": "dates_section",
+   "fieldtype": "Section Break",
+   "label": "Dates"
+  },
+  {
+   "fieldname": "business_date",
+   "fieldtype": "Date",
+   "label": "Business Date",
+   "reqd": 1,
+   "in_standard_filter": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "service_date",
+   "fieldtype": "Date",
+   "label": "Service Date",
+   "reqd": 1,
+   "description": "When the guest received it. A reversal keeps the original's service date.",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_dates",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "posting_datetime",
+   "fieldtype": "Datetime",
+   "label": "Posted At",
+   "reqd": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "guest_section",
+   "fieldtype": "Section Break",
+   "label": "Guest and Room"
+  },
+  {
+   "fieldname": "consumer_guest_profile",
+   "fieldtype": "Link",
+   "label": "Consumed By",
+   "options": "Guest Profile",
+   "read_only": 1
+  },
+  {
+   "fieldname": "stay_guest",
+   "fieldtype": "Link",
+   "label": "Stay Guest",
+   "options": "Stay Guest",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_guest",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "room_occupancy",
+   "fieldtype": "Link",
+   "label": "Room Occupancy",
+   "options": "Room Occupancy",
+   "read_only": 1
+  },
+  {
+   "fieldname": "room_number_snapshot",
+   "fieldtype": "Data",
+   "label": "Room Number",
+   "read_only": 1
+  },
+  {
+   "fieldname": "source_section",
+   "fieldtype": "Section Break",
+   "label": "Source",
+   "collapsible": 1
+  },
+  {
+   "fieldname": "posting_key",
+   "fieldtype": "Data",
+   "label": "Posting Key",
+   "reqd": 1,
+   "unique": 1,
+   "description": "Makes posting exactly-once: a second posting with the same key returns this transaction.",
+   "read_only": 1
+  },
+  {
+   "fieldname": "source_doctype",
+   "fieldtype": "Link",
+   "label": "Source Type",
+   "options": "DocType",
+   "read_only": 1
+  },
+  {
+   "fieldname": "source_name",
+   "fieldtype": "Dynamic Link",
+   "label": "Source",
+   "options": "source_doctype",
+   "read_only": 1
+  },
+  {
+   "fieldname": "source_line",
+   "fieldtype": "Data",
+   "label": "Source Line",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_source",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "reason",
+   "fieldtype": "Small Text",
+   "label": "Reason",
+   "read_only": 1
+  },
+  {
+   "fieldname": "approved_by",
+   "fieldtype": "Link",
+   "label": "Approved By",
+   "options": "User",
+   "read_only": 1
+  },
+  {
+   "fieldname": "notes",
+   "fieldtype": "Small Text",
+   "label": "Notes",
+   "read_only": 1
+  },
+  {
+   "fieldname": "amended_from",
+   "fieldtype": "Link",
+   "label": "Amended From",
+   "options": "Folio Transaction",
+   "no_copy": 1,
+   "print_hide": 1,
+   "read_only": 1
+  }
+ ],
+ "index_web_pages_for_search": 0,
+ "modified": "2026-11-12 10:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Vuna Hospitality",
+ "owner": "Administrator",
+ "row_format": "Dynamic",
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1,
+ "naming_rule": "By \"Naming Series\" field",
+ "in_create": 1,
+ "name": "Folio Transaction",
+ "is_submittable": 1,
+ "title_field": "description_snapshot",
+ "search_fields": "description_snapshot,guest_folio,charge_code",
+ "links": [
+  {
+   "link_doctype": "Folio Transaction",
+   "link_fieldname": "reverses",
+   "group": "Corrections"
+  }
+ ],
+ "permissions": [
+  {
+   "role": "System Manager",
+   "read": 1,
+   "report": 1,
+   "print": 1,
+   "export": 1
+  },
+  {
+   "role": "Hospitality Manager",
+   "read": 1,
+   "report": 1,
+   "print": 1,
+   "export": 1
+  },
+  {
+   "role": "Front Desk Manager",
+   "read": 1,
+   "report": 1,
+   "print": 1
+  },
+  {
+   "role": "Front Desk Agent",
+   "read": 1,
+   "report": 1,
+   "print": 1
+  },
+  {
+   "role": "Cashier",
+   "read": 1,
+   "report": 1,
+   "print": 1
+  },
+  {
+   "role": "Hotel Accountant",
+   "read": 1,
+   "report": 1,
+   "print": 1,
+   "export": 1
+  },
+  {
+   "role": "Night Auditor",
+   "read": 1,
+   "report": 1,
+   "print": 1
+  },
+  {
+   "role": "Revenue Manager",
+   "read": 1,
+   "report": 1,
+   "print": 1
+  }
+ ]
+}

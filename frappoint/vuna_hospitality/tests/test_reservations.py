@@ -325,6 +325,8 @@ class ConcurrentReservationTestCase(IntegrationTestCase):
 		frappe.db.rollback()
 		code = self.CODE
 		for doctype in (
+			"Folio Transaction",
+			"Guest Folio",
 			"Stay Rate Night",
 			"Occupancy Membership",
 			"Stay Reservation",

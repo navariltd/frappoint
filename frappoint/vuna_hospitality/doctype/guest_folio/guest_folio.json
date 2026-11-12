@@ -1,0 +1,338 @@
+{
+ "actions": [],
+ "autoname": "naming_series:",
+ "creation": "2026-11-12 10:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "naming_series",
+  "property",
+  "folio_label",
+  "status",
+  "column_break_head",
+  "owner_type",
+  "owner_reference",
+  "stay_reservation",
+  "hotel_booking",
+  "window_number",
+  "is_default",
+  "payee_section",
+  "payee_customer",
+  "payee_guest_profile",
+  "column_break_payee",
+  "payee_name",
+  "balance_section",
+  "currency",
+  "posted_debits",
+  "posted_credits",
+  "column_break_balance",
+  "balance",
+  "pending_total",
+  "transaction_count",
+  "closing_section",
+  "closed_at",
+  "closed_by",
+  "column_break_close",
+  "notes"
+ ],
+ "fields": [
+  {
+   "fieldname": "naming_series",
+   "fieldtype": "Select",
+   "label": "Series",
+   "options": "GF-.property.-.YY.-.#####",
+   "default": "GF-.property.-.YY.-.#####",
+   "hidden": 1,
+   "set_only_once": 1
+  },
+  {
+   "fieldname": "property",
+   "fieldtype": "Link",
+   "label": "Property",
+   "options": "Hotel Property",
+   "reqd": 1,
+   "in_standard_filter": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "folio_label",
+   "fieldtype": "Data",
+   "label": "Folio",
+   "reqd": 1,
+   "in_list_view": 1,
+   "description": "Shown on the folio, e.g. Guest, Company, Extras."
+  },
+  {
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "label": "Status",
+   "options": "Open\nSettlement Pending\nSettled\nTransferred to AR\nPost-Stay Open\nClosed",
+   "default": "Open",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "no_copy": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_head",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "owner_type",
+   "fieldtype": "Select",
+   "label": "Owner Type",
+   "options": "Stay Reservation\nHotel Booking",
+   "reqd": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "owner_reference",
+   "fieldtype": "Dynamic Link",
+   "label": "Owner",
+   "options": "owner_type",
+   "reqd": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "stay_reservation",
+   "fieldtype": "Link",
+   "label": "Stay Reservation",
+   "options": "Stay Reservation",
+   "in_standard_filter": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "hotel_booking",
+   "fieldtype": "Link",
+   "label": "Hotel Booking",
+   "options": "Hotel Booking",
+   "in_standard_filter": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "window_number",
+   "fieldtype": "Int",
+   "label": "Window",
+   "read_only": 1
+  },
+  {
+   "fieldname": "is_default",
+   "fieldtype": "Check",
+   "label": "Default Folio",
+   "description": "Charges go here unless routing (F12) sends them elsewhere.",
+   "read_only": 1
+  },
+  {
+   "fieldname": "payee_section",
+   "fieldtype": "Section Break",
+   "label": "Payee"
+  },
+  {
+   "fieldname": "payee_customer",
+   "fieldtype": "Link",
+   "label": "Payee Customer",
+   "options": "Customer",
+   "description": "The ERPNext Customer invoiced at settlement. If empty, settlement creates or reuses one for the payee guest.",
+   "read_only": 1
+  },
+  {
+   "fieldname": "payee_guest_profile",
+   "fieldtype": "Link",
+   "label": "Payee Guest",
+   "options": "Guest Profile",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_payee",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "payee_name",
+   "fieldtype": "Data",
+   "label": "Payee Name",
+   "in_list_view": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "balance_section",
+   "fieldtype": "Section Break",
+   "label": "Balance"
+  },
+  {
+   "fieldname": "currency",
+   "fieldtype": "Link",
+   "label": "Currency",
+   "options": "Currency",
+   "read_only": 1
+  },
+  {
+   "fieldname": "posted_debits",
+   "fieldtype": "Currency",
+   "label": "Posted Debits",
+   "options": "currency",
+   "no_copy": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "posted_credits",
+   "fieldtype": "Currency",
+   "label": "Posted Credits",
+   "options": "currency",
+   "no_copy": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_balance",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "balance",
+   "fieldtype": "Currency",
+   "label": "Balance",
+   "options": "currency",
+   "in_list_view": 1,
+   "no_copy": 1,
+   "description": "Posted debits minus posted credits. Rebuilt from the transactions, never edited.",
+   "read_only": 1
+  },
+  {
+   "fieldname": "pending_total",
+   "fieldtype": "Currency",
+   "label": "Pending",
+   "options": "currency",
+   "no_copy": 1,
+   "description": "Nights not posted yet. Not part of the balance.",
+   "read_only": 1
+  },
+  {
+   "fieldname": "transaction_count",
+   "fieldtype": "Int",
+   "label": "Transactions",
+   "no_copy": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "closing_section",
+   "fieldtype": "Section Break",
+   "label": "Closing",
+   "collapsible": 1
+  },
+  {
+   "fieldname": "closed_at",
+   "fieldtype": "Datetime",
+   "label": "Closed At",
+   "no_copy": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "closed_by",
+   "fieldtype": "Link",
+   "label": "Closed By",
+   "options": "User",
+   "no_copy": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_close",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "notes",
+   "fieldtype": "Small Text",
+   "label": "Notes"
+  }
+ ],
+ "index_web_pages_for_search": 0,
+ "modified": "2026-11-12 10:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Vuna Hospitality",
+ "owner": "Administrator",
+ "row_format": "Dynamic",
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1,
+ "naming_rule": "By \"Naming Series\" field",
+ "in_create": 1,
+ "name": "Guest Folio",
+ "title_field": "folio_label",
+ "show_title_field_in_link": 1,
+ "search_fields": "payee_name,stay_reservation,status",
+ "links": [
+  {
+   "link_doctype": "Folio Transaction",
+   "link_fieldname": "guest_folio",
+   "group": "Transactions"
+  }
+ ],
+ "permissions": [
+  {
+   "role": "System Manager",
+   "read": 1,
+   "report": 1,
+   "print": 1,
+   "email": 1,
+   "export": 1,
+   "write": 1,
+   "share": 1,
+   "delete": 1
+  },
+  {
+   "role": "Hospitality Manager",
+   "read": 1,
+   "report": 1,
+   "print": 1,
+   "email": 1,
+   "export": 1,
+   "write": 1,
+   "share": 1
+  },
+  {
+   "role": "Front Desk Manager",
+   "read": 1,
+   "report": 1,
+   "print": 1,
+   "email": 1,
+   "export": 1,
+   "write": 1
+  },
+  {
+   "role": "Front Desk Agent",
+   "read": 1,
+   "report": 1,
+   "print": 1,
+   "email": 1,
+   "export": 1,
+   "write": 1
+  },
+  {
+   "role": "Cashier",
+   "read": 1,
+   "report": 1,
+   "print": 1,
+   "email": 1,
+   "export": 1,
+   "write": 1
+  },
+  {
+   "role": "Hotel Accountant",
+   "read": 1,
+   "report": 1,
+   "print": 1,
+   "email": 1,
+   "export": 1
+  },
+  {
+   "role": "Night Auditor",
+   "read": 1,
+   "report": 1,
+   "print": 1
+  },
+  {
+   "role": "Revenue Manager",
+   "read": 1,
+   "report": 1,
+   "print": 1
+  }
+ ]
+}

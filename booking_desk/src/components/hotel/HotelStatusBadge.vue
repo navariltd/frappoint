@@ -16,10 +16,12 @@ const badgeClass = computed(() => {
 	switch (props.status) {
 		case "Held":
 		case "Option":
+		case "Settlement Pending":
 			return "bg-tertiary-container text-on-tertiary-container";
 		case "Confirmed":
 		case "Due In":
 		case "In House":
+		case "Open":
 			return "bg-secondary-container text-on-secondary-container";
 		case "Cancelled":
 		case "No Show":

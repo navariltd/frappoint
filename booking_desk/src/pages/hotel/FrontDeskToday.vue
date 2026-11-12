@@ -32,6 +32,12 @@
 			<p v-if="error" class="rounded-lg bg-error-container/40 px-4 py-3 text-[13px]">
 				{{ error }}
 			</p>
+			<ActionBanner
+				:banner="banner"
+				:busy="!!busy"
+				@confirm="confirmBanner"
+				@cancel="cancelBanner"
+			/>
 			<p v-if="loading && !today" class="text-[13px] text-on-surface-variant">Loading…</p>
 			<p v-else-if="today && !rows.length" class="text-[13px] text-on-surface-variant">
 				Nothing here today.
@@ -113,12 +119,15 @@ import {
 	fetchFrontDeskTodayApi,
 	hotelErrorMessage,
 } from "@/api/hotel.api";
+import ActionBanner from "@/components/hotel/ActionBanner.vue";
 import HotelStatusBadge from "@/components/hotel/HotelStatusBadge.vue";
 import HotelUnavailable from "@/components/hotel/HotelUnavailable.vue";
+import { useActionBanner } from "@/composables/hotel/useActionBanner";
 import { useHotelStore } from "@/stores/hotel.store";
 import { formatNight } from "@/utils/hotelFormat";
 
 const hotel = useHotelStore();
+const { banner, ask, confirm: confirmBanner, cancel: cancelBanner } = useActionBanner();
 const today = ref(null);
 const activeTab = ref("arrivals");
 const loading = ref(false);
@@ -157,20 +166,28 @@ async function load() {
 async function run(stay, command) {
 	busy.value = stay.name;
 	error.value = "";
+	let message = "";
 	try {
 		await command();
 	} catch (e) {
-		error.value = `${stay.lead_guest_name}: ${hotelErrorMessage(e)}`;
+		message = `${stay.lead_guest_name}: ${hotelErrorMessage(e)}`;
 	} finally {
 		busy.value = "";
+		// Reload first: loading clears the error, and the message must stay on screen.
 		await load();
+		error.value = message;
 	}
 }
 
-function checkOut(stay) {
-	if (window.confirm(`Check out ${stay.lead_guest_name} from room ${stay.room_number || ""}?`)) {
-		run(stay, () => checkOutApi(stay.name));
-	}
+async function checkOut(stay) {
+	const answer = await ask({
+		title: `Check out ${stay.lead_guest_name}?`,
+		message: stay.room_number
+			? `Room ${stay.room_number} becomes vacant and is marked dirty.`
+			: "",
+		confirmLabel: "Check out",
+	});
+	if (answer) run(stay, () => checkOutApi(stay.name));
 }
 
 onMounted(async () => {

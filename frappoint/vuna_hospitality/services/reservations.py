@@ -448,6 +448,9 @@ def confirm(stay_name: str) -> dict:
 		event_type="Reservation Confirmed",
 		ignore_permissions=True,
 	)
+	from frappoint.vuna_hospitality.services.folio import ensure_default_folio
+
+	ensure_default_folio(stay.name)
 	refresh_booking(stay.hotel_booking)
 	return booking_summary(stay.hotel_booking)
 
@@ -488,6 +491,11 @@ def cancel(stay_name: str, reason: str) -> dict:
 		ignore_permissions=True,
 	)
 	_cancel_pending_nights(stay.name)
+	from frappoint.vuna_hospitality.services.folio import close_idle_folios, refresh_stay_pending
+
+	# A folio with charges (a fee from F12, a posted extra) stays open for settlement.
+	refresh_stay_pending(stay.name)
+	close_idle_folios(stay.name, reason=reason)
 	refresh_booking(stay.hotel_booking)
 	return booking_summary(stay.hotel_booking)
 

@@ -11,6 +11,12 @@
 		>
 			{{ error }}
 		</p>
+		<ActionBanner
+			:banner="banner"
+			:busy="busy"
+			@confirm="confirmBanner"
+			@cancel="cancelBanner"
+		/>
 
 		<template v-if="booking">
 			<header class="flex flex-wrap items-start justify-between gap-3">
@@ -151,10 +157,13 @@ import {
 	fetchBookingApi,
 	hotelErrorMessage,
 } from "@/api/hotel.api";
+import ActionBanner from "@/components/hotel/ActionBanner.vue";
 import HotelStatusBadge from "@/components/hotel/HotelStatusBadge.vue";
+import { useActionBanner } from "@/composables/hotel/useActionBanner";
 import { formatMoney, formatNight, holdTimeLeft } from "@/utils/hotelFormat";
 
 const route = useRoute();
+const { banner, ask, confirm: confirmBanner, cancel: cancelBanner } = useActionBanner();
 const booking = ref(null);
 const fetchedAt = ref(Date.now());
 const now = ref(Date.now());
@@ -195,16 +204,25 @@ async function run(command) {
 	try {
 		show(await command());
 	} catch (e) {
-		error.value = hotelErrorMessage(e);
+		const message = hotelErrorMessage(e);
+		// Reload first: loading clears the error, and the message must stay on screen.
 		await load();
+		error.value = message;
 	} finally {
 		busy.value = false;
 	}
 }
 
-function cancelStay(stay) {
-	const reason = window.prompt(`Why is stay ${stay.name} being cancelled?`);
-	if (reason && reason.trim()) run(() => cancelStayApi(stay.name, reason.trim()));
+async function cancelStay(stay) {
+	const answer = await ask({
+		tone: "danger",
+		title: `Cancel stay ${stay.name}?`,
+		message: "Its rooms go back on sale.",
+		reasonLabel: "Reason for cancelling",
+		confirmLabel: "Cancel stay",
+		cancelLabel: "Keep stay",
+	});
+	if (answer) run(() => cancelStayApi(stay.name, answer.reason));
 }
 
 onMounted(() => {

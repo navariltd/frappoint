@@ -7,8 +7,9 @@
   property's turnover time, so early check-in and late check-out are respected. A move ends one
   segment and starts the next, so the stay's history keeps every room.
 - **Check-in** needs a ready room (housekeeping Inspected or Clean, until F17), every adult
-  registered, and a satisfied guarantee (F12). **Check-out** needs a settled folio (F7); leaving
-  before the booked departure gives the remaining nights back to inventory.
+  registered, and a satisfied guarantee (F12). **Check-out** needs every open folio at zero (F7),
+  unless a Front Desk Manager overrides it with a reason; leaving before the booked departure gives
+  the remaining nights back to inventory. Folios with nothing to invoice close at check-out.
 
 Lock order follows reservations.py: the stay first, then rooms (by name), then inventory rows,
 then the booking.
@@ -20,7 +21,8 @@ import frappe
 from frappe import _
 from frappe.utils import add_days, cint, get_datetime, getdate, now_datetime
 
-from frappoint.vuna_hospitality.services import inventory, reservations
+from frappoint.vuna_hospitality.constants import FOLIO_MANAGER_ROLES
+from frappoint.vuna_hospitality.services import folio, inventory, reservations
 from frappoint.vuna_hospitality.services.event_log import log_event
 from frappoint.vuna_hospitality.services.guests import assert_registrable
 from frappoint.vuna_hospitality.services.money import from_minor, to_minor
@@ -549,6 +551,8 @@ def check_in(stay_name: str, room: str | None = None) -> None:
 			_("Register every adult before check-in: {0}.").format(", ".join(unregistered))
 		)
 	assert_guarantee_satisfied(stay)
+	# Stays confirmed before folios existed get theirs here, so every in-house stay has one.
+	folio.ensure_default_folio(stay.name)
 
 	now = now_datetime()
 	for guest in guests:
@@ -597,12 +601,16 @@ def check_in_guest(stay_guest: str) -> None:
 	)
 
 
-def check_out(stay_name: str) -> None:
-	"""Check the stay out. Leaving before the booked departure gives the remaining nights back."""
+def check_out(stay_name: str, override_reason: str | None = None) -> None:
+	"""Check the stay out. Leaving before the booked departure gives the remaining nights back.
+
+	Every open folio must be at zero. `override_reason` lets a Front Desk Manager check the guest
+	out anyway; the folios then stay open for settlement.
+	"""
 	stay = _lock_stay(stay_name)
 	if stay.status not in IN_HOUSE_STATUSES:
 		frappe.throw(_("Stay {0} is {1} and can't be checked out.").format(stay.name, _(stay.status)))
-	assert_ready_to_check_out(stay)
+	assert_ready_to_check_out(stay, override_reason)
 
 	now = now_datetime()
 	business_date = _business_date(stay.property)
@@ -644,6 +652,7 @@ def check_out(stay_name: str) -> None:
 		data={"early_departure": early},
 		ignore_permissions=True,
 	)
+	folio.close_idle_folios(stay.name, reason=_("Checked out with nothing to invoice"))
 	refresh_booking(stay.hotel_booking)
 
 
@@ -685,6 +694,7 @@ def _shorten_stay(stay, new_departure) -> None:
 	)
 	stay.flags[reservations.SERVICE_FLAG] = True
 	stay.save(ignore_permissions=True)
+	folio.refresh_stay_pending(stay.name)
 	log_event(
 		STAY,
 		stay.name,
@@ -697,8 +707,9 @@ def assert_guarantee_satisfied(stay) -> None:
 	"""Check-in needs the booking's guarantee or deposit (F12 enforces it). Nothing to check yet."""
 
 
-def assert_ready_to_check_out(stay) -> None:
-	"""Check-out needs every folio settled to zero (F7 enforces it). Nothing to check yet."""
+def assert_ready_to_check_out(stay, override_reason: str | None = None) -> None:
+	"""Check-out needs every open folio at zero, or a Front Desk Manager's override."""
+	folio.assert_folios_settled(stay, override_reason)
 
 
 def _business_date(property_name: str):
@@ -845,6 +856,25 @@ def stay_details(stay_name: str) -> dict:
 		order_by="timestamp desc, creation desc",
 		limit=100,
 	)
+	folios = frappe.get_all(
+		folio.FOLIO,
+		filters={"stay_reservation": stay.name},
+		fields=[
+			"name",
+			"folio_label",
+			"status",
+			"is_default",
+			"payee_name",
+			"balance",
+			"pending_total",
+			"currency",
+		],
+		order_by="window_number asc, creation asc",
+	)
+	owing = from_minor(
+		sum(to_minor(row.balance, row.currency) for row in folios if row.status in folio.POSTABLE_STATUSES),
+		stay.currency,
+	)
 	status = stay.status
 	return {
 		"stay": summary,
@@ -852,6 +882,8 @@ def stay_details(stay_name: str) -> dict:
 		"assignments": assignments,
 		"nights": nights,
 		"events": events,
+		"folios": folios,
+		"open_balance": owing,
 		"actions": {
 			"can_assign": status in PRE_ARRIVAL_STATUSES,
 			"can_check_in": status in PRE_ARRIVAL_STATUSES
@@ -859,6 +891,8 @@ def stay_details(stay_name: str) -> dict:
 			"can_move": status in IN_HOUSE_STATUSES,
 			"can_check_out": status in IN_HOUSE_STATUSES,
 			"can_edit_guests": status in GUEST_EDITABLE_STATUSES,
+			"can_view_folios": bool(folios) and bool(frappe.has_permission(folio.FOLIO, "read")),
+			"can_override_check_out": bool(set(FOLIO_MANAGER_ROLES) & set(frappe.get_roles())),
 		},
 	}
 
