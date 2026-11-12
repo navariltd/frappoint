@@ -24,11 +24,18 @@ class RatePlan(Document):
 
 	def validate_room_charge_code(self):
 		code = frappe.db.get_value(
-			"Charge Code", self.room_charge_code, ["transaction_type", "is_active"], as_dict=True
+			"Charge Code", self.room_charge_code, ["transaction_type", "is_active", "item"], as_dict=True
 		)
 		if code.transaction_type != "Revenue" or not code.is_active:
 			frappe.throw(
 				_("Room Charge Code {0} must be an active Revenue charge code.").format(self.room_charge_code)
+			)
+		if not code.item:
+			# Night audit posts the room night without anyone picking an Item.
+			frappe.throw(
+				_("Room Charge Code {0} needs a fixed Item, because night audit posts it on its own.").format(
+					self.room_charge_code
+				)
 			)
 
 	def validate_policy(self, policy, policy_type):

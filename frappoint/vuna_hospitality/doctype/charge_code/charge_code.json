@@ -12,8 +12,8 @@
   "is_room_revenue",
   "print_group",
   "accounting_section",
-  "item",
   "item_group",
+  "item",
   "mode_of_payment",
   "column_break_acc",
   "accounting_mode",
@@ -83,22 +83,21 @@
   {
    "fieldname": "item",
    "fieldtype": "Link",
-   "label": "Item",
+   "label": "Fixed Item",
    "options": "Item",
-   "mandatory_depends_on": "eval:['Revenue','Allowance'].includes(doc.transaction_type)",
    "depends_on": "eval:!['Payment','Deposit'].includes(doc.transaction_type)",
-   "description": "Supplies the income account and Item Tax Template. Required for Revenue and Allowance codes."
+   "description": "Only for codes that are always the same thing, such as ROOM or NOSHOW. This Item supplies the income account and Item Tax Template. Leave empty to cover the whole Item Group."
   },
   {
    "fieldname": "item_group",
    "fieldtype": "Link",
-   "label": "Item Group",
+   "label": "Covers Item Group",
    "options": "Item Group",
-   "fetch_from": "item.item_group",
-   "read_only": 1,
    "in_list_view": 1,
    "in_standard_filter": 1,
-   "description": "Groups revenue codes in reports (Rooms, Food and Beverage, Spa...). Set on the Item."
+   "description": "Every Item in this group (and its sub-groups) posts with this code, so a new Item needs no setup. The nearest group wins when several codes cover an Item.",
+   "mandatory_depends_on": "eval:['Revenue','Allowance'].includes(doc.transaction_type) && !doc.item",
+   "depends_on": "eval:!['Payment','Deposit'].includes(doc.transaction_type)"
   },
   {
    "fieldname": "mode_of_payment",
@@ -150,7 +149,7 @@
  ],
  "index_web_pages_for_search": 0,
  "links": [],
- "modified": "2026-11-11 18:00:00.000000",
+ "modified": "2026-11-12 10:00:00.000000",
  "modified_by": "Administrator",
  "module": "Vuna Hospitality",
  "name": "Charge Code",
