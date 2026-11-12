@@ -23,6 +23,7 @@
   "room_type",
   "rate_plan",
   "room_occupancy",
+  "default_folio",
   "eta",
   "etd",
   "price_section",
@@ -195,6 +196,15 @@
    "read_only": 1
   },
   {
+   "fieldname": "default_folio",
+   "fieldtype": "Link",
+   "label": "Default Folio",
+   "options": "Guest Folio",
+   "read_only": 1,
+   "no_copy": 1,
+   "description": "Created when the stay is confirmed. Charges post here unless routing sends them elsewhere."
+  },
+  {
    "fieldname": "eta",
    "fieldtype": "Time",
    "label": "Expected Arrival Time"
@@ -355,9 +365,14 @@
    "link_doctype": "Occupancy Membership",
    "link_fieldname": "stay_reservation",
    "group": "Room"
+  },
+  {
+   "link_doctype": "Guest Folio",
+   "link_fieldname": "stay_reservation",
+   "group": "Billing"
   }
  ],
- "modified": "2026-11-11 14:00:00.000000",
+ "modified": "2026-11-12 10:00:00.000000",
  "modified_by": "Administrator",
  "module": "Vuna Hospitality",
  "name": "Stay Reservation",

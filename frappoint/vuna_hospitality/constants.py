@@ -68,7 +68,25 @@ PROPERTY_SCOPED_DOCTYPES: tuple[str, ...] = (
 	# F6 Stay guests, room assignment, check-in and check-out
 	"Stay Guest",
 	"Room Assignment",
+	# F7 Folio and posting engine
+	"Guest Folio",
+	"Folio Transaction",
 )
+
+# Roles that post charges to a folio by hand (§23.1: front desk posts within limits).
+FOLIO_POSTING_ROLES = (
+	"System Manager",
+	HOSPITALITY_MANAGER,
+	FRONT_DESK_MANAGER,
+	FRONT_DESK_AGENT,
+	CASHIER,
+)
+
+# Roles that reverse a posted transaction or override a check-out balance (§23.1, §23.2).
+FOLIO_MANAGER_ROLES = ("System Manager", HOSPITALITY_MANAGER, FRONT_DESK_MANAGER)
+
+# Roles that rebuild cached folio balances from their transactions.
+FOLIO_REBUILD_ROLES = ("System Manager", HOSPITALITY_MANAGER, HOTEL_ACCOUNTANT)
 
 # Roles that take reservations (hold, confirm, cancel).
 RESERVATION_ROLES = (
