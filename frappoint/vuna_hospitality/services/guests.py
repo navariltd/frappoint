@@ -220,14 +220,16 @@ def assert_registrable(guest_profile: str) -> None:
 # Customer link
 
 
-def link_customer(guest_profile: str, customer: str | None = None) -> str:
+def link_customer(guest_profile: str, customer: str | None = None, ignore_permissions: bool = False) -> str:
 	"""Link the Customer that pays for this guest, creating an individual Customer if none is given.
 
 	Many guests may share a Customer (for example, employees of one company), so an existing
-	Customer is never taken over or renamed.
+	Customer is never taken over or renamed. `ignore_permissions` is for the system creating the
+	payer on the guest's behalf (decision D-3), for example when a cashier takes the first payment.
 	"""
 	guest = frappe.get_doc(GUEST_PROFILE, guest_profile)
-	guest.check_permission("write")
+	if not ignore_permissions:
+		guest.check_permission("write")
 	if guest.is_provisional:
 		frappe.throw(_("Complete the guest's details before creating a Customer for them."))
 
@@ -248,12 +250,12 @@ def link_customer(guest_profile: str, customer: str | None = None) -> str:
 					"mobile_no": guest.mobile_no,
 				}
 			)
-			.insert()
+			.insert(ignore_permissions=ignore_permissions)
 			.name
 		)
 
 	guest.customer = linked
-	guest.save()
+	guest.save(ignore_permissions=ignore_permissions)
 	return linked
 
 

@@ -1,0 +1,293 @@
+{
+ "actions": [],
+ "autoname": "naming_series:",
+ "creation": "2026-11-13 15:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "naming_series",
+  "property",
+  "payment_type",
+  "status",
+  "refund_of",
+  "column_break_head",
+  "payer_customer",
+  "payer_name",
+  "cashier_shift",
+  "request_id",
+  "amount_section",
+  "mode_of_payment",
+  "payment_gateway",
+  "phone",
+  "column_break_amount",
+  "amount",
+  "currency",
+  "reference_no",
+  "reason",
+  "splits_section",
+  "splits",
+  "accounting_section",
+  "payment_entry",
+  "column_break_accounting",
+  "received_at"
+ ],
+ "fields": [
+  {
+   "fieldname": "naming_series",
+   "fieldtype": "Select",
+   "label": "Series",
+   "options": "FP-.property.-.YY.-.#####",
+   "default": "FP-.property.-.YY.-.#####",
+   "hidden": 1,
+   "set_only_once": 1
+  },
+  {
+   "fieldname": "property",
+   "fieldtype": "Link",
+   "label": "Property",
+   "options": "Hotel Property",
+   "reqd": 1,
+   "in_standard_filter": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "payment_type",
+   "fieldtype": "Select",
+   "label": "Payment Type",
+   "options": "Receive\nRefund",
+   "default": "Receive",
+   "reqd": 1,
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "label": "Status",
+   "options": "Pending\nReceived\nFailed\nCancelled",
+   "default": "Pending",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "no_copy": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "refund_of",
+   "fieldtype": "Link",
+   "label": "Refund Of",
+   "options": "Folio Payment",
+   "depends_on": "eval:doc.payment_type=='Refund'",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_head",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "payer_customer",
+   "fieldtype": "Link",
+   "label": "Payer",
+   "options": "Customer",
+   "reqd": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "payer_name",
+   "fieldtype": "Data",
+   "label": "Payer Name",
+   "in_list_view": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "cashier_shift",
+   "fieldtype": "Link",
+   "label": "Cashier Shift",
+   "options": "Cashier Shift",
+   "in_standard_filter": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "request_id",
+   "fieldtype": "Data",
+   "label": "Request ID",
+   "unique": 1,
+   "no_copy": 1,
+   "hidden": 1,
+   "description": "One payment per request, however often it is retried.",
+   "read_only": 1
+  },
+  {
+   "fieldname": "amount_section",
+   "fieldtype": "Section Break",
+   "label": "Amount"
+  },
+  {
+   "fieldname": "mode_of_payment",
+   "fieldtype": "Link",
+   "label": "Mode of Payment",
+   "options": "Mode of Payment",
+   "reqd": 1,
+   "in_list_view": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "payment_gateway",
+   "fieldtype": "Link",
+   "label": "Payment Gateway",
+   "options": "Payment Gateway",
+   "read_only": 1
+  },
+  {
+   "fieldname": "phone",
+   "fieldtype": "Data",
+   "label": "Phone",
+   "options": "Phone",
+   "depends_on": "payment_gateway",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_amount",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "amount",
+   "fieldtype": "Currency",
+   "label": "Amount",
+   "options": "currency",
+   "reqd": 1,
+   "in_list_view": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "currency",
+   "fieldtype": "Link",
+   "label": "Currency",
+   "options": "Currency",
+   "read_only": 1
+  },
+  {
+   "fieldname": "reference_no",
+   "fieldtype": "Data",
+   "label": "Reference",
+   "description": "Card slip, bank, or M-Pesa receipt number.",
+   "read_only": 1
+  },
+  {
+   "fieldname": "reason",
+   "fieldtype": "Small Text",
+   "label": "Reason",
+   "depends_on": "eval:doc.payment_type=='Refund'||doc.status=='Cancelled'||doc.status=='Failed'",
+   "read_only": 1
+  },
+  {
+   "fieldname": "splits_section",
+   "fieldtype": "Section Break",
+   "label": "Folios"
+  },
+  {
+   "fieldname": "splits",
+   "fieldtype": "Table",
+   "label": "Splits",
+   "options": "Folio Payment Split",
+   "reqd": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "accounting_section",
+   "fieldtype": "Section Break",
+   "label": "Accounting"
+  },
+  {
+   "fieldname": "payment_entry",
+   "fieldtype": "Link",
+   "label": "Payment Entry",
+   "options": "Payment Entry",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_accounting",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "received_at",
+   "fieldtype": "Datetime",
+   "label": "Received At",
+   "read_only": 1
+  }
+ ],
+ "index_web_pages_for_search": 0,
+ "modified": "2026-11-13 15:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Vuna Hospitality",
+ "owner": "Administrator",
+ "row_format": "Dynamic",
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": [],
+ "name": "Folio Payment",
+ "naming_rule": "By \"Naming Series\" field",
+ "track_changes": 1,
+ "in_create": 1,
+ "title_field": "payer_name",
+ "search_fields": "payer_name,status,mode_of_payment",
+ "permissions": [
+  {
+   "role": "System Manager",
+   "read": 1,
+   "report": 1,
+   "print": 1,
+   "export": 1,
+   "delete": 1
+  },
+  {
+   "role": "Hospitality Manager",
+   "read": 1,
+   "report": 1,
+   "print": 1,
+   "export": 1
+  },
+  {
+   "role": "Cashier",
+   "read": 1,
+   "report": 1,
+   "print": 1
+  },
+  {
+   "role": "Front Desk Manager",
+   "read": 1,
+   "report": 1,
+   "print": 1
+  },
+  {
+   "role": "Front Desk Agent",
+   "read": 1,
+   "report": 1,
+   "print": 1
+  },
+  {
+   "role": "Hotel Accountant",
+   "read": 1,
+   "report": 1,
+   "print": 1
+  },
+  {
+   "role": "Night Auditor",
+   "read": 1,
+   "report": 1,
+   "print": 1
+  }
+ ],
+ "links": [
+  {
+   "link_doctype": "Folio Payment Allocation",
+   "link_fieldname": "folio_payment",
+   "group": "Allocations"
+  },
+  {
+   "link_doctype": "Folio Payment",
+   "link_fieldname": "refund_of",
+   "group": "Refunds"
+  }
+ ]
+}

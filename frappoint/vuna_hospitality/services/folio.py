@@ -390,6 +390,7 @@ def post(
 	approved_by: str | None = None,
 	notes: str | None = None,
 	is_manual: bool = False,
+	refund: bool = False,
 ) -> dict:
 	"""Post one transaction to `folio`, exactly once per `posting_key`.
 
@@ -424,7 +425,8 @@ def post(
 	if not code.is_active:
 		frappe.throw(_("Charge Code {0} is inactive.").format(code.name), PostingError)
 
-	direction = _direction(code, direction, is_reversal=bool(reverses))
+	# A refund posts a payment code against its direction, like a reversal (F10).
+	direction = _direction(code, direction, is_reversal=bool(reverses) or refund)
 	currency = folio_doc.currency
 	amount_minor = to_minor(amount, currency)
 	if amount_minor <= 0:

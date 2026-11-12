@@ -1,0 +1,193 @@
+{
+ "actions": [],
+ "autoname": "naming_series:",
+ "creation": "2026-11-13 15:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "naming_series",
+  "property",
+  "folio_payment",
+  "payment_entry",
+  "guest_folio",
+  "column_break_head",
+  "direction",
+  "amount",
+  "folio_transaction",
+  "cashier_shift",
+  "refund_of_allocation",
+  "posting_key",
+  "amended_from"
+ ],
+ "fields": [
+  {
+   "fieldname": "naming_series",
+   "fieldtype": "Select",
+   "label": "Series",
+   "options": "FPA-.property.-.YY.-.########",
+   "default": "FPA-.property.-.YY.-.########",
+   "hidden": 1,
+   "set_only_once": 1
+  },
+  {
+   "fieldname": "property",
+   "fieldtype": "Link",
+   "label": "Property",
+   "options": "Hotel Property",
+   "reqd": 1,
+   "in_standard_filter": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "folio_payment",
+   "fieldtype": "Link",
+   "label": "Folio Payment",
+   "options": "Folio Payment",
+   "reqd": 1,
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "payment_entry",
+   "fieldtype": "Link",
+   "label": "Payment Entry",
+   "options": "Payment Entry",
+   "reqd": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "guest_folio",
+   "fieldtype": "Link",
+   "label": "Guest Folio",
+   "options": "Guest Folio",
+   "reqd": 1,
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_head",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "direction",
+   "fieldtype": "Select",
+   "label": "Direction",
+   "options": "Credit\nDebit",
+   "reqd": 1,
+   "in_list_view": 1,
+   "description": "Credit: a payment lowers the folio's balance. Debit: a refund raises it.",
+   "read_only": 1
+  },
+  {
+   "fieldname": "amount",
+   "fieldtype": "Currency",
+   "label": "Amount",
+   "reqd": 1,
+   "in_list_view": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "folio_transaction",
+   "fieldtype": "Link",
+   "label": "Folio Transaction",
+   "options": "Folio Transaction",
+   "read_only": 1
+  },
+  {
+   "fieldname": "cashier_shift",
+   "fieldtype": "Link",
+   "label": "Cashier Shift",
+   "options": "Cashier Shift",
+   "read_only": 1
+  },
+  {
+   "fieldname": "refund_of_allocation",
+   "fieldtype": "Link",
+   "label": "Refund Of",
+   "options": "Folio Payment Allocation",
+   "read_only": 1
+  },
+  {
+   "fieldname": "posting_key",
+   "fieldtype": "Data",
+   "label": "Posting Key",
+   "reqd": 1,
+   "unique": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "amended_from",
+   "fieldtype": "Link",
+   "label": "Amended From",
+   "options": "Folio Payment Allocation",
+   "no_copy": 1,
+   "print_hide": 1,
+   "read_only": 1
+  }
+ ],
+ "index_web_pages_for_search": 0,
+ "modified": "2026-11-13 15:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Vuna Hospitality",
+ "owner": "Administrator",
+ "row_format": "Dynamic",
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": [],
+ "name": "Folio Payment Allocation",
+ "naming_rule": "By \"Naming Series\" field",
+ "is_submittable": 1,
+ "track_changes": 0,
+ "in_create": 1,
+ "title_field": "guest_folio",
+ "search_fields": "guest_folio,folio_payment",
+ "permissions": [
+  {
+   "role": "System Manager",
+   "read": 1,
+   "report": 1,
+   "print": 1,
+   "export": 1,
+   "delete": 1
+  },
+  {
+   "role": "Hospitality Manager",
+   "read": 1,
+   "report": 1,
+   "print": 1,
+   "export": 1
+  },
+  {
+   "role": "Cashier",
+   "read": 1,
+   "report": 1,
+   "print": 1
+  },
+  {
+   "role": "Front Desk Manager",
+   "read": 1,
+   "report": 1,
+   "print": 1
+  },
+  {
+   "role": "Front Desk Agent",
+   "read": 1,
+   "report": 1,
+   "print": 1
+  },
+  {
+   "role": "Hotel Accountant",
+   "read": 1,
+   "report": 1,
+   "print": 1
+  },
+  {
+   "role": "Night Auditor",
+   "read": 1,
+   "report": 1,
+   "print": 1
+  }
+ ]
+}

@@ -77,6 +77,10 @@ PROPERTY_SCOPED_DOCTYPES: tuple[str, ...] = (
 	"Occupancy Pricing Rule",
 	"Hotel Package",
 	"Package Allowance Entry",
+	# F10 Payments and cashier shifts
+	"Cashier Shift",
+	"Folio Payment",
+	"Folio Payment Allocation",
 )
 
 # Roles that post charges to a folio by hand (§23.1: front desk posts within limits).
@@ -93,6 +97,12 @@ FOLIO_MANAGER_ROLES = ("System Manager", HOSPITALITY_MANAGER, FRONT_DESK_MANAGER
 
 # Roles that rebuild cached folio balances from their transactions.
 FOLIO_REBUILD_ROLES = ("System Manager", HOSPITALITY_MANAGER, HOTEL_ACCOUNTANT)
+
+# Roles that take payments at the desk and run a cashier shift (§23.1).
+CASHIER_ROLES = ("System Manager", HOSPITALITY_MANAGER, CASHIER, FRONT_DESK_MANAGER, FRONT_DESK_AGENT)
+
+# Roles that review a closed shift and post its variances (§16.1), and approve refunds.
+CASHIER_SUPERVISOR_ROLES = ("System Manager", HOSPITALITY_MANAGER, FRONT_DESK_MANAGER, HOTEL_ACCOUNTANT)
 
 # Roles that start night audit (§23.1). It is always started by a person, never scheduled.
 NIGHT_AUDIT_ROLES = ("System Manager", HOSPITALITY_MANAGER, NIGHT_AUDITOR)

@@ -783,13 +783,17 @@ def install_hospitality_defaults() -> None:
 
 	- the default booking sources as UTM Sources, offered on the booking desk;
 	- the default room move reasons;
-	- read access to Sales Partner for hospitality roles, so they can pick a booking's partner.
+	- read access to Sales Partner for hospitality roles, so they can pick a booking's partner;
+	- select access to Account for the roles that take payments (F10), because ERPNext's Payment
+	  Entry checks that its user may select the receivable and cash accounts. Select doesn't let
+	  them read balances.
 	"""
 	from frappoint.vuna_hospitality.services.front_desk import install_default_move_reasons
 
 	install_default_move_reasons()
 	_install_booking_sources()
 	_grant_sales_partner_access()
+	_grant_account_select_access()
 
 
 def _install_booking_sources() -> None:
@@ -814,3 +818,23 @@ def _grant_sales_partner_access() -> None:
 			continue
 		if not frappe.db.exists("Custom DocPerm", {"parent": "Sales Partner", "role": role, "permlevel": 0}):
 			add_permission("Sales Partner", role, 0, "select")
+
+
+def _grant_account_select_access() -> None:
+	from frappe.permissions import add_permission
+
+	from frappoint.vuna_hospitality.constants import CASHIER_ROLES
+
+	granted = False
+	for role in CASHIER_ROLES:
+		if role == "System Manager" or not frappe.db.exists("Role", role):
+			continue
+		if not frappe.db.exists("Custom DocPerm", {"parent": "Account", "role": role, "permlevel": 0}):
+			add_permission("Account", role, 0, "select")
+			# A new rule also gets read by default; these roles only pick accounts.
+			frappe.db.set_value(
+				"Custom DocPerm", {"parent": "Account", "role": role, "permlevel": 0}, "read", 0
+			)
+			granted = True
+	if granted:
+		frappe.clear_cache(doctype="Account")
