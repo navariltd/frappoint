@@ -8,6 +8,7 @@ export {}
 /* prettier-ignore */
 declare module 'vue' {
   export interface GlobalComponents {
+    ActionBanner: typeof import('./src/components/hotel/ActionBanner.vue')['default']
     AppointmentActionsPanel: typeof import('./src/components/appointment-details/AppointmentActionsPanel.vue')['default']
     AppointmentAlertsPanel: typeof import('./src/components/appointment-details/AppointmentAlertsPanel.vue')['default']
     AppointmentAvailabilityPanel: typeof import('./src/components/appointment-details/AppointmentAvailabilityPanel.vue')['default']
