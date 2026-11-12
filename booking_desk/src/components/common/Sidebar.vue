@@ -101,6 +101,19 @@ const NAVIGATION = {
 			activeWhen: ["NewReservation"],
 		},
 		{
+			label: "Cashier",
+			icon: "point_of_sale",
+			to: { name: "Cashier" },
+			activeWhen: ["Cashier"],
+			roles: [
+				"System Manager",
+				"Hospitality Manager",
+				"Cashier",
+				"Front Desk Manager",
+				"Front Desk Agent",
+			],
+		},
+		{
 			label: "Night Audit",
 			icon: "nights_stay",
 			to: { name: "NightAudit" },

@@ -200,6 +200,91 @@
 				</div>
 			</section>
 
+			<!-- Take a payment (F10) -->
+			<section
+				v-if="data.actions.can_take_payment && postableFolios.length"
+				class="rounded-xl border border-outline-variant bg-surface-container-lowest p-4 space-y-3"
+			>
+				<h2 class="text-[15px] font-semibold">Take a payment</h2>
+				<p v-if="!data.cashier_shift" class="text-[13px] text-on-surface-variant">
+					Open your cashier shift to take payments.
+					<RouterLink :to="{ name: 'Cashier' }" class="font-semibold text-primary"
+						>Go to Cashier →</RouterLink
+					>
+				</p>
+				<template v-else-if="waiting">
+					<p class="text-[13px]">
+						Waiting for the guest to approve
+						<b>{{ money(waiting.amount) }}</b> on their phone…
+					</p>
+					<button
+						type="button"
+						class="rounded-lg border border-outline-variant px-3 py-2 text-[12px] font-semibold"
+						:disabled="busy"
+						@click="cancelWaiting"
+					>
+						Cancel request
+					</button>
+				</template>
+				<form v-else class="space-y-3" @submit.prevent="takePayment">
+					<div class="grid gap-3 md:grid-cols-3">
+						<label
+							v-for="entry in postableFolios"
+							:key="entry.folio.name"
+							class="text-[12px] text-on-surface-variant"
+						>
+							{{ entry.folio.folio_label }} (owes {{ money(entry.folio.balance) }})
+							<input
+								v-model.number="pay.amounts[entry.folio.name]"
+								type="number"
+								min="0"
+								step="0.01"
+								class="folio-input"
+							/>
+						</label>
+					</div>
+					<div class="grid gap-3 md:grid-cols-3">
+						<label class="text-[12px] text-on-surface-variant">
+							Paid by
+							<select v-model="pay.tender" class="folio-input">
+								<option
+									v-for="mode in tenders"
+									:key="mode.value"
+									:value="mode.value"
+								>
+									{{ mode.label }}
+								</option>
+							</select>
+						</label>
+						<label v-if="isPhoneTender" class="text-[12px] text-on-surface-variant">
+							Phone number
+							<input
+								v-model="pay.phone"
+								type="tel"
+								placeholder="07..."
+								class="folio-input"
+							/>
+						</label>
+						<label v-else class="text-[12px] text-on-surface-variant">
+							Reference (slip or transfer number)
+							<input v-model="pay.reference" class="folio-input" />
+						</label>
+					</div>
+					<div class="flex items-center justify-between">
+						<p class="text-[13px]">
+							Total <b>{{ money(payTotal) }}</b>
+						</p>
+						<button
+							type="submit"
+							class="rounded-lg bg-primary text-on-primary px-4 py-2 text-[13px] font-semibold disabled:opacity-50"
+							:disabled="busy || payTotal <= 0 || !pay.tender"
+						>
+							{{ isPhoneTender ? "Send payment request" : "Take payment" }}
+						</button>
+					</div>
+				</form>
+			</section>
+
 			<!-- Folios -->
 			<section
 				v-for="entry in data.folios"
@@ -306,6 +391,47 @@
 						</tbody>
 					</table>
 				</div>
+
+				<div v-if="entry.payments?.length" class="border-t border-outline-variant pt-2">
+					<p class="text-[12px] font-semibold">Payments</p>
+					<ul class="text-[12px]">
+						<li
+							v-for="payment in entry.payments"
+							:key="payment.name"
+							class="flex flex-wrap items-center justify-between gap-2 py-1"
+						>
+							<span>
+								{{ payment.direction === "Debit" ? "Refund" : "Payment" }} ·
+								{{ payment.mode_of_payment }}
+								<span class="text-on-surface-variant">
+									· {{ payment.folio_payment }}
+									<template v-if="payment.reference_no">
+										· {{ payment.reference_no }}</template
+									>
+								</span>
+							</span>
+							<span class="flex items-center gap-3">
+								<b
+									>{{ payment.direction === "Debit" ? "−" : ""
+									}}{{ money(payment.amount) }}</b
+								>
+								<button
+									v-if="
+										data.actions.can_take_payment &&
+										data.cashier_shift &&
+										payment.refundable > 0
+									"
+									type="button"
+									class="text-[11px] font-semibold text-error disabled:opacity-50"
+									:disabled="busy"
+									@click="refund(entry.folio, payment)"
+								>
+									Refund
+								</button>
+							</span>
+						</li>
+					</ul>
+				</div>
 			</section>
 
 			<section
@@ -335,9 +461,13 @@
 </template>
 
 <script setup>
-import { computed, onMounted, reactive, ref, watch } from "vue";
+import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from "vue";
 import { useRoute } from "vue-router";
 import {
+	cancelPaymentApi,
+	fetchPaymentApi,
+	refundPaymentApi,
+	takePaymentApi,
 	fetchFolioItemRateApi,
 	fetchStayFoliosApi,
 	hotelErrorMessage,
@@ -412,6 +542,151 @@ function canReverse(folio, line) {
 	);
 }
 
+// Payments (F10): one request id per payment, so a retried request is taken once.
+const pay = reactive({
+	amounts: {},
+	tender: "",
+	phone: "",
+	reference: "",
+	requestId: newRequestId(),
+});
+const waiting = ref(null);
+let waitTimer = null;
+
+const tenders = computed(() => {
+	const options = data.value?.payment_options;
+	if (!options) return [];
+	return [
+		...options.modes.map((mode) => ({ value: `mode:${mode}`, label: mode })),
+		...options.phone_gateways.map((gateway) => ({
+			value: `gateway:${gateway.name}`,
+			label: gateway.label,
+		})),
+	];
+});
+const isPhoneTender = computed(() => pay.tender.startsWith("gateway:"));
+const payTotal = computed(() =>
+	Object.values(pay.amounts).reduce((sum, amount) => sum + (Number(amount) || 0), 0)
+);
+
+function resetPayment() {
+	pay.amounts = Object.fromEntries(
+		postableFolios.value.map((entry) => [
+			entry.folio.name,
+			Math.max(Number(entry.folio.balance) || 0, 0),
+		])
+	);
+	pay.reference = "";
+	pay.requestId = newRequestId();
+	if (!tenders.value.some((tender) => tender.value === pay.tender)) {
+		pay.tender = tenders.value[0]?.value || "";
+	}
+}
+
+async function takePayment() {
+	const tender = tenders.value.find((option) => option.value === pay.tender);
+	const answer = await ask({
+		title: `Take ${money(payTotal.value)} by ${tender?.label}?`,
+		message: isPhoneTender.value
+			? `A payment request goes to ${pay.phone}. The folios are credited when the guest approves it.`
+			: "The folios are credited now.",
+		confirmLabel: isPhoneTender.value ? "Send request" : "Take payment",
+	});
+	if (!answer) return;
+	const [kind, value] = [
+		pay.tender.split(":")[0],
+		pay.tender.slice(pay.tender.indexOf(":") + 1),
+	];
+	let result = null;
+	await run(async () => {
+		result = await takePaymentApi({
+			property: data.value.stay.property,
+			splits: Object.entries(pay.amounts)
+				.filter(([, amount]) => Number(amount) > 0)
+				.map(([folio, amount]) => ({ folio, amount })),
+			modeOfPayment: kind === "mode" ? value : null,
+			paymentGateway: kind === "gateway" ? value : null,
+			phone: pay.phone,
+			referenceNo: pay.reference,
+			requestId: pay.requestId,
+		});
+	});
+	if (!result) return; // failed: the same request id is kept for a retry
+	if (result.status === "Pending") {
+		waiting.value = result;
+		pollPayment();
+	} else {
+		notify({ title: `Received ${money(result.amount)}`, message: `Payment ${result.name}.` });
+		resetPayment();
+	}
+}
+
+function pollPayment() {
+	clearTimeout(waitTimer);
+	waitTimer = setTimeout(async () => {
+		if (!waiting.value) return;
+		try {
+			const result = await fetchPaymentApi(waiting.value.name);
+			if (result.status === "Pending") return pollPayment();
+			waiting.value = null;
+			await load();
+			resetPayment();
+			notify(
+				result.status === "Received"
+					? {
+							title: `Received ${money(result.amount)}`,
+							message: `Payment ${result.name}.`,
+					  }
+					: {
+							tone: "danger",
+							title: `Payment ${result.status.toLowerCase()}`,
+							message: result.reason || "",
+					  }
+			);
+		} catch (e) {
+			error.value = hotelErrorMessage(e);
+			pollPayment();
+		}
+	}, 3000);
+}
+
+async function cancelWaiting() {
+	const answer = await ask({
+		tone: "danger",
+		title: "Cancel the payment request?",
+		message: "If the guest approves it later, the payment can't be matched automatically.",
+		reasonLabel: "Reason",
+		confirmLabel: "Cancel request",
+		cancelLabel: "Keep waiting",
+	});
+	if (!answer) return;
+	clearTimeout(waitTimer);
+	await run(() => cancelPaymentApi(waiting.value.name, answer.reason));
+	waiting.value = null;
+	resetPayment();
+}
+
+async function refund(folioRow, payment) {
+	const answer = await ask({
+		tone: "danger",
+		title: `Refund ${money(payment.refundable)} of ${payment.folio_payment} to ${
+			folioRow.folio_label
+		}?`,
+		message: `Paid back by ${payment.mode_of_payment}, from your shift. The folio is charged the amount again.`,
+		reasonLabel: "Reason for the refund",
+		confirmLabel: "Refund",
+	});
+	if (answer) {
+		run(() =>
+			refundPaymentApi(
+				payment.folio_payment,
+				{ [folioRow.name]: payment.refundable },
+				answer.reason
+			)
+		);
+	}
+}
+
 async function load() {
 	loading.value = true;
 	error.value = "";
@@ -420,6 +695,7 @@ async function load() {
 		if (!form.folio || !postableFolios.value.some((e) => e.folio.name === form.folio)) {
 			resetForm();
 		}
+		if (!waiting.value) resetPayment();
 	} catch (e) {
 		error.value = hotelErrorMessage(e);
 	} finally {
@@ -535,6 +811,7 @@ async function rebuild(folio) {
 }
 
 onMounted(load);
+onBeforeUnmount(() => clearTimeout(waitTimer));
 watch(() => route.params.stayId, load);
 </script>
 

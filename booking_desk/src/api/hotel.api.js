@@ -38,6 +38,14 @@ export const HOTEL_ENDPOINTS = {
 	rebuildFolioBalance: `${HOSPITALITY_API}.folios.rebuild_folio_balance`,
 	nightAudit: `${HOSPITALITY_API}.night_audit.get_night_audit`,
 	startNightAudit: `${HOSPITALITY_API}.night_audit.start_night_audit`,
+	cashier: `${HOSPITALITY_API}.cashiering.get_cashier`,
+	openShift: `${HOSPITALITY_API}.cashiering.open_shift`,
+	closeShift: `${HOSPITALITY_API}.cashiering.close_shift`,
+	reviewShift: `${HOSPITALITY_API}.cashiering.review_shift`,
+	takePayment: `${HOSPITALITY_API}.cashiering.take_payment`,
+	payment: `${HOSPITALITY_API}.cashiering.get_payment`,
+	cancelPayment: `${HOSPITALITY_API}.cashiering.cancel_payment`,
+	refundPayment: `${HOSPITALITY_API}.cashiering.refund_payment`,
 };
 
 const unwrapPayload = (payload) => payload?.message ?? payload ?? null;
@@ -167,3 +175,44 @@ export const rebuildFolioBalanceApi = (folio) =>
 export const fetchNightAuditApi = (property) => request(HOTEL_ENDPOINTS.nightAudit, { property });
 export const startNightAuditApi = (property) =>
 	request(HOTEL_ENDPOINTS.startNightAudit, { property });
+
+// Payments and cashier shifts (F10)
+export const fetchCashierApi = (property) => request(HOTEL_ENDPOINTS.cashier, { property });
+export const openShiftApi = (property, openingFloat, workstation) =>
+	request(HOTEL_ENDPOINTS.openShift, {
+		property,
+		opening_float: openingFloat || 0,
+		workstation: workstation || null,
+	});
+export const closeShiftApi = (shift, declared, reasons) =>
+	request(HOTEL_ENDPOINTS.closeShift, {
+		shift,
+		declared: JSON.stringify(declared),
+		reasons: JSON.stringify(reasons),
+	});
+export const reviewShiftApi = (shift, notes) =>
+	request(HOTEL_ENDPOINTS.reviewShift, { shift, notes: notes || null });
+/** `requestId` stays the same across retries of one payment, so it is taken once. */
+export const takePaymentApi = ({
+	property,
+	splits,
+	modeOfPayment,
+	paymentGateway,
+	phone,
+	referenceNo,
+	requestId,
+}) =>
+	request(HOTEL_ENDPOINTS.takePayment, {
+		property,
+		splits: JSON.stringify(splits),
+		mode_of_payment: modeOfPayment || null,
+		payment_gateway: paymentGateway || null,
+		phone: phone || null,
+		reference_no: referenceNo || null,
+		request_id: requestId,
+	});
+export const fetchPaymentApi = (payment) => request(HOTEL_ENDPOINTS.payment, { payment });
+export const cancelPaymentApi = (payment, reason) =>
+	request(HOTEL_ENDPOINTS.cancelPayment, { payment, reason });
+export const refundPaymentApi = (payment, amounts, reason) =>
+	request(HOTEL_ENDPOINTS.refundPayment, { payment, amounts: JSON.stringify(amounts), reason });
