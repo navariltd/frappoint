@@ -1,0 +1,54 @@
+{
+ "actions": [],
+ "creation": "2026-11-13 12:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "charge_code",
+  "basis",
+  "amount"
+ ],
+ "fields": [
+  {
+   "fieldname": "charge_code",
+   "fieldtype": "Link",
+   "label": "Charge Code",
+   "options": "Charge Code",
+   "reqd": 1,
+   "in_list_view": 1,
+   "columns": 3,
+   "description": "A Revenue code with a fixed Item, e.g. TLEVY."
+  },
+  {
+   "fieldname": "basis",
+   "fieldtype": "Select",
+   "label": "Basis",
+   "options": "Per Adult\nPer Person\nPer Room",
+   "default": "Per Adult",
+   "reqd": 1,
+   "in_list_view": 1,
+   "columns": 2
+  },
+  {
+   "fieldname": "amount",
+   "fieldtype": "Currency",
+   "label": "Amount per Night",
+   "reqd": 1,
+   "in_list_view": 1,
+   "columns": 2
+  }
+ ],
+ "index_web_pages_for_search": 0,
+ "modified": "2026-11-13 12:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Vuna Hospitality",
+ "owner": "Administrator",
+ "row_format": "Dynamic",
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": [],
+ "name": "Hotel Nightly Levy",
+ "istable": 1,
+ "editable_grid": 1,
+ "permissions": []
+}

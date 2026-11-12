@@ -1,0 +1,134 @@
+{
+ "actions": [],
+ "creation": "2026-11-13 12:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "component_name",
+  "charge_code",
+  "amount_basis",
+  "amount_type",
+  "amount",
+  "posting_rhythm",
+  "column_break_component",
+  "included_in_rate",
+  "is_allowance",
+  "allowance_charge_code",
+  "valid_days",
+  "breakage_rule"
+ ],
+ "fields": [
+  {
+   "fieldname": "component_name",
+   "fieldtype": "Data",
+   "label": "Component",
+   "reqd": 1,
+   "in_list_view": 1,
+   "columns": 2,
+   "description": "e.g. Breakfast."
+  },
+  {
+   "fieldname": "charge_code",
+   "fieldtype": "Link",
+   "label": "Charge Code",
+   "options": "Charge Code",
+   "reqd": 1,
+   "in_list_view": 1,
+   "columns": 2,
+   "description": "A Revenue code with a fixed Item. Its revenue is split out of the night."
+  },
+  {
+   "fieldname": "amount_basis",
+   "fieldtype": "Select",
+   "label": "Amount Basis",
+   "options": "Per Night\nPer Adult\nPer Child\nPer Person\nPer Stay",
+   "default": "Per Night",
+   "reqd": 1,
+   "in_list_view": 1,
+   "columns": 2
+  },
+  {
+   "fieldname": "amount_type",
+   "fieldtype": "Select",
+   "label": "Amount Type",
+   "options": "Fixed\nPercentage",
+   "default": "Fixed",
+   "reqd": 1
+  },
+  {
+   "fieldname": "amount",
+   "fieldtype": "Float",
+   "label": "Amount",
+   "reqd": 1,
+   "in_list_view": 1,
+   "columns": 1,
+   "description": "A fixed amount, or a percentage of the night's room rate."
+  },
+  {
+   "fieldname": "posting_rhythm",
+   "fieldtype": "Select",
+   "label": "Posts On",
+   "options": "Every Night\nArrival Night\nLast Night",
+   "default": "Every Night",
+   "reqd": 1,
+   "in_list_view": 1,
+   "columns": 1,
+   "description": "Per Stay components post once, on the arrival night."
+  },
+  {
+   "fieldname": "column_break_component",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "included_in_rate",
+   "fieldtype": "Check",
+   "label": "Included in Rate",
+   "default": "1",
+   "description": "Carved out of the room rate. Otherwise added to the night's price."
+  },
+  {
+   "fieldname": "is_allowance",
+   "fieldtype": "Check",
+   "label": "Is Allowance",
+   "description": "The guest can redeem it: outlet charges the allowance code covers are offset against it."
+  },
+  {
+   "fieldname": "allowance_charge_code",
+   "fieldtype": "Link",
+   "label": "Allowance Charge Code",
+   "options": "Charge Code",
+   "depends_on": "is_allowance",
+   "mandatory_depends_on": "is_allowance",
+   "description": "An Allowance code covering the Items the guest may redeem, e.g. the breakfast menu."
+  },
+  {
+   "fieldname": "valid_days",
+   "fieldtype": "Int",
+   "label": "Valid Days",
+   "default": "1",
+   "depends_on": "is_allowance",
+   "description": "Days after the night it can be redeemed. 1 means the next morning."
+  },
+  {
+   "fieldname": "breakage_rule",
+   "fieldtype": "Select",
+   "label": "Unused Allowance",
+   "options": "Breakage Income\nRoom Revenue",
+   "default": "Breakage Income",
+   "depends_on": "is_allowance"
+  }
+ ],
+ "index_web_pages_for_search": 0,
+ "modified": "2026-11-13 12:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Vuna Hospitality",
+ "owner": "Administrator",
+ "row_format": "Dynamic",
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": [],
+ "name": "Hotel Package Component",
+ "istable": 1,
+ "editable_grid": 0,
+ "permissions": []
+}

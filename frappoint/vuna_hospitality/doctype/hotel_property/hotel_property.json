@@ -36,7 +36,13 @@
   "operations_tab",
   "post_stay_window_days",
   "column_break_ops",
-  "night_audit_block_on_open_shifts"
+  "night_audit_block_on_open_shifts",
+  "taxes_section",
+  "sales_taxes_template",
+  "prices_include_tax",
+  "column_break_taxes",
+  "breakage_charge_code",
+  "nightly_levies"
  ],
  "fields": [
   {
@@ -239,6 +245,43 @@
    "fieldtype": "Check",
    "label": "Block Night Audit on Open Cashier Shifts",
    "default": "1"
+  },
+  {
+   "fieldname": "taxes_section",
+   "fieldtype": "Section Break",
+   "label": "Taxes and Packages"
+  },
+  {
+   "fieldname": "sales_taxes_template",
+   "fieldtype": "Link",
+   "label": "Sales Taxes and Charges Template",
+   "options": "Sales Taxes and Charges Template",
+   "description": "Taxes on every folio line, with each Item's Item Tax Template. The settlement invoice uses the same template."
+  },
+  {
+   "fieldname": "prices_include_tax",
+   "fieldtype": "Check",
+   "label": "Front-Desk Prices Include Tax",
+   "default": "1",
+   "description": "Item prices posted at the front desk already include tax. Room rates follow their rate plan's Tax Inclusive setting."
+  },
+  {
+   "fieldname": "column_break_taxes",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "breakage_charge_code",
+   "fieldtype": "Link",
+   "label": "Breakage Charge Code",
+   "options": "Charge Code",
+   "description": "A Revenue code with a fixed Item whose income account is breakage income. Unused package allowances move here."
+  },
+  {
+   "fieldname": "nightly_levies",
+   "fieldtype": "Table",
+   "label": "Nightly Levies",
+   "options": "Hotel Nightly Levy",
+   "description": "Fixed per-night levies night audit posts for each in-house stay, such as a tourism levy per adult."
   }
  ],
  "index_web_pages_for_search": 0,
@@ -259,7 +302,7 @@
    "link_fieldname": "property"
   }
  ],
- "modified": "2026-11-10 15:00:00.000000",
+ "modified": "2026-11-13 12:00:00.000000",
  "modified_by": "Administrator",
  "module": "Vuna Hospitality",
  "name": "Hotel Property",

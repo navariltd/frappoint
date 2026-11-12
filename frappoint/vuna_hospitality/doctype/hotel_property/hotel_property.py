@@ -78,6 +78,7 @@ class HotelProperty(Document):
 		self.validate_day_use_window()
 		self.validate_accounts()
 		self.validate_cost_center()
+		self.validate_taxes_and_levies()
 		self.validate_business_date_unchanged()
 
 	def validate_time_zone(self):
@@ -112,6 +113,30 @@ class HotelProperty(Document):
 					self.default_cost_center, self.company
 				)
 			)
+
+	def validate_taxes_and_levies(self):
+		from frappoint.vuna_hospitality.services.pricing_masters import assert_fixed_revenue_code
+
+		if (
+			self.sales_taxes_template
+			and frappe.db.get_value("Sales Taxes and Charges Template", self.sales_taxes_template, "company")
+			!= self.company
+		):
+			frappe.throw(
+				_("Sales Taxes and Charges Template {0} does not belong to company {1}.").format(
+					self.sales_taxes_template, self.company
+				)
+			)
+		if self.breakage_charge_code:
+			assert_fixed_revenue_code(self.breakage_charge_code, _("Breakage Charge Code"))
+		seen = set()
+		for levy in self.nightly_levies:
+			assert_fixed_revenue_code(levy.charge_code, _("Nightly levy row {0}").format(levy.idx))
+			if levy.amount <= 0:
+				frappe.throw(_("Nightly levy row {0}: the amount must be more than zero.").format(levy.idx))
+			if levy.charge_code in seen:
+				frappe.throw(_("Nightly levy {0} is listed twice.").format(levy.charge_code))
+			seen.add(levy.charge_code)
 
 	def validate_business_date_unchanged(self):
 		if self.is_new() or self.flags.get(BUSINESS_DATE_FLAG):
