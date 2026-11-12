@@ -36,6 +36,8 @@ export const HOTEL_ENDPOINTS = {
 	postFolioCharge: `${HOSPITALITY_API}.folios.post_charge`,
 	reverseFolioTransaction: `${HOSPITALITY_API}.folios.reverse_transaction`,
 	rebuildFolioBalance: `${HOSPITALITY_API}.folios.rebuild_folio_balance`,
+	nightAudit: `${HOSPITALITY_API}.night_audit.get_night_audit`,
+	startNightAudit: `${HOSPITALITY_API}.night_audit.start_night_audit`,
 };
 
 const unwrapPayload = (payload) => payload?.message ?? payload ?? null;
@@ -152,3 +154,8 @@ export const reverseFolioTransactionApi = (transaction, reason) =>
 	request(HOTEL_ENDPOINTS.reverseFolioTransaction, { transaction, reason });
 export const rebuildFolioBalanceApi = (folio) =>
 	request(HOTEL_ENDPOINTS.rebuildFolioBalance, { folio_name: folio });
+
+// Night audit (F8)
+export const fetchNightAuditApi = (property) => request(HOTEL_ENDPOINTS.nightAudit, { property });
+export const startNightAuditApi = (property) =>
+	request(HOTEL_ENDPOINTS.startNightAudit, { property });
