@@ -81,6 +81,8 @@ fixtures = [
 				"in",
 				[
 					"Customer-custom_visible_on_booking_desk",
+					# Hotel settlement (F11)
+					"Sales Invoice-custom_guest_folio",
 					# Sales Partner commission payout
 					"Sales Partner-custom_supplier",
 					"Sales Invoice-custom_commission_purchase_invoice",

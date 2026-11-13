@@ -786,7 +786,9 @@ def install_hospitality_defaults() -> None:
 	- read access to Sales Partner for hospitality roles, so they can pick a booking's partner;
 	- select access to Account for the roles that take payments (F10), because ERPNext's Payment
 	  Entry checks that its user may select the receivable and cash accounts. Select doesn't let
-	  them read balances.
+	  them read balances;
+	- read access to Item and Sales Invoice for the roles that settle folios (F11), because
+	  ERPNext checks both while it builds and submits the settlement invoice.
 	"""
 	from frappoint.vuna_hospitality.services.front_desk import install_default_move_reasons
 
@@ -794,6 +796,7 @@ def install_hospitality_defaults() -> None:
 	_install_booking_sources()
 	_grant_sales_partner_access()
 	_grant_account_select_access()
+	_grant_settlement_access()
 
 
 def _install_booking_sources() -> None:
@@ -838,3 +841,26 @@ def _grant_account_select_access() -> None:
 			granted = True
 	if granted:
 		frappe.clear_cache(doctype="Account")
+
+
+def _grant_settlement_access() -> None:
+	"""Let the roles that settle folios read Items and Sales Invoices (F11).
+
+	ERPNext checks both while it builds and submits the settlement invoice, and the desk shows and
+	prints the invoice afterwards. Creating and submitting it stays a folio action: these roles get
+	no create or submit rights on Sales Invoice."""
+	from frappe.permissions import add_permission
+
+	from frappoint.vuna_hospitality.constants import FOLIO_ACCOUNTING_ROLES, SETTLEMENT_ROLES
+
+	granted = False
+	for role in {*SETTLEMENT_ROLES, *FOLIO_ACCOUNTING_ROLES}:
+		if role == "System Manager" or not frappe.db.exists("Role", role):
+			continue
+		for doctype in ("Item", "Sales Invoice"):
+			if not frappe.db.exists("Custom DocPerm", {"parent": doctype, "role": role, "permlevel": 0}):
+				add_permission(doctype, role, 0, "read")
+				granted = True
+	if granted:
+		frappe.clear_cache(doctype="Item")
+		frappe.clear_cache(doctype="Sales Invoice")

@@ -36,6 +36,12 @@ export const HOTEL_ENDPOINTS = {
 	postFolioCharge: `${HOSPITALITY_API}.folios.post_charge`,
 	reverseFolioTransaction: `${HOSPITALITY_API}.folios.reverse_transaction`,
 	rebuildFolioBalance: `${HOSPITALITY_API}.folios.rebuild_folio_balance`,
+	addFolio: `${HOSPITALITY_API}.folios.add_folio`,
+	setFolioPayee: `${HOSPITALITY_API}.folios.set_folio_payee`,
+	transferCharge: `${HOSPITALITY_API}.folios.transfer_charge`,
+	settleFolio: `${HOSPITALITY_API}.folios.settle_folio`,
+	releaseSettlement: `${HOSPITALITY_API}.folios.release_settlement`,
+	issueCreditNote: `${HOSPITALITY_API}.folios.issue_credit_note`,
 	nightAudit: `${HOSPITALITY_API}.night_audit.get_night_audit`,
 	startNightAudit: `${HOSPITALITY_API}.night_audit.start_night_audit`,
 	cashier: `${HOSPITALITY_API}.cashiering.get_cashier`,
@@ -170,6 +176,40 @@ export const reverseFolioTransactionApi = (transaction, reason) =>
 	request(HOTEL_ENDPOINTS.reverseFolioTransaction, { transaction, reason });
 export const rebuildFolioBalanceApi = (folio) =>
 	request(HOTEL_ENDPOINTS.rebuildFolioBalance, { folio_name: folio });
+
+// Several folios, transfers, settlement and credit notes (F11)
+export const addFolioApi = ({ stay, label, payeeCustomer, payeeGuestProfile }) =>
+	request(HOTEL_ENDPOINTS.addFolio, {
+		stay,
+		label: label || null,
+		payee_customer: payeeCustomer || null,
+		payee_guest_profile: payeeGuestProfile || null,
+	});
+export const setFolioPayeeApi = ({ folio, payeeCustomer, payeeGuestProfile }) =>
+	request(HOTEL_ENDPOINTS.setFolioPayee, {
+		folio_name: folio,
+		payee_customer: payeeCustomer || null,
+		payee_guest_profile: payeeGuestProfile || null,
+	});
+/** `requestId` stays the same across retries of one move, so the charge moves once. */
+export const transferChargeApi = ({ transaction, toFolio, amount, reason, requestId }) =>
+	request(HOTEL_ENDPOINTS.transferCharge, {
+		transaction,
+		to_folio: toFolio,
+		amount: amount || null,
+		reason: reason || null,
+		request_id: requestId,
+	});
+export const settleFolioApi = (folio, { transferToAr = false, overrideReason = null } = {}) =>
+	request(HOTEL_ENDPOINTS.settleFolio, {
+		folio_name: folio,
+		transfer_to_ar: transferToAr ? 1 : 0,
+		override_reason: overrideReason,
+	});
+export const releaseSettlementApi = (folio, reason) =>
+	request(HOTEL_ENDPOINTS.releaseSettlement, { folio_name: folio, reason });
+export const issueCreditNoteApi = (transaction, reason) =>
+	request(HOTEL_ENDPOINTS.issueCreditNote, { transaction, reason });
 
 // Night audit (F8)
 export const fetchNightAuditApi = (property) => request(HOTEL_ENDPOINTS.nightAudit, { property });

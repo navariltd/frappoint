@@ -391,6 +391,9 @@ def post(
 	notes: str | None = None,
 	is_manual: bool = False,
 	refund: bool = False,
+	transfer_of: str | None = None,
+	transfer_folio: str | None = None,
+	allow_closed: bool = False,
 ) -> dict:
 	"""Post one transaction to `folio`, exactly once per `posting_key`.
 
@@ -399,6 +402,9 @@ def post(
 	with `tax_inclusive` (default: the property's "Front-Desk Prices Include Tax") `amount` is the
 	gross and is split into net and tax; otherwise it is the net and the tax is added. A caller that
 	already knows the tax (a reversal) passes `tax_amount` and `amount` as the gross.
+
+	`transfer_of` and `transfer_folio` mark the two lines of a transfer (F11). `allow_closed` lets a
+	credit note post its reversal to a folio that is already invoiced.
 
 	Returns {"name", "created"}: `created` is False when the key was already posted, and the
 	existing transaction is returned unchanged.
@@ -416,7 +422,7 @@ def post(
 	if existing:
 		return {"name": existing, "created": False}
 
-	if folio_doc.status not in POSTABLE_STATUSES:
+	if folio_doc.status not in POSTABLE_STATUSES and not allow_closed:
 		frappe.throw(
 			_("Folio {0} is {1} and takes no more postings.").format(folio_doc.name, _(folio_doc.status)),
 			FolioClosedError,
@@ -426,7 +432,7 @@ def post(
 		frappe.throw(_("Charge Code {0} is inactive.").format(code.name), PostingError)
 
 	# A refund posts a payment code against its direction, like a reversal (F10).
-	direction = _direction(code, direction, is_reversal=bool(reverses) or refund)
+	direction = _direction(code, direction, is_reversal=bool(reverses or transfer_of) or refund)
 	currency = folio_doc.currency
 	amount_minor = to_minor(amount, currency)
 	if amount_minor <= 0:
@@ -435,7 +441,7 @@ def post(
 	if quantity <= 0:
 		frappe.throw(_("The quantity must be more than zero."), PostingError)
 
-	item = _posting_item(code, item, is_reversal=bool(reverses))
+	item = _posting_item(code, item, is_reversal=bool(reverses or transfer_of))
 	item_row = (
 		_row("Item", item, ["item_name", "item_group"])
 		if item
@@ -478,6 +484,8 @@ def post(
 			"transaction_type": code.transaction_type,
 			"charge_code": code.name,
 			"reverses": reverses,
+			"transfer_of": transfer_of,
+			"transfer_folio": transfer_folio,
 			"item": item,
 			"item_group": item_row.item_group or code.item_group,
 			"description_snapshot": (description or item_row.item_name or code.description)[:140],
@@ -767,6 +775,8 @@ def reverse_transaction(transaction: str, reason: str, notes: str | None = None)
 			"stay_guest",
 			"reverses",
 			"transaction_type",
+			"transfer_of",
+			"sales_invoice",
 		],
 	)
 	if not original or original.docstatus != 1:
@@ -774,6 +784,27 @@ def reverse_transaction(transaction: str, reason: str, notes: str | None = None)
 	if original.reverses:
 		frappe.throw(
 			_("{0} is itself a reversal. Post the charge again instead of reversing it.").format(
+				original.name
+			),
+			PostingError,
+		)
+	if original.sales_invoice:
+		frappe.throw(
+			_("{0} is on invoice {1}. Issue a credit note for it instead.").format(
+				original.name, original.sales_invoice
+			),
+			PostingError,
+		)
+	if original.transfer_of and original.direction == CREDIT:
+		frappe.throw(
+			_("{0} moved a charge to another folio. Reverse the charge on that folio instead.").format(
+				original.name
+			),
+			PostingError,
+		)
+	if frappe.db.exists(TRANSACTION, {"transfer_of": original.name, "direction": CREDIT, "docstatus": 1}):
+		frappe.throw(
+			_("Part of {0} was moved to another folio. Reverse each part on its own folio.").format(
 				original.name
 			),
 			PostingError,
@@ -970,6 +1001,9 @@ TRANSACTION_FIELDS = [
 	"consumer_guest_profile",
 	"room_number_snapshot",
 	"reverses",
+	"transfer_of",
+	"transfer_folio",
+	"sales_invoice",
 	"reason",
 	"is_manual",
 	"owner",
@@ -1020,7 +1054,7 @@ def stay_folio_details(stay_name: str) -> dict:
 	guests = frappe.get_all(
 		STAY_GUEST,
 		filters={"stay_reservation": stay_name, "status": ["not in", ["Removed"]]},
-		fields=["name", "guest_name", "role"],
+		fields=["name", "guest_name", "role", "guest_profile"],
 		order_by="creation asc",
 	)
 	return {

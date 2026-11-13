@@ -259,6 +259,47 @@ def link_customer(guest_profile: str, customer: str | None = None, ignore_permis
 	return linked
 
 
+def personal_customer(guest_profile: str) -> str:
+	"""The individual Customer that a folio billed to this guest invoices (decision D-3).
+
+	A guest's linked Customer is often their employer, which pays the stay. A folio for the
+	guest's own extras must not bill the employer: the guest gets an individual Customer, matched
+	by name and contact details if one exists, without changing the profile's link. A guest with no
+	Customer at all is linked to a new one, as at their first payment.
+	"""
+	guest = frappe.db.get_value(
+		GUEST_PROFILE, guest_profile, ["customer", "full_name", "email", "mobile_no"], as_dict=True
+	)
+	if not guest:
+		frappe.throw(_("Guest Profile {0} does not exist.").format(guest_profile), frappe.DoesNotExistError)
+	if not guest.customer:
+		return link_customer(guest_profile, ignore_permissions=True)
+	if frappe.db.get_value("Customer", guest.customer, "customer_type") != "Company":
+		return guest.customer
+	contact = [["customer_name", "=", guest.full_name], ["customer_type", "=", "Individual"]]
+	for field in ("email_id", "mobile_no"):
+		value = guest.email if field == "email_id" else guest.mobile_no
+		if value:
+			existing = frappe.db.get_value("Customer", [*contact, [field, "=", value]], "name")
+			if existing:
+				return existing
+	return str(
+		frappe.get_doc(
+			{
+				"doctype": "Customer",
+				"customer_name": guest.full_name,
+				"customer_type": "Individual",
+				"customer_group": _default("customer_group", "Customer Group"),
+				"territory": _default("territory", "Territory"),
+				"email_id": guest.email,
+				"mobile_no": guest.mobile_no,
+			}
+		)
+		.insert(ignore_permissions=True)
+		.name
+	)
+
+
 def _default(fieldname: str, doctype: str) -> str | None:
 	value = frappe.db.get_single_value("Selling Settings", fieldname)
 	if value:
