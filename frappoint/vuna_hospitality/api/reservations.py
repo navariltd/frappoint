@@ -141,9 +141,10 @@ def get_booking(booking: str) -> dict:
 @frappe.whitelist()
 @require_hospitality
 def get_recent_bookings(property: str, limit: int = 20) -> list[dict]:
-	"""The property's latest bookings, newest first."""
+	"""The property's latest bookings, newest first, with the lead guest and dates of their stays
+	so the list can be scanned without opening each one."""
 	assert_property_access(property)
-	return frappe.get_list(
+	bookings = frappe.get_list(
 		reservations.BOOKING,
 		filters={"property": property},
 		fields=[
@@ -159,3 +160,20 @@ def get_recent_bookings(property: str, limit: int = 20) -> list[dict]:
 		order_by="creation desc",
 		limit_page_length=max(1, min(cint(limit) or 20, 100)),
 	)
+	stays = frappe.get_all(
+		reservations.STAY,
+		filters={"hotel_booking": ["in", [row.name for row in bookings] or [""]]},
+		fields=["hotel_booking", "lead_guest_name", "arrival_date", "departure_date", "status"],
+		order_by="arrival_date asc, creation asc",
+	)
+	by_booking: dict[str, list] = {}
+	for stay in stays:
+		by_booking.setdefault(stay.hotel_booking, []).append(stay)
+	for row in bookings:
+		rows = by_booking.get(row.name, [])
+		active = [stay for stay in rows if stay.status not in reservations.INACTIVE_STAY_STATUSES] or rows
+		row["lead_guest_name"] = active[0].lead_guest_name if active else None
+		row["arrival_date"] = min((stay.arrival_date for stay in active), default=None)
+		row["departure_date"] = max((stay.departure_date for stay in active), default=None)
+		row["room_count"] = len(rows)
+	return bookings

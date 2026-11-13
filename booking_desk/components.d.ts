@@ -45,6 +45,7 @@ declare module 'vue' {
     BookingCardGrid: typeof import('./src/components/bookings/BookingCardGrid.vue')['default']
     BookingCardHeader: typeof import('./src/components/bookings/BookingCardHeader.vue')['default']
     BookingCustomerCard: typeof import('./src/components/booking-details/BookingCustomerCard.vue')['default']
+    BookingDetail: typeof import('./src/components/hotel/BookingDetail.vue')['default']
     BookingDetailsEmptyState: typeof import('./src/components/booking-details/BookingDetailsEmptyState.vue')['default']
     BookingDetailsLoadingState: typeof import('./src/components/booking-details/BookingDetailsLoadingState.vue')['default']
     BookingEmptyState: typeof import('./src/components/bookings/BookingEmptyState.vue')['default']

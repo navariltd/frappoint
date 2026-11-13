@@ -126,8 +126,8 @@ export const reinstateStayApi = (stay, reason) =>
 export const cancelBookingApi = (booking, reason) =>
 	request(HOTEL_ENDPOINTS.cancelBooking, { booking, reason });
 export const fetchBookingApi = (booking) => request(HOTEL_ENDPOINTS.getBooking, { booking });
-export const fetchRecentBookingsApi = (property) =>
-	request(HOTEL_ENDPOINTS.recentBookings, { property });
+export const fetchRecentBookingsApi = (property, limit = 20) =>
+	request(HOTEL_ENDPOINTS.recentBookings, { property, limit });
 
 // Front desk (F6)
 export const fetchFrontDeskTodayApi = (property) =>

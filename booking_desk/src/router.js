@@ -3,6 +3,9 @@ import { useAuthStore } from "./stores/auth";
 import { HOTEL, SERVICES, useWorkspaceStore } from "./stores/workspace.store";
 import { navigateTo } from "./utils";
 
+// One component for the bookings list and a selected booking (a split view).
+const HotelBookingsPage = () => import("@/pages/hotel/HotelBookings.vue");
+
 const routes = [
 	{
 		// Sends each user to their workspace's home page (see the guard below).
@@ -108,7 +111,7 @@ const routes = [
 	{
 		name: "HotelBookings",
 		path: "/hotel/bookings",
-		component: () => import("@/pages/hotel/HotelBookings.vue"),
+		component: HotelBookingsPage,
 		meta: { requiresLogin: true, workspace: HOTEL },
 	},
 	{
@@ -120,7 +123,9 @@ const routes = [
 	{
 		name: "HotelBooking",
 		path: "/hotel/bookings/:bookingId",
-		component: () => import("@/pages/hotel/HotelBooking.vue"),
+		// The same page instance as the list, so the list keeps its search and scroll while the
+		// selected booking opens beside it.
+		component: HotelBookingsPage,
 		meta: { requiresLogin: true, workspace: HOTEL },
 	},
 	{

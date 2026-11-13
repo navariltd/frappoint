@@ -160,9 +160,9 @@ const pageMeta = {
 	},
 	HotelBooking: {
 		sectionLabel: "Hotel",
-		title: "Booking",
-		description: "A hotel booking and its stays.",
-		tag: "Detail",
+		title: "Reservations",
+		description: "The latest hotel bookings at this property.",
+		tag: "List",
 	},
 	NewReservation: {
 		sectionLabel: "Hotel",
