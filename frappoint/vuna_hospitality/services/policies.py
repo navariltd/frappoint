@@ -10,7 +10,8 @@ Fee bases:
 
 - **Cancellation** and **No-show**: the nights given up (all of the stay's unposted nights).
   A cancellation is free until the policy's hours before arrival (arrival date at the property's
-  check-in time, in the property's time zone).
+  check-in time, in the property's time zone). With 0 hours there is no free period: a
+  non-refundable rate charges any cancellation.
 - **Early departure**: the nights after the day the guest leaves.
 
 `First Night` charges the first of those nights, `Percentage of Stay` a share of them, `Full Stay`
@@ -88,9 +89,12 @@ def pending_nights(stay_name: str, from_date=None) -> list[int]:
 
 
 def free_cancellation_until(stay) -> datetime | None:
-	"""When free cancellation ends, in the property's local time; None if there's no fee at all."""
+	"""When free cancellation ends, in the property's local time. None when there's no fee at all,
+	or no free period (0 hours: every cancellation is charged)."""
 	policy = snapshot(stay, CANCELLATION)
 	if not policy or (policy.fee_type or NO_FEE) == NO_FEE:
+		return None
+	if flt(policy.free_until_hours_before_arrival) <= 0:
 		return None
 	check_in = frappe.db.get_value("Hotel Property", stay.property, "check_in_time") or DEFAULT_CHECK_IN
 	arrival = datetime.combine(getdate(stay.arrival_date), get_time(check_in))

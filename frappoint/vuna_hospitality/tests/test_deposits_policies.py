@@ -167,6 +167,17 @@ class TestCancellationFees(PolicyTestCase):
 		self.assertEqual(frappe.db.get_value("Guest Folio", fees[0].guest_folio, "status"), "Open")
 		self.assertEqual({night.posting_state for night in self.nights(stay)}, {"Cancelled"})
 
+	def test_a_non_refundable_rate_charges_any_cancellation(self):
+		self.use_policies(
+			cancellation_policy=self.policy(
+				"Cancellation", free_until_hours_before_arrival=0, fee_type="Full Stay"
+			)
+		)
+		stay = self.booked(self.today + timedelta(days=20), nights=2)
+		full_stay = sum(night.total for night in self.nights(stay))
+		reservations.cancel(stay.name, "Plans changed")
+		self.assertEqual([fee.gross_amount for fee in self.fees(stay)], [full_stay])
+
 	def test_only_a_front_desk_manager_waives_the_fee(self):
 		stay = self.booked(self.today + timedelta(days=1))
 		with self.as_user("Reservations Agent"), self.assertRaises(frappe.PermissionError):
