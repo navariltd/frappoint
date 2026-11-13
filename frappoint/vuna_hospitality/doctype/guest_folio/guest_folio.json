@@ -33,7 +33,13 @@
   "closed_at",
   "closed_by",
   "column_break_close",
-  "notes"
+  "notes",
+  "settlement_section",
+  "sales_invoice",
+  "settled_at",
+  "settled_by",
+  "column_break_settlement",
+  "settlement_error"
  ],
  "fields": [
   {
@@ -240,10 +246,52 @@
    "fieldname": "notes",
    "fieldtype": "Small Text",
    "label": "Notes"
+  },
+  {
+   "fieldname": "settlement_section",
+   "fieldtype": "Section Break",
+   "label": "Settlement"
+  },
+  {
+   "fieldname": "sales_invoice",
+   "fieldtype": "Link",
+   "label": "Sales Invoice",
+   "options": "Sales Invoice",
+   "no_copy": 1,
+   "read_only": 1,
+   "search_index": 1,
+   "description": "The invoice that settled this folio. Settling again returns it instead of creating another."
+  },
+  {
+   "fieldname": "settled_at",
+   "fieldtype": "Datetime",
+   "label": "Settled At",
+   "no_copy": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "settled_by",
+   "fieldtype": "Link",
+   "label": "Settled By",
+   "options": "User",
+   "no_copy": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_settlement",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "settlement_error",
+   "fieldtype": "Small Text",
+   "label": "Settlement Error",
+   "no_copy": 1,
+   "read_only": 1,
+   "description": "Why the last settlement was rejected, for example by an installed app's check on Sales Invoice submission."
   }
  ],
  "index_web_pages_for_search": 0,
- "modified": "2026-11-12 10:00:00.000000",
+ "modified": "2026-11-13 09:00:00.000000",
  "modified_by": "Administrator",
  "module": "Vuna Hospitality",
  "owner": "Administrator",

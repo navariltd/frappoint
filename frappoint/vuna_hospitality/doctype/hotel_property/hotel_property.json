@@ -35,6 +35,7 @@
   "cash_over_short_account",
   "operations_tab",
   "post_stay_window_days",
+  "max_folios_per_stay",
   "column_break_ops",
   "night_audit_block_on_open_shifts",
   "taxes_section",
@@ -282,6 +283,14 @@
    "label": "Nightly Levies",
    "options": "Hotel Nightly Levy",
    "description": "Fixed per-night levies night audit posts for each in-house stay, such as a tourism levy per adult."
+  },
+  {
+   "fieldname": "max_folios_per_stay",
+   "fieldtype": "Int",
+   "label": "Folios per Stay",
+   "default": "8",
+   "non_negative": 1,
+   "description": "The most folios one stay can have, the default folio included."
   }
  ],
  "index_web_pages_for_search": 0,
@@ -302,7 +311,7 @@
    "link_fieldname": "property"
   }
  ],
- "modified": "2026-11-13 12:00:00.000000",
+ "modified": "2026-11-13 09:00:00.000000",
  "modified_by": "Administrator",
  "module": "Vuna Hospitality",
  "name": "Hotel Property",

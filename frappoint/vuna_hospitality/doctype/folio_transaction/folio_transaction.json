@@ -15,6 +15,9 @@
   "transaction_type",
   "charge_code",
   "reverses",
+  "transfer_of",
+  "transfer_folio",
+  "sales_invoice",
   "item_section",
   "item",
   "item_group",
@@ -407,10 +410,38 @@
    "no_copy": 1,
    "print_hide": 1,
    "read_only": 1
+  },
+  {
+   "fieldname": "transfer_of",
+   "fieldtype": "Link",
+   "label": "Transfer Of",
+   "options": "Folio Transaction",
+   "read_only": 1,
+   "search_index": 1,
+   "description": "Set on both lines of a transfer: the line that was moved, wholly or in part."
+  },
+  {
+   "fieldname": "transfer_folio",
+   "fieldtype": "Link",
+   "label": "Transfer Folio",
+   "options": "Guest Folio",
+   "read_only": 1,
+   "description": "The other folio of the transfer: where the charge went, or where it came from."
+  },
+  {
+   "fieldname": "sales_invoice",
+   "fieldtype": "Link",
+   "label": "Sales Invoice",
+   "options": "Sales Invoice",
+   "allow_on_submit": 1,
+   "no_copy": 1,
+   "read_only": 1,
+   "search_index": 1,
+   "description": "The invoice, or credit note, that billed this line."
   }
  ],
  "index_web_pages_for_search": 0,
- "modified": "2026-11-13 12:00:00.000000",
+ "modified": "2026-11-13 09:00:00.000000",
  "modified_by": "Administrator",
  "module": "Vuna Hospitality",
  "owner": "Administrator",
