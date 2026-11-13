@@ -7,10 +7,12 @@
   property's turnover time, so early check-in and late check-out are respected. A move ends one
   segment and starts the next, so the stay's history keeps every room.
 - **Check-in** needs a ready room (housekeeping Inspected or Clean, until F17), every adult
-  registered, and a satisfied guarantee (F12). **Check-out** first posts the nights the guest used
-  that night audit hasn't (F8), then needs every open folio at zero (F7), unless a Front Desk
+  registered, and the deposit paid or waived (F12). **Check-out** first posts the nights the guest
+  used that night audit hasn't (F8), then needs every open folio at zero (F7), unless a Front Desk
   Manager overrides it with a reason. Leaving before the booked departure gives the remaining
-  nights back to inventory. Folios with nothing to invoice close at check-out.
+  nights back to inventory and charges the early-departure fee (F12); `depart_early()` does that
+  ahead of check-out, so the guest can pay the fee first. Folios with nothing to invoice close at
+  check-out; the rest stay open for late charges until the post-stay window ends (F12).
 
 Lock order follows reservations.py: the stay first, then rooms (by name), then inventory rows,
 then the booking.
@@ -23,7 +25,16 @@ from frappe import _
 from frappe.utils import add_days, cint, get_datetime, getdate, now_datetime
 
 from frappoint.vuna_hospitality.constants import FOLIO_MANAGER_ROLES
-from frappoint.vuna_hospitality.services import allowances, folio, inventory, night_audit, reservations
+from frappoint.vuna_hospitality.services import (
+	allowances,
+	deposits,
+	folio,
+	inventory,
+	night_audit,
+	policies,
+	post_stay,
+	reservations,
+)
 from frappoint.vuna_hospitality.services.event_log import log_event
 from frappoint.vuna_hospitality.services.guests import assert_registrable
 from frappoint.vuna_hospitality.services.money import from_minor, to_minor
@@ -621,9 +632,12 @@ def check_out(stay_name: str, override_reason: str | None = None) -> None:
 	night_audit.post_due_nights(stay.name, leaving_on, business_date)
 	# Unused package allowances end with the stay (F9); this leaves the balance unchanged.
 	allowances.expire(stay.name, business_date, everything=True)
+	early = getdate(leaving_on) < getdate(stay.departure_date)
+	if early:
+		# The fee is part of what the guest must settle before leaving.
+		policies.post_fee(stay, policies.EARLY_DEPARTURE, from_date=leaving_on)
 	assert_ready_to_check_out(stay, override_reason)
 
-	early = getdate(leaving_on) < getdate(stay.departure_date)
 	if early:
 		_shorten_stay(stay, getdate(leaving_on))
 
@@ -660,11 +674,34 @@ def check_out(stay_name: str, override_reason: str | None = None) -> None:
 		ignore_permissions=True,
 	)
 	folio.close_idle_folios(stay.name, reason=_("Checked out with nothing to invoice"))
+	post_stay.open_after_check_out(stay.name)
 	refresh_booking(stay.hotel_booking)
 
 
+def depart_early(stay_name: str) -> dict | None:
+	"""The guest leaves today, before the booked departure: charge the early-departure fee and
+	give the remaining nights back now, so the guest can settle the fee before checking out.
+
+	Returns the fee posted ({"name", "amount", "folio"}) or None.
+	"""
+	stay = _lock_stay(stay_name)
+	if stay.status not in IN_HOUSE_STATUSES:
+		frappe.throw(_("Stay {0} is {1}.").format(stay.name, _(stay.status)))
+	business_date = _business_date(stay.property)
+	leaving_on = getdate(max(business_date, add_days(stay.arrival_date, 1)))
+	if leaving_on >= getdate(stay.departure_date):
+		frappe.throw(
+			_("Stay {0} already leaves on {1}.").format(stay.name, frappe.format(stay.departure_date, "Date"))
+		)
+	fee = policies.post_fee(stay, policies.EARLY_DEPARTURE, from_date=leaving_on)
+	# The stay now leaves on `leaving_on`; night audit rolls it to Due Out as for any departure.
+	_shorten_stay(stay, leaving_on)
+	return fee
+
+
 def _shorten_stay(stay, new_departure) -> None:
-	"""Early departure: release the remaining nights and stop pricing them. The fee comes with F12."""
+	"""Early departure: release the remaining nights and stop pricing them. The fee is posted by
+	the caller first, from these nights (F12)."""
 	occupancy = frappe.get_doc(OCCUPANCY, stay.room_occupancy)
 	inventory.release(occupancy.room_type, new_departure, stay.departure_date, kind=inventory.SOLD)
 	table = frappe.qb.DocType(RATE_NIGHT)
@@ -711,7 +748,11 @@ def _shorten_stay(stay, new_departure) -> None:
 
 
 def assert_guarantee_satisfied(stay) -> None:
-	"""Check-in needs the booking's guarantee or deposit (F12 enforces it). Nothing to check yet."""
+	"""Check-in needs the stay's deposit paid, or waived by a Front Desk Manager (F12)."""
+	try:
+		deposits.assert_satisfied(stay)
+	except deposits.DepositRequiredError as error:
+		raise CheckInRefusedError(str(error)) from error
 
 
 def assert_ready_to_check_out(stay, override_reason: str | None = None) -> None:
@@ -883,6 +924,16 @@ def stay_details(stay_name: str) -> dict:
 		stay.currency,
 	)
 	status = stay.status
+	business_date = summary["business_date"]
+	leaving_early = status in IN_HOUSE_STATUSES and getdate(
+		max(business_date, add_days(stay.arrival_date, 1))
+	) < getdate(stay.departure_date)
+	early_fee = (
+		policies.fee_quote(stay, policies.EARLY_DEPARTURE, max(business_date, add_days(stay.arrival_date, 1)))
+		if leaving_early
+		else None
+	)
+	is_manager = bool(set(FOLIO_MANAGER_ROLES) & set(frappe.get_roles()))
 	return {
 		"stay": summary,
 		"guests": guests,
@@ -891,6 +942,11 @@ def stay_details(stay_name: str) -> dict:
 		"events": events,
 		"folios": folios,
 		"open_balance": owing,
+		# F12: the deposit, the booked policies, and what leaving early would cost today.
+		"deposit": deposits.deposit_details(stay.name),
+		"policies": policies.stay_policies(stay),
+		"early_departure_fee": early_fee.amount if early_fee else 0,
+		"post_stay_until": post_stay.window_end(stay.name) if status == "Checked Out" else None,
 		"actions": {
 			"can_assign": status in PRE_ARRIVAL_STATUSES,
 			"can_check_in": status in PRE_ARRIVAL_STATUSES
@@ -899,7 +955,9 @@ def stay_details(stay_name: str) -> dict:
 			"can_check_out": status in IN_HOUSE_STATUSES,
 			"can_edit_guests": status in GUEST_EDITABLE_STATUSES,
 			"can_view_folios": bool(folios) and bool(frappe.has_permission(folio.FOLIO, "read")),
-			"can_override_check_out": bool(set(FOLIO_MANAGER_ROLES) & set(frappe.get_roles())),
+			"can_override_check_out": is_manager,
+			"leaving_early": leaving_early,
+			"can_waive_deposit": is_manager,
 		},
 	}
 

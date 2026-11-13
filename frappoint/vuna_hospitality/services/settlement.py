@@ -72,13 +72,19 @@ def add_folio(
 	payee_customer: str | None = None,
 	payee_guest_profile: str | None = None,
 ) -> str:
-	"""Open another folio on the stay, for example for a company or a companion."""
+	"""Open another folio on the stay, for example for a company or a companion. After check-out it
+	is a post-stay folio for a late charge (F12)."""
 	frappe.db.get_value(STAY, stay_name, "name", for_update=True)
 	stay = _row(STAY, stay_name, ["name", "property", "status"])
 	if not stay:
 		frappe.throw(_("Stay Reservation {0} does not exist.").format(stay_name), frappe.DoesNotExistError)
 	if stay.status in CLOSED_STAY_STATUSES:
 		frappe.throw(_("Stay {0} is {1}.").format(stay_name, _(stay.status)), SettlementError)
+	from frappoint.vuna_hospitality.services import post_stay
+
+	late = stay.status == post_stay.CHECKED_OUT
+	if late:
+		post_stay.check_late_folio(stay)
 	folio.ensure_default_folio(stay_name)
 	limit = cint(frappe.db.get_value("Hotel Property", stay.property, "max_folios_per_stay"))
 	if limit and frappe.db.count(folio.FOLIO, {"stay_reservation": stay_name}) >= limit:
@@ -91,6 +97,9 @@ def add_folio(
 		payee_customer=payee_customer or _guest_customer(payee_guest_profile),
 		payee_guest_profile=payee_guest_profile,
 	)
+	if late:
+		# A late charge after check-out: the folio is open only for the post-stay window.
+		post_stay.mark_late_folio(doc.name, stay_name)
 	return doc.name
 
 
@@ -557,6 +566,7 @@ def settle(folio_name: str, *, transfer_to_ar: bool = False, override_reason: st
 	if not lines["items"]:
 		# Nothing to bill and nothing paid: close it without an invoice.
 		_close(doc, reason=_("Nothing to invoice"))
+		_after_settlement(folio_name)
 		return _result(doc)
 
 	from frappoint.vuna_hospitality.services.cashiering import payer_for
@@ -603,9 +613,17 @@ def settle(folio_name: str, *, transfer_to_ar: bool = False, override_reason: st
 		transition(
 			doc, SETTLED, updates=updates, data=data, event_type="Folio Settled", ignore_permissions=True
 		)
-		# Post-stay charges (F12) will keep a settled folio open for a while; for now it closes.
+		# A late charge after check-out goes on a new post-stay folio (F12): an invoiced folio closes.
 		_close(doc)
+	_after_settlement(folio_name)
 	return _result(doc)
+
+
+def _after_settlement(folio_name: str) -> None:
+	"""The folio's deposits (F12) were applied to its invoice, or refunded in full."""
+	from frappoint.vuna_hospitality.services.deposits import on_folio_settled
+
+	on_folio_settled(folio_name)
 
 
 def _pending_payments() -> list[str]:

@@ -342,12 +342,14 @@ def take_payment(
 	reference_no: str | None = None,
 	payer_customer: str | None = None,
 	request_id: str | None = None,
+	guest_deposit: str | None = None,
 ) -> str:
 	"""Take one payment for one or more folios. Returns the Folio Payment.
 
 	`splits` is a list of {"folio", "amount"}. With a Mode of Payment the payment is received at
 	once. With a phone `payment_gateway` (M-Pesa) an STK push is sent and the payment waits for its
-	callback. The same `request_id` always returns the same payment.
+	callback. The same `request_id` always returns the same payment. `guest_deposit` (F12) marks
+	the payment as that deposit's; use deposits.take_deposit, which sets it.
 	"""
 	request_id = (request_id or "").strip() or None
 	if request_id:
@@ -377,6 +379,7 @@ def take_payment(
 			"payer_name": frappe.db.get_value("Customer", payer, "customer_name"),
 			"cashier_shift": shift,
 			"request_id": request_id,
+			"guest_deposit": guest_deposit,
 			"mode_of_payment": mode_of_payment,
 			"payment_gateway": payment_gateway,
 			"phone": (phone or "").strip() or None,
@@ -471,6 +474,10 @@ def receive(payment_name: str, reference_no: str | None = None) -> str:
 		event_type="Payment Received",
 		ignore_permissions=True,
 	)
+	if payment.guest_deposit:
+		from frappoint.vuna_hospitality.services.deposits import refresh
+
+		refresh(payment.guest_deposit)
 	return payment.name
 
 
@@ -654,6 +661,10 @@ def refund(
 		event_type="Refund Paid",
 		ignore_permissions=True,
 	)
+	if original.guest_deposit:
+		from frappoint.vuna_hospitality.services.deposits import refresh
+
+		refresh(original.guest_deposit)
 	return payment.name
 
 
