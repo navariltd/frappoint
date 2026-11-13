@@ -1,4 +1,4 @@
-"""Reservation endpoints for the booking desk: hold, confirm, cancel, and read a booking.
+"""Reservation endpoints for the booking desk: hold, confirm, cancel, reinstate, and read a booking.
 
 Each command owns its request's transaction, so it runs through `run_with_inventory_retry`: if
 another booking changed the same inventory rows meanwhile, it starts again and sees that booking.
@@ -10,7 +10,7 @@ import frappe
 from frappe import _
 from frappe.utils import cint
 
-from frappoint.vuna_hospitality.constants import RESERVATION_ROLES
+from frappoint.vuna_hospitality.constants import RESERVATION_MANAGER_ROLES, RESERVATION_ROLES
 from frappoint.vuna_hospitality.services import reservations
 from frappoint.vuna_hospitality.services.feature_flag import require_hospitality
 from frappoint.vuna_hospitality.services.inventory import run_with_inventory_retry
@@ -99,19 +99,35 @@ def confirm_booking(booking: str) -> dict:
 
 @frappe.whitelist(methods=["POST"])
 @require_hospitality
-def cancel_stay(stay: str, reason: str) -> dict:
-	"""Cancel a held or confirmed stay and release its rooms."""
+def cancel_stay(stay: str, reason: str, waive_fee: int = 0, waive_reason: str | None = None) -> dict:
+	"""Cancel a held or confirmed stay and release its rooms. Inside the policy's penalty window
+	the cancellation fee is charged, unless a Front Desk Manager waives it with a reason."""
 	_check_stay(stay)
-	return run_with_inventory_retry(lambda: reservations.cancel(stay, reason))
+	return run_with_inventory_retry(
+		lambda: reservations.cancel(stay, reason, waive_fee=bool(cint(waive_fee)), waive_reason=waive_reason)
+	)
 
 
 @frappe.whitelist(methods=["POST"])
 @require_hospitality
-def cancel_booking(booking: str, reason: str) -> dict:
+def cancel_booking(booking: str, reason: str, waive_fee: int = 0, waive_reason: str | None = None) -> dict:
 	"""Cancel every held or confirmed stay on a booking."""
 	_check_booking(booking)
 	frappe.only_for(RESERVATION_ROLES)
-	return run_with_inventory_retry(lambda: reservations.cancel_booking(booking, reason))
+	return run_with_inventory_retry(
+		lambda: reservations.cancel_booking(
+			booking, reason, waive_fee=bool(cint(waive_fee)), waive_reason=waive_reason
+		)
+	)
+
+
+@frappe.whitelist(methods=["POST"])
+@require_hospitality
+def reinstate_stay(stay: str, reason: str) -> dict:
+	"""Bring a cancelled or no-show stay back, if its rooms can be taken again."""
+	_check_stay(stay)
+	frappe.only_for(RESERVATION_MANAGER_ROLES)
+	return run_with_inventory_retry(lambda: reservations.reinstate(stay, reason))
 
 
 @frappe.whitelist()
