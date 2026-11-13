@@ -366,10 +366,10 @@ class TestCheckOut(FolioTestCase):
 		check_out(stay.name, override_reason="Company will pay")
 		self.assertEqual(frappe.db.get_value("Stay Reservation", stay.name, "status"), "Checked Out")
 		# The balance (the massage and the first night, posted at check-out) stays open for
-		# settlement (F11), and the override is on record.
+		# settlement (F11) and late charges (F12), and the override is on record.
 		self.assertEqual(
 			frappe.db.get_value("Guest Folio", folio_name, ["status", "balance"]),
-			("Open", 4500 + stay.total_amount),
+			("Post-Stay Open", 4500 + stay.total_amount),
 		)
 		self.assertTrue(
 			frappe.db.exists(
