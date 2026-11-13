@@ -1,0 +1,226 @@
+{
+ "actions": [],
+ "autoname": "naming_series:",
+ "creation": "2026-11-13 18:00:00.000000",
+ "description": "The link from a booking's stay to the Payment Entries that paid its deposit, and the policy that asked for it.",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "naming_series",
+  "property",
+  "hotel_booking",
+  "stay_reservation",
+  "guest_folio",
+  "column_break_head",
+  "status",
+  "deposit_policy",
+  "payee_customer",
+  "amount_section",
+  "currency",
+  "required_amount",
+  "column_break_amount",
+  "due_date",
+  "release_if_unpaid",
+  "notes_section",
+  "reason"
+ ],
+ "fields": [
+  {
+   "fieldname": "naming_series",
+   "fieldtype": "Select",
+   "label": "Series",
+   "read_only": 1,
+   "options": "GD-.property.-.YY.-.#####",
+   "hidden": 1,
+   "reqd": 1,
+   "default": "GD-.property.-.YY.-.#####"
+  },
+  {
+   "fieldname": "property",
+   "fieldtype": "Link",
+   "label": "Property",
+   "read_only": 1,
+   "options": "Hotel Property",
+   "reqd": 1,
+   "in_standard_filter": 1
+  },
+  {
+   "fieldname": "hotel_booking",
+   "fieldtype": "Link",
+   "label": "Hotel Booking",
+   "read_only": 1,
+   "options": "Hotel Booking",
+   "reqd": 1,
+   "in_standard_filter": 1
+  },
+  {
+   "fieldname": "stay_reservation",
+   "fieldtype": "Link",
+   "label": "Stay Reservation",
+   "read_only": 1,
+   "options": "Stay Reservation",
+   "reqd": 1,
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "search_index": 1
+  },
+  {
+   "fieldname": "guest_folio",
+   "fieldtype": "Link",
+   "label": "Guest Folio",
+   "read_only": 1,
+   "options": "Guest Folio",
+   "reqd": 1
+  },
+  {
+   "fieldname": "column_break_head",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "label": "Status",
+   "read_only": 1,
+   "options": "Requested\nPartly Paid\nReceived\nApplied\nForfeited\nRefunded\nWaived\nReleased",
+   "default": "Requested",
+   "reqd": 1,
+   "in_list_view": 1,
+   "in_standard_filter": 1
+  },
+  {
+   "fieldname": "deposit_policy",
+   "fieldtype": "Link",
+   "label": "Deposit Policy",
+   "read_only": 1,
+   "options": "Hotel Policy"
+  },
+  {
+   "fieldname": "payee_customer",
+   "fieldtype": "Link",
+   "label": "Payee",
+   "read_only": 1,
+   "options": "Customer"
+  },
+  {
+   "fieldname": "amount_section",
+   "fieldtype": "Section Break",
+   "label": "Amount"
+  },
+  {
+   "fieldname": "currency",
+   "fieldtype": "Link",
+   "label": "Currency",
+   "read_only": 1,
+   "options": "Currency"
+  },
+  {
+   "fieldname": "required_amount",
+   "fieldtype": "Currency",
+   "label": "Required Amount",
+   "read_only": 1,
+   "options": "currency",
+   "in_list_view": 1,
+   "description": "What the deposit policy asks for. What was paid and refunded is read from the Payment Entries."
+  },
+  {
+   "fieldname": "column_break_amount",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "due_date",
+   "fieldtype": "Date",
+   "label": "Due Date",
+   "read_only": 1,
+   "in_list_view": 1,
+   "description": "Night audit of this business date releases the stay if the deposit is still unpaid and the policy says so."
+  },
+  {
+   "fieldname": "release_if_unpaid",
+   "fieldtype": "Check",
+   "label": "Release If Unpaid",
+   "read_only": 1
+  },
+  {
+   "fieldname": "notes_section",
+   "fieldtype": "Section Break",
+   "label": "Notes",
+   "collapsible": 1
+  },
+  {
+   "fieldname": "reason",
+   "fieldtype": "Small Text",
+   "label": "Reason",
+   "read_only": 1,
+   "description": "Why the deposit was waived, forfeited or released."
+  }
+ ],
+ "index_web_pages_for_search": 0,
+ "links": [],
+ "modified": "2026-11-13 18:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Vuna Hospitality",
+ "name": "Guest Deposit",
+ "naming_rule": "By \"Naming Series\" field",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "role": "System Manager",
+   "read": 1,
+   "report": 1,
+   "print": 1,
+   "export": 1
+  },
+  {
+   "role": "Hospitality Manager",
+   "read": 1,
+   "report": 1,
+   "print": 1,
+   "export": 1
+  },
+  {
+   "role": "Front Desk Manager",
+   "read": 1,
+   "report": 1,
+   "print": 1
+  },
+  {
+   "role": "Front Desk Agent",
+   "read": 1,
+   "report": 1,
+   "print": 1
+  },
+  {
+   "role": "Reservations Agent",
+   "read": 1,
+   "report": 1,
+   "print": 1
+  },
+  {
+   "role": "Cashier",
+   "read": 1,
+   "report": 1,
+   "print": 1
+  },
+  {
+   "role": "Hotel Accountant",
+   "read": 1,
+   "report": 1,
+   "print": 1,
+   "export": 1
+  },
+  {
+   "role": "Night Auditor",
+   "read": 1,
+   "report": 1,
+   "print": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1,
+ "in_create": 1,
+ "title_field": "stay_reservation",
+ "search_fields": "stay_reservation,status"
+}

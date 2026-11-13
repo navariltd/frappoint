@@ -36,9 +36,13 @@
   "policy_section",
   "cancellation_policy",
   "cancellation_policy_snapshot",
+  "no_show_policy",
+  "no_show_policy_snapshot",
   "column_break_policy",
   "deposit_policy",
   "deposit_policy_snapshot",
+  "early_departure_policy",
+  "early_departure_policy_snapshot",
   "history_section",
   "confirmed_at",
   "confirmed_by",
@@ -278,6 +282,19 @@
    "read_only": 1
   },
   {
+   "fieldname": "no_show_policy",
+   "fieldtype": "Link",
+   "label": "No-show Policy",
+   "options": "Hotel Policy",
+   "read_only": 1
+  },
+  {
+   "fieldname": "no_show_policy_snapshot",
+   "fieldtype": "JSON",
+   "label": "No-show Policy (as booked)",
+   "read_only": 1
+  },
+  {
    "fieldname": "column_break_policy",
    "fieldtype": "Column Break"
   },
@@ -292,6 +309,19 @@
    "fieldname": "deposit_policy_snapshot",
    "fieldtype": "JSON",
    "label": "Deposit Policy (as booked)",
+   "read_only": 1
+  },
+  {
+   "fieldname": "early_departure_policy",
+   "fieldtype": "Link",
+   "label": "Early Departure Policy",
+   "options": "Hotel Policy",
+   "read_only": 1
+  },
+  {
+   "fieldname": "early_departure_policy_snapshot",
+   "fieldtype": "JSON",
+   "label": "Early Departure Policy (as booked)",
    "read_only": 1
   },
   {
@@ -380,7 +410,7 @@
    "group": "Billing"
   }
  ],
- "modified": "2026-11-13 12:00:00.000000",
+ "modified": "2026-11-13 18:00:00.000000",
  "modified_by": "Administrator",
  "module": "Vuna Hospitality",
  "name": "Stay Reservation",

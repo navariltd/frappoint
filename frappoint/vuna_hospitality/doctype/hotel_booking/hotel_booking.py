@@ -11,10 +11,14 @@ from frappoint.vuna_hospitality.services.status_commands import guard_status_cha
 _STATUSES = {"Option", "Confirmed", "Partly Cancelled", "Cancelled"}
 
 # The booking status follows its stays (see reservations.refresh_booking): any move between these
-# is allowed, but only the reservation service makes it. Closed comes with check-out (F6).
+# is allowed, but only the reservation service makes it. Closed comes with check-out (F6) and
+# no-shows; reinstating a no-show (F12) opens the booking again.
 register_transitions(
 	"Hotel Booking",
-	{status: (_STATUSES | {"Closed"}) - {status} for status in _STATUSES},
+	{
+		**{status: (_STATUSES | {"Closed"}) - {status} for status in _STATUSES},
+		"Closed": set(_STATUSES) - {"Option"},
+	},
 	initial_statuses={"Option"},
 )
 

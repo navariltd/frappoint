@@ -18,6 +18,8 @@
   "column_break_charge",
   "cancellation_policy",
   "deposit_policy",
+  "no_show_policy",
+  "early_departure_policy",
   "description_section",
   "description"
  ],
@@ -118,6 +120,20 @@
    "reqd": 1
   },
   {
+   "fieldname": "no_show_policy",
+   "fieldtype": "Link",
+   "label": "No-show Policy",
+   "options": "Hotel Policy",
+   "description": "Optional. The fee charged when the guest doesn't arrive."
+  },
+  {
+   "fieldname": "early_departure_policy",
+   "fieldtype": "Link",
+   "label": "Early Departure Policy",
+   "options": "Hotel Policy",
+   "description": "Optional. The fee charged when the guest leaves before the booked departure."
+  },
+  {
    "fieldname": "description_section",
    "fieldtype": "Section Break",
    "label": "Description"
@@ -130,7 +146,7 @@
  ],
  "index_web_pages_for_search": 0,
  "links": [],
- "modified": "2026-11-13 12:00:00.000000",
+ "modified": "2026-11-13 18:00:00.000000",
  "modified_by": "Administrator",
  "module": "Vuna Hospitality",
  "name": "Rate Plan",

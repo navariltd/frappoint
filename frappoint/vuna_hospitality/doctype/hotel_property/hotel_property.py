@@ -49,6 +49,7 @@ class HotelProperty(Document):
 		is_active: DF.Check
 		night_audit_block_on_open_shifts: DF.Check
 		phone: DF.Data | None
+		policy_fee_charge_code: DF.Link | None
 		post_stay_window_days: DF.Int
 		property_code: DF.Data
 		property_name: DF.Data
@@ -129,6 +130,8 @@ class HotelProperty(Document):
 			)
 		if self.breakage_charge_code:
 			assert_fixed_revenue_code(self.breakage_charge_code, _("Breakage Charge Code"))
+		if self.policy_fee_charge_code:
+			assert_fixed_revenue_code(self.policy_fee_charge_code, _("Policy Fee Charge Code"))
 		seen = set()
 		for levy in self.nightly_levies:
 			assert_fixed_revenue_code(levy.charge_code, _("Nightly levy row {0}").format(levy.idx))
