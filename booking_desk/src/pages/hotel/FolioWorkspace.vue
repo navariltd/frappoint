@@ -285,6 +285,80 @@
 				</form>
 			</section>
 
+			<!-- Open another folio (F11) -->
+			<section
+				v-if="data.actions.can_post && data.folios.length"
+				class="rounded-xl border border-outline-variant bg-surface-container-lowest p-4 space-y-3"
+			>
+				<div class="flex items-center justify-between">
+					<h2 class="text-[15px] font-semibold">Another folio</h2>
+					<button
+						v-if="!newFolio.open"
+						type="button"
+						class="text-[12px] font-semibold text-primary"
+						@click="newFolio.open = true"
+					>
+						Open a folio
+					</button>
+				</div>
+				<p v-if="!newFolio.open" class="text-[12px] text-on-surface-variant">
+					Bill part of the stay to someone else: the company, a companion, or the guest's
+					own extras.
+				</p>
+				<form v-else class="space-y-3" @submit.prevent="addFolio">
+					<div class="grid gap-3 md:grid-cols-3">
+						<label class="text-[12px] text-on-surface-variant">
+							Name
+							<input
+								v-model="newFolio.label"
+								class="folio-input"
+								placeholder="Company, Spouse, Extras…"
+							/>
+						</label>
+						<label class="text-[12px] text-on-surface-variant">
+							Bill to
+							<select v-model="newFolio.payee" class="folio-input">
+								<option value="">The stay's usual payee</option>
+								<option
+									v-for="guest in payeeGuests"
+									:key="guest.guest_profile"
+									:value="`guest:${guest.guest_profile}`"
+								>
+									{{ guest.guest_name }} ({{ guest.role }})
+								</option>
+								<option value="customer">A company (ERPNext Customer)</option>
+							</select>
+						</label>
+						<label
+							v-if="newFolio.payee === 'customer'"
+							class="text-[12px] text-on-surface-variant"
+						>
+							Customer ID
+							<input v-model="newFolio.customer" class="folio-input" />
+						</label>
+					</div>
+					<div class="flex justify-end gap-2">
+						<button
+							type="button"
+							class="rounded-lg border border-outline-variant px-3 py-2 text-[12px] font-semibold"
+							@click="resetNewFolio"
+						>
+							Cancel
+						</button>
+						<button
+							type="submit"
+							class="rounded-lg bg-primary text-on-primary px-4 py-2 text-[13px] font-semibold disabled:opacity-50"
+							:disabled="
+								busy ||
+								(newFolio.payee === 'customer' && !newFolio.customer.trim())
+							"
+						>
+							Open folio
+						</button>
+					</div>
+				</form>
+			</section>
+
 			<!-- Folios -->
 			<section
 				v-for="entry in data.folios"
@@ -302,6 +376,15 @@
 						<p class="text-[12px] text-on-surface-variant">
 							{{ entry.folio.name }} · Payee
 							{{ entry.folio.payee_name || "not set yet" }}
+							<template v-if="entry.folio.sales_invoice">
+								· Invoice
+								<a
+									:href="`/app/sales-invoice/${entry.folio.sales_invoice}`"
+									target="_blank"
+									class="font-semibold text-primary"
+									>{{ entry.folio.sales_invoice }}</a
+								>
+							</template>
 						</p>
 					</div>
 					<div class="text-right">
@@ -316,6 +399,38 @@
 							@click="rebuild(entry.folio.name)"
 						>
 							Check balance
+						</button>
+					</div>
+				</div>
+
+				<div
+					v-if="entry.folio.status === 'Settlement Pending'"
+					class="rounded-lg bg-error-container/40 px-4 py-3 text-[13px] space-y-2"
+				>
+					<p>
+						<b>The invoice was rejected.</b>
+						{{ entry.folio.settlement_error || "No reason was given." }}
+					</p>
+					<p class="text-[12px] text-on-surface-variant">
+						Nothing was invoiced. Fix the cause (for example the Item's or Customer's
+						tax details), then try again. Trying again never creates a second invoice.
+					</p>
+					<div v-if="data.actions.can_settle" class="flex gap-2">
+						<button
+							type="button"
+							class="rounded-lg bg-primary text-on-primary px-3 py-1.5 text-[12px] font-semibold disabled:opacity-50"
+							:disabled="busy"
+							@click="settle(entry, { retry: true })"
+						>
+							Try again
+						</button>
+						<button
+							type="button"
+							class="rounded-lg border border-outline-variant px-3 py-1.5 text-[12px] font-semibold disabled:opacity-50"
+							:disabled="busy"
+							@click="releaseSettlement(entry.folio)"
+						>
+							Reopen to correct it
 						</button>
 					</div>
 				</div>
@@ -359,6 +474,18 @@
 											· tax {{ money(line.tax_amount) }}</template
 										>
 										<template v-if="line.reversed_by"> · reversed</template>
+										<template v-if="line.transfer_folio">
+											·
+											{{
+												line.direction === "Credit"
+													? "moved to"
+													: "moved from"
+											}}
+											{{ folioLabel(line.transfer_folio) }}</template
+										>
+										<template v-if="line.sales_invoice">
+											· {{ line.sales_invoice }}</template
+										>
 										<template v-if="line.reason">
 											· {{ line.reason }}</template
 										>
@@ -376,7 +503,25 @@
 										money(line.gross_amount)
 									}}</template>
 								</td>
-								<td class="py-1.5 pl-3 text-right">
+								<td class="py-1.5 pl-3 text-right whitespace-nowrap space-x-3">
+									<button
+										v-if="canMove(entry.folio, line)"
+										type="button"
+										class="text-[11px] font-semibold text-primary disabled:opacity-50"
+										:disabled="busy"
+										@click="startMove(entry.folio, line)"
+									>
+										Move
+									</button>
+									<button
+										v-if="canCredit(line)"
+										type="button"
+										class="text-[11px] font-semibold text-error disabled:opacity-50"
+										:disabled="busy"
+										@click="creditNote(line)"
+									>
+										Credit note
+									</button>
 									<button
 										v-if="canReverse(entry.folio, line)"
 										type="button"
@@ -390,6 +535,159 @@
 							</tr>
 						</tbody>
 					</table>
+				</div>
+
+				<form
+					v-if="move.line && move.from === entry.folio.name"
+					class="rounded-lg border border-secondary bg-secondary-container/30 p-3 space-y-3"
+					@submit.prevent="moveCharge"
+				>
+					<p class="text-[13px] font-semibold">
+						Move "{{ move.line.description_snapshot }}" to another folio
+					</p>
+					<div class="grid gap-3 md:grid-cols-3">
+						<label class="text-[12px] text-on-surface-variant">
+							To
+							<select v-model="move.to" class="folio-input">
+								<option
+									v-for="target in moveTargets"
+									:key="target.folio.name"
+									:value="target.folio.name"
+								>
+									{{ target.folio.folio_label }} · {{ target.folio.payee_name }}
+								</option>
+							</select>
+						</label>
+						<label class="text-[12px] text-on-surface-variant">
+							Amount (up to {{ money(move.left) }})
+							<input
+								v-model.number="move.amount"
+								type="number"
+								min="0"
+								step="0.01"
+								:max="move.left"
+								class="folio-input"
+							/>
+						</label>
+						<label class="text-[12px] text-on-surface-variant">
+							Reason
+							<input
+								v-model="move.reason"
+								class="folio-input"
+								placeholder="Company pays the room"
+							/>
+						</label>
+					</div>
+					<div class="flex items-center justify-between gap-2">
+						<span class="space-x-2 text-[12px]">
+							<button
+								type="button"
+								class="font-semibold text-primary"
+								@click="move.amount = move.left"
+							>
+								All
+							</button>
+							<button
+								type="button"
+								class="font-semibold text-primary"
+								@click="move.amount = Math.round(move.left * 50) / 100"
+							>
+								Half
+							</button>
+						</span>
+						<span class="flex gap-2">
+							<button
+								type="button"
+								class="rounded-lg border border-outline-variant px-3 py-2 text-[12px] font-semibold"
+								@click="cancelMove"
+							>
+								Cancel
+							</button>
+							<button
+								type="submit"
+								class="rounded-lg bg-primary text-on-primary px-4 py-2 text-[13px] font-semibold disabled:opacity-50"
+								:disabled="
+									busy ||
+									!move.to ||
+									!(move.amount > 0) ||
+									move.amount > move.left
+								"
+							>
+								Move {{ money(move.amount) }}
+							</button>
+						</span>
+					</div>
+				</form>
+
+				<div
+					v-if="entry.invoice && entry.folio.status !== 'Settlement Pending'"
+					class="border-t border-outline-variant pt-3 space-y-2"
+				>
+					<p v-if="entry.invoice.error" class="text-[12px] text-error">
+						Can't invoice yet: {{ entry.invoice.error }}
+					</p>
+					<template v-else-if="entry.invoice.items.length">
+						<p class="text-[12px] font-semibold">Invoice preview</p>
+						<table class="w-full text-[12px]">
+							<tbody>
+								<tr
+									v-for="row in entry.invoice.items"
+									:key="`${row.item}-${row.description}`"
+								>
+									<td class="py-0.5">{{ row.description }}</td>
+									<td class="py-0.5 text-right">{{ money(row.net) }}</td>
+								</tr>
+								<tr
+									v-for="row in entry.invoice.taxes"
+									:key="row.account"
+									class="text-on-surface-variant"
+								>
+									<td class="py-0.5">{{ row.description }}</td>
+									<td class="py-0.5 text-right">{{ money(row.amount) }}</td>
+								</tr>
+								<tr class="font-semibold border-t border-outline-variant">
+									<td class="py-0.5">Total</td>
+									<td class="py-0.5 text-right">
+										{{ money(entry.invoice.total) }}
+									</td>
+								</tr>
+								<tr class="text-on-surface-variant">
+									<td class="py-0.5">Paid</td>
+									<td class="py-0.5 text-right">
+										{{ money(entry.invoice.paid) }}
+									</td>
+								</tr>
+							</tbody>
+						</table>
+					</template>
+					<div
+						v-if="!entry.invoice.error && data.actions.can_settle"
+						class="flex flex-wrap items-center justify-end gap-2"
+					>
+						<span
+							v-if="entry.invoice.outstanding > 0"
+							class="text-[12px] text-on-surface-variant"
+						>
+							{{ money(entry.invoice.outstanding) }} still to pay before settling.
+						</span>
+						<button
+							v-if="entry.invoice.outstanding > 0 && data.actions.can_bill_company"
+							type="button"
+							class="rounded-lg border border-outline-variant px-3 py-2 text-[12px] font-semibold disabled:opacity-50"
+							:disabled="busy"
+							@click="billCompany(entry)"
+						>
+							Bill to company account
+						</button>
+						<button
+							type="button"
+							class="rounded-lg bg-primary text-on-primary px-4 py-2 text-[13px] font-semibold disabled:opacity-50"
+							:disabled="busy || entry.invoice.outstanding !== 0"
+							@click="settle(entry)"
+						>
+							{{ entry.invoice.items.length ? "Settle and invoice" : "Close folio" }}
+						</button>
+					</div>
 				</div>
 
 				<div v-if="entry.payments?.length" class="border-t border-outline-variant pt-2">
@@ -468,6 +766,11 @@ import {
 	fetchPaymentApi,
 	refundPaymentApi,
 	takePaymentApi,
+	addFolioApi,
+	issueCreditNoteApi,
+	releaseSettlementApi,
+	settleFolioApi,
+	transferChargeApi,
 	fetchFolioItemRateApi,
 	fetchStayFoliosApi,
 	hotelErrorMessage,
@@ -684,6 +987,218 @@ async function refund(folioRow, payment) {
 				answer.reason
 			)
 		);
+	}
+}
+
+// Several folios, moving charges, settlement and credit notes (F11).
+const newFolio = reactive({ open: false, label: "", payee: "", customer: "" });
+const move = reactive({
+	line: null,
+	from: null,
+	to: null,
+	amount: null,
+	left: 0,
+	reason: "",
+	requestId: null,
+});
+
+const payeeGuests = computed(() =>
+	(data.value?.guests || []).filter((guest) => guest.guest_profile)
+);
+const moveTargets = computed(() =>
+	postableFolios.value.filter((entry) => entry.folio.name !== move.from)
+);
+
+function folioLabel(name) {
+	return (
+		data.value?.folios.find((entry) => entry.folio.name === name)?.folio.folio_label || name
+	);
+}
+
+function resetNewFolio() {
+	Object.assign(newFolio, { open: false, label: "", payee: "", customer: "" });
+}
+
+async function addFolio() {
+	const guest = newFolio.payee.startsWith("guest:") ? newFolio.payee.slice(6) : null;
+	const added = await run(() =>
+		addFolioApi({
+			stay: data.value.stay.name,
+			label: newFolio.label.trim(),
+			payeeCustomer: newFolio.payee === "customer" ? newFolio.customer.trim() : null,
+			payeeGuestProfile: guest,
+		})
+	);
+	if (added) resetNewFolio();
+}
+
+/** What is left of a charge after the parts already moved to other folios. */
+function leftToMove(entry, line) {
+	const moved = entry.transactions
+		.filter((row) => row.transfer_of === line.name && row.direction === "Credit")
+		.reduce((sum, row) => sum + Number(row.gross_amount), 0);
+	return Math.round((Number(line.gross_amount) - moved) * 100) / 100;
+}
+
+function canMove(folio, line) {
+	const entry = data.value.folios.find((row) => row.folio.name === folio.name);
+	return (
+		data.value.actions.can_post &&
+		POSTABLE.includes(folio.status) &&
+		line.direction === "Debit" &&
+		line.transaction_type === "Revenue" &&
+		!line.reverses &&
+		!line.reversed_by &&
+		!line.sales_invoice &&
+		postableFolios.value.length > 1 &&
+		leftToMove(entry, line) > 0
+	);
+}
+
+function startMove(folio, line) {
+	const entry = data.value.folios.find((row) => row.folio.name === folio.name);
+	const left = leftToMove(entry, line);
+	Object.assign(move, {
+		line,
+		from: folio.name,
+		to: postableFolios.value.find((row) => row.folio.name !== folio.name)?.folio.name || null,
+		amount: left,
+		left,
+		reason: "",
+		// One id per move: a retry after a failure moves the charge once.
+		requestId: newRequestId(),
+	});
+}
+
+function cancelMove() {
+	move.line = null;
+	move.from = null;
+}
+
+async function moveCharge() {
+	const moved = await run(() =>
+		transferChargeApi({
+			transaction: move.line.name,
+			toFolio: move.to,
+			// Moving everything left sends no amount, so the server moves exactly the rest.
+			amount: move.amount >= move.left ? null : move.amount,
+			reason: move.reason.trim(),
+			requestId: move.requestId,
+		})
+	);
+	if (moved) cancelMove();
+}
+
+async function settle(entry, { retry = false } = {}) {
+	const invoice = entry.invoice;
+	if (!retry) {
+		const answer = await ask({
+			title: invoice?.items.length
+				? `Invoice ${money(invoice.total)} to ${entry.folio.payee_name}?`
+				: `Close ${entry.folio.folio_label}?`,
+			message: invoice?.items.length
+				? "A Sales Invoice is submitted with the payments applied, and the folio closes. Later corrections use a credit note."
+				: "Nothing is billed on this folio. It closes without an invoice.",
+			confirmLabel: invoice?.items.length ? "Settle and invoice" : "Close folio",
+		});
+		if (!answer) return;
+	}
+	await finishSettlement(entry.folio, () => settleFolioApi(entry.folio.name));
+}
+
+async function billCompany(entry, overrideReason = null) {
+	if (!overrideReason) {
+		const answer = await ask({
+			title: `Bill ${money(entry.invoice.outstanding)} to ${
+				entry.folio.payee_name
+			}'s account?`,
+			message:
+				"The folio is invoiced and closes. The balance stays on the company's invoice, in Accounts Receivable.",
+			confirmLabel: "Bill to account",
+		});
+		if (!answer) return;
+	}
+	await finishSettlement(
+		entry.folio,
+		() => settleFolioApi(entry.folio.name, { transferToAr: true, overrideReason }),
+		entry
+	);
+}
+
+async function finishSettlement(folio, command, companyEntry = null) {
+	let result = null;
+	const done = await run(async () => {
+		result = (await command())?.settled;
+	});
+	if (!done) {
+		// Over the credit limit: someone allowed to approve it can, with a reason.
+		if (companyEntry && /credit limit/i.test(error.value) && /reason/i.test(error.value)) {
+			const answer = await ask({
+				tone: "danger",
+				title: "Approve billing over the credit limit?",
+				message: error.value,
+				reasonLabel: "Reason for the approval",
+				confirmLabel: "Approve and bill",
+			});
+			if (answer) await billCompany(companyEntry, answer.reason);
+		}
+		return;
+	}
+	if (result?.status === "Settlement Pending") {
+		notify({
+			tone: "danger",
+			title: "The invoice was rejected",
+			message: `${folio.folio_label} is waiting for settlement: ${result.error}`,
+		});
+	} else if (result) {
+		notify({
+			title: result.sales_invoice
+				? `Invoiced as ${result.sales_invoice}`
+				: `${folio.folio_label} closed`,
+			message: `${folio.folio_label} is ${result.status}.`,
+		});
+	}
+}
+
+async function releaseSettlement(folio) {
+	const answer = await ask({
+		title: `Reopen ${folio.folio_label}?`,
+		message: "The folio takes postings again, so it can be corrected before settling.",
+		reasonLabel: "What needs correcting",
+		confirmLabel: "Reopen",
+	});
+	if (answer) run(() => releaseSettlementApi(folio.name, answer.reason));
+}
+
+function canCredit(line) {
+	return (
+		data.value.actions.can_credit &&
+		line.sales_invoice &&
+		line.direction === "Debit" &&
+		line.transaction_type === "Revenue" &&
+		!line.reverses &&
+		!line.reversed_by
+	);
+}
+
+async function creditNote(line) {
+	const answer = await ask({
+		tone: "danger",
+		title: `Credit "${line.description_snapshot}" (${money(line.gross_amount)})?`,
+		message: `A credit note is issued against ${line.sales_invoice} and the charge is reversed on the folio. The invoice itself stays as it is.`,
+		reasonLabel: "Reason for the credit note",
+		confirmLabel: "Issue credit note",
+	});
+	if (!answer) return;
+	let result = null;
+	const done = await run(async () => {
+		result = (await issueCreditNoteApi(line.name, answer.reason))?.credited;
+	});
+	if (done && result) {
+		notify({
+			title: `Credit note ${result.credit_note}`,
+			message: "If the guest already paid, refund them from the Cashier page.",
+		});
 	}
 }
 
