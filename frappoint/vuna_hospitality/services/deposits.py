@@ -37,6 +37,8 @@ SERVICE_FLAG = "from_deposit_service"
 REQUESTED, PARTLY_PAID, RECEIVED = "Requested", "Partly Paid", "Received"
 APPLIED, FORFEITED, REFUNDED, WAIVED, RELEASED = "Applied", "Forfeited", "Refunded", "Waived", "Released"
 OPEN_STATUSES = (REQUESTED, PARTLY_PAID, RECEIVED)
+# Stays that haven't arrived: an unpaid deposit is still owed.
+PRE_ARRIVAL_STATUSES = ("Confirmed", "Due In")
 # Stays a deposit can still be taken for.
 PAYABLE_STAY_STATUSES = ("Confirmed", "Due In", "In House", "Due Out")
 NO_DEPOSIT = "None"
@@ -152,6 +154,10 @@ def refresh(deposit_name: str) -> str:
 	totals = amounts(doc.name)
 	required = to_minor(doc.required_amount, doc.currency)
 	status = RECEIVED if totals.held >= required else PARTLY_PAID if totals.held > 0 else REQUESTED
+	# Only forward: a refund after the deposit came in (it covered more than the bill) doesn't make
+	# the deposit unpaid again.
+	if OPEN_STATUSES.index(status) <= OPEN_STATUSES.index(doc.status):
+		return doc.status
 	if status != doc.status:
 		transition(
 			doc,
@@ -445,6 +451,7 @@ def deposit_details(stay_name: str) -> dict | None:
 	doc = frappe.get_doc(DEPOSIT, deposit)
 	totals = amounts(deposit)
 	required = to_minor(doc.required_amount, doc.currency)
+	stay_status = frappe.db.get_value(STAY, doc.stay_reservation, "status")
 	return {
 		"name": doc.name,
 		"status": doc.status,
@@ -454,8 +461,9 @@ def deposit_details(stay_name: str) -> dict | None:
 		"received": from_minor(totals.received, doc.currency),
 		"refunded": from_minor(totals.refunded, doc.currency),
 		"held": from_minor(totals.held, doc.currency),
+		# Owed only before arrival; after check-in the bill, not the deposit, says what is owed.
 		"outstanding": from_minor(max(required - totals.held, 0), doc.currency)
-		if doc.status in OPEN_STATUSES
+		if doc.status in (REQUESTED, PARTLY_PAID) and stay_status in PRE_ARRIVAL_STATUSES
 		else 0,
 		"due_date": doc.due_date,
 		"release_if_unpaid": doc.release_if_unpaid,

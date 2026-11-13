@@ -251,6 +251,14 @@ class TestDeposits(PolicyTestCase):
 		deposits.waive(self.deposit_of(stay)["name"], "Regular guest")
 		self.assertEqual(self.arrive(stay).status, "In House")
 
+	def test_returning_part_of_a_received_deposit_leaves_it_received(self):
+		stay = self.booked(self.today + timedelta(days=3))
+		deposits.take_deposit(self.deposit_of(stay)["name"], mode_of_payment="HSP Test Cash")
+		payment = self.deposit_of(stay)["payments"][0]
+		cashiering.refund(payment, {self.folio_of(stay): 4000}, reason="Covered more than the bill")
+		deposit = self.deposit_of(stay)
+		self.assertEqual((deposit["status"], deposit["held"], deposit["outstanding"]), ("Received", 11000, 0))
+
 	def test_the_deposit_pays_the_invoice_at_settlement(self):
 		stay = self.booked(self.today)
 		deposits.take_deposit(self.deposit_of(stay)["name"], mode_of_payment="HSP Test Cash")
