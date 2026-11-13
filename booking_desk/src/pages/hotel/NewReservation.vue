@@ -7,7 +7,7 @@
 			<div class="min-w-0 space-y-4">
 				<form
 					class="grid grid-cols-2 md:grid-cols-[repeat(4,minmax(0,1fr))_auto] gap-3 items-end rounded-xl border border-outline-variant bg-surface-container-lowest p-4"
-					@submit.prevent="search"
+					@submit.prevent="search({ force: true })"
 				>
 					<label class="text-[12px] text-on-surface-variant">
 						Arrival
@@ -53,7 +53,7 @@
 						class="col-span-2 md:col-span-1 rounded-lg bg-primary text-on-primary px-6 py-2 text-[13px] font-semibold disabled:opacity-50"
 						:disabled="searching || nights < 1"
 					>
-						{{ searching ? "Searching…" : "Search" }}
+						{{ searching ? "Searching…" : "Refresh" }}
 					</button>
 					<div
 						v-if="children > 0"
@@ -130,6 +130,7 @@
 						Hide unavailable
 					</label>
 					<span class="ml-auto text-[12px] text-on-surface-variant">
+						<template v-if="refreshing">Checking availability… · </template>
 						{{ roomGroups.length }} room type{{ roomGroups.length === 1 ? "" : "s" }}
 					</span>
 				</div>
@@ -144,7 +145,11 @@
 					No room types match.
 				</p>
 				<p v-else-if="!searched" class="text-[13px] text-on-surface-variant">
-					Choose the dates and guests, then search for rooms and rates.
+					{{
+						searching
+							? "Loading rooms and rates…"
+							: "Choose the dates and guests to see rooms and rates."
+					}}
 				</p>
 
 				<!-- One card per room type, its rate plans as rows -->
@@ -334,7 +339,11 @@
 							v-if="searchChanged"
 							class="mt-1 text-[11px] font-semibold text-on-tertiary-container"
 						>
-							The dates or guests changed. Search again to price them.
+							{{
+								searching || refreshing
+									? "Pricing the new dates and guests…"
+									: "The dates or guests changed. Refresh to price them."
+							}}
 						</p>
 					</template>
 					<p v-else class="text-[12px] text-on-surface-variant">
@@ -390,12 +399,18 @@
 </template>
 
 <script setup>
-import { computed, onMounted, ref, watch } from "vue";
+import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { useRouter } from "vue-router";
 import { holdStaysApi, hotelErrorMessage, searchAvailabilityApi } from "@/api/hotel.api";
 import GuestPicker from "@/components/hotel/GuestPicker.vue";
 import HotelUnavailable from "@/components/hotel/HotelUnavailable.vue";
 import { useHotelStore } from "@/stores/hotel.store";
+import {
+	availabilityKey,
+	clearAvailability,
+	readAvailability,
+	writeAvailability,
+} from "@/utils/availabilityCache";
 import { addDays, formatMoney, formatNight, nightsBetween } from "@/utils/hotelFormat";
 
 const hotel = useHotelStore();
@@ -421,6 +436,10 @@ const guest = ref(null);
 const bookingSource = ref("");
 const notes = ref("");
 const searching = ref(false);
+// Results are on screen and being checked again in the background.
+const refreshing = ref(false);
+let lastRequest = 0;
+let searchTimer = null;
 const searched = ref(false);
 const holding = ref(false);
 const error = ref("");
@@ -505,12 +524,22 @@ onMounted(async () => {
 	bookingSource.value = hotel.bookingSources.includes("Walk In")
 		? "Walk In"
 		: hotel.bookingSources[0] || "";
+	// Show what's available for tonight straight away; staff refine from there.
+	search();
 });
 
 watch(propertyName, () => {
 	resetDates();
 	clearResults();
+	search();
 });
+
+// Changing the dates or guests searches again, after a short pause for typing.
+watch([arrival, departure, adults, children, () => knownAges().join(",")], () => {
+	clearTimeout(searchTimer);
+	searchTimer = setTimeout(() => search(), 400);
+});
+onBeforeUnmount(() => clearTimeout(searchTimer));
 
 watch(arrival, (value) => {
 	if (value && (!departure.value || departure.value <= value))
@@ -538,25 +567,73 @@ function isSelected(option) {
 	);
 }
 
-async function search() {
+function canSearch() {
+	return (
+		propertyName.value &&
+		arrival.value &&
+		departure.value &&
+		nights.value >= 1 &&
+		Number(adults.value) >= 1
+	);
+}
+
+/** Show the results, keeping the selected room and rate if it is still on offer. */
+function showResults(results) {
+	options.value = results;
+	searched.value = true;
+	if (selected.value) {
+		selected.value =
+			results.find(
+				(option) =>
+					option.offered &&
+					option.room_type === selected.value.room_type &&
+					option.rate_plan === selected.value.rate_plan
+			) || null;
+	}
+	if (planFilter.value && !results.some((option) => option.rate_plan === planFilter.value)) {
+		planFilter.value = "";
+	}
+}
+
+/**
+ * Search availability. A recent identical search shows at once from the cache; an older one is
+ * shown and checked again in the background. `force` always asks the server (the Search button,
+ * and after a hold failed).
+ */
+async function search({ force = false } = {}) {
+	clearTimeout(searchTimer);
+	if (!canSearch()) return;
+	const params = {
+		property: propertyName.value,
+		arrival: arrival.value,
+		departure: departure.value,
+		adults: adults.value,
+		children: children.value,
+		childAges: knownAges(),
+	};
+	const key = availabilityKey(params);
+	const cached = force ? null : readAvailability(key);
 	error.value = "";
-	clearResults();
-	searching.value = true;
+	if (cached) {
+		showResults(cached.results);
+		if (cached.fresh) return;
+	}
+	const request = ++lastRequest;
+	searching.value = !cached;
+	refreshing.value = Boolean(cached);
 	try {
-		options.value =
-			(await searchAvailabilityApi({
-				property: propertyName.value,
-				arrival: arrival.value,
-				departure: departure.value,
-				adults: adults.value,
-				children: children.value,
-				childAges: knownAges(),
-			})) || [];
+		const results = (await searchAvailabilityApi(params)) || [];
+		if (request !== lastRequest) return; // a newer search started meanwhile
+		writeAvailability(key, results);
+		showResults(results);
 	} catch (e) {
-		error.value = hotelErrorMessage(e);
+		if (request === lastRequest) error.value = hotelErrorMessage(e);
 	} finally {
-		searching.value = false;
-		searched.value = true;
+		if (request === lastRequest) {
+			searching.value = false;
+			refreshing.value = false;
+			searched.value = true;
+		}
 	}
 }
 
@@ -584,10 +661,12 @@ async function holdRooms() {
 				booker_guest_profile: guest.value.name,
 			},
 		});
+		// The room is held now: every cached search that offered it is out of date.
+		clearAvailability();
 		router.push({ name: "HotelBooking", params: { bookingId: booking.name } });
 	} catch (e) {
 		const message = hotelErrorMessage(e);
-		await search(); // the room may have just sold out: show current availability
+		await search({ force: true }); // the room may have just sold out: show current availability
 		error.value = message;
 	} finally {
 		holding.value = false;
