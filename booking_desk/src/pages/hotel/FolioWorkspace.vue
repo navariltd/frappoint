@@ -1,7 +1,14 @@
 <template>
-	<div class="px-6 py-5 space-y-5 max-w-6xl">
-		<div class="flex gap-4 text-[12px] font-semibold">
+	<div :class="embedded ? 'space-y-5' : 'px-6 py-5 space-y-5 max-w-6xl'">
+		<div v-if="!embedded" class="flex gap-4 text-[12px] font-semibold">
 			<RouterLink
+				v-if="isHouseAccount"
+				:to="{ name: 'HotelHouseAccounts' }"
+				class="text-primary"
+				>← House Accounts</RouterLink
+			>
+			<RouterLink
+				v-else
 				:to="{ name: 'HotelStay', params: { stayId: route.params.stayId } }"
 				class="text-primary"
 				>← Reservation {{ route.params.stayId }}</RouterLink
@@ -26,12 +33,18 @@
 			<header class="flex flex-wrap items-start justify-between gap-4">
 				<div>
 					<div class="flex items-center gap-3">
-						<h1 class="text-[22px] font-semibold text-on-surface">
+						<h1
+							class="font-semibold text-on-surface"
+							:class="embedded ? 'text-[18px]' : 'text-[22px]'"
+						>
 							Folios · {{ data.stay.lead_guest_name }}
 						</h1>
 						<HotelStatusBadge :status="data.stay.status" />
 					</div>
 					<p class="text-[13px] text-on-surface-variant">
+						<template v-if="data.house_account">
+							House account · {{ data.house_account.account_type }} ·
+						</template>
 						{{ data.stay.name }} · Business date
 						{{ formatNight(data.business_date) }}
 					</p>
@@ -40,12 +53,15 @@
 					<div
 						class="rounded-xl border border-outline-variant bg-surface-container-lowest px-4 py-2 text-right"
 					>
-						<p class="text-[11px] text-on-surface-variant">Balance</p>
+						<p class="text-[11px] text-on-surface-variant">
+							{{ isHouseAccount ? "Open balance" : "Balance" }}
+						</p>
 						<p class="text-[18px] font-semibold">
 							{{ money(data.totals.balance) }}
 						</p>
 					</div>
 					<div
+						v-if="!isHouseAccount"
 						class="rounded-xl border border-dashed border-outline-variant px-4 py-2 text-right"
 						title="Nights not posted yet. Night audit posts them; they are not part of the balance."
 					>
@@ -57,9 +73,117 @@
 				</div>
 			</header>
 
-			<p v-if="!data.folios.length" class="text-[13px] text-on-surface-variant">
+			<p
+				v-if="!data.folios.length && !isHouseAccount"
+				class="text-[13px] text-on-surface-variant"
+			>
 				This stay has no folio yet. It gets one when it is confirmed.
 			</p>
+			<div
+				v-if="data.actions.can_open_house_folio"
+				class="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-dashed border-outline-variant px-4 py-3"
+			>
+				<p class="text-[13px] text-on-surface-variant">
+					The last folio is settled. Start a new one to post more charges to this
+					account.
+				</p>
+				<button
+					type="button"
+					class="rounded-lg bg-primary text-on-primary px-4 py-2 text-[13px] font-semibold disabled:opacity-50"
+					:disabled="busy"
+					@click="run(() => openHouseAccountFolioApi(route.params.accountId))"
+				>
+					Start a new folio
+				</button>
+			</div>
+
+			<!-- Deposit (F12) -->
+			<section
+				v-if="data.deposit"
+				class="rounded-xl border border-outline-variant bg-surface-container-lowest p-4 space-y-3"
+			>
+				<div class="flex flex-wrap items-center justify-between gap-3">
+					<h2 class="text-[15px] font-semibold">Deposit</h2>
+					<HotelStatusBadge :status="data.deposit.status" />
+				</div>
+				<p class="text-[13px]">
+					{{ money(data.deposit.required_amount) }} required ·
+					{{ money(data.deposit.held) }} held
+					<template v-if="Number(data.deposit.refunded)">
+						· {{ money(data.deposit.refunded) }} refunded</template
+					>
+					<template v-if="depositOpen">
+						· <b>{{ money(data.deposit.outstanding) }}</b> due by
+						{{ formatNight(data.deposit.due_date) }}</template
+					>
+				</p>
+				<p class="text-[12px] text-on-surface-variant">
+					A deposit is an advance Payment Entry on the {{ depositFolioLabel }} folio. It
+					pays the invoice at settlement, or the fee if the stay is cancelled inside the
+					penalty window.
+				</p>
+				<form
+					v-if="
+						depositOpen &&
+						data.actions.can_take_payment &&
+						data.cashier_shift &&
+						!waiting
+					"
+					class="grid gap-3 md:grid-cols-4 items-end"
+					@submit.prevent="takeDeposit"
+				>
+					<label class="text-[12px] text-on-surface-variant">
+						Amount
+						<input
+							v-model.number="deposit.amount"
+							type="number"
+							min="0"
+							step="0.01"
+							class="folio-input"
+						/>
+					</label>
+					<label class="text-[12px] text-on-surface-variant">
+						Paid by
+						<select v-model="deposit.tender" class="folio-input">
+							<option v-for="mode in tenders" :key="mode.value" :value="mode.value">
+								{{ mode.label }}
+							</option>
+						</select>
+					</label>
+					<label
+						v-if="deposit.tender.startsWith('gateway:')"
+						class="text-[12px] text-on-surface-variant"
+					>
+						Phone number
+						<input
+							v-model="deposit.phone"
+							type="tel"
+							placeholder="07..."
+							class="folio-input"
+						/>
+					</label>
+					<label v-else class="text-[12px] text-on-surface-variant">
+						Reference
+						<input v-model="deposit.reference" class="folio-input" />
+					</label>
+					<button
+						type="submit"
+						class="rounded-lg bg-primary text-on-primary px-4 py-2 text-[13px] font-semibold disabled:opacity-50"
+						:disabled="busy || !(deposit.amount > 0) || !deposit.tender"
+					>
+						Take deposit
+					</button>
+				</form>
+				<p
+					v-else-if="depositOpen && data.actions.can_take_payment && !data.cashier_shift"
+					class="text-[12px] text-on-surface-variant"
+				>
+					Open your cashier shift to take the deposit.
+					<RouterLink :to="{ name: 'Cashier' }" class="font-semibold text-primary"
+						>Go to Cashier →</RouterLink
+					>
+				</p>
+			</section>
 
 			<!-- Post a charge -->
 			<section
@@ -185,6 +309,15 @@
 						<input v-model="form.notes" class="folio-input" />
 					</label>
 				</div>
+				<label v-if="lateCharge" class="block text-[12px] text-on-surface-variant">
+					The guest has checked out. Why is this charged now? (a Front Desk Manager posts
+					late charges)
+					<input
+						v-model="form.reason"
+						class="folio-input"
+						placeholder="Minibar count, damage report…"
+					/>
+				</label>
 				<div class="flex items-center justify-between">
 					<p class="text-[13px]">
 						Total <b>{{ money(formTotal) }}</b>
@@ -192,7 +325,13 @@
 					<button
 						type="button"
 						class="rounded-lg bg-primary text-on-primary px-4 py-2 text-[13px] font-semibold disabled:opacity-50"
-						:disabled="busy || !form.item || !(form.quantity > 0) || !(form.rate > 0)"
+						:disabled="
+							busy ||
+							!form.item ||
+							!(form.quantity > 0) ||
+							!(form.rate > 0) ||
+							(lateCharge && !form.reason.trim())
+						"
 						@click="postCharge"
 					>
 						Post charge
@@ -287,7 +426,7 @@
 
 			<!-- Open another folio (F11) -->
 			<section
-				v-if="data.actions.can_post && data.folios.length"
+				v-if="data.actions.can_post && data.folios.length && data.actions.can_add_folio"
 				class="rounded-xl border border-outline-variant bg-surface-container-lowest p-4 space-y-3"
 			>
 				<div class="flex items-center justify-between">
@@ -302,8 +441,14 @@
 					</button>
 				</div>
 				<p v-if="!newFolio.open" class="text-[12px] text-on-surface-variant">
-					Bill part of the stay to someone else: the company, a companion, or the guest's
-					own extras.
+					<template v-if="data.stay.status === 'Checked Out'">
+						The guest has checked out. A late charge for an invoiced stay goes on a new
+						folio, open until the post-stay window ends.
+					</template>
+					<template v-else>
+						Bill part of the stay to someone else: the company, a companion, or the
+						guest's own extras.
+					</template>
 				</p>
 				<form v-else class="space-y-3" @submit.prevent="addFolio">
 					<div class="grid gap-3 md:grid-cols-3">
@@ -354,6 +499,124 @@
 							"
 						>
 							Open folio
+						</button>
+					</div>
+				</form>
+			</section>
+
+			<!-- Routing (F12) -->
+			<section
+				v-if="
+					!isHouseAccount &&
+					data.actions.can_route &&
+					(data.routing_rules.length || routeTargets.length > 1)
+				"
+				class="rounded-xl border border-outline-variant bg-surface-container-lowest p-4 space-y-3"
+			>
+				<div class="flex items-center justify-between">
+					<h2 class="text-[15px] font-semibold">Routing</h2>
+					<button
+						v-if="!routeForm.open && routeTargets.length > 1"
+						type="button"
+						class="text-[12px] font-semibold text-primary"
+						@click="routeForm.open = true"
+					>
+						Add a rule
+					</button>
+				</div>
+				<p class="text-[12px] text-on-surface-variant">
+					Night audit and policy fees post to the stay's default folio unless a rule
+					sends them elsewhere. Charges you post by hand go where you post them.
+				</p>
+				<ul
+					v-if="data.routing_rules.length"
+					class="divide-y divide-outline-variant text-[13px]"
+				>
+					<li
+						v-for="rule in data.routing_rules"
+						:key="rule.name"
+						class="flex items-center justify-between gap-3 py-2"
+					>
+						<span>
+							<b>{{ rule.description }}</b> → {{ rule.target_label }}
+							<span class="text-on-surface-variant">({{ rule.target_folio }})</span>
+							<span
+								v-if="!['Open', 'Post-Stay Open'].includes(rule.target_status)"
+								class="text-on-surface-variant"
+							>
+								· folio {{ rule.target_status }}, so the rule is skipped</span
+							>
+						</span>
+						<button
+							type="button"
+							class="text-[12px] font-semibold text-primary disabled:opacity-50"
+							:disabled="busy"
+							@click="removeRule(rule)"
+						>
+							Remove
+						</button>
+					</li>
+				</ul>
+				<form
+					v-if="routeForm.open"
+					class="grid gap-3 md:grid-cols-4 items-end"
+					@submit.prevent="addRule"
+				>
+					<label class="text-[12px] text-on-surface-variant">
+						Send
+						<select v-model="routeForm.route" class="folio-input">
+							<option value="Room Charges">Room charges</option>
+							<option value="All Charges">All charges</option>
+							<option value="Item Group">An item group</option>
+							<option value="Charge Code">A charge code</option>
+						</select>
+					</label>
+					<label
+						v-if="routeForm.route === 'Item Group'"
+						class="text-[12px] text-on-surface-variant"
+					>
+						Item group
+						<input v-model="routeForm.itemGroup" class="folio-input" />
+					</label>
+					<label
+						v-if="routeForm.route === 'Charge Code'"
+						class="text-[12px] text-on-surface-variant"
+					>
+						Charge code
+						<input v-model="routeForm.chargeCode" class="folio-input" />
+					</label>
+					<label class="text-[12px] text-on-surface-variant">
+						To folio
+						<select v-model="routeForm.target" class="folio-input">
+							<option
+								v-for="entry in routeTargets"
+								:key="entry.folio.name"
+								:value="entry.folio.name"
+							>
+								{{ entry.folio.folio_label }} · {{ entry.folio.payee_name }}
+							</option>
+						</select>
+					</label>
+					<div class="flex gap-2">
+						<button
+							type="button"
+							class="rounded-lg border border-outline-variant px-3 py-2 text-[12px] font-semibold"
+							@click="resetRouteForm"
+						>
+							Cancel
+						</button>
+						<button
+							type="submit"
+							class="rounded-lg bg-primary text-on-primary px-4 py-2 text-[13px] font-semibold disabled:opacity-50"
+							:disabled="
+								busy ||
+								!routeForm.target ||
+								(routeForm.route === 'Item Group' &&
+									!routeForm.itemGroup.trim()) ||
+								(routeForm.route === 'Charge Code' && !routeForm.chargeCode.trim())
+							"
+						>
+							Add rule
 						</button>
 					</div>
 				</form>
@@ -778,6 +1041,11 @@ import {
 	rebuildFolioBalanceApi,
 	reverseFolioTransactionApi,
 	searchFolioItemsApi,
+	addRoutingRuleApi,
+	fetchHouseAccountFoliosApi,
+	openHouseAccountFolioApi,
+	removeRoutingRuleApi,
+	takeDepositApi,
 } from "@/api/hotel.api";
 import ActionBanner from "@/components/hotel/ActionBanner.vue";
 import HotelStatusBadge from "@/components/hotel/HotelStatusBadge.vue";
@@ -785,6 +1053,11 @@ import { useActionBanner } from "@/composables/hotel/useActionBanner";
 import { formatMoney, formatNight } from "@/utils/hotelFormat";
 
 const POSTABLE = ["Open", "Post-Stay Open"];
+
+// `embedded`: shown inside another page (House Accounts), without its own links and margins.
+defineProps({ embedded: { type: Boolean, default: false } });
+// After a command changed a folio, so the page around it can refresh its own figures.
+const emit = defineEmits(["changed"]);
 
 const route = useRoute();
 const { banner, ask, notify, confirm: confirmBanner, cancel: cancelBanner } = useActionBanner();
@@ -817,6 +1090,7 @@ function emptyForm(folio = null) {
 		rate: null,
 		stayGuest: null,
 		notes: "",
+		reason: "",
 		requestId: newRequestId(),
 	};
 }
@@ -834,6 +1108,108 @@ function resetForm() {
 
 function money(amount) {
 	return formatMoney(amount, data.value?.stay?.currency);
+}
+
+// F12: house accounts share this workspace; post-stay folios need a reason for a late charge.
+const isHouseAccount = computed(() => Boolean(route.params.accountId));
+const lateCharge = computed(
+	() =>
+		(data.value?.folios || []).find((entry) => entry.folio.name === form.folio)?.folio
+			.status === "Post-Stay Open"
+);
+
+// Deposit (F12): taken like a payment, on the stay's default folio.
+const deposit = reactive({ amount: null, tender: "", phone: "", reference: "", requestId: "" });
+const depositOpen = computed(() =>
+	["Requested", "Partly Paid"].includes(data.value?.deposit?.status)
+);
+const depositFolioLabel = computed(
+	() =>
+		(data.value?.folios || []).find(
+			(entry) => entry.folio.name === data.value?.deposit?.guest_folio
+		)?.folio.folio_label || "default"
+);
+
+function resetDeposit() {
+	deposit.amount = Number(data.value?.deposit?.outstanding) || null;
+	deposit.reference = "";
+	deposit.requestId = newRequestId();
+	if (!tenders.value.some((tender) => tender.value === deposit.tender)) {
+		deposit.tender = tenders.value[0]?.value || "";
+	}
+}
+
+async function takeDeposit() {
+	const tender = tenders.value.find((option) => option.value === deposit.tender);
+	const phone = deposit.tender.startsWith("gateway:");
+	const answer = await ask({
+		title: `Take a deposit of ${money(deposit.amount)} by ${tender?.label}?`,
+		message: phone
+			? `A payment request goes to ${deposit.phone}. The deposit is received when the guest approves it.`
+			: "The deposit is received now, as an advance for the stay.",
+		confirmLabel: phone ? "Send request" : "Take deposit",
+	});
+	if (!answer) return;
+	const kind = deposit.tender.split(":")[0];
+	const value = deposit.tender.slice(deposit.tender.indexOf(":") + 1);
+	let result = null;
+	await run(async () => {
+		result = await takeDepositApi({
+			deposit: data.value.deposit.name,
+			amount: deposit.amount,
+			modeOfPayment: kind === "mode" ? value : null,
+			paymentGateway: kind === "gateway" ? value : null,
+			phone: deposit.phone,
+			referenceNo: deposit.reference,
+			requestId: deposit.requestId,
+		});
+	});
+	if (!result) return; // failed: the same request id is kept for a retry
+	const payment = await fetchPaymentApi(result.payment);
+	if (payment.status === "Pending") {
+		waiting.value = payment;
+		pollPayment();
+	} else {
+		notify({
+			title: `Deposit received: ${money(payment.amount)}`,
+			message: `Payment ${payment.name}.`,
+		});
+	}
+}
+
+// Routing (F12)
+const routeForm = reactive(emptyRouteForm());
+const routeTargets = computed(() => postableFolios.value);
+
+function emptyRouteForm() {
+	return { open: false, route: "Room Charges", chargeCode: "", itemGroup: "", target: "" };
+}
+
+function resetRouteForm() {
+	Object.assign(routeForm, emptyRouteForm());
+}
+
+async function addRule() {
+	const done = await run(() =>
+		addRoutingRuleApi({
+			stay: data.value.stay.name,
+			targetFolio: routeForm.target,
+			route: routeForm.route,
+			chargeCode: routeForm.chargeCode.trim(),
+			itemGroup: routeForm.itemGroup.trim(),
+		})
+	);
+	if (done) resetRouteForm();
+}
+
+async function removeRule(rule) {
+	const answer = await ask({
+		title: `Stop sending ${rule.description.toLowerCase()} to ${rule.target_label}?`,
+		message: "Charges already posted stay where they are; move them if needed.",
+		reasonLabel: "Reason",
+		confirmLabel: "Remove rule",
+	});
+	if (answer) run(() => removeRoutingRuleApi(rule.name, answer.reason));
 }
 
 function canReverse(folio, line) {
@@ -1206,11 +1582,16 @@ async function load() {
 	loading.value = true;
 	error.value = "";
 	try {
-		data.value = await fetchStayFoliosApi(route.params.stayId);
+		data.value = isHouseAccount.value
+			? await fetchHouseAccountFoliosApi(route.params.accountId)
+			: await fetchStayFoliosApi(route.params.stayId);
 		if (!form.folio || !postableFolios.value.some((e) => e.folio.name === form.folio)) {
 			resetForm();
 		}
-		if (!waiting.value) resetPayment();
+		if (!waiting.value) {
+			resetPayment();
+			resetDeposit();
+		}
 	} catch (e) {
 		error.value = hotelErrorMessage(e);
 	} finally {
@@ -1264,6 +1645,7 @@ async function run(command) {
 	try {
 		await command();
 		await load();
+		emit("changed");
 		return true;
 	} catch (e) {
 		const message = hotelErrorMessage(e);
@@ -1285,6 +1667,7 @@ async function postCharge() {
 			rate: form.rate,
 			stayGuest: form.stayGuest,
 			notes: form.notes,
+			reason: lateCharge.value ? form.reason : null,
 			requestId: form.requestId,
 		})
 	);
@@ -1327,7 +1710,7 @@ async function rebuild(folio) {
 
 onMounted(load);
 onBeforeUnmount(() => clearTimeout(waitTimer));
-watch(() => route.params.stayId, load);
+watch(() => [route.params.stayId, route.params.accountId], load);
 </script>
 
 <style scoped>

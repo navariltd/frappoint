@@ -1,9 +1,5 @@
 <template>
-	<div class="px-6 py-5 space-y-5 max-w-5xl">
-		<RouterLink :to="{ name: 'HotelBookings' }" class="text-[12px] font-semibold text-primary">
-			← Bookings
-		</RouterLink>
-
+	<div class="space-y-5">
 		<p v-if="loading && !booking" class="text-[13px] text-on-surface-variant">Loading…</p>
 		<p
 			v-if="error"
@@ -21,7 +17,7 @@
 		<template v-if="booking">
 			<header class="flex flex-wrap items-start justify-between gap-3">
 				<div>
-					<div class="flex items-center gap-3">
+					<div class="flex flex-wrap items-center gap-3">
 						<h1 class="text-[22px] font-semibold text-on-surface">
 							{{ booking.name }}
 						</h1>
@@ -121,7 +117,44 @@
 						}}
 					</p>
 
-					<div class="mt-3 flex gap-2">
+					<p
+						v-if="stay.deposit"
+						class="mt-3 text-[12px]"
+						:class="
+							['Requested', 'Partly Paid'].includes(stay.deposit.status)
+								? 'text-on-tertiary-container'
+								: 'text-on-surface-variant'
+						"
+					>
+						<span class="material-symbols-outlined align-middle text-[16px]"
+							>savings</span
+						>
+						Deposit {{ formatMoney(stay.deposit.required_amount, stay.currency) }} ·
+						<b>{{ stay.deposit.status }}</b>
+						<template v-if="Number(stay.deposit.outstanding)">
+							· {{ formatMoney(stay.deposit.outstanding, stay.currency) }} still due
+							by {{ formatNight(stay.deposit.due_date) }}
+						</template>
+						<template v-else-if="Number(stay.deposit.held)">
+							· {{ formatMoney(stay.deposit.held, stay.currency) }} held
+						</template>
+					</p>
+					<p
+						v-if="stay.can_cancel && stay.cancellation_policy_name"
+						class="mt-1 text-[12px] text-on-surface-variant"
+					>
+						<template v-if="Number(stay.cancellation_fee)">
+							Cancelling now charges
+							<b>{{ formatMoney(stay.cancellation_fee, stay.currency) }}</b>
+							({{ stay.cancellation_policy_name }}).
+						</template>
+						<template v-else-if="stay.free_cancellation_until">
+							Free cancellation until
+							{{ formatTimestamp(stay.free_cancellation_until) }}.
+						</template>
+					</p>
+
+					<div class="mt-3 flex flex-wrap gap-2">
 						<button
 							v-if="stay.can_confirm && countdown(stay)"
 							type="button"
@@ -140,6 +173,28 @@
 						>
 							Cancel stay
 						</button>
+						<button
+							v-if="
+								stay.can_cancel &&
+								Number(stay.cancellation_fee) &&
+								booking.can_waive_fees
+							"
+							type="button"
+							class="rounded-lg border border-outline-variant px-3 py-1.5 text-[12px] font-semibold text-on-surface disabled:opacity-50"
+							:disabled="busy"
+							@click="cancelStay(stay, { waive: true })"
+						>
+							Cancel without fee
+						</button>
+						<button
+							v-if="stay.can_reinstate && booking.can_reinstate"
+							type="button"
+							class="rounded-lg bg-primary text-on-primary px-3 py-1.5 text-[12px] font-semibold disabled:opacity-50"
+							:disabled="busy"
+							@click="reinstate(stay)"
+						>
+							Reinstate
+						</button>
 					</div>
 				</article>
 			</section>
@@ -149,20 +204,24 @@
 
 <script setup>
 import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
-import { useRoute } from "vue-router";
 import {
 	cancelStayApi,
 	confirmBookingApi,
 	confirmStayApi,
 	fetchBookingApi,
 	hotelErrorMessage,
+	reinstateStayApi,
 } from "@/api/hotel.api";
 import ActionBanner from "@/components/hotel/ActionBanner.vue";
 import HotelStatusBadge from "@/components/hotel/HotelStatusBadge.vue";
 import { useActionBanner } from "@/composables/hotel/useActionBanner";
 import { formatMoney, formatNight, holdTimeLeft } from "@/utils/hotelFormat";
 
-const route = useRoute();
+/** One booking and its stays, with their commands. Shown beside the bookings list. */
+const props = defineProps({ bookingId: { type: String, required: true } });
+// After a command changes the booking, so the list can show its new status and total.
+const emit = defineEmits(["changed"]);
+
 const { banner, ask, confirm: confirmBanner, cancel: cancelBanner } = useActionBanner();
 const booking = ref(null);
 const fetchedAt = ref(Date.now());
@@ -190,7 +249,7 @@ async function load() {
 	loading.value = true;
 	error.value = "";
 	try {
-		show(await fetchBookingApi(route.params.bookingId));
+		show(await fetchBookingApi(props.bookingId));
 	} catch (e) {
 		error.value = hotelErrorMessage(e);
 	} finally {
@@ -203,6 +262,7 @@ async function run(command) {
 	error.value = "";
 	try {
 		show(await command());
+		emit("changed", booking.value);
 	} catch (e) {
 		const message = hotelErrorMessage(e);
 		// Reload first: loading clears the error, and the message must stay on screen.
@@ -213,16 +273,56 @@ async function run(command) {
 	}
 }
 
-async function cancelStay(stay) {
+function formatTimestamp(value) {
+	if (!value) return "";
+	return new Date(String(value).replace(" ", "T")).toLocaleString(undefined, {
+		day: "numeric",
+		month: "short",
+		hour: "2-digit",
+		minute: "2-digit",
+	});
+}
+
+async function cancelStay(stay, { waive = false } = {}) {
+	const fee = Number(stay.cancellation_fee)
+		? formatMoney(stay.cancellation_fee, stay.currency)
+		: "";
+	const charged = fee && !waive;
 	const answer = await ask({
 		tone: "danger",
 		title: `Cancel stay ${stay.name}?`,
-		message: "Its rooms go back on sale.",
+		message: charged
+			? `Its rooms go back on sale, and a cancellation fee of ${fee} is charged. A paid deposit covers the fee; only the rest is refunded.`
+			: "Its rooms go back on sale.",
 		reasonLabel: "Reason for cancelling",
-		confirmLabel: "Cancel stay",
+		confirmLabel: charged ? `Cancel and charge ${fee}` : "Cancel stay",
 		cancelLabel: "Keep stay",
 	});
-	if (answer) run(() => cancelStayApi(stay.name, answer.reason));
+	if (!answer) return;
+	let waiveReason = null;
+	if (waive) {
+		const waiver = await ask({
+			tone: "warning",
+			title: `Waive the ${fee} cancellation fee?`,
+			reasonLabel: "Why is the fee waived?",
+			confirmLabel: "Waive and cancel",
+			cancelLabel: "Back",
+		});
+		if (!waiver) return;
+		waiveReason = waiver.reason;
+	}
+	run(() => cancelStayApi(stay.name, answer.reason, { waiveFee: waive, waiveReason }));
+}
+
+async function reinstate(stay) {
+	const answer = await ask({
+		title: `Reinstate stay ${stay.name}?`,
+		message:
+			"Its rooms are taken again if they are still free, at the booked prices. A fee not yet invoiced is reversed.",
+		reasonLabel: "Reason for reinstating",
+		confirmLabel: "Reinstate",
+	});
+	if (answer) run(() => reinstateStayApi(stay.name, answer.reason));
 }
 
 onMounted(() => {
@@ -230,5 +330,5 @@ onMounted(() => {
 	ticker = window.setInterval(() => (now.value = Date.now()), 1000);
 });
 onBeforeUnmount(() => window.clearInterval(ticker));
-watch(() => route.params.bookingId, load);
+watch(() => props.bookingId, load);
 </script>

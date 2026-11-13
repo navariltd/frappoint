@@ -2,17 +2,23 @@
 
 Night audit closes a property's business day. A Night Auditor starts it, never a scheduler. It runs
 as a background job on the `long` queue, as one **Night Audit Run** per property and business
-date, in three stages:
+date, in these stages:
 
-1. **Post room charges.** Every in-house stay's Stay Rate Night for the day is posted to the stay's
-   default folio, carrying the business date being closed: the room line (key
-   `night:<stay>:<date>:room`), extra-adult, child and package lines, and the property's nightly
-   levies (F9). The job commits after each night, so a run that dies keeps what it posted.
+1. **Post room charges.** Every in-house stay's Stay Rate Night for the day is posted, carrying the
+   business date being closed: the room line (key `night:<stay>:<date>:room`), extra-adult, child
+   and package lines, and the property's nightly levies (F9). Each line goes to the stay's default
+   folio, or to the folio a routing rule sends it to (F12). The job commits after each night, so a
+   run that dies keeps what it posted.
 2. **Expire allowances.** Unused package allowances whose last valid day closes move to breakage.
-3. **Roll statuses.** Stays arriving on the next business date become Due In, and stays leaving
-   by then become Due Out. Arrivals that never checked in are listed as no-show candidates;
-   no-show charges and status come with F12.
-4. **Advance the business date**, as the last step and in its own transaction.
+3. **Mark no-shows** (F12). Stays due by the closing date that never checked in become No Show:
+   their rooms go back and the no-show fee is charged and paid from the deposit.
+4. **Release unpaid deposits** (F12). Stays whose deposit fell due unpaid are cancelled, if their
+   policy says so.
+5. **Close post-stay folios** (F12). Folios whose post-stay window ends are settled or closed;
+   those that still owe are listed for follow-up.
+6. **Roll statuses.** Stays arriving on the next business date become Due In, and stays leaving
+   by then become Due Out.
+7. **Advance the business date**, as the last step and in its own transaction.
 
 A failed run is started again from the Night Audit page: completed stages are skipped and the
 unfinished stage runs again. Posting keys make the repeat safe, so no night is charged twice. A run
@@ -53,7 +59,18 @@ POST_ROOM_CHARGES = "Post Room Charges"
 EXPIRE_ALLOWANCES = "Expire Allowances"
 ROLL_STATUSES = "Roll Statuses"
 ADVANCE_BUSINESS_DATE = "Advance Business Date"
-STAGES = (POST_ROOM_CHARGES, EXPIRE_ALLOWANCES, ROLL_STATUSES, ADVANCE_BUSINESS_DATE)
+MARK_NO_SHOWS = "Mark No-Shows"
+RELEASE_UNPAID_DEPOSITS = "Release Unpaid Deposits"
+CLOSE_POST_STAY_FOLIOS = "Close Post-Stay Folios"
+STAGES = (
+	POST_ROOM_CHARGES,
+	EXPIRE_ALLOWANCES,
+	MARK_NO_SHOWS,
+	RELEASE_UNPAID_DEPOSITS,
+	CLOSE_POST_STAY_FOLIOS,
+	ROLL_STATUSES,
+	ADVANCE_BUSINESS_DATE,
+)
 
 IN_HOUSE_STATUSES = ("In House", "Due Out")
 NO_SHOW_CANDIDATE_STATUSES = ("Confirmed", "Due In")
@@ -86,7 +103,7 @@ def run_name(property_name: str, business_date) -> str:
 
 
 def post_room_night(night_name: str, business_date=None) -> dict | None:
-	"""Post one Stay Rate Night to its stay's default folio, exactly once.
+	"""Post one Stay Rate Night to its stay's folios, exactly once.
 
 	The night posts as the components snapshotted when the stay was held (room, extra adults,
 	child bands, package components), each under its own charge code and key
@@ -135,7 +152,15 @@ def post_room_night(night_name: str, business_date=None) -> dict | None:
 		)
 		return None
 
+	from frappoint.vuna_hospitality.services import routing
+
 	folio_name = stay.default_folio or folio.ensure_default_folio(stay.name)
+	rules, codes = routing.stay_rules(stay.name), {}
+
+	def target(charge_code: str) -> str:
+		# A routing rule (F12) may send this line to another of the stay's folios.
+		return routing.destination(stay.name, charge_code, folio_name, rules, codes) if rules else folio_name
+
 	primary_guest = frappe.db.get_value(
 		"Stay Guest",
 		{"stay_reservation": stay.name, "role": "Primary", "status": ["!=", "Removed"]},
@@ -158,8 +183,9 @@ def post_room_night(night_name: str, business_date=None) -> dict | None:
 	for component in components:
 		if not to_minor(component["amount"], stay.currency):
 			continue
+		line_folio = target(component["charge_code"])
 		result = folio.post(
-			folio_name,
+			line_folio,
 			component["charge_code"],
 			component["amount"],
 			posting_key=f"{prefix}:{component['key']}",
@@ -172,7 +198,7 @@ def post_room_night(night_name: str, business_date=None) -> dict | None:
 		if component["key"] == "room":
 			room_result = result
 		if component.get("allowance"):
-			allowances.grant(stay.name, folio_name, night, component, result["name"])
+			allowances.grant(stay.name, line_folio, night, component, result["name"])
 
 	for levy in _nightly_levies(stay.property):
 		count = {"Per Adult": stay.adults, "Per Person": stay.adults + stay.children}.get(levy.basis, 1)
@@ -180,7 +206,7 @@ def post_room_night(night_name: str, business_date=None) -> dict | None:
 		if amount_minor <= 0:
 			continue
 		result = folio.post(
-			folio_name,
+			target(levy.charge_code),
 			levy.charge_code,
 			from_minor(amount_minor, stay.currency),
 			posting_key=f"{prefix}:levy:{levy.charge_code}",
@@ -194,7 +220,7 @@ def post_room_night(night_name: str, business_date=None) -> dict | None:
 
 	key = f"{prefix}:room"
 	frappe.db.set_value(RATE_NIGHT, night.name, {"posting_state": "Posted", "posting_key": key})
-	folio.refresh_pending(folio_name)
+	folio.refresh_stay_pending(stay.name)
 	room_name = (
 		room_result["name"]
 		if room_result
@@ -532,8 +558,93 @@ def _expire_allowances(run, stage) -> tuple[dict, str | None]:
 	return dict(counts), message
 
 
+def _each(run, names: list[str], fn, what: str, doctype: str) -> tuple[Counter, dict[str, str]]:
+	"""Run `fn(name)` for each name in its own savepoint and commit, as the posting stage does."""
+	counts: Counter = Counter()
+	failures: dict[str, str] = {}
+	for name in names:
+		frappe.db.savepoint(NIGHT_SAVEPOINT)
+		try:
+			outcome = fn(name)
+		except Exception as error:
+			_rollback_to(NIGHT_SAVEPOINT)
+			failures[name] = str(error) or error.__class__.__name__
+			frappe.log_error(
+				title=f"Night audit {run.name}: {what} {name}", reference_doctype=doctype, reference_name=name
+			)
+			continue
+		counts["processed"] += 1
+		# True, or a folio that was "closed" or "settled", did something; anything else was skipped.
+		counts["posted" if outcome in (True, "closed", "settled") else "skipped"] += 1
+		frappe.db.commit()  # nosemgrep
+	counts["failed"] = len(failures)
+	return counts, failures
+
+
+def _failures_message(failures: dict[str, str], what: str) -> str | None:
+	if not failures:
+		return None
+	listed = "; ".join(f"{name}: {error}" for name, error in list(failures.items())[:LISTED_FAILURES])
+	return _("{0} {1} not done. {2}").format(len(failures), what, listed)
+
+
+def _mark_no_shows(run, stage) -> tuple[dict, str | None]:
+	"""F12: stays due by the closing date that never checked in are No Show, with the policy fee."""
+	from frappoint.vuna_hospitality.services.reservations import mark_no_show
+
+	names = frappe.get_all(
+		STAY,
+		filters={
+			"property": run.property,
+			"status": ["in", list(NO_SHOW_CANDIDATE_STATUSES)],
+			"arrival_date": ["<=", getdate(run.business_date)],
+		},
+		pluck="name",
+		order_by="name asc",
+	)
+	counts, failures = _each(
+		run, names, lambda name: mark_no_show(name, run.business_date), _("no-show"), STAY
+	)
+	message = _failures_message(failures, _("no-show(s)"))
+	if not message and counts["posted"]:
+		message = _("{0} stay(s) marked No Show.").format(counts["posted"])
+	return dict(counts), message
+
+
+def _release_unpaid_deposits(run, stage) -> tuple[dict, str | None]:
+	"""F12: a stay whose deposit is due by the closing date and still unpaid is released."""
+	from frappoint.vuna_hospitality.services import deposits
+
+	names = deposits.overdue(run.property, run.business_date)
+	counts, failures = _each(run, names, deposits.release, _("deposit"), deposits.DEPOSIT)
+	message = _failures_message(failures, _("unpaid deposit(s)"))
+	if not message and counts["posted"]:
+		message = _("{0} stay(s) released for an unpaid deposit.").format(counts["posted"])
+	return dict(counts), message
+
+
+def _close_post_stay_folios(run, stage) -> tuple[dict, str | None]:
+	"""F12: folios whose post-stay window ends are settled or closed. Those still owing are listed,
+	not failed: they need a payment or a company account, not a rerun."""
+	from frappoint.vuna_hospitality.services import post_stay
+
+	names = post_stay.expired_folios(run.property, run.business_date)
+	counts, failures = _each(run, names, post_stay.close_expired, _("post-stay folio"), folio.FOLIO)
+	message = _failures_message(failures, _("post-stay folio(s)"))
+	follow_up = [
+		name
+		for name in names
+		if frappe.db.get_value(folio.FOLIO, name, "status") in (folio.POST_STAY_OPEN, "Settlement Pending")
+	]
+	if follow_up and not message:
+		message = _("Still owing after the post-stay window, for follow-up: {0}.").format(
+			", ".join(follow_up[:LISTED_FAILURES])
+		)
+	return dict(counts), message
+
+
 def _roll_statuses(run, stage) -> tuple[dict, str | None]:
-	"""Stage 2: stays arriving on the next business date are Due In, stays leaving by it Due Out."""
+	"""Stays arriving on the next business date are Due In, stays leaving by it Due Out."""
 	next_date = add_days(getdate(run.business_date), 1)
 	counts: Counter = Counter()
 	moves = [
@@ -555,27 +666,11 @@ def _roll_statuses(run, stage) -> tuple[dict, str | None]:
 			counts["posted"] += 1
 			frappe.db.commit()  # nosemgrep
 
-	candidates = frappe.get_all(
-		STAY,
-		filters={
-			"property": run.property,
-			"status": ["in", list(NO_SHOW_CANDIDATE_STATUSES)],
-			"arrival_date": ["<=", getdate(run.business_date)],
-		},
-		fields=["name", "lead_guest_name"],
-		order_by="name asc",
-	)
-	message = None
-	if candidates:
-		listed = ", ".join(f"{row.name} ({row.lead_guest_name})" for row in candidates[:LISTED_FAILURES])
-		message = _("No-show candidates, not checked in: {0}. No-show handling comes with F12.").format(
-			listed
-		)
-	return dict(counts), message
+	return dict(counts), None
 
 
 def _advance_business_date(run, stage) -> tuple[dict, str | None]:
-	"""Stage 3: move the property to the next business date. Running it again changes nothing."""
+	"""The last stage: move the property to the next business date. Running it again changes nothing."""
 	_lock_row(PROPERTY, run.property)
 	prop = frappe.get_doc(PROPERTY, run.property)
 	closing = getdate(run.business_date)
@@ -607,6 +702,9 @@ def _advance_business_date(run, stage) -> tuple[dict, str | None]:
 STAGE_RUNNERS = {
 	POST_ROOM_CHARGES: _post_room_charges,
 	EXPIRE_ALLOWANCES: _expire_allowances,
+	MARK_NO_SHOWS: _mark_no_shows,
+	RELEASE_UNPAID_DEPOSITS: _release_unpaid_deposits,
+	CLOSE_POST_STAY_FOLIOS: _close_post_stay_folios,
 	ROLL_STATUSES: _roll_statuses,
 	ADVANCE_BUSINESS_DATE: _advance_business_date,
 }

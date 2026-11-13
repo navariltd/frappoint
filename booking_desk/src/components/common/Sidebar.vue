@@ -83,22 +83,22 @@ const NAVIGATION = {
 	],
 	[HOTEL]: [
 		{
+			label: "New Reservation",
+			icon: "add_box",
+			to: { name: "NewReservation" },
+			activeWhen: ["NewReservation"],
+		},
+		{
 			label: "Front Desk",
 			icon: "concierge",
 			to: { name: "FrontDeskToday" },
-			activeWhen: ["FrontDeskToday", "HotelStay"],
+			activeWhen: ["FrontDeskToday", "FrontDeskStay", "HotelStay"],
 		},
 		{
 			label: "Reservations",
 			icon: "book_online",
 			to: { name: "HotelBookings" },
 			activeWhen: ["HotelBookings", "HotelBooking"],
-		},
-		{
-			label: "New Reservation",
-			icon: "add_box",
-			to: { name: "NewReservation" },
-			activeWhen: ["NewReservation"],
 		},
 		{
 			label: "Cashier",
@@ -111,6 +111,20 @@ const NAVIGATION = {
 				"Cashier",
 				"Front Desk Manager",
 				"Front Desk Agent",
+			],
+		},
+		{
+			label: "House Accounts",
+			icon: "storefront",
+			to: { name: "HotelHouseAccounts" },
+			activeWhen: ["HotelHouseAccounts", "HotelHouseAccountFolios"],
+			roles: [
+				"System Manager",
+				"Hospitality Manager",
+				"Front Desk Manager",
+				"Front Desk Agent",
+				"Cashier",
+				"Hotel Accountant",
 			],
 		},
 		{

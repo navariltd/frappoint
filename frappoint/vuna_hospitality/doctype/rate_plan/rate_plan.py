@@ -22,6 +22,10 @@ class RatePlan(Document):
 		self.validate_package()
 		self.validate_policy(self.cancellation_policy, "Cancellation")
 		self.validate_policy(self.deposit_policy, "Deposit")
+		if self.no_show_policy:
+			self.validate_policy(self.no_show_policy, "No-show")
+		if self.early_departure_policy:
+			self.validate_policy(self.early_departure_policy, "Early Departure")
 
 	def validate_room_charge_code(self):
 		code = frappe.db.get_value(

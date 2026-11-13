@@ -1,0 +1,203 @@
+{
+ "actions": [],
+ "autoname": "naming_series:",
+ "creation": "2026-11-13 18:00:00.000000",
+ "description": "Sends a stay's automatic charges (night audit, fees) to one of its folios instead of the default folio.",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "naming_series",
+  "property",
+  "stay_reservation",
+  "hotel_booking",
+  "is_active",
+  "column_break_head",
+  "route",
+  "charge_code",
+  "item_group",
+  "target_folio",
+  "target_label",
+  "notes_section",
+  "notes",
+  "removed_reason"
+ ],
+ "fields": [
+  {
+   "fieldname": "naming_series",
+   "fieldtype": "Select",
+   "label": "Series",
+   "read_only": 1,
+   "options": "CRR-.property.-.YY.-.#####",
+   "hidden": 1,
+   "reqd": 1,
+   "default": "CRR-.property.-.YY.-.#####"
+  },
+  {
+   "fieldname": "property",
+   "fieldtype": "Link",
+   "label": "Property",
+   "read_only": 1,
+   "options": "Hotel Property",
+   "reqd": 1,
+   "in_standard_filter": 1
+  },
+  {
+   "fieldname": "stay_reservation",
+   "fieldtype": "Link",
+   "label": "Stay Reservation",
+   "read_only": 1,
+   "options": "Stay Reservation",
+   "reqd": 1,
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "search_index": 1
+  },
+  {
+   "fieldname": "hotel_booking",
+   "fieldtype": "Link",
+   "label": "Hotel Booking",
+   "read_only": 1,
+   "options": "Hotel Booking"
+  },
+  {
+   "fieldname": "is_active",
+   "fieldtype": "Check",
+   "label": "Active",
+   "read_only": 1,
+   "default": "1",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "column_break_head",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "route",
+   "fieldtype": "Select",
+   "label": "Charges",
+   "read_only": 1,
+   "options": "All Charges\nRoom Charges\nItem Group\nCharge Code",
+   "reqd": 1,
+   "in_list_view": 1,
+   "description": "Which charges the rule sends. A more specific rule wins: a charge code over an item group, an item group over room charges, room charges over all charges."
+  },
+  {
+   "fieldname": "charge_code",
+   "fieldtype": "Link",
+   "label": "Charge Code",
+   "read_only": 1,
+   "options": "Charge Code",
+   "depends_on": "eval:doc.route=='Charge Code'"
+  },
+  {
+   "fieldname": "item_group",
+   "fieldtype": "Link",
+   "label": "Item Group",
+   "read_only": 1,
+   "options": "Item Group",
+   "depends_on": "eval:doc.route=='Item Group'"
+  },
+  {
+   "fieldname": "target_folio",
+   "fieldtype": "Link",
+   "label": "Send To Folio",
+   "read_only": 1,
+   "options": "Guest Folio",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "target_label",
+   "fieldtype": "Data",
+   "label": "Folio Name",
+   "read_only": 1
+  },
+  {
+   "fieldname": "notes_section",
+   "fieldtype": "Section Break",
+   "label": "Notes",
+   "collapsible": 1
+  },
+  {
+   "fieldname": "notes",
+   "fieldtype": "Small Text",
+   "label": "Notes",
+   "read_only": 1
+  },
+  {
+   "fieldname": "removed_reason",
+   "fieldtype": "Small Text",
+   "label": "Removed Because",
+   "read_only": 1
+  }
+ ],
+ "index_web_pages_for_search": 0,
+ "links": [],
+ "modified": "2026-11-13 18:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Vuna Hospitality",
+ "name": "Charge Routing Rule",
+ "naming_rule": "By \"Naming Series\" field",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "role": "System Manager",
+   "read": 1,
+   "report": 1,
+   "print": 1,
+   "export": 1
+  },
+  {
+   "role": "Hospitality Manager",
+   "read": 1,
+   "report": 1,
+   "print": 1,
+   "export": 1
+  },
+  {
+   "role": "Front Desk Manager",
+   "read": 1,
+   "report": 1,
+   "print": 1
+  },
+  {
+   "role": "Front Desk Agent",
+   "read": 1,
+   "report": 1,
+   "print": 1
+  },
+  {
+   "role": "Reservations Agent",
+   "read": 1,
+   "report": 1,
+   "print": 1
+  },
+  {
+   "role": "Cashier",
+   "read": 1,
+   "report": 1,
+   "print": 1
+  },
+  {
+   "role": "Hotel Accountant",
+   "read": 1,
+   "report": 1,
+   "print": 1,
+   "export": 1
+  },
+  {
+   "role": "Night Auditor",
+   "read": 1,
+   "report": 1,
+   "print": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1,
+ "in_create": 1,
+ "title_field": "route",
+ "search_fields": "stay_reservation,route"
+}

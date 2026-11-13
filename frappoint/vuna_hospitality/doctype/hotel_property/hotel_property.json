@@ -43,6 +43,7 @@
   "prices_include_tax",
   "column_break_taxes",
   "breakage_charge_code",
+  "policy_fee_charge_code",
   "nightly_levies"
  ],
  "fields": [
@@ -278,6 +279,13 @@
    "description": "A Revenue code with a fixed Item whose income account is breakage income. Unused package allowances move here."
   },
   {
+   "fieldname": "policy_fee_charge_code",
+   "fieldtype": "Link",
+   "label": "Policy Fee Charge Code",
+   "options": "Charge Code",
+   "description": "A Revenue code with a fixed Item. Cancellation, no-show and early-departure fees post with it."
+  },
+  {
    "fieldname": "nightly_levies",
    "fieldtype": "Table",
    "label": "Nightly Levies",
@@ -311,7 +319,7 @@
    "link_fieldname": "property"
   }
  ],
- "modified": "2026-11-13 09:00:00.000000",
+ "modified": "2026-11-13 18:00:00.000000",
  "modified_by": "Administrator",
  "module": "Vuna Hospitality",
  "name": "Hotel Property",

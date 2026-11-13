@@ -3,6 +3,12 @@ import { useAuthStore } from "./stores/auth";
 import { HOTEL, SERVICES, useWorkspaceStore } from "./stores/workspace.store";
 import { navigateTo } from "./utils";
 
+// One component for the bookings list and a selected booking (a split view).
+const HotelBookingsPage = () => import("@/pages/hotel/HotelBookings.vue");
+// Likewise for the front desk and a selected stay, and for house accounts and a selected account's folios.
+const HouseAccountsPage = () => import("@/pages/hotel/HouseAccounts.vue");
+const FrontDeskPage = () => import("@/pages/hotel/FrontDeskToday.vue");
+
 const routes = [
 	{
 		// Sends each user to their workspace's home page (see the guard below).
@@ -66,7 +72,14 @@ const routes = [
 	{
 		name: "FrontDeskToday",
 		path: "/hotel/front-desk",
-		component: () => import("@/pages/hotel/FrontDeskToday.vue"),
+		component: FrontDeskPage,
+		meta: { requiresLogin: true, workspace: HOTEL },
+	},
+	{
+		name: "FrontDeskStay",
+		path: "/hotel/front-desk/:stayId",
+		// The same page instance as today's list: the stay opens beside it.
+		component: FrontDeskPage,
 		meta: { requiresLogin: true, workspace: HOTEL },
 	},
 	{
@@ -88,6 +101,19 @@ const routes = [
 		meta: { requiresLogin: true, workspace: HOTEL },
 	},
 	{
+		name: "HotelHouseAccounts",
+		path: "/hotel/house-accounts",
+		component: HouseAccountsPage,
+		meta: { requiresLogin: true, workspace: HOTEL },
+	},
+	{
+		name: "HotelHouseAccountFolios",
+		path: "/hotel/house-accounts/:accountId",
+		// The same page instance as the list: the account's folios open beside it.
+		component: HouseAccountsPage,
+		meta: { requiresLogin: true, workspace: HOTEL },
+	},
+	{
 		name: "NightAudit",
 		path: "/hotel/night-audit",
 		component: () => import("@/pages/hotel/NightAudit.vue"),
@@ -96,7 +122,7 @@ const routes = [
 	{
 		name: "HotelBookings",
 		path: "/hotel/bookings",
-		component: () => import("@/pages/hotel/HotelBookings.vue"),
+		component: HotelBookingsPage,
 		meta: { requiresLogin: true, workspace: HOTEL },
 	},
 	{
@@ -108,7 +134,9 @@ const routes = [
 	{
 		name: "HotelBooking",
 		path: "/hotel/bookings/:bookingId",
-		component: () => import("@/pages/hotel/HotelBooking.vue"),
+		// The same page instance as the list, so the list keeps its search and scroll while the
+		// selected booking opens beside it.
+		component: HotelBookingsPage,
 		meta: { requiresLogin: true, workspace: HOTEL },
 	},
 	{

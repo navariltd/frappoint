@@ -8,8 +8,10 @@ Commands (every one runs in the caller's transaction and is safe to retry in a n
 
 - `hold()`: quote, take the rooms as *held* under lock, and create the records, all at once.
 - `confirm()`: turn the held rooms into *sold* rooms.
-- `cancel()`: give the rooms back. Cancellation fees come with F12.
+- `cancel()`: give the rooms back and charge the cancellation fee the stay was booked with (F12).
 - `expire_hold()`: give back the rooms of a hold that ran out; `expire_holds()` is the job.
+- `mark_no_show()`: night audit's no-show stage: give the rooms back and charge the no-show fee.
+- `reinstate()`: bring a cancelled or no-show stay back, taking its rooms again under lock.
 
 Every command locks the Stay Reservation row first, then the inventory rows, then the Hotel
 Booking row. Locking in one order means a confirm and an expiry that race for the same hold run one
@@ -24,6 +26,7 @@ import frappe
 from frappe import _
 from frappe.utils import add_days, add_to_date, cint, get_datetime, getdate, now_datetime
 
+from frappoint.vuna_hospitality.constants import FOLIO_MANAGER_ROLES, RESERVATION_MANAGER_ROLES
 from frappoint.vuna_hospitality.services import inventory
 from frappoint.vuna_hospitality.services.event_log import log_event
 from frappoint.vuna_hospitality.services.feature_flag import hospitality_job
@@ -69,6 +72,10 @@ POLICY_SNAPSHOT_FIELDS = (
 	"release_if_unpaid",
 	"guest_text",
 )
+
+
+# The policies a stay copies from its rate plan when held (F5; no-show and early departure, F12).
+POLICY_FIELDS = ("cancellation_policy", "deposit_policy", "no_show_policy", "early_departure_policy")
 
 
 class HoldRefusedError(frappe.ValidationError):
@@ -235,15 +242,14 @@ def _prepare_stay(property_name: str, prop, limits, stay: dict):
 			HoldRefusedError,
 		)
 
-	policies = _row("Rate Plan", stay.rate_plan, ["cancellation_policy", "deposit_policy"])
+	policies = _row("Rate Plan", stay.rate_plan, POLICY_FIELDS)
 	return frappe._dict(
 		stay=stay,
 		quote=stay_quote,
 		room_type=stay_quote.room_type,
 		arrival=arrival,
 		departure=departure,
-		cancellation_policy=policies.cancellation_policy,
-		deposit_policy=policies.deposit_policy,
+		policies=policies,
 	)
 
 
@@ -347,10 +353,8 @@ def _create_stay(booking, p, expires_at) -> str:
 			"tax_inclusive": int(q.tax_inclusive),
 			"total_amount": q.total,
 			"average_rate": from_minor(q.total_minor // max(len(q.nights), 1), q.currency),
-			"cancellation_policy": p.cancellation_policy,
-			"cancellation_policy_snapshot": _policy_snapshot(p.cancellation_policy),
-			"deposit_policy": p.deposit_policy,
-			"deposit_policy_snapshot": _policy_snapshot(p.deposit_policy),
+			**{field: p.policies.get(field) for field in POLICY_FIELDS},
+			**{f"{field}_snapshot": _policy_snapshot(p.policies.get(field)) for field in POLICY_FIELDS},
 		},
 	)
 	from frappoint.vuna_hospitality.services.front_desk import add_primary_guest
@@ -457,9 +461,12 @@ def confirm(stay_name: str) -> dict:
 		event_type="Reservation Confirmed",
 		ignore_permissions=True,
 	)
+	from frappoint.vuna_hospitality.services.deposits import create_for_stay
 	from frappoint.vuna_hospitality.services.folio import ensure_default_folio
 
 	ensure_default_folio(stay.name)
+	# The deposit the policy asks for (F12), on the default folio.
+	create_for_stay(stay.name)
 	refresh_booking(stay.hotel_booking)
 	return booking_summary(stay.hotel_booking)
 
@@ -471,8 +478,20 @@ def confirm_booking(booking: str) -> dict:
 	return booking_summary(booking)
 
 
-def cancel(stay_name: str, reason: str) -> dict:
-	"""Cancel a held or confirmed stay and give its rooms back. Cancelling twice changes nothing."""
+def cancel(
+	stay_name: str,
+	reason: str,
+	*,
+	waive_fee: bool = False,
+	waive_reason: str | None = None,
+	charge_fee: bool = True,
+) -> dict:
+	"""Cancel a held or confirmed stay and give its rooms back. Cancelling twice changes nothing.
+
+	A confirmed stay cancelled inside its policy's penalty window is charged the cancellation fee
+	(F12); a Front Desk Manager may `waive_fee` with a reason. A deposit pays the fee and only the
+	excess is refunded. `charge_fee=False` is for the system releasing an unpaid deposit's stay.
+	"""
 	stay = _lock_stay(stay_name)
 	if stay.status == CANCELLED:
 		return booking_summary(stay.hotel_booking)
@@ -484,6 +503,11 @@ def cancel(stay_name: str, reason: str) -> dict:
 	if not reason:
 		frappe.throw(_("Give a reason for cancelling stay {0}.").format(stay.name))
 
+	from frappoint.vuna_hospitality.services import policies
+
+	if charge_fee and stay.status != HELD:
+		# Worked out from the nights given up, so before they are cancelled.
+		policies.post_fee(stay, policies.CANCELLATION, waive=waive_fee, waive_reason=waive_reason)
 	_release_occupancy(stay.room_occupancy, CANCELLED)
 	_cancel_room_assignment(stay)
 	transition(
@@ -502,18 +526,194 @@ def cancel(stay_name: str, reason: str) -> dict:
 	_cancel_pending_nights(stay.name)
 	from frappoint.vuna_hospitality.services.folio import close_idle_folios, refresh_stay_pending
 
-	# A folio with charges (a fee from F12, a posted extra) stays open for settlement.
+	# A folio with charges (a fee, a posted extra) stays open for settlement.
 	refresh_stay_pending(stay.name)
+	_settle_deposit(stay.name, reason)
 	close_idle_folios(stay.name, reason=reason)
 	refresh_booking(stay.hotel_booking)
 	return booking_summary(stay.hotel_booking)
 
 
-def cancel_booking(booking: str, reason: str) -> dict:
+def cancel_booking(
+	booking: str, reason: str, *, waive_fee: bool = False, waive_reason: str | None = None
+) -> dict:
 	"""Cancel every held or confirmed stay on the booking."""
 	for name in _stays_of(booking, CANCELLABLE_STAY_STATUSES):
-		cancel(name, reason)
+		cancel(name, reason, waive_fee=waive_fee, waive_reason=waive_reason)
 	return booking_summary(booking)
+
+
+def _settle_deposit(stay_name: str, reason: str) -> None:
+	"""The deposit pays the fee; the excess goes back (F12). What can't finish now is logged."""
+	from frappoint.vuna_hospitality.services.deposits import settle_after_fee
+
+	result = settle_after_fee(stay_name, reason)
+	if result and (result.get("refund_waiting") or result.get("owing")):
+		log_event(STAY, stay_name, "Deposit Follow-up", data=result)
+
+
+# --------------------------------------------------------------------------- no-show and reinstatement
+
+
+def mark_no_show(stay_name: str, business_date) -> bool:
+	"""Night audit: a stay due on or before `business_date` that never checked in (F12).
+
+	Its rooms go back, its nights are cancelled, and the no-show fee from its policy is charged and
+	paid from the deposit. Returns False if the stay was handled already.
+	"""
+	stay = _lock_stay(stay_name)
+	if stay.status not in ("Confirmed", "Due In") or getdate(stay.arrival_date) > getdate(business_date):
+		return False
+	from frappoint.vuna_hospitality.services import policies
+
+	reason = _("Did not arrive on {0}").format(frappe.format(stay.arrival_date, "Date"))
+	policies.post_fee(stay, policies.NO_SHOW, business_date=business_date)
+	_release_occupancy(stay.room_occupancy, RELEASED)
+	_cancel_room_assignment(stay)
+	transition(stay, "No Show", reason=reason, event_type="No Show", ignore_permissions=True)
+	_cancel_pending_nights(stay.name)
+	from frappoint.vuna_hospitality.services.folio import close_idle_folios, refresh_stay_pending
+
+	refresh_stay_pending(stay.name)
+	_settle_deposit(stay.name, reason)
+	close_idle_folios(stay.name, reason=reason)
+	refresh_booking(stay.hotel_booking)
+	return True
+
+
+def reinstate(stay_name: str, reason: str) -> dict:
+	"""Bring a cancelled or no-show stay back as Confirmed (design §11.2; plan F12).
+
+	The rooms are taken again under the inventory lock, never assumed free: a sold-out night
+	refuses the reinstatement. A no-show whose arrival has passed is reinstated from the business
+	date. The booked prices come back; a fee not yet invoiced is reversed (an invoiced one needs a
+	credit note).
+	"""
+	reason = (reason or "").strip()
+	if not reason:
+		frappe.throw(_("Give a reason for reinstating stay {0}.").format(stay_name))
+	stay = _lock_stay(stay_name)
+	if stay.status not in ("Cancelled", "No Show"):
+		raise InvalidTransitionError(
+			_("Stay {0} is {1} and can't be reinstated.").format(stay.name, _(stay.status))
+		)
+	business_date = getdate(frappe.db.get_value("Hotel Property", stay.property, "business_date"))
+	arrival = max(getdate(stay.arrival_date), business_date)
+	departure = getdate(stay.departure_date)
+	if arrival >= departure:
+		frappe.throw(
+			_("Stay {0} ended on {1}. Make a new booking instead.").format(
+				stay.name, frappe.format(departure, "Date")
+			),
+			HoldRefusedError,
+		)
+
+	# Take the rooms first, under lock: this fails before anything is written if a night is full.
+	inventory.acquire(stay.room_type, arrival, departure, kind=inventory.SOLD)
+	occupancy = _new(
+		OCCUPANCY,
+		{
+			"property": stay.property,
+			"hotel_booking": stay.hotel_booking,
+			"room_type": stay.room_type,
+			"start_date": arrival,
+			"end_date": departure,
+			"allocation_state": HELD,
+			"adults": stay.adults,
+			"children": stay.children,
+		},
+	)
+	transition(occupancy, CONFIRMED, event_type="Allocation Changed", ignore_permissions=True)
+	_new(
+		MEMBERSHIP,
+		{
+			"property": stay.property,
+			"room_occupancy": occupancy.name,
+			"stay_reservation": stay.name,
+			"start_date": arrival,
+			"end_date": departure,
+			"reason": "Initial",
+		},
+	)
+	_restore_nights(stay.name, arrival, departure)
+	nights = frappe.get_all(
+		RATE_NIGHT, filters={"stay_reservation": stay.name, "posting_state": "Pending"}, pluck="total"
+	)
+	total_minor = sum(to_minor(total, stay.currency) for total in nights)
+	from_status = stay.status
+	# The arrival moves to the business date for a late no-show; only this service may do that.
+	stay.flags[SERVICE_FLAG] = True
+	transition(
+		stay,
+		CONFIRMED,
+		reason=reason,
+		updates={
+			"room_occupancy": occupancy.name,
+			"arrival_date": arrival,
+			"nights": len(nights),
+			"total_amount": from_minor(total_minor, stay.currency),
+			"average_rate": from_minor(total_minor // max(len(nights), 1), stay.currency),
+			"cancelled_at": None,
+			"cancelled_by": None,
+			"cancellation_reason": None,
+		},
+		data={"from": from_status, "arrival": str(arrival), "departure": str(departure)},
+		event_type="Reservation Reinstated",
+		ignore_permissions=True,
+	)
+	_reopen_folios(stay.name, reason)
+	from frappoint.vuna_hospitality.services.deposits import reopen
+	from frappoint.vuna_hospitality.services.folio import refresh_stay_pending
+
+	reopen(stay.name)
+	refresh_stay_pending(stay.name)
+	refresh_booking(stay.hotel_booking)
+	return booking_summary(stay.hotel_booking)
+
+
+def _restore_nights(stay_name: str, arrival, departure) -> None:
+	table = frappe.qb.DocType(RATE_NIGHT)
+	(
+		frappe.qb.update(table)
+		.set(table.posting_state, "Pending")
+		.set(table.modified, now_datetime())
+		.where(table.stay_reservation == stay_name)
+		.where(table.posting_state == "Cancelled")
+		.where(table.night_date >= arrival)
+		.where(table.night_date < departure)
+	).run()
+
+
+def _reopen_folios(stay_name: str, reason: str) -> None:
+	"""Reverse the fee not yet invoiced, and give the stay an open default folio again."""
+	from frappoint.vuna_hospitality.services import folio, policies
+
+	for line in policies.fee_lines(stay_name):
+		if line.sales_invoice:
+			continue
+		row = folio.lock_folio(line.guest_folio)
+		if row.status == folio.CLOSED:
+			continue
+		folio.reverse_transaction(line.name, _("Reinstated: {0}").format(reason))
+	default = frappe.db.get_value(STAY, stay_name, "default_folio")
+	row = default and frappe.db.get_value(folio.FOLIO, default, ["status", "sales_invoice"], as_dict=True)
+	if row and row.status in folio.POSTABLE_STATUSES:
+		return
+	if row and row.status == folio.CLOSED and not row.sales_invoice:
+		transition(
+			frappe.get_doc(folio.FOLIO, default),
+			folio.OPEN,
+			reason=_("Reinstated: {0}").format(reason),
+			updates={"closed_at": None, "closed_by": None},
+			event_type="Folio Reopened",
+			ignore_permissions=True,
+		)
+		return
+	# The old default folio was invoiced (a forfeited deposit): the stay starts a new one.
+	if default:
+		frappe.db.set_value(folio.FOLIO, default, "is_default", 0, update_modified=False)
+	frappe.db.set_value(STAY, stay_name, "default_folio", None, update_modified=False)
+	folio.ensure_default_folio(stay_name)
 
 
 def expire_hold(stay_name: str) -> bool:
@@ -686,9 +886,13 @@ def booking_summary(booking: str) -> dict:
 			"average_rate",
 			"currency",
 			"hold_expires_at",
+			"property",
+			"cancellation_policy_snapshot",
 		],
 		order_by="creation asc",
 	)
+	from frappoint.vuna_hospitality.services import deposits, policies
+
 	names = {
 		**dict(
 			frappe.get_all(
@@ -718,6 +922,18 @@ def booking_summary(booking: str) -> dict:
 		stay["rate_plan_name"] = names.get(stay.rate_plan)
 		stay["can_confirm"] = stay.status == HELD
 		stay["can_cancel"] = stay.status in CANCELLABLE_STAY_STATUSES
+		stay["can_reinstate"] = stay.status in ("Cancelled", "No Show")
+		# F12: what cancelling now would charge, and the deposit.
+		quote = (
+			policies.fee_quote(stay, policies.CANCELLATION)
+			if stay.status in CANCELLABLE_STAY_STATUSES and stay.status != HELD
+			else None
+		)
+		stay["cancellation_fee"] = quote.amount if quote else 0
+		stay["free_cancellation_until"] = quote.free_until if quote else None
+		stay["cancellation_policy_name"] = quote.policy_name if quote else None
+		stay["deposit"] = deposits.deposit_details(stay.name)
+		del stay["cancellation_policy_snapshot"]
 	return {
 		"name": doc.name,
 		"property": doc.property,
@@ -732,6 +948,8 @@ def booking_summary(booking: str) -> dict:
 		"total_amount": doc.total_amount,
 		"stay_count": doc.stay_count,
 		"stays": stays,
+		"can_waive_fees": bool(set(FOLIO_MANAGER_ROLES) & set(frappe.get_roles())),
+		"can_reinstate": bool(set(RESERVATION_MANAGER_ROLES) & set(frappe.get_roles())),
 	}
 
 

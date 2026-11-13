@@ -19,7 +19,14 @@ from frappoint.vuna_hospitality.constants import (
 	FOLIO_REBUILD_ROLES,
 	SETTLEMENT_ROLES,
 )
-from frappoint.vuna_hospitality.services import cashiering, folio, settlement
+from frappoint.vuna_hospitality.services import (
+	cashiering,
+	deposits,
+	folio,
+	house_accounts,
+	routing,
+	settlement,
+)
 from frappoint.vuna_hospitality.services.feature_flag import require_hospitality
 from frappoint.vuna_hospitality.services.inventory import run_with_inventory_retry
 from frappoint.vuna_hospitality.services.property_scope import assert_property_access
@@ -43,8 +50,25 @@ def _stay_of_folio(folio_name: str) -> str | None:
 
 
 def _workspace(folio_name: str) -> dict:
-	stay = _stay_of_folio(folio_name)
-	return folio.stay_folio_details(stay) if stay else folio.folio_details(folio_name)
+	row = frappe.db.get_value(folio.FOLIO, folio_name, ["stay_reservation", "house_account"], as_dict=True)
+	if row and row.stay_reservation:
+		return folio.stay_folio_details(row.stay_reservation)
+	if row and row.house_account:
+		return house_accounts.account_folio_details(row.house_account)
+	return folio.folio_details(folio_name)
+
+
+def _add_cashiering(details: dict, property_name: str) -> dict:
+	"""Payments (F10) and the invoice preview (F11) for each folio of a workspace."""
+	details["actions"] = _actions()
+	for entry in details["folios"]:
+		entry["payments"] = cashiering.folio_payments(entry["folio"]["name"])
+		entry["invoice"] = _invoice_preview(entry)
+	can_take = bool(set(frappe.get_roles()) & set(CASHIER_ROLES))
+	details["actions"]["can_take_payment"] = can_take
+	details["cashier_shift"] = cashiering.current_shift(property_name) if can_take else None
+	details["payment_options"] = cashiering.payment_options(property_name) if can_take else None
+	return details
 
 
 def _actions() -> dict:
@@ -76,17 +100,17 @@ def _invoice_preview(entry: dict) -> dict | None:
 def get_stay_folios(stay: str) -> dict:
 	"""The Folio Workspace for one stay: its folios, lines, pending nights and totals."""
 	_check(STAY, stay)
-	details = folio.stay_folio_details(stay)
-	details["actions"] = _actions()
-	# Payments (F10): each folio's payments and refunds, the user's shift, and the tenders.
-	for entry in details["folios"]:
-		entry["payments"] = cashiering.folio_payments(entry["folio"]["name"])
-		entry["invoice"] = _invoice_preview(entry)
-	property_name = details["stay"]["property"]
-	can_take = bool(set(frappe.get_roles()) & set(CASHIER_ROLES))
-	details["actions"]["can_take_payment"] = can_take
-	details["cashier_shift"] = cashiering.current_shift(property_name) if can_take else None
-	details["payment_options"] = cashiering.payment_options(property_name) if can_take else None
+	details = _add_cashiering(folio.stay_folio_details(stay), frappe.db.get_value(STAY, stay, "property"))
+	# F12: the stay's routing rules and deposit, and whether late charges are open.
+	details["routing_rules"] = routing.stay_rules(stay)
+	details["deposit"] = deposits.deposit_details(stay)
+	details["actions"]["can_route"] = details["actions"]["can_post"]
+	details["actions"]["can_waive_deposit"] = details["actions"]["can_reverse"]
+	details["actions"]["can_add_folio"] = details["stay"][
+		"status"
+	] not in settlement.CLOSED_STAY_STATUSES and (
+		details["stay"]["status"] != "Checked Out" or details["actions"]["can_reverse"]
+	)
 	return details
 
 
@@ -122,8 +146,10 @@ def post_charge(
 	stay_guest: str | None = None,
 	notes: str | None = None,
 	request_id: str | None = None,
+	reason: str | None = None,
 ) -> dict:
-	"""Post a charge by Item. Send the same `request_id` on a retry so it posts once."""
+	"""Post a charge by Item. Send the same `request_id` on a retry so it posts once. A late charge
+	after check-out needs a Front Desk Manager and a `reason` (F12)."""
 	_check(folio.FOLIO, folio_name, "write", roles=FOLIO_POSTING_ROLES)
 	# One key for every attempt, so a retry after a lock conflict can't post twice.
 	request_id = (request_id or "").strip() or frappe.generate_hash(length=16)
@@ -137,6 +163,7 @@ def post_charge(
 			stay_guest=stay_guest,
 			notes=notes,
 			request_id=request_id,
+			reason=reason,
 		)
 	)
 	details = _workspace(folio_name)
@@ -266,3 +293,134 @@ def issue_credit_note(transaction: str, reason: str) -> dict:
 	details = _workspace(folio_name)
 	details["credited"] = result
 	return details
+
+
+# --------------------------------------------------------------------------- F12 routing
+
+
+@frappe.whitelist(methods=["POST"])
+@require_hospitality
+def add_routing_rule(
+	stay: str,
+	target_folio: str,
+	route: str,
+	charge_code: str | None = None,
+	item_group: str | None = None,
+	notes: str | None = None,
+) -> dict:
+	"""Send the stay's automatic charges (night audit, fees) of one kind to one of its folios."""
+	_check(STAY, stay, "write", roles=FOLIO_POSTING_ROLES)
+	run_with_inventory_retry(
+		lambda: routing.add_rule(
+			stay, target_folio, route, charge_code=charge_code, item_group=item_group, notes=notes
+		)
+	)
+	return get_stay_folios(stay)
+
+
+@frappe.whitelist(methods=["POST"])
+@require_hospitality
+def remove_routing_rule(rule: str, reason: str) -> dict:
+	stay = frappe.db.get_value(routing.RULE, rule, "stay_reservation")
+	if not stay:
+		raise frappe.DoesNotExistError(_("Charge Routing Rule {0} does not exist.").format(rule))
+	_check(STAY, stay, "write", roles=FOLIO_POSTING_ROLES)
+	run_with_inventory_retry(lambda: routing.remove_rule(rule, reason))
+	return get_stay_folios(stay)
+
+
+# --------------------------------------------------------------------------- F12 house accounts
+
+HOUSE_ACCOUNT_ROLES = (*FOLIO_ACCOUNTING_ROLES,)
+
+
+def _check_account(account: str, roles=None) -> str:
+	property_name = frappe.db.get_value(house_accounts.ACCOUNT, account, "property")
+	if not property_name:
+		raise frappe.DoesNotExistError(_("House Account {0} does not exist.").format(account))
+	if roles:
+		frappe.only_for(roles)
+	assert_property_access(property_name)
+	frappe.has_permission(house_accounts.ACCOUNT, "read", throw=True)
+	return property_name
+
+
+@frappe.whitelist()
+@require_hospitality
+def get_house_accounts(property: str) -> dict:
+	assert_property_access(property)
+	frappe.has_permission(house_accounts.ACCOUNT, "read", throw=True)
+	return {
+		"accounts": house_accounts.account_list(property),
+		"can_manage": bool(set(frappe.get_roles()) & set(HOUSE_ACCOUNT_ROLES)),
+	}
+
+
+@frappe.whitelist(methods=["POST"])
+@require_hospitality
+def create_house_account(
+	property: str,
+	account_name: str,
+	account_type: str = "Permanent",
+	payee_customer: str | None = None,
+	valid_from: str | None = None,
+	valid_to: str | None = None,
+	notes: str | None = None,
+) -> dict:
+	frappe.only_for(HOUSE_ACCOUNT_ROLES)
+	assert_property_access(property)
+	name = run_with_inventory_retry(
+		lambda: house_accounts.create(
+			property,
+			account_name,
+			account_type=account_type,
+			payee_customer=payee_customer,
+			valid_from=valid_from,
+			valid_to=valid_to,
+			notes=notes,
+		)
+	)
+	return {"name": name, **get_house_accounts(property)}
+
+
+@frappe.whitelist()
+@require_hospitality
+def get_house_account_folios(account: str) -> dict:
+	"""The Folio Workspace for a House Account: its current folio and the last settled ones."""
+	property_name = _check_account(account)
+	frappe.has_permission(folio.FOLIO, "read", throw=True)
+	details = _add_cashiering(house_accounts.account_folio_details(account), property_name)
+	details["routing_rules"] = []
+	details["deposit"] = None
+	current = details["house_account"]["current_folio"]
+	needs_folio = details["house_account"]["status"] == house_accounts.ACTIVE and (
+		not current
+		or frappe.db.get_value(folio.FOLIO, current, "status")
+		not in (*folio.POSTABLE_STATUSES, settlement.SETTLEMENT_PENDING)
+	)
+	details["actions"].update(
+		{
+			"can_route": False,
+			"can_waive_deposit": False,
+			"can_add_folio": False,
+			"can_open_house_folio": needs_folio and details["actions"]["can_post"],
+		}
+	)
+	return details
+
+
+@frappe.whitelist(methods=["POST"])
+@require_hospitality
+def open_house_account_folio(account: str) -> dict:
+	"""Start the account's next folio after the last one was settled."""
+	_check_account(account, FOLIO_POSTING_ROLES)
+	run_with_inventory_retry(lambda: house_accounts.ensure_folio(account))
+	return get_house_account_folios(account)
+
+
+@frappe.whitelist(methods=["POST"])
+@require_hospitality
+def close_house_account(account: str, reason: str) -> dict:
+	property_name = _check_account(account, HOUSE_ACCOUNT_ROLES)
+	run_with_inventory_retry(lambda: house_accounts.close(account, reason))
+	return get_house_accounts(property_name)

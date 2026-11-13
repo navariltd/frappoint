@@ -13,6 +13,12 @@ frappe.ui.form.on("Rate Plan", {
 		frm.set_query("deposit_policy", () => ({
 			filters: { property: frm.doc.property, policy_type: "Deposit", is_active: 1 },
 		}));
+		frm.set_query("no_show_policy", () => ({
+			filters: { property: frm.doc.property, policy_type: "No-show", is_active: 1 },
+		}));
+		frm.set_query("early_departure_policy", () => ({
+			filters: { property: frm.doc.property, policy_type: "Early Departure", is_active: 1 },
+		}));
 	},
 
 	refresh(frm) {

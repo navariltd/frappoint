@@ -123,6 +123,15 @@ def check_out(stay: str, override_reason: str | None = None) -> dict:
 
 @frappe.whitelist(methods=["POST"])
 @require_hospitality
+def depart_early(stay: str) -> dict:
+	"""The guest leaves today, before the booked departure: post the early-departure fee and give
+	the remaining nights back, so the fee can be paid before check-out."""
+	_check_stay(stay)
+	return _run(lambda: front_desk.depart_early(stay), stay)
+
+
+@frappe.whitelist(methods=["POST"])
+@require_hospitality
 def add_stay_guest(
 	stay: str, guest_profile: str, age_category: str = "Adult", guardian: str | None = None
 ) -> dict:

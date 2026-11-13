@@ -39,6 +39,7 @@ from frappoint.vuna_hospitality.services.status_commands import transition
 
 FOLIO = "Guest Folio"
 TRANSACTION = "Folio Transaction"
+HOUSE_ACCOUNT = "House Account"
 CHARGE_CODE = "Charge Code"
 STAY_GUEST = "Stay Guest"
 
@@ -137,7 +138,8 @@ def create_folio(
 	payee_guest_profile: str | None = None,
 	is_default: bool = False,
 ):
-	"""Open a folio for a stay (or, later, a booking) and return it."""
+	"""Open a folio for a stay, a booking, or a House Account (F12) and return it."""
+	house_account = None
 	if owner_type == STAY:
 		stay = _row(STAY, owner_reference, ["name", "property", "hotel_booking", "currency"])
 		property_name, booking, currency = stay.property, stay.hotel_booking, stay.currency
@@ -145,6 +147,11 @@ def create_folio(
 		booking_row = _row(BOOKING, owner_reference, ["name", "property", "currency"])
 		property_name, booking, currency = booking_row.property, booking_row.name, booking_row.currency
 		stay = None
+	elif owner_type == HOUSE_ACCOUNT:
+		account = _row(HOUSE_ACCOUNT, owner_reference, ["name", "property", "payee_customer"])
+		property_name, booking, currency, stay = account.property, None, None, None
+		house_account = account.name
+		payee_customer = payee_customer or account.payee_customer
 	else:
 		frappe.throw(_("A folio can't belong to a {0}.").format(_(owner_type)))
 	if not property_name:
@@ -152,7 +159,7 @@ def create_folio(
 			_("{0} {1} does not exist.").format(_(owner_type), owner_reference), frappe.DoesNotExistError
 		)
 
-	if not (payee_customer or payee_guest_profile):
+	if not (payee_customer or payee_guest_profile) and not house_account:
 		payee_customer, payee_guest_profile = default_payee(booking, stay.name if stay else None)
 	window = frappe.db.count(FOLIO, {"owner_type": owner_type, "owner_reference": owner_reference}) + 1
 	doc = frappe.get_doc(
@@ -165,6 +172,7 @@ def create_folio(
 			"owner_reference": owner_reference,
 			"stay_reservation": stay.name if stay else None,
 			"hotel_booking": booking,
+			"house_account": house_account,
 			"window_number": window,
 			"is_default": cint(is_default),
 			"payee_customer": payee_customer,
@@ -632,7 +640,20 @@ def _room_snapshot(stay_name: str | None) -> frappe._dict:
 
 	occupancy = frappe.db.get_value(STAY, stay_name, "room_occupancy")
 	assignment = current_assignment(occupancy) if occupancy else None
-	return frappe._dict(occupancy=occupancy, room_number=assignment.room_number if assignment else None)
+	if assignment:
+		return frappe._dict(occupancy=occupancy, room_number=assignment.room_number)
+	# After check-out (a late charge, F12) the line keeps the room the guest last stayed in.
+	last_room = (
+		frappe.db.get_value(
+			"Room Assignment",
+			{"room_occupancy": occupancy, "status": "Released"},
+			"room_number",
+			order_by="end_datetime desc, creation desc",
+		)
+		if occupancy
+		else None
+	)
+	return frappe._dict(occupancy=occupancy, room_number=last_room)
 
 
 def _business_date(property_name: str):
@@ -681,12 +702,15 @@ def post_manual_charge(
 	stay_guest: str | None = None,
 	notes: str | None = None,
 	request_id: str | None = None,
+	reason: str | None = None,
 ) -> dict:
 	"""A front-desk charge: staff pick an Item; the code, income account, and tax follow from it.
 
 	`request_id` makes a retried request (a double click, a lost response) post once. Without it,
-	every call posts a new charge.
+	every call posts a new charge. A late charge on a Post-Stay Open folio (F12) needs a Front Desk
+	Manager and a `reason`.
 	"""
+	reason = _check_manual_posting(folio, reason)
 	code = resolve_charge_code(item)
 	if not code.allow_manual_posting:
 		frappe.throw(_("Charge Code {0} can't be posted by hand.").format(code.name), PostingError)
@@ -717,6 +741,8 @@ def post_manual_charge(
 		description=description,
 		stay_guest=stay_guest,
 		notes=notes,
+		reason=reason,
+		approved_by=frappe.session.user if reason else None,
 		is_manual=True,
 	)
 	# A package allowance (breakfast, a spa credit) covers the charge if it can (F9).
@@ -724,6 +750,32 @@ def post_manual_charge(
 
 	result["allowance_credits"] = offset_charge(result["name"])
 	return result
+
+
+def _check_manual_posting(folio: str, reason: str | None) -> str | None:
+	"""Late charges after check-out, and charges to a House Account, follow their own rules (F12)."""
+	row = _row(FOLIO, folio, ["status", "post_stay_until", "property", "house_account"])
+	reason = (reason or "").strip() or None
+	if row.house_account:
+		from frappoint.vuna_hospitality.services.house_accounts import check_can_post
+
+		check_can_post(row.house_account)
+	if row.status != POST_STAY_OPEN:
+		return reason
+	if not set(FOLIO_MANAGER_ROLES) & set(frappe.get_roles()):
+		frappe.throw(
+			_("Only a Front Desk Manager can post a charge after check-out."), frappe.PermissionError
+		)
+	if not reason:
+		frappe.throw(_("Give a reason for the late charge."), PostingError)
+	if row.post_stay_until and getdate(_business_date(row.property)) > getdate(row.post_stay_until):
+		frappe.throw(
+			_("Late charges for folio {0} closed on {1}.").format(
+				folio, frappe.format(row.post_stay_until, "Date")
+			),
+			FolioClosedError,
+		)
+	return reason
 
 
 def get_item_rate(item: str, property_name: str) -> float:
@@ -882,17 +934,12 @@ def _locked_lines(folio: str, *fields: str) -> list:
 
 
 def refresh_pending(folio: str) -> None:
-	"""Nights not posted yet, shown beside the balance (§15.7). Only the default folio has them
-	until routing (F12) can send room charges elsewhere."""
-	row = _row(FOLIO, folio, ["stay_reservation", "is_default", "currency"])
-	pending = 0
-	if row.stay_reservation and row.is_default:
-		totals = frappe.get_all(
-			RATE_NIGHT,
-			filters={"stay_reservation": row.stay_reservation, "posting_state": "Pending"},
-			pluck="total",
-		)
-		pending = sum(to_minor(total, row.currency) for total in totals)
+	"""Nights not posted yet, shown beside the balance (§15.7), on the folio each will post to:
+	the default folio, or the folio a routing rule (F12) sends it to."""
+	from frappoint.vuna_hospitality.services.routing import pending_by_folio
+
+	row = _row(FOLIO, folio, ["stay_reservation", "currency"])
+	pending = pending_by_folio(row.stay_reservation).get(folio, 0) if row.stay_reservation else 0
 	frappe.db.set_value(
 		FOLIO, folio, "pending_total", from_minor(pending, row.currency), update_modified=False
 	)

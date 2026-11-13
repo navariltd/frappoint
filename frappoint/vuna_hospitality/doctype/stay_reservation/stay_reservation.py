@@ -9,14 +9,15 @@ from frappoint.vuna_hospitality.services import reservations
 from frappoint.vuna_hospitality.services.status_commands import guard_status_change, register_transitions
 
 # Plan F5 lifecycle. F5 runs hold, confirm, cancel and expiry; night audit (F8), check-in and
-# check-out (F6) and reinstatement (F12) use the rest.
+# check-out (F6), and no-shows and reinstatement (F12) use the rest.
 register_transitions(
 	"Stay Reservation",
 	{
 		"Held": {"Confirmed", "Expired", "Cancelled"},
 		# Confirmed -> In House: check-in on the arrival business date before night audit (F8) marks
 		# the stay Due In.
-		"Confirmed": {"Due In", "In House", "Cancelled"},
+		# Confirmed -> No Show: a same-day booking night audit never marked Due In (F12).
+		"Confirmed": {"Due In", "In House", "Cancelled", "No Show"},
 		"Due In": {"In House", "No Show", "Cancelled"},
 		"In House": {"Due Out", "Checked Out"},
 		"Due Out": {"In House", "Checked Out"},

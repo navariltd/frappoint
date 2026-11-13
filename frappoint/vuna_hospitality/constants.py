@@ -81,6 +81,10 @@ PROPERTY_SCOPED_DOCTYPES: tuple[str, ...] = (
 	"Cashier Shift",
 	"Folio Payment",
 	"Folio Payment Allocation",
+	# F12 Deposits, policies, routing, and house accounts
+	"Guest Deposit",
+	"Charge Routing Rule",
+	"House Account",
 )
 
 # Roles that post charges to a folio by hand (§23.1: front desk posts within limits).
@@ -115,6 +119,9 @@ RESERVATION_ROLES = (
 	FRONT_DESK_AGENT,
 	FRONT_DESK_MANAGER,
 )
+
+# Roles that reinstate a cancelled or no-show stay (F12): it takes rooms back and reverses fees.
+RESERVATION_MANAGER_ROLES = ("System Manager", HOSPITALITY_MANAGER, FRONT_DESK_MANAGER)
 
 # Roles that settle a folio into a Sales Invoice (§17.3). Cashiers settle what they collect.
 SETTLEMENT_ROLES = CASHIER_ROLES

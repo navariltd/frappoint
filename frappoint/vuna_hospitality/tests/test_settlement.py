@@ -379,7 +379,9 @@ class TestCreditNotes(SettlementTestCase):
 			settlement.credit_note(self.facial_on_open_folio(), "Not invoiced")
 
 	def facial_on_open_folio(self):
-		return self.facial(settlement.add_folio(self.stay.name, "Late"))
+		# After check-out this is a late charge (F12): it needs a reason.
+		late = settlement.add_folio(self.stay.name, "Late")
+		return folio.post_manual_charge(late, FACIAL, rate=1001, reason="Found on the minibar count")["name"]
 
 
 class TestSettlementApi(SettlementTestCase):

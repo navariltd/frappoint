@@ -138,8 +138,10 @@ class TestNightlyPosting(NightAuditTestCase):
 		_, status = self.audit()
 		self.assertEqual(status, "Completed")
 		self.assertEqual(self.room_charges(stay), [])
-		message = self.stage(f"NA-{self.CODE}-{self.today}", night_audit.ROLL_STATUSES).message
-		self.assertIn(stay.name, message)  # listed as a no-show candidate
+		# It never arrived, so the no-show stage (F12) marked it.
+		stage = self.stage(f"NA-{self.CODE}-{self.today}", night_audit.MARK_NO_SHOWS)
+		self.assertEqual((stage.status, stage.posted), ("Completed", 1))
+		self.assertEqual(frappe.db.get_value("Stay Reservation", stay.name, "status"), "No Show")
 
 	def test_a_zero_rate_night_is_waived_not_posted(self):
 		stay = self.in_house_stay(nights=1)
@@ -255,7 +257,7 @@ class TestNightAuditApi(NightAuditTestCase):
 			frappe.set_user(auditor)
 			overview = night_audit_api.start_night_audit(self.CODE)
 		self.assertEqual((overview["run"]["status"], overview["can_start"]), ("Queued", True))
-		self.assertEqual(len(overview["run"]["stages"]), 4)
+		self.assertEqual(len(overview["run"]["stages"]), len(night_audit.STAGES))
 
 	def test_overview_previews_tonight(self):
 		stay = self.in_house_stay(nights=2)

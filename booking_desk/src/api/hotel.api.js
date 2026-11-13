@@ -52,6 +52,17 @@ export const HOTEL_ENDPOINTS = {
 	payment: `${HOSPITALITY_API}.cashiering.get_payment`,
 	cancelPayment: `${HOSPITALITY_API}.cashiering.cancel_payment`,
 	refundPayment: `${HOSPITALITY_API}.cashiering.refund_payment`,
+	reinstateStay: `${HOSPITALITY_API}.reservations.reinstate_stay`,
+	departEarly: `${HOSPITALITY_API}.front_desk.depart_early`,
+	takeDeposit: `${HOSPITALITY_API}.deposits.take_deposit`,
+	waiveDeposit: `${HOSPITALITY_API}.deposits.waive_deposit`,
+	addRoutingRule: `${HOSPITALITY_API}.folios.add_routing_rule`,
+	removeRoutingRule: `${HOSPITALITY_API}.folios.remove_routing_rule`,
+	houseAccounts: `${HOSPITALITY_API}.folios.get_house_accounts`,
+	createHouseAccount: `${HOSPITALITY_API}.folios.create_house_account`,
+	houseAccountFolios: `${HOSPITALITY_API}.folios.get_house_account_folios`,
+	openHouseAccountFolio: `${HOSPITALITY_API}.folios.open_house_account_folio`,
+	closeHouseAccount: `${HOSPITALITY_API}.folios.close_house_account`,
 };
 
 const unwrapPayload = (payload) => payload?.message ?? payload ?? null;
@@ -103,13 +114,20 @@ export const holdStaysApi = ({ property, stays, booking, bookingDetails }) =>
 
 export const confirmStayApi = (stay) => request(HOTEL_ENDPOINTS.confirmStay, { stay });
 export const confirmBookingApi = (booking) => request(HOTEL_ENDPOINTS.confirmBooking, { booking });
-export const cancelStayApi = (stay, reason) =>
-	request(HOTEL_ENDPOINTS.cancelStay, { stay, reason });
+export const cancelStayApi = (stay, reason, { waiveFee = false, waiveReason = null } = {}) =>
+	request(HOTEL_ENDPOINTS.cancelStay, {
+		stay,
+		reason,
+		waive_fee: waiveFee ? 1 : 0,
+		waive_reason: waiveReason,
+	});
+export const reinstateStayApi = (stay, reason) =>
+	request(HOTEL_ENDPOINTS.reinstateStay, { stay, reason });
 export const cancelBookingApi = (booking, reason) =>
 	request(HOTEL_ENDPOINTS.cancelBooking, { booking, reason });
 export const fetchBookingApi = (booking) => request(HOTEL_ENDPOINTS.getBooking, { booking });
-export const fetchRecentBookingsApi = (property) =>
-	request(HOTEL_ENDPOINTS.recentBookings, { property });
+export const fetchRecentBookingsApi = (property, limit = 20) =>
+	request(HOTEL_ENDPOINTS.recentBookings, { property, limit });
 
 // Front desk (F6)
 export const fetchFrontDeskTodayApi = (property) =>
@@ -130,6 +148,7 @@ export const checkInApi = (stay, room) =>
 	request(HOTEL_ENDPOINTS.checkIn, { stay, room: room || null });
 export const checkOutApi = (stay, overrideReason = null) =>
 	request(HOTEL_ENDPOINTS.checkOut, { stay, override_reason: overrideReason });
+export const departEarlyApi = (stay) => request(HOTEL_ENDPOINTS.departEarly, { stay });
 export const addStayGuestApi = (stay, guestProfile, ageCategory = "Adult") =>
 	request(HOTEL_ENDPOINTS.addStayGuest, {
 		stay,
@@ -160,6 +179,7 @@ export const postFolioChargeApi = ({
 	description,
 	stayGuest,
 	notes,
+	reason,
 	requestId,
 }) =>
 	request(HOTEL_ENDPOINTS.postFolioCharge, {
@@ -170,6 +190,7 @@ export const postFolioChargeApi = ({
 		description: description || null,
 		stay_guest: stayGuest || null,
 		notes: notes || null,
+		reason: reason || null,
 		request_id: requestId,
 	});
 export const reverseFolioTransactionApi = (transaction, reason) =>
@@ -256,3 +277,63 @@ export const cancelPaymentApi = (payment, reason) =>
 	request(HOTEL_ENDPOINTS.cancelPayment, { payment, reason });
 export const refundPaymentApi = (payment, amounts, reason) =>
 	request(HOTEL_ENDPOINTS.refundPayment, { payment, amounts: JSON.stringify(amounts), reason });
+
+// Deposits, routing and house accounts (F12)
+/** `requestId` stays the same across retries of one deposit, so it is taken once. */
+export const takeDepositApi = ({
+	deposit,
+	amount,
+	modeOfPayment,
+	paymentGateway,
+	phone,
+	referenceNo,
+	requestId,
+}) =>
+	request(HOTEL_ENDPOINTS.takeDeposit, {
+		deposit,
+		amount: amount || null,
+		mode_of_payment: modeOfPayment || null,
+		payment_gateway: paymentGateway || null,
+		phone: phone || null,
+		reference_no: referenceNo || null,
+		request_id: requestId,
+	});
+export const waiveDepositApi = (deposit, reason) =>
+	request(HOTEL_ENDPOINTS.waiveDeposit, { deposit, reason });
+export const addRoutingRuleApi = ({ stay, targetFolio, route, chargeCode, itemGroup, notes }) =>
+	request(HOTEL_ENDPOINTS.addRoutingRule, {
+		stay,
+		target_folio: targetFolio,
+		route,
+		charge_code: chargeCode || null,
+		item_group: itemGroup || null,
+		notes: notes || null,
+	});
+export const removeRoutingRuleApi = (rule, reason) =>
+	request(HOTEL_ENDPOINTS.removeRoutingRule, { rule, reason });
+export const fetchHouseAccountsApi = (property) =>
+	request(HOTEL_ENDPOINTS.houseAccounts, { property });
+export const createHouseAccountApi = ({
+	property,
+	accountName,
+	accountType,
+	payeeCustomer,
+	validFrom,
+	validTo,
+	notes,
+}) =>
+	request(HOTEL_ENDPOINTS.createHouseAccount, {
+		property,
+		account_name: accountName,
+		account_type: accountType || "Permanent",
+		payee_customer: payeeCustomer || null,
+		valid_from: validFrom || null,
+		valid_to: validTo || null,
+		notes: notes || null,
+	});
+export const fetchHouseAccountFoliosApi = (account) =>
+	request(HOTEL_ENDPOINTS.houseAccountFolios, { account });
+export const openHouseAccountFolioApi = (account) =>
+	request(HOTEL_ENDPOINTS.openHouseAccountFolio, { account });
+export const closeHouseAccountApi = (account, reason) =>
+	request(HOTEL_ENDPOINTS.closeHouseAccount, { account, reason });

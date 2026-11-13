@@ -14,6 +14,7 @@
   "owner_reference",
   "stay_reservation",
   "hotel_booking",
+  "house_account",
   "window_number",
   "is_default",
   "payee_section",
@@ -32,6 +33,7 @@
   "closing_section",
   "closed_at",
   "closed_by",
+  "post_stay_until",
   "column_break_close",
   "notes",
   "settlement_section",
@@ -87,7 +89,7 @@
    "fieldname": "owner_type",
    "fieldtype": "Select",
    "label": "Owner Type",
-   "options": "Stay Reservation\nHotel Booking",
+   "options": "Stay Reservation\nHotel Booking\nHouse Account",
    "reqd": 1,
    "read_only": 1
   },
@@ -112,6 +114,14 @@
    "fieldtype": "Link",
    "label": "Hotel Booking",
    "options": "Hotel Booking",
+   "in_standard_filter": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "house_account",
+   "fieldtype": "Link",
+   "label": "House Account",
+   "options": "House Account",
    "in_standard_filter": 1,
    "read_only": 1
   },
@@ -239,6 +249,14 @@
    "read_only": 1
   },
   {
+   "fieldname": "post_stay_until",
+   "fieldtype": "Date",
+   "label": "Post-Stay Until",
+   "description": "Late charges can post until this business date. Night audit then closes the folio if nothing is owed.",
+   "no_copy": 1,
+   "read_only": 1
+  },
+  {
    "fieldname": "column_break_close",
    "fieldtype": "Column Break"
   },
@@ -291,7 +309,7 @@
   }
  ],
  "index_web_pages_for_search": 0,
- "modified": "2026-11-13 09:00:00.000000",
+ "modified": "2026-11-13 18:00:00.000000",
  "modified_by": "Administrator",
  "module": "Vuna Hospitality",
  "owner": "Administrator",

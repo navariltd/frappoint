@@ -146,6 +146,12 @@ const pageMeta = {
 		description: "Today's arrivals, in-house guests and departures.",
 		tag: "Today",
 	},
+	FrontDeskStay: {
+		sectionLabel: "Hotel",
+		title: "Front Desk",
+		description: "Today's arrivals, in-house guests and departures.",
+		tag: "Today",
+	},
 	HotelStay: {
 		sectionLabel: "Hotel",
 		title: "Reservation",
@@ -160,9 +166,39 @@ const pageMeta = {
 	},
 	HotelBooking: {
 		sectionLabel: "Hotel",
-		title: "Booking",
-		description: "A hotel booking and its stays.",
+		title: "Reservations",
+		description: "The latest hotel bookings at this property.",
+		tag: "List",
+	},
+	HotelFolios: {
+		sectionLabel: "Hotel",
+		title: "Folios",
+		description: "A stay's folios: charges, payments and settlement.",
 		tag: "Detail",
+	},
+	HotelHouseAccounts: {
+		sectionLabel: "Hotel",
+		title: "House Accounts",
+		description: "Folios with no room: staff meals, events, visitors' bills.",
+		tag: "List",
+	},
+	HotelHouseAccountFolios: {
+		sectionLabel: "Hotel",
+		title: "House Accounts",
+		description: "Folios with no room: staff meals, events, visitors' bills.",
+		tag: "List",
+	},
+	Cashier: {
+		sectionLabel: "Hotel",
+		title: "Cashier",
+		description: "Your shift, payments and shift reviews.",
+		tag: "Shift",
+	},
+	NightAudit: {
+		sectionLabel: "Hotel",
+		title: "Night Audit",
+		description: "Close the business day.",
+		tag: "Daily",
 	},
 	NewReservation: {
 		sectionLabel: "Hotel",
