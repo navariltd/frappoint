@@ -5,6 +5,9 @@ import { navigateTo } from "./utils";
 
 // One component for the bookings list and a selected booking (a split view).
 const HotelBookingsPage = () => import("@/pages/hotel/HotelBookings.vue");
+// Likewise for the front desk and a selected stay, and for house accounts and a selected account's folios.
+const HouseAccountsPage = () => import("@/pages/hotel/HouseAccounts.vue");
+const FrontDeskPage = () => import("@/pages/hotel/FrontDeskToday.vue");
 
 const routes = [
 	{
@@ -69,7 +72,14 @@ const routes = [
 	{
 		name: "FrontDeskToday",
 		path: "/hotel/front-desk",
-		component: () => import("@/pages/hotel/FrontDeskToday.vue"),
+		component: FrontDeskPage,
+		meta: { requiresLogin: true, workspace: HOTEL },
+	},
+	{
+		name: "FrontDeskStay",
+		path: "/hotel/front-desk/:stayId",
+		// The same page instance as today's list: the stay opens beside it.
+		component: FrontDeskPage,
 		meta: { requiresLogin: true, workspace: HOTEL },
 	},
 	{
@@ -93,13 +103,14 @@ const routes = [
 	{
 		name: "HotelHouseAccounts",
 		path: "/hotel/house-accounts",
-		component: () => import("@/pages/hotel/HouseAccounts.vue"),
+		component: HouseAccountsPage,
 		meta: { requiresLogin: true, workspace: HOTEL },
 	},
 	{
 		name: "HotelHouseAccountFolios",
 		path: "/hotel/house-accounts/:accountId",
-		component: () => import("@/pages/hotel/FolioWorkspace.vue"),
+		// The same page instance as the list: the account's folios open beside it.
+		component: HouseAccountsPage,
 		meta: { requiresLogin: true, workspace: HOTEL },
 	},
 	{

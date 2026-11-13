@@ -1,6 +1,6 @@
 <template>
-	<div class="px-6 py-5 space-y-5 max-w-6xl">
-		<div class="flex gap-4 text-[12px] font-semibold">
+	<div :class="embedded ? 'space-y-5' : 'px-6 py-5 space-y-5 max-w-6xl'">
+		<div v-if="!embedded" class="flex gap-4 text-[12px] font-semibold">
 			<RouterLink
 				v-if="isHouseAccount"
 				:to="{ name: 'HotelHouseAccounts' }"
@@ -33,7 +33,10 @@
 			<header class="flex flex-wrap items-start justify-between gap-4">
 				<div>
 					<div class="flex items-center gap-3">
-						<h1 class="text-[22px] font-semibold text-on-surface">
+						<h1
+							class="font-semibold text-on-surface"
+							:class="embedded ? 'text-[18px]' : 'text-[22px]'"
+						>
 							Folios · {{ data.stay.lead_guest_name }}
 						</h1>
 						<HotelStatusBadge :status="data.stay.status" />
@@ -50,12 +53,15 @@
 					<div
 						class="rounded-xl border border-outline-variant bg-surface-container-lowest px-4 py-2 text-right"
 					>
-						<p class="text-[11px] text-on-surface-variant">Balance</p>
+						<p class="text-[11px] text-on-surface-variant">
+							{{ isHouseAccount ? "Open balance" : "Balance" }}
+						</p>
 						<p class="text-[18px] font-semibold">
 							{{ money(data.totals.balance) }}
 						</p>
 					</div>
 					<div
+						v-if="!isHouseAccount"
 						class="rounded-xl border border-dashed border-outline-variant px-4 py-2 text-right"
 						title="Nights not posted yet. Night audit posts them; they are not part of the balance."
 					>
@@ -1048,6 +1054,11 @@ import { formatMoney, formatNight } from "@/utils/hotelFormat";
 
 const POSTABLE = ["Open", "Post-Stay Open"];
 
+// `embedded`: shown inside another page (House Accounts), without its own links and margins.
+defineProps({ embedded: { type: Boolean, default: false } });
+// After a command changed a folio, so the page around it can refresh its own figures.
+const emit = defineEmits(["changed"]);
+
 const route = useRoute();
 const { banner, ask, notify, confirm: confirmBanner, cancel: cancelBanner } = useActionBanner();
 const data = ref(null);
@@ -1634,6 +1645,7 @@ async function run(command) {
 	try {
 		await command();
 		await load();
+		emit("changed");
 		return true;
 	} catch (e) {
 		const message = hotelErrorMessage(e);
