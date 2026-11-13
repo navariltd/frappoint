@@ -106,6 +106,19 @@ class TestFolios(SettlementTestCase):
 		with self.assertRaises(SettlementError):
 			settlement.set_payee(self.folio, payee_guest_profile=self.guest.name)
 
+	def test_a_guest_folio_bills_the_guest_not_their_employer(self):
+		company = make_company_customer("HSP Test Acme Ltd")
+		frappe.db.set_value("Guest Profile", self.guest.name, "customer", company)
+		personal = settlement.add_folio(self.stay.name, "Personal", payee_guest_profile=self.guest.name)
+		self.assertFalse(frappe.db.get_value("Guest Folio", personal, "payee_customer"))
+		self.facial(personal)
+		self.pay(self.balance(personal), folio_name=personal)
+		invoice = frappe.get_doc("Sales Invoice", settlement.settle(personal)["sales_invoice"])
+		self.assertNotEqual(invoice.customer, company)
+		self.assertEqual(frappe.db.get_value("Customer", invoice.customer, "customer_type"), "Individual")
+		# The guest's profile still points at the employer.
+		self.assertEqual(frappe.db.get_value("Guest Profile", self.guest.name, "customer"), company)
+
 
 class TestTransfers(SettlementTestCase):
 	def test_half_a_charge_moves_and_every_minor_unit_is_kept(self):

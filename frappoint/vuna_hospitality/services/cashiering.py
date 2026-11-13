@@ -318,10 +318,10 @@ def payer_for(folio_name: str) -> str:
 	if row.payee_customer:
 		return row.payee_customer
 	if row.payee_guest_profile:
-		from frappoint.vuna_hospitality.services.guests import link_customer
+		from frappoint.vuna_hospitality.services.guests import personal_customer
 
-		# The system creates the payer for the guest; the cashier needn't manage Customers.
-		customer = link_customer(row.payee_guest_profile, ignore_permissions=True)
+		# The system finds or creates the guest's own Customer; the cashier needn't manage them.
+		customer = personal_customer(row.payee_guest_profile)
 		frappe.db.set_value(folio.FOLIO, folio_name, "payee_customer", customer, update_modified=False)
 		return customer
 	walk_in = frappe.db.get_value("Hotel Property", row.property, "walk_in_customer")

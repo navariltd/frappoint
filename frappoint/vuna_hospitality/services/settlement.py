@@ -135,7 +135,13 @@ def _check_payee(customer: str | None, guest_profile: str | None) -> None:
 
 
 def _guest_customer(guest_profile: str | None) -> str | None:
-	return frappe.db.get_value("Guest Profile", guest_profile, "customer") if guest_profile else None
+	"""A folio billed to a guest bills the guest. Their linked Customer is used only if it is an
+	individual; an employer's Customer is left to the company's own folio. Otherwise the guest's
+	Customer is found or created at their first payment or at settlement."""
+	customer = frappe.db.get_value("Guest Profile", guest_profile, "customer") if guest_profile else None
+	if customer and frappe.db.get_value("Customer", customer, "customer_type") != "Company":
+		return customer
+	return None
 
 
 # --------------------------------------------------------------------------- transfers
