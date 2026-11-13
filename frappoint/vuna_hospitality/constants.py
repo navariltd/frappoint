@@ -115,3 +115,10 @@ RESERVATION_ROLES = (
 	FRONT_DESK_AGENT,
 	FRONT_DESK_MANAGER,
 )
+
+# Roles that settle a folio into a Sales Invoice (§17.3). Cashiers settle what they collect.
+SETTLEMENT_ROLES = CASHIER_ROLES
+
+# Roles that transfer a folio balance to a company's receivable, and issue credit notes for
+# invoiced charges (§17.3, §17.4). Going over a credit limit also needs ERPNext's Credit Controller.
+FOLIO_ACCOUNTING_ROLES = ("System Manager", HOSPITALITY_MANAGER, FRONT_DESK_MANAGER, HOTEL_ACCOUNTANT)
