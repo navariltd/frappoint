@@ -114,6 +114,20 @@ const NAVIGATION = {
 			],
 		},
 		{
+			label: "House Accounts",
+			icon: "storefront",
+			to: { name: "HotelHouseAccounts" },
+			activeWhen: ["HotelHouseAccounts", "HotelHouseAccountFolios"],
+			roles: [
+				"System Manager",
+				"Hospitality Manager",
+				"Front Desk Manager",
+				"Front Desk Agent",
+				"Cashier",
+				"Hotel Accountant",
+			],
+		},
+		{
 			label: "Night Audit",
 			icon: "nights_stay",
 			to: { name: "NightAudit" },

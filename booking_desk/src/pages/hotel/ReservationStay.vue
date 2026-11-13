@@ -299,6 +299,70 @@
 						</span>
 					</li>
 				</ul>
+				<p v-if="details.post_stay_until" class="text-[12px] text-on-surface-variant">
+					Late charges can post until {{ formatNight(details.post_stay_until) }}. Night
+					audit then closes the folios that owe nothing.
+				</p>
+			</section>
+
+			<!-- Deposit and policies (F12) -->
+			<section
+				v-if="details.deposit || details.policies?.length"
+				class="rounded-xl border border-outline-variant bg-surface-container-lowest p-4 space-y-3"
+			>
+				<div class="flex items-center justify-between">
+					<h2 class="text-[15px] font-semibold">Deposit and policies</h2>
+					<RouterLink
+						v-if="details.deposit && depositOpen && actions.can_view_folios"
+						:to="{ name: 'HotelFolios', params: { stayId: stay.name } }"
+						class="text-[12px] font-semibold text-primary"
+						>Take the deposit →</RouterLink
+					>
+				</div>
+				<div v-if="details.deposit" class="flex flex-wrap items-center gap-3 text-[13px]">
+					<HotelStatusBadge :status="details.deposit.status" />
+					<span>
+						{{ formatMoney(details.deposit.required_amount, stay.currency) }} required
+						<template v-if="details.deposit.policy_name">
+							({{ details.deposit.policy_name }})</template
+						>
+						· {{ formatMoney(details.deposit.held, stay.currency) }} held
+						<template v-if="Number(details.deposit.refunded)">
+							· {{ formatMoney(details.deposit.refunded, stay.currency) }} refunded
+						</template>
+					</span>
+					<span v-if="depositOpen" class="text-on-tertiary-container">
+						{{ formatMoney(details.deposit.outstanding, stay.currency) }} due by
+						{{ formatNight(details.deposit.due_date) }}
+						<template v-if="details.deposit.release_if_unpaid">
+							· the stay is released if unpaid</template
+						>
+					</span>
+					<button
+						v-if="depositOpen && actions.can_waive_deposit"
+						type="button"
+						class="rounded border border-outline-variant px-2.5 py-1 text-[12px] font-semibold disabled:opacity-50"
+						:disabled="busy"
+						@click="waiveDeposit"
+					>
+						Waive
+					</button>
+				</div>
+				<p v-if="details.deposit?.reason" class="text-[12px] text-on-surface-variant">
+					{{ details.deposit.reason }}
+				</p>
+				<ul
+					v-if="details.policies?.length"
+					class="text-[12px] text-on-surface-variant space-y-1"
+				>
+					<li v-for="policy in details.policies" :key="policy.event">
+						<b class="text-on-surface">{{ policy.event }}:</b> {{ policy.policy_name }}
+						<template v-if="policy.fee_type && policy.fee_type !== 'None'">
+							· {{ describeFee(policy) }}</template
+						>
+						<template v-if="policy.guest_text"> · {{ policy.guest_text }}</template>
+					</li>
+				</ul>
 			</section>
 
 			<div class="grid md:grid-cols-2 gap-5">
@@ -360,6 +424,7 @@ import {
 	checkInApi,
 	checkInGuestApi,
 	checkOutApi,
+	departEarlyApi,
 	fetchAssignableRoomsApi,
 	fetchMoveReasonsApi,
 	fetchStayApi,
@@ -369,6 +434,7 @@ import {
 	removeStayGuestApi,
 	setPrimaryGuestApi,
 	setRoomLockApi,
+	waiveDepositApi,
 } from "@/api/hotel.api";
 import ActionBanner from "@/components/hotel/ActionBanner.vue";
 import GuestPicker from "@/components/hotel/GuestPicker.vue";
@@ -459,8 +525,59 @@ async function pickRoom(room) {
 	}
 }
 
+const depositOpen = computed(() =>
+	["Requested", "Partly Paid"].includes(details.value?.deposit?.status)
+);
+
+function describeFee(policy) {
+	const value = Number(policy.fee_value || 0);
+	const fee = {
+		"First Night": "the first night",
+		"Full Stay": "the full stay",
+		"Percentage of Stay": `${value}% of the stay`,
+		"Fixed Amount": formatMoney(value, stay.value.currency),
+	}[policy.fee_type];
+	if (policy.event === "Cancellation") {
+		const hours = Number(policy.free_until_hours_before_arrival || 0);
+		return hours
+			? `free until ${hours} hours before arrival, then ${fee}`
+			: `free until arrival, then ${fee}`;
+	}
+	if (policy.event === "Early Departure") return `${fee} of the nights given up`;
+	return fee;
+}
+
+async function waiveDeposit() {
+	const answer = await ask({
+		title: `Waive the deposit for ${stay.value.lead_guest_name}?`,
+		message: "The guest can check in without paying it.",
+		reasonLabel: "Why is the deposit waived?",
+		confirmLabel: "Waive deposit",
+	});
+	if (answer) {
+		run(async () => {
+			await waiveDepositApi(details.value.deposit.name, answer.reason);
+			return fetchStayApi(stay.value.name);
+		});
+	}
+}
+
 async function checkOut() {
 	const name = stay.value.lead_guest_name;
+	const fee = Number(details.value.early_departure_fee || 0);
+	if (actions.value.leaving_early && fee) {
+		// Charge the fee first, so the guest can pay it before checking out.
+		const answer = await ask({
+			title: `${name} is leaving before ${formatNight(stay.value.departure_date)}`,
+			message: `Leaving early charges a fee of ${formatMoney(
+				fee,
+				stay.value.currency
+			)} and gives the remaining nights back. Take payment for it, then check out.`,
+			confirmLabel: "Charge the fee",
+		});
+		if (answer) run(() => departEarlyApi(stay.value.name));
+		return;
+	}
 	const owing = Number(details.value.open_balance || 0);
 	if (!owing) {
 		const answer = await ask({
