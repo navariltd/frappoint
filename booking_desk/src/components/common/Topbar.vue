@@ -194,6 +194,12 @@ const pageMeta = {
 		description: "Your shift, payments and shift reviews.",
 		tag: "Shift",
 	},
+	RatesRestrictions: {
+		sectionLabel: "Hotel",
+		title: "Rates and Restrictions",
+		description: "Nightly rates and stay rules per rate plan and room type.",
+		tag: "Revenue",
+	},
 	NightAudit: {
 		sectionLabel: "Hotel",
 		title: "Night Audit",

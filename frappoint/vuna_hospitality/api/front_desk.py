@@ -121,6 +121,25 @@ def check_out(stay: str, override_reason: str | None = None) -> dict:
 	return _run(lambda: front_desk.check_out(stay, override_reason=override_reason), stay)
 
 
+@frappe.whitelist()
+@require_hospitality
+def preview_departure_change(stay: str, departure: str) -> dict:
+	"""What moving the departure would add or give up, cost, and break, before doing it."""
+	_check_stay(stay, permission="read")
+	plan = front_desk.departure_change(stay, departure)
+	plan.pop("quote", None)
+	return plan
+
+
+@frappe.whitelist(methods=["POST"])
+@require_hospitality
+def change_departure(stay: str, departure: str, override_reason: str | None = None) -> dict:
+	"""Extend or shorten the stay. A broken restriction needs a manager's `override_reason`."""
+	_check_stay(stay, roles=FRONT_DESK_ROLES + RESERVATION_ROLES)
+	details = _run(lambda: front_desk.change_departure(stay, departure, override_reason), stay)
+	return details
+
+
 @frappe.whitelist(methods=["POST"])
 @require_hospitality
 def depart_early(stay: str) -> dict:

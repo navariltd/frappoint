@@ -194,7 +194,7 @@
 								class="px-4 py-3"
 								:class="[
 									isSelected(option) ? 'bg-primary/5' : '',
-									option.offered ? '' : 'opacity-60',
+									bookable(option) ? '' : 'opacity-60',
 								]"
 							>
 								<div class="flex flex-wrap items-center justify-between gap-3">
@@ -226,14 +226,23 @@
 													}}
 												</template>
 											</template>
-											<template v-else>{{
-												option.reasons.join(", ")
-											}}</template>
+											<span
+												v-else
+												:class="
+													option.overridable
+														? 'font-semibold text-on-tertiary-container'
+														: ''
+												"
+												>{{ option.reasons.join(", ")
+												}}<template v-if="bookable(option)">
+													· a manager can override</template
+												></span
+											>
 										</p>
 									</div>
 									<div class="flex items-center gap-3">
 										<p
-											v-if="option.offered"
+											v-if="bookable(option)"
 											class="text-[15px] font-semibold text-on-surface"
 										>
 											{{
@@ -244,18 +253,26 @@
 											}}
 										</p>
 										<button
-											v-if="option.offered"
+											v-if="bookable(option)"
 											type="button"
-											class="rounded-lg border border-primary px-3 py-1.5 text-[12px] font-semibold"
+											class="rounded-lg border px-3 py-1.5 text-[12px] font-semibold"
 											:class="
 												isSelected(option)
-													? 'bg-primary text-on-primary'
-													: 'text-primary'
+													? 'border-primary bg-primary text-on-primary'
+													: option.offered
+													? 'border-primary text-primary'
+													: 'border-tertiary text-on-tertiary-container'
 											"
 											:aria-pressed="isSelected(option)"
 											@click="selected = option"
 										>
-											{{ isSelected(option) ? "Selected" : "Select" }}
+											{{
+												isSelected(option)
+													? "Selected"
+													: option.offered
+													? "Select"
+													: "Override"
+											}}
 										</button>
 									</div>
 								</div>
@@ -351,6 +368,20 @@
 					</p>
 				</div>
 
+				<label
+					v-if="selected && !selected.offered"
+					class="block rounded-lg border border-tertiary bg-tertiary-container/30 p-3 text-[12px] text-on-surface"
+				>
+					<span class="font-semibold">Booking against a restriction:</span>
+					{{ selected.reasons.join(", ") }}. The reason is recorded on the stay.
+					<textarea
+						v-model="overrideReason"
+						rows="2"
+						class="hotel-input"
+						placeholder="Why is this stay allowed?"
+					/>
+				</label>
+
 				<div class="space-y-1">
 					<p class="text-[12px] font-semibold text-on-surface">Lead guest</p>
 					<GuestPicker v-model="guest" />
@@ -376,7 +407,14 @@
 				<button
 					type="button"
 					class="w-full rounded-lg bg-primary text-on-primary px-4 py-2.5 text-[13px] font-semibold disabled:opacity-50"
-					:disabled="!selected || searchChanged || !guest || !bookingSource || holding"
+					:disabled="
+						!selected ||
+						searchChanged ||
+						!guest ||
+						!bookingSource ||
+						holding ||
+						(!selected.offered && !overrideReason.trim())
+					"
 					@click="holdRooms"
 				>
 					{{ holding ? "Holding…" : "Hold room" }}
@@ -435,6 +473,8 @@ const selected = ref(null);
 const guest = ref(null);
 const bookingSource = ref("");
 const notes = ref("");
+// Why a stay is booked against a restriction (F13): managers only.
+const overrideReason = ref("");
 const searching = ref(false);
 // Results are on screen and being checked again in the background.
 const refreshing = ref(false);
@@ -560,6 +600,11 @@ function clearResults() {
 	planFilter.value = "";
 }
 
+/** Offered, or held back only by restrictions this user may override. */
+function bookable(option) {
+	return option.offered || (option.overridable && hotel.canOverrideRestrictions);
+}
+
 function isSelected(option) {
 	return (
 		selected.value?.room_type === option.room_type &&
@@ -585,7 +630,7 @@ function showResults(results) {
 		selected.value =
 			results.find(
 				(option) =>
-					option.offered &&
+					bookable(option) &&
 					option.room_type === selected.value.room_type &&
 					option.rate_plan === selected.value.rate_plan
 			) || null;
@@ -654,6 +699,9 @@ async function holdRooms() {
 					child_ages: selected.value.child_ages,
 					lead_guest: guest.value.name,
 					notes: notes.value || null,
+					restriction_override_reason: selected.value.offered
+						? null
+						: overrideReason.value.trim(),
 				},
 			],
 			bookingDetails: {

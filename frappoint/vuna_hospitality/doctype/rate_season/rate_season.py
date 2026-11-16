@@ -18,7 +18,15 @@ class RateSeason(Document):
 		if date_diff(self.to_date, self.from_date) + 1 > MAX_SEASON_NIGHTS:
 			frappe.throw(_("A season can cover at most {0} nights.").format(MAX_SEASON_NIGHTS))
 
-		plan = frappe.db.get_value("Rate Plan", self.rate_plan, ["property", "rate_basis"], as_dict=True)
+		plan = frappe.db.get_value(
+			"Rate Plan", self.rate_plan, ["property", "rate_basis", "parent_rate_plan"], as_dict=True
+		)
+		if plan.parent_rate_plan:
+			frappe.throw(
+				_("Rate Plan {0} takes its rates from {1}. Give the season to {1} instead.").format(
+					self.rate_plan, plan.parent_rate_plan
+				)
+			)
 		if plan.property != self.property:
 			frappe.throw(_("Rate Plan {0} belongs to another property.").format(self.rate_plan))
 		if plan.rate_basis != "Night":

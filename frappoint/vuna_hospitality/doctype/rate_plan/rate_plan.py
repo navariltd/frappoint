@@ -5,6 +5,11 @@ import frappe
 from frappe import _
 from frappe.model.document import Document
 
+from frappoint.vuna_hospitality.services.rates import (
+	DERIVATION_FIELDS,
+	check_derivation,
+	enqueue_regeneration,
+)
 from frappoint.vuna_hospitality.services.rooms import normalize_code
 
 
@@ -26,6 +31,12 @@ class RatePlan(Document):
 			self.validate_policy(self.no_show_policy, "No-show")
 		if self.early_departure_policy:
 			self.validate_policy(self.early_departure_policy, "Early Departure")
+		check_derivation(self)
+
+	def on_update(self):
+		# A new or changed derivation: work out the plan's rates again (F13).
+		if self.parent_rate_plan and any(self.has_value_changed(field) for field in DERIVATION_FIELDS):
+			enqueue_regeneration(self.name)
 
 	def validate_room_charge_code(self):
 		code = frappe.db.get_value(
@@ -68,4 +79,11 @@ class RatePlan(Document):
 			frappe.throw(_("Policy {0} is inactive.").format(policy))
 
 	def on_trash(self):
+		children = frappe.get_all("Rate Plan", filters={"parent_rate_plan": self.name}, pluck="name")
+		if children:
+			frappe.throw(
+				_("Rate plans {0} are derived from {1}. Change their parent first.").format(
+					", ".join(children), self.name
+				)
+			)
 		frappe.db.delete("Room Rate Day", {"rate_plan": self.name})

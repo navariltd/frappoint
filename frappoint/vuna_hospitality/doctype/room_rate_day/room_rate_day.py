@@ -6,7 +6,7 @@ from frappe import _
 from frappe.model.document import Document
 from frappe.utils import flt
 
-from frappoint.vuna_hospitality.services.rates import SERVICE_FLAG, rate_day_name
+from frappoint.vuna_hospitality.services.rates import SERVICE_FLAG, rate_day_name, schedule_derivation
 
 UNIQUE_INDEX = "unique_rate_plan_room_type_night"
 
@@ -34,6 +34,12 @@ class RoomRateDay(Document):
 		if not self.flags.get(SERVICE_FLAG) and (self.is_new() or self.has_value_changed("rate")):
 			self.source = "Manual"
 			self.is_manual_override = 1
+
+	def on_update(self):
+		# A hand edit of one night: the plans derived from this one follow (F13). Bulk edits
+		# schedule that once for the whole change.
+		if not self.flags.get("in_bulk") and not self.flags.get(SERVICE_FLAG):
+			schedule_derivation([self.rate_plan])
 
 
 def on_doctype_update():

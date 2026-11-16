@@ -63,6 +63,13 @@ export const HOTEL_ENDPOINTS = {
 	houseAccountFolios: `${HOSPITALITY_API}.folios.get_house_account_folios`,
 	openHouseAccountFolio: `${HOSPITALITY_API}.folios.open_house_account_folio`,
 	closeHouseAccount: `${HOSPITALITY_API}.folios.close_house_account`,
+	rateGrid: `${HOSPITALITY_API}.rates.get_rate_grid`,
+	setRates: `${HOSPITALITY_API}.rates.set_rates`,
+	resetRates: `${HOSPITALITY_API}.rates.reset_rates`,
+	regenerateRates: `${HOSPITALITY_API}.rates.regenerate_rates`,
+	setRestrictions: `${HOSPITALITY_API}.rates.set_restrictions`,
+	previewDepartureChange: `${HOSPITALITY_API}.front_desk.preview_departure_change`,
+	changeDeparture: `${HOSPITALITY_API}.front_desk.change_departure`,
 };
 
 const unwrapPayload = (payload) => payload?.message ?? payload ?? null;
@@ -337,3 +344,74 @@ export const openHouseAccountFolioApi = (account) =>
 	request(HOTEL_ENDPOINTS.openHouseAccountFolio, { account });
 export const closeHouseAccountApi = (account, reason) =>
 	request(HOTEL_ENDPOINTS.closeHouseAccount, { account, reason });
+
+// Rates, restrictions and stay changes (F13)
+export const fetchRateGridApi = ({ property, ratePlan, start, days }) =>
+	request(HOTEL_ENDPOINTS.rateGrid, {
+		property,
+		rate_plan: ratePlan || null,
+		start: start || null,
+		days: days || 14,
+	});
+export const setRatesApi = ({
+	ratePlan,
+	roomTypes,
+	fromDate,
+	toDate,
+	weekdays,
+	rate,
+	adjustPercent,
+	adjustAmount,
+	reason,
+}) =>
+	request(HOTEL_ENDPOINTS.setRates, {
+		rate_plan: ratePlan,
+		room_types: JSON.stringify(roomTypes),
+		from_date: fromDate,
+		to_date: toDate,
+		weekdays: JSON.stringify(weekdays || []),
+		rate: rate ?? null,
+		adjust_percent: adjustPercent ?? null,
+		adjust_amount: adjustAmount ?? null,
+		reason: reason || null,
+	});
+export const resetRatesApi = ({ ratePlan, roomTypes, fromDate, toDate, weekdays }) =>
+	request(HOTEL_ENDPOINTS.resetRates, {
+		rate_plan: ratePlan,
+		room_types: JSON.stringify(roomTypes),
+		from_date: fromDate,
+		to_date: toDate,
+		weekdays: JSON.stringify(weekdays || []),
+	});
+export const regenerateRatesApi = (ratePlan) =>
+	request(HOTEL_ENDPOINTS.regenerateRates, { rate_plan: ratePlan });
+export const setRestrictionsApi = ({
+	property,
+	ratePlan,
+	roomTypes,
+	fromDate,
+	toDate,
+	weekdays,
+	values,
+	clear,
+	notes,
+}) =>
+	request(HOTEL_ENDPOINTS.setRestrictions, {
+		property,
+		rate_plan: ratePlan || null,
+		room_types: JSON.stringify(roomTypes || []),
+		from_date: fromDate,
+		to_date: toDate,
+		weekdays: JSON.stringify(weekdays || []),
+		values: JSON.stringify(values || {}),
+		clear: clear ? 1 : 0,
+		notes: notes || null,
+	});
+export const previewDepartureChangeApi = (stay, departure) =>
+	request(HOTEL_ENDPOINTS.previewDepartureChange, { stay, departure });
+export const changeDepartureApi = (stay, departure, overrideReason = null) =>
+	request(HOTEL_ENDPOINTS.changeDeparture, {
+		stay,
+		departure,
+		override_reason: overrideReason,
+	});

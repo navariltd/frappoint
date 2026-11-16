@@ -1,0 +1,221 @@
+{
+ "actions": [],
+ "creation": "2026-11-16 10:00:00.000000",
+ "description": "Stay controls for one night: stop sell, closed to arrival or departure, length of stay and booking lead time. The most specific row (rate plan and room type) wins.",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "property",
+  "rate_plan",
+  "room_type",
+  "column_break_head",
+  "restriction_date",
+  "restriction_summary",
+  "rules_section",
+  "closed",
+  "closed_to_arrival",
+  "closed_to_departure",
+  "column_break_rules",
+  "min_stay_arrival",
+  "min_stay_through",
+  "max_stay",
+  "column_break_advance",
+  "min_advance_days",
+  "max_advance_days",
+  "notes_section",
+  "notes"
+ ],
+ "fields": [
+  {
+   "fieldname": "property",
+   "fieldtype": "Link",
+   "label": "Property",
+   "options": "Hotel Property",
+   "reqd": 1,
+   "in_standard_filter": 1
+  },
+  {
+   "fieldname": "rate_plan",
+   "fieldtype": "Link",
+   "label": "Rate Plan",
+   "options": "Rate Plan",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "description": "Empty: every rate plan."
+  },
+  {
+   "fieldname": "room_type",
+   "fieldtype": "Link",
+   "label": "Room Type",
+   "options": "Room Type",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "description": "Empty: every room type."
+  },
+  {
+   "fieldname": "column_break_head",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "restriction_date",
+   "fieldtype": "Date",
+   "label": "Date",
+   "reqd": 1,
+   "in_list_view": 1,
+   "search_index": 1
+  },
+  {
+   "fieldname": "restriction_summary",
+   "fieldtype": "Data",
+   "label": "Summary",
+   "read_only": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "rules_section",
+   "fieldtype": "Section Break",
+   "label": "Rules"
+  },
+  {
+   "fieldname": "closed",
+   "fieldtype": "Check",
+   "label": "Closed",
+   "description": "Stop sell: no new stay may include this night."
+  },
+  {
+   "fieldname": "closed_to_arrival",
+   "fieldtype": "Check",
+   "label": "Closed to Arrival",
+   "description": "No stay may arrive on this date."
+  },
+  {
+   "fieldname": "closed_to_departure",
+   "fieldtype": "Check",
+   "label": "Closed to Departure",
+   "description": "No stay may leave on this date."
+  },
+  {
+   "fieldname": "column_break_rules",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "min_stay_arrival",
+   "fieldtype": "Int",
+   "label": "Minimum Stay (Arriving)",
+   "non_negative": 1,
+   "description": "Stays arriving on this date must be at least this many nights."
+  },
+  {
+   "fieldname": "min_stay_through",
+   "fieldtype": "Int",
+   "label": "Minimum Stay (Through)",
+   "non_negative": 1,
+   "description": "Any stay that includes this night must be at least this many nights."
+  },
+  {
+   "fieldname": "max_stay",
+   "fieldtype": "Int",
+   "label": "Maximum Stay",
+   "non_negative": 1,
+   "description": "Stays arriving on this date may be at most this many nights."
+  },
+  {
+   "fieldname": "column_break_advance",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "min_advance_days",
+   "fieldtype": "Int",
+   "label": "Minimum Days Ahead",
+   "non_negative": 1,
+   "description": "Stays arriving on this date must be booked at least this many days ahead."
+  },
+  {
+   "fieldname": "max_advance_days",
+   "fieldtype": "Int",
+   "label": "Maximum Days Ahead",
+   "non_negative": 1,
+   "description": "Stays arriving on this date may be booked at most this many days ahead."
+  },
+  {
+   "fieldname": "notes_section",
+   "fieldtype": "Section Break",
+   "collapsible": 1
+  },
+  {
+   "fieldname": "notes",
+   "fieldtype": "Small Text",
+   "label": "Notes"
+  }
+ ],
+ "index_web_pages_for_search": 0,
+ "links": [],
+ "modified": "2026-11-16 10:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Vuna Hospitality",
+ "name": "Rate Restriction Day",
+ "naming_rule": "By script",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "role": "System Manager",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 1,
+   "report": 1,
+   "print": 1,
+   "export": 1
+  },
+  {
+   "role": "Hospitality Manager",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 1,
+   "report": 1,
+   "print": 1,
+   "export": 1
+  },
+  {
+   "role": "Revenue Manager",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 1,
+   "report": 1,
+   "print": 1,
+   "export": 1
+  },
+  {
+   "role": "Front Desk Manager",
+   "read": 1,
+   "report": 1,
+   "print": 1
+  },
+  {
+   "role": "Front Desk Agent",
+   "read": 1,
+   "report": 1,
+   "print": 1
+  },
+  {
+   "role": "Reservations Agent",
+   "read": 1,
+   "report": 1,
+   "print": 1
+  },
+  {
+   "role": "Night Auditor",
+   "read": 1,
+   "report": 1,
+   "print": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "sort_field": "restriction_date",
+ "sort_order": "ASC",
+ "states": [],
+ "title_field": "restriction_summary",
+ "track_changes": 1
+}

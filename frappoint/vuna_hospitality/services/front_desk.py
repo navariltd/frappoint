@@ -699,16 +699,18 @@ def depart_early(stay_name: str) -> dict | None:
 	return fee
 
 
-def _shorten_stay(stay, new_departure) -> None:
-	"""Early departure: release the remaining nights and stop pricing them. The fee is posted by
-	the caller first, from these nights (F12)."""
+def _shorten_stay(
+	stay, new_departure, event_type: str = "Early Departure", reason: str | None = None
+) -> None:
+	"""Early departure, or a shortened stay: release the remaining nights and stop pricing them.
+	A fee is posted by the caller first, from these nights (F12)."""
 	occupancy = frappe.get_doc(OCCUPANCY, stay.room_occupancy)
 	inventory.release(occupancy.room_type, new_departure, stay.departure_date, kind=inventory.SOLD)
 	table = frappe.qb.DocType(RATE_NIGHT)
 	(
 		frappe.qb.update(table)
 		.set(table.posting_state, "Cancelled")
-		.set(table.override_reason, _("Early departure"))
+		.set(table.override_reason, reason or _("Early departure"))
 		.where(table.stay_reservation == stay.name)
 		.where(table.night_date >= new_departure)
 		.where(table.posting_state == "Pending")
@@ -738,13 +740,254 @@ def _shorten_stay(stay, new_departure) -> None:
 	)
 	stay.flags[reservations.SERVICE_FLAG] = True
 	stay.save(ignore_permissions=True)
+	_move_assignment_end(stay, new_departure)
 	folio.refresh_stay_pending(stay.name)
 	log_event(
 		STAY,
 		stay.name,
-		"Early Departure",
+		event_type,
+		reason=reason,
 		data={"booked_departure": str(booked_departure), "departure": str(new_departure)},
 	)
+
+
+# --------------------------------------------------------------------------- extend or shorten (F13)
+
+AMENDABLE_STATUSES = (*PRE_ARRIVAL_STATUSES, *IN_HOUSE_STATUSES)
+
+
+class StayChangeError(frappe.ValidationError):
+	pass
+
+
+def _move_assignment_end(stay, new_departure) -> None:
+	"""The stay's room is held until the new departure's check-out time."""
+	assignment = current_assignment(stay.room_occupancy)
+	if not assignment:
+		return
+	_start, end = stay_window(stay, end_date=new_departure)
+	frappe.db.set_value(
+		ASSIGNMENT, assignment.name, {"end_date": getdate(new_departure), "end_datetime": end}
+	)
+
+
+def departure_change(stay_name: str, new_departure) -> dict:
+	"""What moving the departure would do, without doing it: the nights added or given up, their
+	price, any restriction broken, any early-departure fee, and whether the room is free."""
+	stay = frappe.get_doc(STAY, stay_name)
+	return _plan_departure_change(stay, getdate(new_departure))
+
+
+def _plan_departure_change(stay, new_departure) -> dict:
+	from frappoint.vuna_hospitality.services import restrictions
+	from frappoint.vuna_hospitality.services.quote import quote
+
+	if stay.status not in AMENDABLE_STATUSES:
+		frappe.throw(
+			_("Stay {0} is {1}; its dates can't change.").format(stay.name, _(stay.status)), StayChangeError
+		)
+	old = getdate(stay.departure_date)
+	business_date = _business_date(stay.property)
+	if new_departure <= getdate(stay.arrival_date):
+		frappe.throw(_("The stay must keep at least one night."), StayChangeError)
+	if new_departure == old:
+		frappe.throw(_("The stay already leaves on {0}.").format(frappe.format(old, "Date")), StayChangeError)
+	plan = frappe._dict(
+		stay=stay.name,
+		old_departure=old,
+		new_departure=new_departure,
+		extend=new_departure > old,
+		currency=stay.currency,
+		restrictions=restrictions.check(
+			stay.property, stay.rate_plan, stay.room_type, stay.arrival_date, new_departure, amendment=True
+		),
+		problems=[],
+		fee=0,
+		quote=None,
+	)
+	if plan.extend:
+		q = quote(
+			stay.property,
+			old,
+			new_departure,
+			stay.room_type,
+			stay.rate_plan,
+			stay.adults,
+			stay.children,
+			frappe.parse_json(stay.child_ages) if stay.child_ages else None,
+			# The restrictions are checked for the whole stay, above, not for the added nights alone.
+			override_restrictions=True,
+			amendment=True,
+		)
+		plan.quote = q
+		plan.nights = len(q.nights)
+		plan.amount = from_minor(q.total_minor, stay.currency)
+		plan.problems.extend(q.reasons)
+		assignment = current_assignment(stay.room_occupancy)
+		if assignment:
+			start, _end = stay_window(stay, start_date=old)
+			_start, end = stay_window(stay, end_date=new_departure)
+			turnover = frappe.db.get_value("Hotel Property", stay.property, "turnover_minutes")
+			if find_conflict(assignment.hotel_room, start, end, turnover, stay.room_occupancy):
+				plan.problems.append(
+					_("Room {0} is taken after {1}. Move the guest to another room first.").format(
+						assignment.room_number, frappe.format(old, "Date")
+					)
+				)
+			closed = room_closed(assignment.hotel_room, old, new_departure)
+			if closed:
+				plan.problems.append(
+					_("Room {0} is {1} on those nights.").format(assignment.room_number, _(closed))
+				)
+	else:
+		posted = frappe.get_all(
+			RATE_NIGHT,
+			filters={
+				"stay_reservation": stay.name,
+				"posting_state": "Posted",
+				"night_date": [">=", new_departure],
+			},
+			pluck="night_date",
+		)
+		if posted:
+			plan.problems.append(
+				_("The night of {0} is already charged; the stay can't end before {1}.").format(
+					frappe.format(max(posted), "Date"), frappe.format(add_days(max(posted), 1), "Date")
+				)
+			)
+		if stay.status in IN_HOUSE_STATUSES and new_departure < business_date:
+			plan.problems.append(_("An in-house stay can't end before today's business date."))
+		given_up = policies.pending_nights(stay.name, new_departure)
+		plan.nights = -len(given_up)
+		plan.amount = -from_minor(sum(given_up), stay.currency)
+		if stay.status in IN_HOUSE_STATUSES:
+			plan.fee = policies.fee_quote(stay, policies.EARLY_DEPARTURE, new_departure).amount
+	plan.can_override = restrictions.can_override()
+	return plan
+
+
+def change_departure(stay_name: str, new_departure, override_reason: str | None = None) -> dict:
+	"""Extend or shorten the stay (design §11.2): re-quote the added nights and take their rooms
+	under lock, or give the dropped nights back. Returns what changed.
+
+	Restrictions are checked for the whole new stay; a Revenue or Front Desk Manager may override
+	them with a reason, recorded on the stay. Shortening an in-house stay charges its
+	early-departure fee, as leaving early does.
+	"""
+	from frappoint.vuna_hospitality.services import restrictions
+
+	stay = _lock_stay(stay_name)
+	new_departure = getdate(new_departure)
+	plan = _plan_departure_change(stay, new_departure)
+	if plan.problems:
+		frappe.throw(" ".join(plan.problems), StayChangeError)
+	if plan.restrictions:
+		if not (override_reason or "").strip():
+			frappe.throw(
+				_(
+					"The new dates break a restriction: {0}. A Revenue or Front Desk Manager can override it with a reason."
+				).format(restrictions.describe(plan.restrictions)),
+				restrictions.RestrictionError,
+			)
+		override_reason = restrictions.assert_override(override_reason)
+
+	old = plan.old_departure
+	if plan.extend:
+		_extend_stay(stay, plan)
+	else:
+		if stay.status in IN_HOUSE_STATUSES:
+			policies.post_fee(stay, policies.EARLY_DEPARTURE, from_date=new_departure)
+		_shorten_stay(stay, new_departure, event_type="Stay Shortened", reason=_("Stay shortened"))
+	if override_reason:
+		_record_override(stay, plan.restrictions, override_reason)
+	_roll_after_change(stay)
+	refresh_booking(stay.hotel_booking)
+	return {
+		"stay": stay.name,
+		"from": str(old),
+		"to": str(new_departure),
+		"nights": plan.nights,
+		"amount": plan.amount,
+		"fee": plan.fee,
+	}
+
+
+def _extend_stay(stay, plan) -> None:
+	q = plan.quote
+	# Take the rooms first, under lock: this fails before anything is written if a night is full.
+	inventory.acquire(stay.room_type, plan.old_departure, plan.new_departure, kind=inventory.SOLD)
+	reservations.create_rate_nights(stay.property, stay.name, q)
+	frappe.db.set_value(OCCUPANCY, stay.room_occupancy, "end_date", plan.new_departure)
+	frappe.db.set_value(
+		MEMBERSHIP,
+		{"room_occupancy": stay.room_occupancy, "stay_reservation": stay.name},
+		"end_date",
+		plan.new_departure,
+	)
+	kept = frappe.get_all(
+		RATE_NIGHT,
+		filters={"stay_reservation": stay.name, "posting_state": ["!=", "Cancelled"]},
+		pluck="total",
+	)
+	total_minor = sum(to_minor(amount, stay.currency) for amount in kept)
+	nights = len(inventory.nights_between(stay.arrival_date, plan.new_departure))
+	stay.update(
+		{
+			"departure_date": plan.new_departure,
+			"nights": nights,
+			"total_amount": from_minor(total_minor, stay.currency),
+			"average_rate": from_minor(total_minor // max(nights, 1), stay.currency),
+		}
+	)
+	stay.flags[reservations.SERVICE_FLAG] = True
+	stay.save(ignore_permissions=True)
+	_move_assignment_end(stay, plan.new_departure)
+	folio.refresh_stay_pending(stay.name)
+	log_event(
+		STAY,
+		stay.name,
+		"Stay Extended",
+		data={
+			"booked_departure": str(plan.old_departure),
+			"departure": str(plan.new_departure),
+			"nights_added": plan.nights,
+			"amount": plan.amount,
+		},
+	)
+
+
+def _record_override(stay, broken: list[dict], reason: str) -> None:
+	from frappoint.vuna_hospitality.services.restrictions import describe
+
+	stay.reload()
+	stay.update(
+		{
+			"overridden_restrictions": describe(broken),
+			"restriction_override_reason": reason,
+			"restriction_override_by": frappe.session.user,
+		}
+	)
+	stay.flags[reservations.SERVICE_FLAG] = True
+	stay.save(ignore_permissions=True)
+	log_event(
+		STAY,
+		stay.name,
+		"Restriction Overridden",
+		reason=reason,
+		data={"restrictions": [item["reason"] for item in broken]},
+	)
+
+
+def _roll_after_change(stay) -> None:
+	"""A Due Out stay that now leaves later is In House again; an In House stay that now leaves by
+	the next business date is Due Out, as night audit would have marked it."""
+	stay.reload()
+	next_date = add_days(_business_date(stay.property), 1)
+	departure = getdate(stay.departure_date)
+	if stay.status == "Due Out" and departure > next_date:
+		transition(stay, "In House", event_type="Stay Extended", ignore_permissions=True)
+	elif stay.status == "In House" and departure <= _business_date(stay.property):
+		transition(stay, "Due Out", event_type="Stay Shortened", ignore_permissions=True)
 
 
 def assert_guarantee_satisfied(stay) -> None:
@@ -958,6 +1201,12 @@ def stay_details(stay_name: str) -> dict:
 			"can_override_check_out": is_manager,
 			"leaving_early": leaving_early,
 			"can_waive_deposit": is_manager,
+			# F13: extend or shorten, and book against a restriction.
+			"can_change_dates": status in AMENDABLE_STATUSES,
+			"can_override_restrictions": bool(
+				set(("System Manager", "Hospitality Manager", "Revenue Manager", "Front Desk Manager"))
+				& set(frappe.get_roles())
+			),
 		},
 	}
 

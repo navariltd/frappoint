@@ -43,6 +43,11 @@
   "deposit_policy_snapshot",
   "early_departure_policy",
   "early_departure_policy_snapshot",
+  "restriction_section",
+  "overridden_restrictions",
+  "column_break_restriction",
+  "restriction_override_reason",
+  "restriction_override_by",
   "history_section",
   "confirmed_at",
   "confirmed_by",
@@ -325,6 +330,36 @@
    "read_only": 1
   },
   {
+   "fieldname": "restriction_section",
+   "fieldtype": "Section Break",
+   "label": "Restriction Override",
+   "collapsible": 1,
+   "depends_on": "restriction_override_reason"
+  },
+  {
+   "fieldname": "overridden_restrictions",
+   "fieldtype": "Small Text",
+   "label": "Restrictions Overridden",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_restriction",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "restriction_override_reason",
+   "fieldtype": "Small Text",
+   "label": "Override Reason",
+   "read_only": 1
+  },
+  {
+   "fieldname": "restriction_override_by",
+   "fieldtype": "Link",
+   "label": "Overridden By",
+   "options": "User",
+   "read_only": 1
+  },
+  {
    "fieldname": "history_section",
    "fieldtype": "Section Break",
    "label": "History",
@@ -410,7 +445,7 @@
    "group": "Billing"
   }
  ],
- "modified": "2026-11-13 18:00:00.000000",
+ "modified": "2026-11-16 10:00:00.000000",
  "modified_by": "Administrator",
  "module": "Vuna Hospitality",
  "name": "Stay Reservation",
