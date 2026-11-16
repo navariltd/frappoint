@@ -21,6 +21,7 @@ export const useHotelStore = defineStore("hotel", {
 		maxStayNights: 30,
 		defaultLandingPage: "Front Desk Today",
 		canBook: false,
+		canOverrideRestrictions: false,
 		property: readSavedProperty(),
 		loaded: false,
 		loading: false,
@@ -50,6 +51,7 @@ export const useHotelStore = defineStore("hotel", {
 					this.holdExpiryMinutes = context?.hold_expiry_minutes || 15;
 					this.maxStayNights = context?.max_stay_nights || 30;
 					this.canBook = !!context?.can_book;
+					this.canOverrideRestrictions = !!context?.can_override_restrictions;
 					if (!this.currentProperty) this.setProperty(this.properties[0]?.name || null);
 				}
 				this.loaded = true;

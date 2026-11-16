@@ -42,6 +42,15 @@
 				</div>
 				<div class="flex gap-2">
 					<button
+						v-if="actions.can_change_dates && !dates.open"
+						type="button"
+						class="rounded-lg border border-outline-variant px-4 py-2 text-[13px] font-semibold disabled:opacity-50"
+						:disabled="busy"
+						@click="openDates"
+					>
+						Change dates
+					</button>
+					<button
 						v-if="actions.can_check_in"
 						type="button"
 						class="rounded-lg bg-primary text-on-primary px-4 py-2 text-[13px] font-semibold disabled:opacity-50"
@@ -61,6 +70,103 @@
 					</button>
 				</div>
 			</header>
+
+			<p
+				v-if="stay.restriction_override_reason"
+				class="rounded-lg border border-tertiary bg-tertiary-container/30 px-4 py-2 text-[12px] text-on-surface"
+			>
+				Booked against {{ stay.overridden_restrictions }}, by
+				{{ stay.restriction_override_by }}: {{ stay.restriction_override_reason }}
+			</p>
+
+			<!-- Extend or shorten (F13) -->
+			<section
+				v-if="dates.open"
+				class="rounded-xl border border-primary bg-surface-container-lowest p-4 space-y-3"
+				aria-label="Change dates"
+			>
+				<div class="flex flex-wrap items-end gap-3">
+					<label class="text-[12px] text-on-surface-variant">
+						Leaves on
+						<input
+							v-model="dates.departure"
+							type="date"
+							:min="minDeparture"
+							class="mt-1 block rounded-lg border border-outline-variant px-3 py-2 text-[13px]"
+						/>
+					</label>
+					<p class="pb-2 text-[12px] text-on-surface-variant">
+						Now {{ formatNight(stay.departure_date) }} · arrives
+						{{ formatNight(stay.arrival_date) }}
+					</p>
+				</div>
+				<p v-if="dates.loading" class="text-[12px] text-on-surface-variant">Checking…</p>
+				<template v-else-if="dates.preview">
+					<p class="text-[13px] text-on-surface">
+						<template v-if="dates.preview.extend">
+							Adds <b>{{ dates.preview.nights }}</b> night{{
+								dates.preview.nights === 1 ? "" : "s"
+							}}
+							for <b>{{ formatMoney(dates.preview.amount, stay.currency) }}</b
+							>, at today's rates.
+						</template>
+						<template v-else>
+							Gives back <b>{{ -dates.preview.nights }}</b> night{{
+								dates.preview.nights === -1 ? "" : "s"
+							}}
+							({{ formatMoney(-dates.preview.amount, stay.currency) }}).
+							<template v-if="Number(dates.preview.fee)">
+								Leaving early charges a fee of
+								<b>{{ formatMoney(dates.preview.fee, stay.currency) }}</b
+								>.
+							</template>
+						</template>
+					</p>
+					<ul
+						v-if="dates.preview.problems.length"
+						class="space-y-1 text-[12px] text-error"
+					>
+						<li v-for="problem in dates.preview.problems" :key="problem">
+							{{ problem }}
+						</li>
+					</ul>
+					<label
+						v-if="dates.preview.restrictions.length"
+						class="block rounded-lg border border-tertiary bg-tertiary-container/30 p-3 text-[12px]"
+					>
+						<span class="font-semibold">The new dates break a restriction:</span>
+						{{ dates.preview.restrictions.map((item) => item.reason).join(", ") }}.
+						<template v-if="dates.preview.can_override">
+							Give a reason to override it.
+							<textarea
+								v-model="dates.reason"
+								rows="2"
+								class="mt-1 w-full rounded-lg border border-outline-variant px-3 py-2 text-[13px]"
+							/>
+						</template>
+						<template v-else>
+							Only a Revenue or Front Desk Manager can override it.
+						</template>
+					</label>
+				</template>
+				<div class="flex justify-end gap-2">
+					<button
+						type="button"
+						class="rounded-lg border border-outline-variant px-3 py-2 text-[12px] font-semibold"
+						@click="dates.open = false"
+					>
+						Cancel
+					</button>
+					<button
+						type="button"
+						class="rounded-lg bg-primary text-on-primary px-4 py-2 text-[13px] font-semibold disabled:opacity-50"
+						:disabled="!canApplyDates || busy"
+						@click="applyDates"
+					>
+						{{ dates.preview?.extend ? "Extend stay" : "Shorten stay" }}
+					</button>
+				</div>
+			</section>
 
 			<div
 				class="grid gap-5"
@@ -451,13 +557,14 @@
 </template>
 
 <script setup>
-import { computed, onMounted, ref, watch } from "vue";
+import { computed, onMounted, reactive, ref, watch } from "vue";
 import { useRoute } from "vue-router";
 import {
 	addStayGuestApi,
 	assignRoomApi,
 	checkInApi,
 	checkInGuestApi,
+	changeDepartureApi,
 	checkOutApi,
 	departEarlyApi,
 	fetchAssignableRoomsApi,
@@ -465,6 +572,7 @@ import {
 	fetchStayApi,
 	hotelErrorMessage,
 	moveRoomApi,
+	previewDepartureChangeApi,
 	registerGuestApi,
 	removeStayGuestApi,
 	setPrimaryGuestApi,
@@ -475,7 +583,7 @@ import ActionBanner from "@/components/hotel/ActionBanner.vue";
 import GuestPicker from "@/components/hotel/GuestPicker.vue";
 import HotelStatusBadge from "@/components/hotel/HotelStatusBadge.vue";
 import { useActionBanner } from "@/composables/hotel/useActionBanner";
-import { formatMoney, formatNight } from "@/utils/hotelFormat";
+import { addDays, formatMoney, formatNight } from "@/utils/hotelFormat";
 
 // `embedded`: shown beside the Front Desk list, without its own margins. `stayId` then names the
 // stay; on its own page the route does.
@@ -569,6 +677,58 @@ async function pickRoom(room) {
 	} else {
 		run(() => assignRoomApi(stay.value.name, room.name));
 	}
+}
+
+// Extend or shorten (F13): pick a departure, see what changes, then apply.
+const dates = reactive({
+	open: false,
+	departure: "",
+	preview: null,
+	loading: false,
+	reason: "",
+});
+let previewTimer = null;
+const minDeparture = computed(() => (stay.value ? addDays(stay.value.arrival_date, 1) : ""));
+const canApplyDates = computed(
+	() =>
+		dates.preview &&
+		!dates.loading &&
+		!dates.preview.problems.length &&
+		(!dates.preview.restrictions.length || (dates.preview.can_override && dates.reason.trim()))
+);
+
+function openDates() {
+	Object.assign(dates, {
+		open: true,
+		departure: stay.value.departure_date,
+		preview: null,
+		reason: "",
+	});
+}
+
+watch(
+	() => dates.departure,
+	(value) => {
+		clearTimeout(previewTimer);
+		dates.preview = null;
+		if (!dates.open || !value || value === stay.value?.departure_date) return;
+		dates.loading = true;
+		previewTimer = setTimeout(async () => {
+			try {
+				dates.preview = await previewDepartureChangeApi(stay.value.name, value);
+			} catch (e) {
+				dates.preview = { problems: [hotelErrorMessage(e)], restrictions: [] };
+			} finally {
+				dates.loading = false;
+			}
+		}, 300);
+	}
+);
+
+async function applyDates() {
+	const reason = dates.preview.restrictions.length ? dates.reason.trim() : null;
+	await run(() => changeDepartureApi(stay.value.name, dates.departure, reason));
+	if (!error.value) dates.open = false;
 }
 
 const depositOpen = computed(() =>

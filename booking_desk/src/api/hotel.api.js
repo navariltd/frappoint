@@ -68,6 +68,8 @@ export const HOTEL_ENDPOINTS = {
 	resetRates: `${HOSPITALITY_API}.rates.reset_rates`,
 	regenerateRates: `${HOSPITALITY_API}.rates.regenerate_rates`,
 	setRestrictions: `${HOSPITALITY_API}.rates.set_restrictions`,
+	previewDepartureChange: `${HOSPITALITY_API}.front_desk.preview_departure_change`,
+	changeDeparture: `${HOSPITALITY_API}.front_desk.change_departure`,
 };
 
 const unwrapPayload = (payload) => payload?.message ?? payload ?? null;
@@ -343,7 +345,7 @@ export const openHouseAccountFolioApi = (account) =>
 export const closeHouseAccountApi = (account, reason) =>
 	request(HOTEL_ENDPOINTS.closeHouseAccount, { account, reason });
 
-// Rates and restrictions
+// Rates, restrictions and stay changes (F13)
 export const fetchRateGridApi = ({ property, ratePlan, start, days }) =>
 	request(HOTEL_ENDPOINTS.rateGrid, {
 		property,
@@ -404,4 +406,12 @@ export const setRestrictionsApi = ({
 		values: JSON.stringify(values || {}),
 		clear: clear ? 1 : 0,
 		notes: notes || null,
+	});
+export const previewDepartureChangeApi = (stay, departure) =>
+	request(HOTEL_ENDPOINTS.previewDepartureChange, { stay, departure });
+export const changeDepartureApi = (stay, departure, overrideReason = null) =>
+	request(HOTEL_ENDPOINTS.changeDeparture, {
+		stay,
+		departure,
+		override_reason: overrideReason,
 	});
