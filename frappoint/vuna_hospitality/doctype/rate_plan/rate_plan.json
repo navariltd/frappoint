@@ -12,6 +12,14 @@
   "rate_basis",
   "currency",
   "tax_inclusive",
+  "derivation_section",
+  "parent_rate_plan",
+  "derivation_type",
+  "derivation_value",
+  "column_break_derivation",
+  "rounding_rule",
+  "rounding_increment",
+  "last_derived_on",
   "charging_section",
   "room_charge_code",
   "package",
@@ -82,6 +90,61 @@
    "default": "1"
   },
   {
+   "fieldname": "derivation_section",
+   "fieldtype": "Section Break",
+   "label": "Derived From",
+   "collapsible": 1,
+   "description": "A derived plan's prices are worked out from its parent's, night by night. Prices edited by hand on a derived plan are kept when the parent changes."
+  },
+  {
+   "fieldname": "parent_rate_plan",
+   "fieldtype": "Link",
+   "label": "Parent Rate Plan",
+   "options": "Rate Plan"
+  },
+  {
+   "fieldname": "derivation_type",
+   "fieldtype": "Select",
+   "label": "Adjustment",
+   "options": "Percentage\nFixed Amount",
+   "default": "Percentage",
+   "depends_on": "parent_rate_plan"
+  },
+  {
+   "fieldname": "derivation_value",
+   "fieldtype": "Float",
+   "label": "Adjustment Value",
+   "depends_on": "parent_rate_plan",
+   "description": "Negative for a discount: -10 with Percentage is 10% off the parent."
+  },
+  {
+   "fieldname": "column_break_derivation",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "rounding_rule",
+   "fieldtype": "Select",
+   "label": "Rounding",
+   "options": "None\nNearest\nUp\nDown",
+   "default": "None",
+   "depends_on": "parent_rate_plan"
+  },
+  {
+   "fieldname": "rounding_increment",
+   "fieldtype": "Currency",
+   "label": "Round To",
+   "options": "currency",
+   "depends_on": "eval:doc.parent_rate_plan && doc.rounding_rule != 'None'",
+   "description": "For example 50: 9,475 rounds to 9,500 (Nearest), 9,450 (Down) or 9,500 (Up)."
+  },
+  {
+   "fieldname": "last_derived_on",
+   "fieldtype": "Datetime",
+   "label": "Last Derived On",
+   "read_only": 1,
+   "no_copy": 1
+  },
+  {
    "fieldname": "charging_section",
    "fieldtype": "Section Break",
    "label": "Charging and Policies"
@@ -146,7 +209,7 @@
  ],
  "index_web_pages_for_search": 0,
  "links": [],
- "modified": "2026-11-13 18:00:00.000000",
+ "modified": "2026-11-16 10:00:00.000000",
  "modified_by": "Administrator",
  "module": "Vuna Hospitality",
  "name": "Rate Plan",
