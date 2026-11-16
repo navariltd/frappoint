@@ -1,18 +1,22 @@
-"""Quote a stay (design §10.7; feature F3: steps 1, 3 and 7).
+"""Quote a stay (design §10.7; features F3, F9 and F13).
 
 For each night, in order:
 
 1. the room type must be available (ignoring the overbooking allowance);
+2. the stay must keep the night's restrictions: closed, closed to arrival or departure, minimum
+   and maximum stay, booking lead time (F13). A broken restriction is listed in `restrictions`;
+   unless it is overridden it makes the option unavailable, and `overridable` says the
+   restrictions are all that stand in the way;
 3. the rate plan must have a Room Rate Day for the room type and night;
-7. per-night lines and a stay total are returned.
-
 4. occupancy pricing: extra adults and child bands (F9);
 5. package components added to or carved out of the rate (F9);
-6. tax on the stay, computed by ERPNext for display (F9).
+6. tax on the stay, computed by ERPNext for display (F9);
+7. per-night lines and a stay total are returned.
 
-Step 2 (restrictions) arrives with F13. A quote reads only: it never creates, locks or stores
-anything, and the same inputs and master data always give the same quote. Amounts are summed in
-integer minor units. Each night carries its components, which a hold snapshots onto the stay.
+Group-block allotment (part of step 1) comes with group blocks in a later release. A quote reads
+only: it never creates, locks or stores anything, and the same inputs and master data always give
+the same quote. Amounts are summed in integer minor units. Each night carries its components,
+which a hold snapshots onto the stay.
 """
 
 from dataclasses import asdict, dataclass, field
@@ -25,6 +29,7 @@ from frappe.utils import cint, getdate
 from frappoint.vuna_hospitality.services.inventory import nights_between, peek_rows
 from frappoint.vuna_hospitality.services.money import from_minor, to_minor
 from frappoint.vuna_hospitality.services.rates import get_rates
+from frappoint.vuna_hospitality.services.restrictions import check as check_restrictions
 from frappoint.vuna_hospitality.services.stay_pricing import (
 	PricingError,
 	normalize_child_ages,
@@ -74,6 +79,12 @@ class Quote:
 	grand_total: float = 0.0
 	offered: bool = False
 	reasons: list[str] = field(default_factory=list)
+	# Restrictions the stay breaks (F13): [{"rule", "night", "reason"}].
+	restrictions: list[dict] = field(default_factory=list)
+	# True when the restrictions alone stop the option, so an authorized override can book it.
+	overridable: bool = False
+	# True when restrictions were broken and overridden for this quote.
+	restrictions_overridden: bool = False
 
 	def as_dict(self) -> dict:
 		data = asdict(self)
@@ -94,11 +105,15 @@ def quote(
 	children: int = 0,
 	child_ages=None,
 	with_tax: bool = True,
+	override_restrictions: bool = False,
+	amendment: bool = False,
 ) -> Quote:
 	"""Price one room type on one rate plan for the stay. Check `.offered` and `.reasons`.
 
 	`child_ages` are the children's ages on the arrival date; children without an age are priced in
-	the oldest child band.
+	the oldest child band. `override_restrictions` lists broken restrictions without refusing the
+	stay (the caller checks who may do that). An `amendment` (new nights for an existing stay)
+	isn't held to booking lead time.
 	"""
 	arrival, departure = getdate(arrival), getdate(departure)
 	nights = nights_between(arrival, departure)
@@ -162,6 +177,19 @@ def quote(
 		result.total_minor += amount_minor
 		if reason and reason not in result.reasons:
 			result.reasons.append(reason)
+
+	# Step 2: restrictions, for the stay as a whole.
+	result.restrictions = check_restrictions(
+		property_name, plan.name, room.name, arrival, departure, amendment=amendment
+	)
+	if result.restrictions:
+		if override_restrictions:
+			result.restrictions_overridden = True
+		else:
+			result.overridable = not result.reasons
+			for item in result.restrictions:
+				if item["reason"] not in result.reasons:
+					result.reasons.append(item["reason"])
 
 	result.total = from_minor(result.total_minor, plan.currency)
 	result.offered = not result.reasons

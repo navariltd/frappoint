@@ -212,6 +212,12 @@ def _prepare_stay(property_name: str, prop, limits, stay: dict):
 		)
 
 	_check_lead_guest(stay.lead_guest)
+	# Booking against a restriction (F13) needs the right role and a reason.
+	override_reason = (stay.get("restriction_override_reason") or "").strip() or None
+	if override_reason:
+		from frappoint.vuna_hospitality.services.restrictions import assert_override
+
+		override_reason = assert_override(override_reason)
 	stay_quote = quote(
 		property_name,
 		arrival,
@@ -221,6 +227,7 @@ def _prepare_stay(property_name: str, prop, limits, stay: dict):
 		cint(stay.get("adults") or 1),
 		cint(stay.get("children")),
 		stay.get("child_ages"),
+		override_restrictions=bool(override_reason),
 	)
 	sold_out = next((night for night in stay_quote.nights if night.reason == SOLD_OUT), None)
 	if sold_out:
@@ -250,6 +257,7 @@ def _prepare_stay(property_name: str, prop, limits, stay: dict):
 		arrival=arrival,
 		departure=departure,
 		policies=policies,
+		override_reason=override_reason if stay_quote.restrictions_overridden else None,
 	)
 
 
@@ -355,6 +363,7 @@ def _create_stay(booking, p, expires_at) -> str:
 			"average_rate": from_minor(q.total_minor // max(len(q.nights), 1), q.currency),
 			**{field: p.policies.get(field) for field in POLICY_FIELDS},
 			**{f"{field}_snapshot": _policy_snapshot(p.policies.get(field)) for field in POLICY_FIELDS},
+			**_override_fields(p),
 		},
 	)
 	from frappoint.vuna_hospitality.services.front_desk import add_primary_guest
@@ -371,32 +380,7 @@ def _create_stay(booking, p, expires_at) -> str:
 			"reason": "Initial",
 		},
 	)
-	for night in q.nights:
-		amount = from_minor(night.amount_minor, q.currency)
-		components = [
-			{**component, "amount": from_minor(component["amount_minor"], q.currency)}
-			for component in night.components
-		]
-		_new(
-			RATE_NIGHT,
-			{
-				"property": booking.property,
-				"stay_reservation": reservation.name,
-				"night_date": night.night,
-				"rate_plan": q.rate_plan,
-				"room_type": q.room_type,
-				"adults": adults,
-				"children": children,
-				"currency": q.currency,
-				"tax_inclusive": int(q.tax_inclusive),
-				"room_rate": from_minor(night.room_rate_minor, q.currency),
-				"extras_amount": from_minor(night.extras_minor, q.currency),
-				"package_amount": from_minor(night.package_minor, q.currency),
-				"total": amount,
-				"components": frappe.as_json(components),
-				"posting_state": "Pending",
-			},
-		)
+	create_rate_nights(booking.property, reservation.name, q)
 	log_event(
 		STAY,
 		reservation.name,
@@ -413,7 +397,76 @@ def _create_stay(booking, p, expires_at) -> str:
 		},
 		property_name=booking.property,
 	)
+	if p.override_reason:
+		log_event(
+			STAY,
+			reservation.name,
+			"Restriction Overridden",
+			reason=p.override_reason,
+			data={"restrictions": [item["reason"] for item in q.restrictions]},
+			property_name=booking.property,
+		)
 	return reservation.name
+
+
+def create_rate_nights(property_name: str, stay_name: str, q) -> None:
+	"""One Stay Rate Night per quoted night: the price the stay is held at (a hold, an extension)."""
+	adults, children = q.adults, q.children
+	for night in q.nights:
+		amount = from_minor(night.amount_minor, q.currency)
+		components = [
+			{**component, "amount": from_minor(component["amount_minor"], q.currency)}
+			for component in night.components
+		]
+		values = {
+			"property": property_name,
+			"stay_reservation": stay_name,
+			"night_date": night.night,
+			"rate_plan": q.rate_plan,
+			"room_type": q.room_type,
+			"adults": adults,
+			"children": children,
+			"currency": q.currency,
+			"tax_inclusive": int(q.tax_inclusive),
+			"room_rate": from_minor(night.room_rate_minor, q.currency),
+			"extras_amount": from_minor(night.extras_minor, q.currency),
+			"package_amount": from_minor(night.package_minor, q.currency),
+			"total": amount,
+			"components": frappe.as_json(components),
+			"posting_state": "Pending",
+		}
+		# A night given up earlier (a shortened stay) and now sold again takes the new price.
+		existing = frappe.db.get_value(
+			RATE_NIGHT,
+			{"stay_reservation": stay_name, "night_date": night.night},
+			["name", "posting_state"],
+			as_dict=True,
+		)
+		if not existing:
+			_new(RATE_NIGHT, values)
+		elif existing.posting_state == "Cancelled":
+			frappe.db.set_value(
+				RATE_NIGHT, existing.name, {**values, "override_reason": None, "posting_key": None}
+			)
+		else:
+			frappe.throw(
+				_("Stay {0} already has the night of {1}.").format(
+					stay_name, frappe.format(night.night, "Date")
+				)
+			)
+
+
+def _override_fields(p) -> dict:
+	"""The restrictions a stay was booked against, and who allowed it (F13)."""
+	if not p.override_reason:
+		return {}
+	from frappoint.vuna_hospitality.services.restrictions import describe
+
+	return {
+		"overridden_restrictions": describe(p.quote.restrictions),
+		"restriction_override_reason": p.override_reason,
+		"restriction_override_by": frappe.session.user,
+	}
 
 
 def _policy_snapshot(policy: str | None) -> str | None:

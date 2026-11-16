@@ -11,7 +11,7 @@ from frappe import _
 from frappe.utils import cint
 
 from frappoint.vuna_hospitality.constants import RESERVATION_MANAGER_ROLES, RESERVATION_ROLES
-from frappoint.vuna_hospitality.services import reservations
+from frappoint.vuna_hospitality.services import reservations, restrictions
 from frappoint.vuna_hospitality.services.feature_flag import require_hospitality
 from frappoint.vuna_hospitality.services.inventory import run_with_inventory_retry
 from frappoint.vuna_hospitality.services.property_scope import assert_property_access
@@ -61,6 +61,8 @@ def get_booking_desk_context() -> dict:
 		"hold_expiry_minutes": limits.hold_minutes,
 		"max_stay_nights": limits.max_stay_nights,
 		"can_book": bool(set(frappe.get_roles()) & set(RESERVATION_ROLES)),
+		# F13: may book against a restriction, with a reason.
+		"can_override_restrictions": restrictions.can_override(),
 	}
 
 

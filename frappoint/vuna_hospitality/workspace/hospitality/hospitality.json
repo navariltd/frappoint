@@ -96,7 +96,7 @@
    "hidden": 0,
    "is_query_report": 0,
    "label": "Rates",
-   "link_count": 7,
+   "link_count": 8,
    "link_type": "DocType",
    "onboard": 0,
    "type": "Card Break"
@@ -167,6 +167,16 @@
    "label": "Package Allowance Entry",
    "link_count": 0,
    "link_to": "Package Allowance Entry",
+   "link_type": "DocType",
+   "onboard": 1,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Rate Restriction Day",
+   "link_count": 0,
+   "link_to": "Rate Restriction Day",
    "link_type": "DocType",
    "onboard": 1,
    "type": "Link"
@@ -514,7 +524,7 @@
    "type": "Link"
   }
  ],
- "modified": "2026-11-13 18:00:00.000000",
+ "modified": "2026-11-16 10:00:00.000000",
  "modified_by": "Administrator",
  "module": "Vuna Hospitality",
  "name": "Hospitality",
