@@ -128,6 +128,20 @@ const NAVIGATION = {
 			],
 		},
 		{
+			label: "Rates",
+			icon: "price_change",
+			to: { name: "RatesRestrictions" },
+			activeWhen: ["RatesRestrictions"],
+			roles: [
+				"System Manager",
+				"Hospitality Manager",
+				"Revenue Manager",
+				"Front Desk Manager",
+				"Front Desk Agent",
+				"Reservations Agent",
+			],
+		},
+		{
 			label: "Night Audit",
 			icon: "nights_stay",
 			to: { name: "NightAudit" },
