@@ -533,6 +533,53 @@
 					</section>
 
 					<section
+						v-if="details.services?.length"
+						class="rounded-xl border border-outline-variant bg-surface-container-lowest p-4"
+					>
+						<h2 class="text-[15px] font-semibold">Services</h2>
+						<p class="text-[12px] text-on-surface-variant">
+							Spa and salon appointments charged to this stay. They post to the
+							guest's folio when completed.
+						</p>
+						<ul class="mt-2 divide-y divide-outline-variant text-[12px]">
+							<li v-for="row in details.services" :key="row.name" class="py-1.5">
+								<div class="flex items-center justify-between gap-2">
+									<span class="min-w-0">
+										<b>{{ row.service_type }}</b>
+										<span class="text-on-surface-variant">
+											· {{ row.guest_name }}</span
+										>
+									</span>
+									<span class="whitespace-nowrap">
+										{{
+											formatMoney(row.amount, row.currency || stay.currency)
+										}}
+									</span>
+								</div>
+								<div class="text-on-surface-variant">
+									{{ formatNight(row.appointment_date) }}
+									<template v-if="row.start_time">
+										· {{ String(row.start_time).slice(0, 5) }}</template
+									>
+									· {{ row.status }}
+									<template v-if="row.fee_amount">
+										· {{ row.fee_waived ? "fee waived" : "fee" }}
+										{{
+											formatMoney(
+												row.fee_amount,
+												row.currency || stay.currency
+											)
+										}}
+									</template>
+								</div>
+								<div v-if="row.posting_error" class="text-error">
+									{{ row.posting_error }}
+								</div>
+							</li>
+						</ul>
+					</section>
+
+					<section
 						class="rounded-xl border border-outline-variant bg-surface-container-lowest p-4"
 					>
 						<h2 class="text-[15px] font-semibold">History</h2>

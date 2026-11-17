@@ -15,6 +15,7 @@
 									:currency="booking.currency"
 								/>
 							</div>
+							<HotelStayCard :booking="booking" @changed="retry" />
 							<OperationalAlertsPanel
 								v-if="booking.alerts?.length"
 								:alerts="booking.alerts"
@@ -33,6 +34,9 @@
 								:financial-summary="financialSummary"
 								:currency="booking.currency"
 								:alerts="booking.alerts"
+								:charged-to-room="
+									Boolean(booking.roomCharge?.hotelStay?.chargeToRoom)
+								"
 								@collect-payment="collectPayment(booking)"
 								@add-appointment="addAppointment(booking)"
 								@reschedule-booking="rescheduleBooking(booking)"
@@ -58,6 +62,7 @@ import BookingMetricsCard from "@/components/booking-details/BookingMetricsCard.
 import BookingOperationalSidebar from "@/components/booking-details/BookingOperationalSidebar.vue";
 import AppointmentsWorkspace from "@/components/booking-details/AppointmentsWorkspace.vue";
 import OperationalAlertsPanel from "@/components/booking-details/OperationalAlertsPanel.vue";
+import HotelStayCard from "@/components/booking-details/HotelStayCard.vue";
 
 const route = useRoute();
 const bookingId = computed(() => String(route.params.bookingId || ""));

@@ -43,7 +43,8 @@ function normalizeAppointment(appointment) {
 
 function buildAlerts(booking) {
 	const alerts = [];
-	if (booking.outstandingAmount > 0) {
+	// Charged to a hotel room: nothing is collected here, so the balance isn't an alert.
+	if (booking.outstandingAmount > 0 && !booking.roomCharge?.hotelStay?.chargeToRoom) {
 		alerts.push({
 			id: "outstanding",
 			severity: "warning",
@@ -93,6 +94,7 @@ export async function fetchBookingDetails(bookingId) {
 		outstandingAmount,
 		items: booking.items || [],
 		appointments,
+		roomCharge: booking.roomCharge || null,
 		isCouple: Boolean(
 			booking.isCouple || booking.is_couple || appointments.some((row) => row.isCouple)
 		),

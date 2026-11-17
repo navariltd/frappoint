@@ -525,8 +525,10 @@
 					</button>
 				</div>
 				<p class="text-[12px] text-on-surface-variant">
-					Night audit and policy fees post to the stay's default folio unless a rule
-					sends them elsewhere. Charges you post by hand go where you post them.
+					Night audit, policy fees and services charged to the room post to the stay's
+					default folio unless a rule sends them elsewhere. A rule for one guest catches
+					only the services that guest received. Charges you post by hand go where you
+					post them.
 				</p>
 				<ul
 					v-if="data.routing_rules.length"
@@ -559,7 +561,7 @@
 				</ul>
 				<form
 					v-if="routeForm.open"
-					class="grid gap-3 md:grid-cols-4 items-end"
+					class="grid gap-3 md:grid-cols-5 items-end"
 					@submit.prevent="addRule"
 				>
 					<label class="text-[12px] text-on-surface-variant">
@@ -584,6 +586,19 @@
 					>
 						Charge code
 						<input v-model="routeForm.chargeCode" class="folio-input" />
+					</label>
+					<label class="text-[12px] text-on-surface-variant">
+						For
+						<select v-model="routeForm.stayGuest" class="folio-input">
+							<option value="">Every guest</option>
+							<option
+								v-for="guest in data.guests"
+								:key="guest.name"
+								:value="guest.name"
+							>
+								Only {{ guest.guest_name }}
+							</option>
+						</select>
 					</label>
 					<label class="text-[12px] text-on-surface-variant">
 						To folio
@@ -1182,7 +1197,14 @@ const routeForm = reactive(emptyRouteForm());
 const routeTargets = computed(() => postableFolios.value);
 
 function emptyRouteForm() {
-	return { open: false, route: "Room Charges", chargeCode: "", itemGroup: "", target: "" };
+	return {
+		open: false,
+		route: "Room Charges",
+		chargeCode: "",
+		itemGroup: "",
+		stayGuest: "",
+		target: "",
+	};
 }
 
 function resetRouteForm() {
@@ -1197,6 +1219,7 @@ async function addRule() {
 			route: routeForm.route,
 			chargeCode: routeForm.chargeCode.trim(),
 			itemGroup: routeForm.itemGroup.trim(),
+			stayGuest: routeForm.stayGuest,
 		})
 	);
 	if (done) resetRouteForm();
