@@ -21,6 +21,7 @@ from frappoint.vuna_hospitality.services.money import to_minor
 from frappoint.vuna_hospitality.services.service_charges import RoomChargedError, ServiceChargeError
 from frappoint.vuna_hospitality.tests.test_folio import make_code, make_item, make_item_group, make_user
 from frappoint.vuna_hospitality.tests.test_settlement import SettlementTestCase, make_company_customer
+from frappoint.vuna_hospitality.tests.utils import hospitality_enabled
 
 MASSAGE_ITEM = "HSP-TEST-DEEP-TISSUE"  # covered by the TMSG charge code
 SERVICE = "HSP Test Deep Tissue"
@@ -74,6 +75,10 @@ class ServiceTestCase(SettlementTestCase):
 
 	def setUp(self):
 		super().setUp()
+		# Charging to a room is a hospitality command: switch the module on for each test, so the
+		# tests don't depend on the site's setting (CI's test site has it off).
+		self._hospitality = hospitality_enabled(True)
+		self._hospitality.__enter__()
 		frappe.db.set_single_value("Hospitality Settings", "allow_room_charge_for_services", 1)
 		frappe.db.set_single_value("Service Appointment Settings", "appointment_confirmation", 0)
 		self.provider = make_service_catalog(self.prop.company, self.currency)
@@ -83,6 +88,10 @@ class ServiceTestCase(SettlementTestCase):
 		self.primary = frappe.db.get_value(
 			"Stay Guest", {"stay_reservation": self.stay.name, "role": "Primary"}, "name"
 		)
+
+	def tearDown(self):
+		self._hospitality.__exit__(None, None, None)
+		super().tearDown()
 
 	# ------------------------------------------------------------------ fixtures
 
@@ -552,8 +561,6 @@ class TestBridgeIsolation(ServiceTestCase):
 		booking = self.booking()
 		appointment = self.appointment(booking)
 		self.charge(booking, {appointment.name: [self.primary]})
-		from frappoint.vuna_hospitality.tests.utils import hospitality_enabled
-
 		with hospitality_enabled(False):
 			self.complete(appointment.name)
 		self.assertEqual(self.participants(appointment.name)[0].status, "Pending")
