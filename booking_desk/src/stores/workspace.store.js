@@ -15,11 +15,11 @@ export const WORKSPACES = {
 	[HOTEL]: { key: HOTEL, label: "Hotel", icon: "hotel" },
 };
 
-// Hospitality Settings > Default Landing Page -> route. Tape Chart arrives with F16.
+// Hospitality Settings > Default Landing Page -> route.
 const HOTEL_LANDING_ROUTES = {
 	"Front Desk Today": "FrontDeskToday",
 	Reservations: "HotelBookings",
-	"Tape Chart": "FrontDeskToday",
+	"Tape Chart": "TapeChart",
 };
 
 const storageKey = (user) => `frappoint.workspace.${user || "guest"}`;

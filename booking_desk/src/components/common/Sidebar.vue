@@ -95,6 +95,12 @@ const NAVIGATION = {
 			activeWhen: ["FrontDeskToday", "FrontDeskStay", "HotelStay"],
 		},
 		{
+			label: "Tape Chart",
+			icon: "view_timeline",
+			to: { name: "TapeChart" },
+			activeWhen: ["TapeChart"],
+		},
+		{
 			label: "Reservations",
 			icon: "book_online",
 			to: { name: "HotelBookings" },
