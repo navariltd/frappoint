@@ -296,6 +296,13 @@ class ServiceBooking(Document):
 			self.status = "Closed"
 			return
 
+		# Charged to a hotel stay: confirmed appointments are settled on the guest's folio.
+		if cint(self.get("charge_to_room")) and appointment_statuses.intersection(
+			{"Confirmed", "Checked In", "In Progress", "Completed"}
+		):
+			self.status = "Confirmed"
+			return
+
 		if flt(self.outstanding_amount) <= 0 and flt(self.grand_total) > 0:
 			self.status = "Confirmed"
 			return
@@ -495,6 +502,9 @@ class ServiceBooking(Document):
 
 	@frappe.whitelist()
 	def create_sales_invoice(self):
+		from frappoint.vuna_hospitality.services.service_charges import assert_not_room_charged
+
+		assert_not_room_charged("Service Booking", self.name)
 		self.validate_invoice_readiness()
 
 		company = self.get_company()

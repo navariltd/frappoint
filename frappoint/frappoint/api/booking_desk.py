@@ -153,9 +153,13 @@ def _serialize_booking(booking, pricing=None):
 		bool(row.couple_appointment_id) for row in appointments
 	)
 
+	from frappoint.vuna_hospitality.api.services import room_charge_context
+
 	return {
 		"name": booking.name,
 		"isCouple": is_couple,
+		# Hospitality: the hotel stay this booking is charged to, if any (F15).
+		"roomCharge": room_charge_context(booking.name),
 		"status": booking.status,
 		"customer": booking.customer,
 		"fullName": booking.full_name,

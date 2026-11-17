@@ -41,6 +41,7 @@ class ServiceAppointmentPayment(Document):
 
 	def validate(self):
 		self.validate_allocation_sum()
+		self.validate_not_room_charged()
 
 		if self.reference_doctype not in ["Service Booking", "Service Appointment"]:
 			frappe.throw(_("Not Supported"))
@@ -56,6 +57,17 @@ class ServiceAppointmentPayment(Document):
 		# If paying for a Booking but references table is empty, populate it
 		if self.reference_doctype == "Service Booking" and not self.references:
 			self.get_references()
+
+	def validate_not_room_charged(self):
+		"""A booking charged to a hotel stay is paid on the guest's folio, never here (no double
+		revenue)."""
+		from frappoint.vuna_hospitality.services.service_charges import assert_not_room_charged
+
+		if self.reference_doctype in ("Service Booking", "Service Appointment"):
+			assert_not_room_charged(self.reference_doctype, self.reference_docname)
+		for reference in self.references or []:
+			if reference.reference_doctype == "Service Appointment":
+				assert_not_room_charged("Service Appointment", reference.reference_name)
 
 	def on_submit(self):
 		self.create_payment_entry()  # nosemgrep - submitted payment stores the generated Payment Entry link.

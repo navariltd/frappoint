@@ -1154,6 +1154,12 @@ class ServiceAppointment(Document):
 			self.payment_expires_at = add_to_date(now_datetime(), minutes=hold_minutes)
 
 	def get_confirmation_deposit_percent(self):
+		from frappoint.vuna_hospitality.services.service_charges import is_room_charged
+
+		# Charged to a hotel stay: billed on the guest's folio, so nothing is due to confirm.
+		if is_room_charged("Service Appointment", self.name):
+			return 0
+
 		settings = frappe.get_cached_doc("Service Appointment Settings")
 
 		if not settings.enable_partial_confirmation:
@@ -1682,6 +1688,9 @@ class ServiceAppointment(Document):
 
 	def create_sales_invoice(self):
 		"""Create Sales Invoice when appointment is completed"""
+		from frappoint.vuna_hospitality.services.service_charges import assert_not_room_charged
+
+		assert_not_room_charged("Service Appointment", self.name)
 		if self.booking_id:
 			booking = frappe.get_doc("Service Booking", self.booking_id)
 			if booking.get_linked_sales_invoice():
