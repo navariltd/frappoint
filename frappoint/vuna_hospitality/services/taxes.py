@@ -19,8 +19,7 @@ from dataclasses import dataclass, field
 from decimal import Decimal
 
 import frappe
-from erpnext.controllers.accounts_controller import get_taxes_and_charges
-from erpnext.stock.get_item_details import get_item_tax_map
+from frappe.model import child_table_fields, default_fields
 from frappe.utils import flt, getdate
 
 from frappoint.vuna_hospitality.services.money import from_minor, to_minor
@@ -70,6 +69,36 @@ def item_tax_template(item: str, on_date=None) -> str | None:
 			if not row.tax_category and (not row.valid_from or getdate(row.valid_from) <= on_date):
 				return row.item_tax_template
 	return None
+
+
+# ERPNext's whitelisted get_item_tax_map and get_taxes_and_charges check that the session user may
+# select the template. Working out a hotel price is trusted server work that front-desk and revenue
+# staff run without access to tax setup, so these read the templates directly, as ERPNext does
+# behind those checks.
+
+NOT_APPLICABLE_TAX = "N/A"  # erpnext.stock.get_item_details.NOT_APPLICABLE_TAX
+
+
+def item_tax_map(template: str | None, company: str) -> dict:
+	"""{tax account: rate} of an Item Tax Template, for the company's accounts."""
+	if not template:
+		return {}
+	rates = {}
+	for row in frappe.get_cached_doc("Item Tax Template", template).taxes:
+		if frappe.get_cached_value("Account", row.tax_type, "company") == company:
+			rates[row.tax_type] = NOT_APPLICABLE_TAX if row.get("not_applicable") else row.tax_rate
+	return rates
+
+
+def template_taxes(template: str) -> list[dict]:
+	"""The tax rows of a Sales Taxes and Charges Template, ready to append to an invoice."""
+	rows = []
+	for tax in frappe.get_cached_doc("Sales Taxes and Charges Template", template).get("taxes"):
+		row = tax.as_dict()
+		for fieldname in (*default_fields, *child_table_fields):
+			row.pop(fieldname, None)
+		rows.append(row)
+	return rows
 
 
 def compute(
@@ -125,13 +154,11 @@ def compute_lines(property_name: str, lines, *, inclusive: bool, on_date=None) -
 				"price_list_rate": rate,
 				"conversion_factor": 1,
 				"item_tax_template": template,
-				"item_tax_rate": get_item_tax_map(doc=invoice, tax_template=template, as_json=True)
-				if template
-				else "{}",
+				"item_tax_rate": frappe.as_json(item_tax_map(template, settings.company)),
 			},
 		)
 	if settings.sales_taxes_template:
-		for row in get_taxes_and_charges("Sales Taxes and Charges Template", settings.sales_taxes_template):
+		for row in template_taxes(settings.sales_taxes_template):
 			row["included_in_print_rate"] = int(
 				bool(inclusive) and row.get("charge_type") in INCLUSIVE_CHARGE_TYPES
 			)
