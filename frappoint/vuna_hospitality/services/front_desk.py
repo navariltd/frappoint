@@ -1093,6 +1093,12 @@ def _add_room_details(stays: list) -> None:
 		stay["room_ready"] = bool(room and room.housekeeping_condition in READY_CONDITIONS)
 
 
+def _stay_services(stay_name: str) -> list:
+	from frappoint.vuna_hospitality.services.service_charges import stay_services
+
+	return stay_services(stay_name)
+
+
 def stay_details(stay_name: str) -> dict:
 	"""Reservation 360: the stay, its guests, its rooms over time, its nightly prices and its history."""
 	stay = frappe.get_doc(STAY, stay_name)
@@ -1188,6 +1194,8 @@ def stay_details(stay_name: str) -> dict:
 		# F12: the deposit, the booked policies, and what leaving early would cost today.
 		"deposit": deposits.deposit_details(stay.name),
 		"policies": policies.stay_policies(stay),
+		# F15: spa and salon appointments charged to this stay's guests.
+		"services": _stay_services(stay.name),
 		"early_departure_fee": early_fee.amount if early_fee else 0,
 		"post_stay_until": post_stay.window_end(stay.name) if status == "Checked Out" else None,
 		"actions": {

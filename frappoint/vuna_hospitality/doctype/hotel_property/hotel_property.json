@@ -38,6 +38,10 @@
   "max_folios_per_stay",
   "column_break_ops",
   "night_audit_block_on_open_shifts",
+  "services_section",
+  "service_cancellation_policy",
+  "column_break_services",
+  "service_no_show_policy",
   "taxes_section",
   "sales_taxes_template",
   "prices_include_tax",
@@ -249,6 +253,29 @@
    "default": "1"
   },
   {
+   "fieldname": "services_section",
+   "fieldtype": "Section Break",
+   "label": "Services Charged to Rooms",
+   "description": "Fees for a spa or salon appointment charged to a guest's room that is cancelled late or missed."
+  },
+  {
+   "fieldname": "service_cancellation_policy",
+   "fieldtype": "Link",
+   "label": "Service Cancellation Policy",
+   "options": "Hotel Policy",
+   "description": "Free until the policy's hours before the appointment starts. Percentage of Stay is a share of the service price; First Night and Full Stay charge the whole price."
+  },
+  {
+   "fieldname": "column_break_services",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "service_no_show_policy",
+   "fieldtype": "Link",
+   "label": "Service No-show Policy",
+   "options": "Hotel Policy"
+  },
+  {
    "fieldname": "taxes_section",
    "fieldtype": "Section Break",
    "label": "Taxes and Packages"
@@ -319,7 +346,7 @@
    "link_fieldname": "property"
   }
  ],
- "modified": "2026-11-13 18:00:00.000000",
+ "modified": "2026-11-17 10:00:00.000000",
  "modified_by": "Administrator",
  "module": "Vuna Hospitality",
  "name": "Hotel Property",

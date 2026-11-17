@@ -1,0 +1,353 @@
+{
+ "actions": [],
+ "autoname": "naming_series:",
+ "creation": "2026-11-17 10:00:00.000000",
+ "description": "One hotel guest who receives a service appointment: what their share costs and which folio it is charged to.",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "naming_series",
+  "property",
+  "service_appointment",
+  "service_booking",
+  "service_type",
+  "appointment_date",
+  "start_time",
+  "column_break_head",
+  "status",
+  "role",
+  "guest_section",
+  "stay_reservation",
+  "stay_guest",
+  "guest_profile",
+  "guest_name",
+  "column_break_guest",
+  "delivery_room",
+  "charge_section",
+  "currency",
+  "share_percent",
+  "amount",
+  "target_folio",
+  "column_break_charge",
+  "posted_folio",
+  "folio_transaction",
+  "fee_transaction",
+  "posted_on",
+  "posting_error",
+  "policies_section",
+  "cancellation_policy_snapshot",
+  "column_break_policies",
+  "no_show_policy_snapshot",
+  "notes_section",
+  "notes"
+ ],
+ "fields": [
+  {
+   "fieldname": "naming_series",
+   "fieldtype": "Select",
+   "label": "Series",
+   "options": "SVP-.property.-.YY.-.#####",
+   "default": "SVP-.property.-.YY.-.#####",
+   "hidden": 1,
+   "reqd": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "property",
+   "fieldtype": "Link",
+   "label": "Property",
+   "options": "Hotel Property",
+   "reqd": 1,
+   "in_standard_filter": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "service_appointment",
+   "fieldtype": "Link",
+   "label": "Service Appointment",
+   "options": "Service Appointment",
+   "reqd": 1,
+   "in_list_view": 1,
+   "search_index": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "service_booking",
+   "fieldtype": "Link",
+   "label": "Service Booking",
+   "options": "Service Booking",
+   "search_index": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "service_type",
+   "fieldtype": "Link",
+   "label": "Service",
+   "options": "Service Type",
+   "in_list_view": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "appointment_date",
+   "fieldtype": "Date",
+   "label": "Appointment Date",
+   "read_only": 1
+  },
+  {
+   "fieldname": "start_time",
+   "fieldtype": "Time",
+   "label": "Starts At",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_head",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "label": "Status",
+   "options": "Pending\nPosted\nCancelled\nNo Show\nNot Charged\nFailed",
+   "default": "Pending",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "role",
+   "fieldtype": "Select",
+   "label": "Role",
+   "options": "Consumer\nCouple Partner\nGroup Member",
+   "default": "Consumer",
+   "read_only": 1
+  },
+  {
+   "fieldname": "guest_section",
+   "fieldtype": "Section Break",
+   "label": "Guest"
+  },
+  {
+   "fieldname": "stay_reservation",
+   "fieldtype": "Link",
+   "label": "Stay Reservation",
+   "options": "Stay Reservation",
+   "reqd": 1,
+   "in_standard_filter": 1,
+   "search_index": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "stay_guest",
+   "fieldtype": "Link",
+   "label": "Stay Guest",
+   "options": "Stay Guest",
+   "reqd": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "guest_profile",
+   "fieldtype": "Link",
+   "label": "Guest Profile",
+   "options": "Guest Profile",
+   "read_only": 1
+  },
+  {
+   "fieldname": "guest_name",
+   "fieldtype": "Data",
+   "label": "Guest",
+   "in_list_view": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_guest",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "delivery_room",
+   "fieldtype": "Data",
+   "label": "Room",
+   "description": "The guest's room when the service was booked.",
+   "read_only": 1
+  },
+  {
+   "fieldname": "charge_section",
+   "fieldtype": "Section Break",
+   "label": "Charge"
+  },
+  {
+   "fieldname": "currency",
+   "fieldtype": "Link",
+   "label": "Currency",
+   "options": "Currency",
+   "read_only": 1
+  },
+  {
+   "fieldname": "share_percent",
+   "fieldtype": "Percent",
+   "label": "Share",
+   "read_only": 1
+  },
+  {
+   "fieldname": "amount",
+   "fieldtype": "Currency",
+   "label": "Amount",
+   "options": "currency",
+   "in_list_view": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "target_folio",
+   "fieldtype": "Link",
+   "label": "Charge To Folio",
+   "options": "Guest Folio",
+   "description": "Empty: the stay's routing rules decide.",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_charge",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "posted_folio",
+   "fieldtype": "Link",
+   "label": "Posted To Folio",
+   "options": "Guest Folio",
+   "read_only": 1
+  },
+  {
+   "fieldname": "folio_transaction",
+   "fieldtype": "Link",
+   "label": "Charge Transaction",
+   "options": "Folio Transaction",
+   "read_only": 1
+  },
+  {
+   "fieldname": "fee_transaction",
+   "fieldtype": "Link",
+   "label": "Fee Transaction",
+   "options": "Folio Transaction",
+   "read_only": 1
+  },
+  {
+   "fieldname": "posted_on",
+   "fieldtype": "Datetime",
+   "label": "Posted On",
+   "read_only": 1
+  },
+  {
+   "fieldname": "posting_error",
+   "fieldtype": "Small Text",
+   "label": "Posting Error",
+   "read_only": 1
+  },
+  {
+   "fieldname": "policies_section",
+   "fieldtype": "Section Break",
+   "label": "Policies",
+   "collapsible": 1
+  },
+  {
+   "fieldname": "cancellation_policy_snapshot",
+   "fieldtype": "JSON",
+   "label": "Cancellation Policy (as booked)",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_policies",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "no_show_policy_snapshot",
+   "fieldtype": "JSON",
+   "label": "No-show Policy (as booked)",
+   "read_only": 1
+  },
+  {
+   "fieldname": "notes_section",
+   "fieldtype": "Section Break",
+   "label": "Notes",
+   "collapsible": 1
+  },
+  {
+   "fieldname": "notes",
+   "fieldtype": "Small Text",
+   "label": "Notes",
+   "read_only": 1
+  }
+ ],
+ "in_create": 1,
+ "index_web_pages_for_search": 0,
+ "links": [],
+ "modified": "2026-11-17 10:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Vuna Hospitality",
+ "name": "Service Participant",
+ "naming_rule": "By \"Naming Series\" field",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "role": "System Manager",
+   "read": 1,
+   "report": 1,
+   "print": 1,
+   "export": 1
+  },
+  {
+   "role": "Hospitality Manager",
+   "read": 1,
+   "report": 1,
+   "print": 1,
+   "export": 1
+  },
+  {
+   "role": "Front Desk Manager",
+   "read": 1,
+   "report": 1,
+   "print": 1
+  },
+  {
+   "role": "Front Desk Agent",
+   "read": 1,
+   "report": 1,
+   "print": 1
+  },
+  {
+   "role": "Reservations Agent",
+   "read": 1,
+   "report": 1,
+   "print": 1
+  },
+  {
+   "role": "Guest Services Agent",
+   "read": 1,
+   "report": 1,
+   "print": 1
+  },
+  {
+   "role": "Cashier",
+   "read": 1,
+   "report": 1,
+   "print": 1
+  },
+  {
+   "role": "Hotel Accountant",
+   "read": 1,
+   "report": 1,
+   "print": 1,
+   "export": 1
+  },
+  {
+   "role": "Night Auditor",
+   "read": 1,
+   "report": 1,
+   "print": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "search_fields": "service_appointment,guest_name,stay_reservation",
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": [],
+ "title_field": "guest_name",
+ "track_changes": 1
+}
