@@ -233,7 +233,9 @@ function formatTimestamp(value) {
 
 function schedulePoll() {
 	clearTimeout(timer);
-	if (isActive.value && run.value?.job_active) timer = setTimeout(poll, POLL_MS);
+	// Keep following an active run even when its job looks lost: a worker that picks it up a
+	// moment later, or finishes it, clears the warning without a reload.
+	if (isActive.value) timer = setTimeout(poll, POLL_MS);
 }
 
 async function poll() {

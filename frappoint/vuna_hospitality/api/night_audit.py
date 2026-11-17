@@ -33,5 +33,10 @@ def start_night_audit(property: str) -> dict:
 	"""Close the property's business date in the background. A failed run restarts where it stopped."""
 	frappe.only_for(NIGHT_AUDIT_ROLES)
 	assert_property_access(property)
-	night_audit.start_night_audit(property)
-	return _overview(property)
+	run_name = night_audit.start_night_audit(property)
+	overview = _overview(property)
+	# The job is queued only when this request commits, so Redis doesn't know it yet. It is
+	# running as far as the desk is concerned, so the page keeps following it.
+	if overview.get("run") and overview["run"].get("name") == run_name:
+		overview["run"]["job_active"] = True
+	return overview
