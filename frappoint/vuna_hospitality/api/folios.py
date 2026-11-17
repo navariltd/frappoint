@@ -307,12 +307,20 @@ def add_routing_rule(
 	charge_code: str | None = None,
 	item_group: str | None = None,
 	notes: str | None = None,
+	stay_guest: str | None = None,
 ) -> dict:
-	"""Send the stay's automatic charges (night audit, fees) of one kind to one of its folios."""
+	"""Send the stay's automatic charges (night audit, fees, services) of one kind to one of its
+	folios. With `stay_guest`, only the charges that guest consumed."""
 	_check(STAY, stay, "write", roles=FOLIO_POSTING_ROLES)
 	run_with_inventory_retry(
 		lambda: routing.add_rule(
-			stay, target_folio, route, charge_code=charge_code, item_group=item_group, notes=notes
+			stay,
+			target_folio,
+			route,
+			charge_code=charge_code,
+			item_group=item_group,
+			stay_guest=stay_guest,
+			notes=notes,
 		)
 	)
 	return get_stay_folios(stay)
