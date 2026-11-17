@@ -1,3 +1,4 @@
+import frappe
 from frappe.tests import IntegrationTestCase
 
 from frappoint.vuna_hospitality.api.session import get_session_context
@@ -13,6 +14,17 @@ from frappoint.vuna_hospitality.tests.utils import hospitality_enabled
 @require_hospitality
 def _api_action(value):
 	return value * 2
+
+
+class _RefusedError(frappe.ValidationError):
+	pass
+
+
+@require_hospitality
+def _refuse(explained=False):
+	if explained:
+		frappe.throw("Already explained.", _RefusedError)
+	raise _RefusedError("Register every adult before check-in: Grace Wanjiru.")
 
 
 @hospitality_job
@@ -49,3 +61,21 @@ class TestFeatureFlag(IntegrationTestCase):
 		self.assertTrue(context["enabled"])
 		self.assertEqual(context["user"], "Administrator")
 		self.assertIsNone(context["properties"])
+
+	def test_a_typed_refusal_reaches_the_desk_as_a_message(self):
+		"""Raised without frappe.throw, Frappe would send only the type ("Server Error")."""
+		frappe.clear_messages()
+		with hospitality_enabled(True), self.assertRaises(_RefusedError):
+			_refuse()
+		self.assertEqual(
+			[
+				frappe.parse_json(row).get("message") if isinstance(row, str) else row.get("message")
+				for row in frappe.local.message_log
+			],
+			["Register every adult before check-in: Grace Wanjiru."],
+		)
+
+		frappe.clear_messages()
+		with hospitality_enabled(True), self.assertRaises(_RefusedError):
+			_refuse(explained=True)
+		self.assertEqual(len(frappe.local.message_log), 1)  # not added twice

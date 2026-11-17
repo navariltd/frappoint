@@ -41,10 +41,25 @@ def require_hospitality(fn: Callable) -> Callable:
 	@wraps(fn)
 	def wrapper(*args: Any, **kwargs: Any):
 		assert_hospitality_enabled()
-		return fn(*args, **kwargs)
+		messages = len(frappe.local.message_log)
+		try:
+			return fn(*args, **kwargs)
+		except (frappe.ValidationError, frappe.PermissionError) as error:
+			_show_refusal(error, messages)
+			raise
 
 	setattr(wrapper, GUARD_ATTRIBUTE, True)
 	return wrapper
+
+
+def _show_refusal(error: Exception, messages_before: int) -> None:
+	"""Services raise typed errors (`raise CheckInRefusedError(...)`) so callers can catch them.
+	Raised that way, Frappe sends the desk only the error's type, which shows as "Server Error".
+	Add its text to the response's messages, unless something already explained the refusal."""
+	text = str(error).strip()
+	if not text or len(frappe.local.message_log) > messages_before:
+		return
+	frappe.msgprint(text, indicator="red")
 
 
 def hospitality_job(fn: Callable) -> Callable:
