@@ -14,7 +14,7 @@ from frappoint.vuna_hospitality.constants import (
 	HOSPITALITY_MANAGER,
 	RESERVATION_ROLES,
 )
-from frappoint.vuna_hospitality.services import front_desk
+from frappoint.vuna_hospitality.services import front_desk, room_ranking
 from frappoint.vuna_hospitality.services.feature_flag import require_hospitality
 from frappoint.vuna_hospitality.services.inventory import run_with_inventory_retry
 from frappoint.vuna_hospitality.services.property_scope import assert_property_access
@@ -74,15 +74,31 @@ def get_assignable_rooms(stay: str) -> list[dict]:
 
 @frappe.whitelist()
 @require_hospitality
+def get_ranked_rooms(stay: str) -> dict:
+	"""The same rooms ranked for the stay's guests, each with matched and missed preferences."""
+	_check_stay(stay, roles=None, permission="read")
+	return room_ranking.rank_rooms(stay)
+
+
+@frappe.whitelist()
+@require_hospitality
 def get_move_reasons() -> list[str]:
 	return frappe.get_all("Room Move Reason", filters={"is_active": 1}, pluck="name", order_by="reason asc")
 
 
 @frappe.whitelist(methods=["POST"])
 @require_hospitality
-def assign_room(stay: str, room: str, lock: bool = False) -> dict:
+def assign_room(
+	stay: str, room: str, lock: bool = False, preference_override_reason: str | None = None
+) -> dict:
+	"""Assign a room. One that misses a Required preference needs `preference_override_reason`."""
 	_check_stay(stay)
-	return _run(lambda: front_desk.assign_room(stay, room, lock=sbool(lock)), stay)
+	return _run(
+		lambda: room_ranking.assign_ranked(
+			stay, room, lock=sbool(lock), override_reason=preference_override_reason
+		),
+		stay,
+	)
 
 
 @frappe.whitelist(methods=["POST"])
@@ -101,9 +117,20 @@ def set_room_lock(stay: str, locked: bool, reason: str | None = None) -> dict:
 
 @frappe.whitelist(methods=["POST"])
 @require_hospitality
-def move_room(stay: str, room: str, move_reason: str, notes: str | None = None) -> dict:
+def move_room(
+	stay: str,
+	room: str,
+	move_reason: str,
+	notes: str | None = None,
+	preference_override_reason: str | None = None,
+) -> dict:
 	_check_stay(stay)
-	return _run(lambda: front_desk.move_room(stay, room, move_reason, notes), stay)
+	return _run(
+		lambda: room_ranking.move_ranked(
+			stay, room, move_reason, notes, override_reason=preference_override_reason
+		),
+		stay,
+	)
 
 
 @frappe.whitelist(methods=["POST"])
