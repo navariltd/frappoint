@@ -191,7 +191,7 @@ def _open_asset_repair(doc) -> None:
 			"failure_date": doc.reported_on,
 			"repair_status": "Pending",
 			"description": "\n".join(
-				filter(None, [doc.issue, doc.description, _("From {0}").format(doc.name)])
+				text for text in (doc.issue, doc.description, _("From {0}").format(doc.name)) if text
 			),
 		}
 	)

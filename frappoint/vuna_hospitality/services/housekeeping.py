@@ -380,7 +380,7 @@ def finish(task: str, room_found: str | None = None, notes: str | None = None) -
 		}
 	)
 	if notes:
-		doc.notes = "\n".join(filter(None, [doc.notes, notes.strip()]))
+		doc.notes = "\n".join(text for text in (doc.notes, notes.strip()) if text)
 	_save(doc, "Housekeeping Task Done", room_found=room_found)
 	mark_room(doc.hotel_room, housekeeping_condition="Clean", reason=_("{0} done").format(_(doc.task_type)))
 	return doc.name
