@@ -135,7 +135,17 @@
 					</span>
 				</div>
 
-				<p v-if="searched && !options.length" class="text-[13px] text-on-surface-variant">
+				<LoadFailed
+					v-if="searchError"
+					what="rooms and rates"
+					:reason="searchError"
+					:busy="searching"
+					@retry="search({ force: true })"
+				/>
+				<p
+					v-else-if="searched && !options.length"
+					class="text-[13px] text-on-surface-variant"
+				>
 					Nothing is priced for these dates.
 				</p>
 				<p
@@ -442,6 +452,7 @@ import { useRouter } from "vue-router";
 import { holdStaysApi, hotelErrorMessage, searchAvailabilityApi } from "@/api/hotel.api";
 import GuestPicker from "@/components/hotel/GuestPicker.vue";
 import HotelUnavailable from "@/components/hotel/HotelUnavailable.vue";
+import LoadFailed from "@/components/hotel/LoadFailed.vue";
 import { useHotelStore } from "@/stores/hotel.store";
 import {
 	availabilityKey,
@@ -483,6 +494,8 @@ let searchTimer = null;
 const searched = ref(false);
 const holding = ref(false);
 const error = ref("");
+// The availability search failed: not the same as "nothing is priced".
+const searchError = ref("");
 // Filters on the results.
 const roomQuery = ref("");
 const planFilter = ref("");
@@ -671,8 +684,9 @@ async function search({ force = false } = {}) {
 		if (request !== lastRequest) return; // a newer search started meanwhile
 		writeAvailability(key, results);
 		showResults(results);
+		searchError.value = "";
 	} catch (e) {
-		if (request === lastRequest) error.value = hotelErrorMessage(e);
+		if (request === lastRequest) searchError.value = hotelErrorMessage(e);
 	} finally {
 		if (request === lastRequest) {
 			searching.value = false;

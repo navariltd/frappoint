@@ -41,23 +41,21 @@
 							@click="filter = option.key"
 						>
 							{{ option.label }}
-							<span class="ml-1 opacity-80">{{ counts[option.key] }}</span>
+							<span class="ml-1 opacity-80">{{
+								loaded ? counts[option.key] : "–"
+							}}</span>
 						</button>
 					</div>
 				</div>
 
-				<p
+				<LoadFailed
 					v-if="error"
-					class="rounded-lg bg-error-container/40 px-4 py-3 text-[13px] text-on-surface"
-				>
-					{{ error }}
-				</p>
-				<p
-					v-else-if="loading && !bookings.length"
-					class="text-[13px] text-on-surface-variant"
-				>
-					Loading…
-				</p>
+					what="bookings"
+					:reason="error"
+					:busy="loading"
+					@retry="load"
+				/>
+				<p v-else-if="!loaded" class="text-[13px] text-on-surface-variant">Loading…</p>
 				<p v-else-if="!bookings.length" class="text-[13px] text-on-surface-variant">
 					No bookings yet.
 				</p>
@@ -154,6 +152,7 @@ import { fetchRecentBookingsApi, hotelErrorMessage } from "@/api/hotel.api";
 import BookingDetail from "@/components/hotel/BookingDetail.vue";
 import HotelStatusBadge from "@/components/hotel/HotelStatusBadge.vue";
 import HotelUnavailable from "@/components/hotel/HotelUnavailable.vue";
+import LoadFailed from "@/components/hotel/LoadFailed.vue";
 import { useHotelStore } from "@/stores/hotel.store";
 import { formatMoney, formatNight } from "@/utils/hotelFormat";
 
@@ -169,7 +168,9 @@ const route = useRoute();
 const hotel = useHotelStore();
 const bookings = ref([]);
 const loading = ref(false);
+// The list failed to load: shown instead of "0" counts and "No bookings yet".
 const error = ref("");
+const loaded = ref(false);
 const search = ref("");
 const filter = ref("all");
 
@@ -215,6 +216,7 @@ async function load() {
 	error.value = "";
 	try {
 		bookings.value = (await fetchRecentBookingsApi(propertyName.value, BOOKINGS_SHOWN)) || [];
+		loaded.value = true;
 	} catch (e) {
 		error.value = hotelErrorMessage(e);
 	} finally {

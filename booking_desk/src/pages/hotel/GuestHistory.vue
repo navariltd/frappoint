@@ -29,9 +29,14 @@
 					: "No new matches. Guests whose email or phone fits more than one profile are left out."
 			}}
 		</p>
-		<p v-if="loading && !matches.length" class="text-[13px] text-on-surface-variant">
-			Loading…
-		</p>
+		<LoadFailed
+			v-if="loadError"
+			what="matches to review"
+			:reason="loadError"
+			:busy="loading"
+			@retry="loadMatches"
+		/>
+		<p v-else-if="!loaded" class="text-[13px] text-on-surface-variant">Loading…</p>
 		<p
 			v-else-if="!matches.length"
 			class="rounded-xl border border-outline-variant bg-surface-container-lowest p-6 text-center text-[13px] text-on-surface-variant"
@@ -97,6 +102,7 @@ import {
 	hotelErrorMessage,
 	reviewHistoryMatchApi,
 } from "@/api/hotel.api";
+import LoadFailed from "@/components/hotel/LoadFailed.vue";
 import { formatNight } from "@/utils/hotelFormat";
 
 const matches = ref([]);
@@ -104,6 +110,9 @@ const found = ref(null);
 const loading = ref(false);
 const busy = ref(false);
 const error = ref("");
+// The queue failed to load: shown instead of "Nothing to review", which would be untrue.
+const loadError = ref("");
+const loaded = ref(false);
 
 async function call(command, flag) {
 	flag.value = true;
@@ -129,5 +138,18 @@ function review(match, confirm) {
 	call(() => reviewHistoryMatchApi(match.name, confirm), busy);
 }
 
-onMounted(() => call(fetchHistoryMatchesApi, loading));
+async function loadMatches() {
+	loading.value = true;
+	try {
+		matches.value = (await fetchHistoryMatchesApi())?.matches || [];
+		loaded.value = true;
+		loadError.value = "";
+	} catch (e) {
+		loadError.value = hotelErrorMessage(e);
+	} finally {
+		loading.value = false;
+	}
+}
+
+onMounted(loadMatches);
 </script>

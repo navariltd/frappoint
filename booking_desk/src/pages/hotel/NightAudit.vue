@@ -2,10 +2,19 @@
 	<div class="px-6 py-5 space-y-5 max-w-5xl">
 		<HotelUnavailable v-if="blocked" :message="blocked" />
 		<template v-else>
-			<p v-if="loading && !data" class="text-[13px] text-on-surface-variant">Loading…</p>
+			<p v-if="loading && !data && !loadError" class="text-[13px] text-on-surface-variant">
+				Loading…
+			</p>
 			<p v-if="error" class="rounded-lg bg-error-container/40 px-4 py-3 text-[13px]">
 				{{ error }}
 			</p>
+			<LoadFailed
+				v-if="loadError"
+				:what="data ? 'the latest audit progress' : 'the night audit'"
+				:reason="loadError"
+				:busy="loading"
+				@retry="load()"
+			/>
 			<ActionBanner
 				:banner="banner"
 				:busy="busy"
@@ -180,6 +189,7 @@ import { fetchNightAuditApi, hotelErrorMessage, startNightAuditApi } from "@/api
 import ActionBanner from "@/components/hotel/ActionBanner.vue";
 import HotelStatusBadge from "@/components/hotel/HotelStatusBadge.vue";
 import HotelUnavailable from "@/components/hotel/HotelUnavailable.vue";
+import LoadFailed from "@/components/hotel/LoadFailed.vue";
 import { useActionBanner } from "@/composables/hotel/useActionBanner";
 import { useHotelStore } from "@/stores/hotel.store";
 import { addDays, formatMoney, formatNight } from "@/utils/hotelFormat";
@@ -193,6 +203,8 @@ const data = ref(null);
 const loading = ref(false);
 const busy = ref(false);
 const error = ref("");
+// The audit status itself failed to load (as opposed to starting a run).
+const loadError = ref("");
 let timer = null;
 
 const run = computed(() => data.value?.run || null);
@@ -259,9 +271,10 @@ async function load({ quiet = false } = {}) {
 	if (!quiet) loading.value = true;
 	try {
 		data.value = await fetchNightAuditApi(hotel.property);
+		loadError.value = "";
 		if (!quiet) error.value = "";
 	} catch (e) {
-		error.value = hotelErrorMessage(e);
+		loadError.value = hotelErrorMessage(e);
 	} finally {
 		loading.value = false;
 		schedulePoll();
