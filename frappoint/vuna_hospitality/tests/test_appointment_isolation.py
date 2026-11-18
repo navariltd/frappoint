@@ -12,7 +12,7 @@ import unittest
 import frappe
 from frappe.tests import IntegrationTestCase
 
-from frappoint.vuna_hospitality.constants import MODULE
+from frappoint.vuna_hospitality.constants import MODULE, SETTINGS_DOCTYPE
 from frappoint.vuna_hospitality.services.feature_flag import GUARD_ATTRIBUTE
 from frappoint.vuna_hospitality.tests.utils import hospitality_enabled
 
@@ -67,11 +67,20 @@ class TestAppointmentIsolation(IntegrationTestCase):
 		self.assertEqual(unguarded, [], "Wrap these with @hospitality_job or @require_hospitality")
 
 	def test_appointment_suites_pass_with_hospitality_on_and_off(self):
-		for state in (False, True):
-			with self.subTest(hospitality_enabled=state), hospitality_enabled(state):
-				suite = unittest.defaultTestLoader.loadTestsFromNames(APPOINTMENT_TEST_MODULES)
-				result = unittest.TestResult()
-				suite.run(result)
-				failures = [str(test) for test, _ in result.failures + result.errors]
-				self.assertTrue(result.testsRun > 0)
-				self.assertEqual(failures, [])
+		original = frappe.db.get_single_value(SETTINGS_DOCTYPE, "enable_hospitality")
+		try:
+			for state in (False, True):
+				with self.subTest(hospitality_enabled=state), hospitality_enabled(state):
+					suite = unittest.defaultTestLoader.loadTestsFromNames(APPOINTMENT_TEST_MODULES)
+					result = unittest.TestResult()
+					suite.run(result)
+					failures = [str(test) for test, _ in result.failures + result.errors]
+					self.assertTrue(result.testsRun > 0)
+					self.assertEqual(failures, [])
+		finally:
+			# The appointment suites commit, which would keep whichever state was on at the time.
+			# Put the site's setting back for good, so later suites see what the site really has.
+			frappe.db.set_single_value(SETTINGS_DOCTYPE, "enable_hospitality", original or 0)
+			frappe.db.commit()  # nosemgrep - restores a setting the suites above committed.
+			frappe.db.value_cache.pop(SETTINGS_DOCTYPE, None)
+			frappe.clear_document_cache(SETTINGS_DOCTYPE, SETTINGS_DOCTYPE)

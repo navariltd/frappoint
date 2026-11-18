@@ -85,6 +85,8 @@ PROPERTY_SCOPED_DOCTYPES: tuple[str, ...] = (
 	"Guest Deposit",
 	"Charge Routing Rule",
 	"House Account",
+	# F15 Services (appointments) to folio
+	"Service Participant",
 )
 
 # Roles that post charges to a folio by hand (§23.1: front desk posts within limits).
@@ -129,3 +131,14 @@ SETTLEMENT_ROLES = CASHIER_ROLES
 # Roles that transfer a folio balance to a company's receivable, and issue credit notes for
 # invoiced charges (§17.3, §17.4). Going over a credit limit also needs ERPNext's Credit Controller.
 FOLIO_ACCOUNTING_ROLES = ("System Manager", HOSPITALITY_MANAGER, FRONT_DESK_MANAGER, HOTEL_ACCOUNTANT)
+
+# Roles that charge a services booking to a hotel stay, or take it back to desk payment (F15).
+SERVICE_CHARGE_ROLES = (
+	"System Manager",
+	HOSPITALITY_MANAGER,
+	FRONT_DESK_MANAGER,
+	FRONT_DESK_AGENT,
+	RESERVATIONS_AGENT,
+	GUEST_SERVICES_AGENT,
+	CASHIER,
+)

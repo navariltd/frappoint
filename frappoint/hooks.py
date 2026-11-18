@@ -228,6 +228,15 @@ doc_events = {
 	"Item": {
 		"on_update": "frappoint.frappoint.services.item_integration.sync_service_type_item_group",
 	},
+	# Services charged to a hotel stay (F15): completion posts to the folio, cancellation and
+	# no-show close the participants. Guarded by the hospitality flag; standalone appointments
+	# have no participants and return at once.
+	"Service Appointment": {
+		"on_update": "frappoint.vuna_hospitality.services.service_charges.on_appointment_update",
+		"on_update_after_submit": "frappoint.vuna_hospitality.services.service_charges.on_appointment_update",
+		"on_cancel": "frappoint.vuna_hospitality.services.service_charges.on_appointment_update",
+		"on_trash": "frappoint.vuna_hospitality.services.service_charges.on_appointment_trash",
+	},
 	"Leave Application": {
 		"on_submit": "frappoint.frappoint.services.hrms_integration.sync_leave_application_unavailability",
 		"on_update_after_submit": "frappoint.frappoint.services.hrms_integration.sync_leave_application_unavailability",

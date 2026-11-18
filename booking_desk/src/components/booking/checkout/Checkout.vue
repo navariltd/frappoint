@@ -149,6 +149,14 @@
 						</div>
 					</section>
 
+					<RoomChargePanel
+						v-if="canChargeToRoom"
+						:booking-id="booking.name"
+						:appointments="appointments"
+						collapsible
+						@charged="completeBookingCheckout"
+					/>
+
 					<PaymentTypeSelector
 						:paymentType="selectedPaymentType"
 						:depositAmount="depositAmount"
@@ -265,6 +273,7 @@ import CouponCodeSection from "@/components/booking/checkout/CouponCodeSection.v
 import PaymentMethodSelector from "@/components/booking/checkout/PaymentMethodSelector.vue";
 import PaymentWorkflowPanel from "@/components/booking/checkout/PaymentWorkflowPanel.vue";
 import PaymentSummarySidebar from "@/components/booking/checkout/PaymentSummarySidebar.vue";
+import RoomChargePanel from "@/components/booking/RoomChargePanel.vue";
 import { useCheckout } from "@/composables/booking/checkout/useCheckout";
 import { usePaymentWorkflow } from "@/composables/booking/checkout/usePaymentWorkflow";
 import { useMpesaPayment } from "@/composables/booking/checkout/useMpesaPayment";
@@ -333,6 +342,13 @@ const booking = computed(() => summary.value.booking || {});
 const appointments = computed(() => booking.value.appointments || []);
 const currency = computed(
 	() => financialSummary.value.currency || booking.value.currency || "KES"
+);
+// A hotel guest's services can go on their folio instead of being paid now.
+const canChargeToRoom = computed(
+	() =>
+		Boolean(booking.value.roomCharge?.canCharge) &&
+		!booking.value.roomCharge?.hotelStay?.chargeToRoom &&
+		Number(financialSummary.value.paidAmount || 0) <= 0
 );
 
 const checkoutTitle = computed(() =>

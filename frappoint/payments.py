@@ -104,6 +104,12 @@ def validate_currency(payment_gateway, currency):
 
 
 def get_confirmation_deposit_percent(reference_doctype, reference_docname, doc=None):
+	from frappoint.vuna_hospitality.services.service_charges import is_room_charged
+
+	# A booking charged to a hotel stay is billed on the guest's folio: nothing is due to confirm.
+	if is_room_charged(reference_doctype, reference_docname):
+		return 0
+
 	settings = frappe.get_cached_doc("Service Appointment Settings")
 
 	if not settings.enable_partial_confirmation:

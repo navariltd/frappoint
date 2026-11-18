@@ -3,7 +3,14 @@
 		<BookingFinancialSummary :summary="financialSummary" :currency="currency" />
 		<OperationalAlertsPanel :alerts="alerts" />
 		<div class="space-y-2.5">
+			<p
+				v-if="chargedToRoom"
+				class="rounded-md bg-primary/10 px-3 py-2 text-[12px] text-on-surface-variant"
+			>
+				Charged to the guest's room: services are settled on the hotel folio.
+			</p>
 			<button
+				v-else
 				class="w-full bg-primary text-on-primary px-4 py-2.5 rounded-md text-[12px] font-semibold flex items-center justify-center gap-2 transition-colors hover:bg-primary-dark focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary/40 disabled:opacity-45 disabled:cursor-not-allowed"
 				@click="$emit('collect-payment')"
 			>
@@ -36,6 +43,7 @@ defineProps({
 	financialSummary: { type: Object, required: true },
 	currency: { type: String, default: "KES" },
 	alerts: { type: Array, default: () => [] },
+	chargedToRoom: { type: Boolean, default: false },
 });
 
 defineEmits(["collect-payment", "add-appointment", "reschedule-booking"]);

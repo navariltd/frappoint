@@ -55,7 +55,7 @@
 						type="button"
 						class="rounded-lg bg-primary text-on-primary px-4 py-2 text-[13px] font-semibold disabled:opacity-50"
 						:disabled="busy"
-						@click="run(() => checkInApi(stay.name))"
+						@click="startCheckIn"
 					>
 						Check in
 					</button>
@@ -70,6 +70,86 @@
 					</button>
 				</div>
 			</header>
+
+			<!-- What still stands between this stay and check-in -->
+			<section
+				v-if="checkInReview && actions.can_check_in"
+				class="rounded-xl border border-tertiary bg-tertiary-container/20 p-4 space-y-3"
+				aria-live="polite"
+			>
+				<div class="flex items-start justify-between gap-3">
+					<div>
+						<h2 class="text-[15px] font-semibold">
+							{{
+								checkInBlockers.length ? "Before checking in" : "Ready to check in"
+							}}
+						</h2>
+						<p class="text-[12px] text-on-surface-variant">
+							{{
+								checkInBlockers.length
+									? "Sort these out, then check the stay in."
+									: "Everything is in place."
+							}}
+						</p>
+					</div>
+					<button
+						type="button"
+						class="text-[12px] font-semibold text-on-surface-variant"
+						@click="checkInReview = false"
+					>
+						Close
+					</button>
+				</div>
+
+				<ul class="space-y-2 text-[13px]">
+					<li
+						v-for="blocker in checkInBlockers"
+						:key="blocker.key"
+						class="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-surface-container-lowest px-3 py-2"
+					>
+						<span class="flex items-center gap-2">
+							<span class="material-symbols-outlined text-[18px] text-tertiary">
+								{{ blocker.icon }}
+							</span>
+							<span>
+								<b>{{ blocker.title }}</b>
+								<span class="block text-[12px] text-on-surface-variant">
+									{{ blocker.detail }}
+								</span>
+							</span>
+						</span>
+						<button
+							v-if="blocker.guest && actions.can_edit_guests"
+							type="button"
+							class="rounded-lg border border-primary px-3 py-1 text-[12px] font-semibold text-primary disabled:opacity-50"
+							:disabled="busy"
+							@click="run(() => registerGuestApi(blocker.guest))"
+						>
+							Register
+						</button>
+					</li>
+				</ul>
+
+				<div class="flex flex-wrap gap-2">
+					<button
+						v-if="unregisteredAdults.length > 1 && actions.can_edit_guests"
+						type="button"
+						class="rounded-lg border border-primary px-4 py-2 text-[13px] font-semibold text-primary disabled:opacity-50"
+						:disabled="busy"
+						@click="registerAll"
+					>
+						Register all {{ unregisteredAdults.length }} guests
+					</button>
+					<button
+						type="button"
+						class="rounded-lg bg-primary text-on-primary px-4 py-2 text-[13px] font-semibold disabled:opacity-50"
+						:disabled="busy || checkInBlockers.length > 0"
+						@click="checkInNow"
+					>
+						Check in
+					</button>
+				</div>
+			</section>
 
 			<p
 				v-if="stay.restriction_override_reason"
@@ -304,6 +384,12 @@
 										<span class="block text-[11px] text-on-surface-variant">
 											{{ guest.role }} · {{ guest.age_category }} ·
 											{{ guest.status }}
+											<span
+												v-if="needsRegistration(guest)"
+												class="ml-1 rounded-full bg-tertiary-container px-2 py-0.5 font-semibold text-on-tertiary-container"
+											>
+												Not registered
+											</span>
 										</span>
 									</span>
 									<span
@@ -533,6 +619,53 @@
 					</section>
 
 					<section
+						v-if="details.services?.length"
+						class="rounded-xl border border-outline-variant bg-surface-container-lowest p-4"
+					>
+						<h2 class="text-[15px] font-semibold">Services</h2>
+						<p class="text-[12px] text-on-surface-variant">
+							Spa and salon appointments charged to this stay. They post to the
+							guest's folio when completed.
+						</p>
+						<ul class="mt-2 divide-y divide-outline-variant text-[12px]">
+							<li v-for="row in details.services" :key="row.name" class="py-1.5">
+								<div class="flex items-center justify-between gap-2">
+									<span class="min-w-0">
+										<b>{{ row.service_type }}</b>
+										<span class="text-on-surface-variant">
+											· {{ row.guest_name }}</span
+										>
+									</span>
+									<span class="whitespace-nowrap">
+										{{
+											formatMoney(row.amount, row.currency || stay.currency)
+										}}
+									</span>
+								</div>
+								<div class="text-on-surface-variant">
+									{{ formatNight(row.appointment_date) }}
+									<template v-if="row.start_time">
+										· {{ String(row.start_time).slice(0, 5) }}</template
+									>
+									· {{ row.status }}
+									<template v-if="row.fee_amount">
+										· {{ row.fee_waived ? "fee waived" : "fee" }}
+										{{
+											formatMoney(
+												row.fee_amount,
+												row.currency || stay.currency
+											)
+										}}
+									</template>
+								</div>
+								<div v-if="row.posting_error" class="text-error">
+									{{ row.posting_error }}
+								</div>
+							</li>
+						</ul>
+					</section>
+
+					<section
 						class="rounded-xl border border-outline-variant bg-surface-container-lowest p-4"
 					>
 						<h2 class="text-[15px] font-semibold">History</h2>
@@ -609,6 +742,69 @@ const error = ref("");
 
 const stay = computed(() => details.value?.stay);
 const actions = computed(() => details.value?.actions || {});
+
+// Check-in readiness: the same rules the server applies, shown before anyone presses the button.
+const READY_ROOM_CONDITIONS = ["Clean", "Inspected"];
+const checkInReview = ref(false);
+
+function needsRegistration(guest) {
+	return (
+		guest.age_category === "Adult" &&
+		!guest.registration_complete &&
+		["Expected", "Registered"].includes(guest.status)
+	);
+}
+
+const unregisteredAdults = computed(() => (details.value?.guests || []).filter(needsRegistration));
+
+const checkInBlockers = computed(() => {
+	const blockers = [];
+	if (!stay.value?.room_number) {
+		blockers.push({
+			key: "room",
+			icon: "bed",
+			title: "No room assigned",
+			detail: "Pick a room in the Room section.",
+		});
+	} else if (!READY_ROOM_CONDITIONS.includes(stay.value.room_condition)) {
+		blockers.push({
+			key: "condition",
+			icon: "cleaning_services",
+			title: `Room ${stay.value.room_number} is ${stay.value.room_condition || "not ready"}`,
+			detail: "It must be Clean or Inspected. Ask housekeeping, or move the guest.",
+		});
+	}
+	unregisteredAdults.value.forEach((guest) =>
+		blockers.push({
+			key: guest.name,
+			icon: "badge",
+			title: `${guest.guest_name} isn't registered`,
+			detail: "Every adult is registered before check-in. Check their details and register them.",
+			guest: guest.name,
+		})
+	);
+	return blockers;
+});
+
+function startCheckIn() {
+	if (checkInBlockers.value.length) {
+		checkInReview.value = true;
+		return;
+	}
+	checkInNow();
+}
+
+async function checkInNow() {
+	await run(() => checkInApi(stay.value.name));
+	if (!error.value) checkInReview.value = false;
+}
+
+async function registerAll() {
+	for (const guest of unregisteredAdults.value.slice()) {
+		await run(() => registerGuestApi(guest.name));
+		if (error.value) return;
+	}
+}
 
 function isActive(guest) {
 	return ["Expected", "Registered", "Checked In"].includes(guest.status);

@@ -70,6 +70,11 @@ export const HOTEL_ENDPOINTS = {
 	setRestrictions: `${HOSPITALITY_API}.rates.set_restrictions`,
 	previewDepartureChange: `${HOSPITALITY_API}.front_desk.preview_departure_change`,
 	changeDeparture: `${HOSPITALITY_API}.front_desk.change_departure`,
+	searchServiceStays: `${HOSPITALITY_API}.services.search_stays`,
+	chargeBookingToRoom: `${HOSPITALITY_API}.services.charge_booking_to_room`,
+	releaseBookingToDesk: `${HOSPITALITY_API}.services.release_booking_to_desk`,
+	retryServicePosting: `${HOSPITALITY_API}.services.retry_service_posting`,
+	waiveServiceFee: `${HOSPITALITY_API}.services.waive_service_fee`,
 };
 
 const unwrapPayload = (payload) => payload?.message ?? payload ?? null;
@@ -307,13 +312,22 @@ export const takeDepositApi = ({
 	});
 export const waiveDepositApi = (deposit, reason) =>
 	request(HOTEL_ENDPOINTS.waiveDeposit, { deposit, reason });
-export const addRoutingRuleApi = ({ stay, targetFolio, route, chargeCode, itemGroup, notes }) =>
+export const addRoutingRuleApi = ({
+	stay,
+	targetFolio,
+	route,
+	chargeCode,
+	itemGroup,
+	stayGuest,
+	notes,
+}) =>
 	request(HOTEL_ENDPOINTS.addRoutingRule, {
 		stay,
 		target_folio: targetFolio,
 		route,
 		charge_code: chargeCode || null,
 		item_group: itemGroup || null,
+		stay_guest: stayGuest || null,
 		notes: notes || null,
 	});
 export const removeRoutingRuleApi = (rule, reason) =>
@@ -415,3 +429,20 @@ export const changeDepartureApi = (stay, departure, overrideReason = null) =>
 		departure,
 		override_reason: overrideReason,
 	});
+
+// Services charged to a hotel stay
+export const searchServiceStaysApi = (text) =>
+	request(HOTEL_ENDPOINTS.searchServiceStays, { text: text || "" });
+export const chargeBookingToRoomApi = ({ booking, stay, assignments, confirm = true }) =>
+	request(HOTEL_ENDPOINTS.chargeBookingToRoom, {
+		booking,
+		stay,
+		assignments: JSON.stringify(assignments),
+		confirm: confirm ? 1 : 0,
+	});
+export const releaseBookingToDeskApi = (booking, reason) =>
+	request(HOTEL_ENDPOINTS.releaseBookingToDesk, { booking, reason });
+export const retryServicePostingApi = (appointment) =>
+	request(HOTEL_ENDPOINTS.retryServicePosting, { appointment });
+export const waiveServiceFeeApi = (participant, reason) =>
+	request(HOTEL_ENDPOINTS.waiveServiceFee, { participant, reason });

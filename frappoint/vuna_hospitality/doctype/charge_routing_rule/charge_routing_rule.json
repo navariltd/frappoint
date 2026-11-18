@@ -15,6 +15,8 @@
   "route",
   "charge_code",
   "item_group",
+  "stay_guest",
+  "guest_name",
   "target_folio",
   "target_label",
   "notes_section",
@@ -98,6 +100,21 @@
    "depends_on": "eval:doc.route=='Item Group'"
   },
   {
+   "fieldname": "stay_guest",
+   "fieldtype": "Link",
+   "label": "Only For Guest",
+   "options": "Stay Guest",
+   "read_only": 1,
+   "description": "Empty: every guest's charges. A rule for one guest wins over rules for everyone."
+  },
+  {
+   "fieldname": "guest_name",
+   "fieldtype": "Data",
+   "label": "Guest Name",
+   "read_only": 1,
+   "fetch_from": "stay_guest.guest_name"
+  },
+  {
    "fieldname": "target_folio",
    "fieldtype": "Link",
    "label": "Send To Folio",
@@ -133,7 +150,7 @@
  ],
  "index_web_pages_for_search": 0,
  "links": [],
- "modified": "2026-11-13 18:00:00.000000",
+ "modified": "2026-11-17 10:00:00.000000",
  "modified_by": "Administrator",
  "module": "Vuna Hospitality",
  "name": "Charge Routing Rule",

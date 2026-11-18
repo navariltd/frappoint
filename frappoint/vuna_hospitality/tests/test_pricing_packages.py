@@ -10,7 +10,13 @@ from frappoint.vuna_hospitality.services.folio import post_manual_charge, revers
 from frappoint.vuna_hospitality.services.money import to_minor
 from frappoint.vuna_hospitality.services.reservations import confirm, hold
 from frappoint.vuna_hospitality.services.stay_pricing import child_ages_on
-from frappoint.vuna_hospitality.tests.test_folio import make_code, make_item, make_item_group
+from frappoint.vuna_hospitality.tests.test_folio import (
+	ROOM_ITEM,
+	make_code,
+	make_item,
+	make_item_group,
+	make_user,
+)
 from frappoint.vuna_hospitality.tests.test_night_audit import NightAuditTestCase
 from frappoint.vuna_hospitality.tests.test_reservations import stay_request
 
@@ -250,6 +256,37 @@ class TestTaxes(PricingTestCase):
 		inclusive = quote.quote(*args)
 		self.assertEqual(inclusive.grand_total, inclusive.total)
 		self.assertGreater(inclusive.tax, 0)
+
+	def test_staff_without_access_to_tax_setup_still_get_taxed_prices(self):
+		"""Pricing reads the tax templates itself: ERPNext's endpoints for them check that the user
+		may select the template, which front-desk and revenue staff can't."""
+		self.use_vat()
+		self.set_rate(10000)
+		abbr = frappe.get_cached_value("Company", self.prop.company, "abbr")
+		title = "HSP Test Room VAT"
+		template = f"{title} - {abbr}"
+		if not frappe.db.exists("Item Tax Template", template):
+			frappe.get_doc(
+				{
+					"doctype": "Item Tax Template",
+					"title": title,
+					"company": self.prop.company,
+					"taxes": [{"tax_type": f"HSP Test VAT - {abbr}", "tax_rate": 8}],
+				}
+			).insert(ignore_permissions=True)
+		item = frappe.get_doc("Item", ROOM_ITEM)
+		item.append("taxes", {"item_tax_template": template})
+		item.save(ignore_permissions=True)
+
+		frappe.set_user(make_user("hsp-tax-agent@example.com", "Reservations Agent"))
+		try:
+			result = quote.quote(
+				self.CODE, self.today, self.today + timedelta(days=2), f"{self.CODE}-STD", self.plan.name, 2
+			)
+		finally:
+			frappe.set_user("Administrator")
+		# The room's own 8% VAT replaces the property's 16%; the 2% levy still applies.
+		self.assertEqual((result.total, result.tax), (20000, 2000))
 
 	def test_nightly_levy_posts_per_adult(self):
 		self.prop.reload()

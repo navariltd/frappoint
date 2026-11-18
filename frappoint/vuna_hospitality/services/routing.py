@@ -4,13 +4,15 @@ From highest to lowest precedence:
 
 1. An explicit destination: a charge staff post to a folio they chose, a transfer, a payment.
    These never consult the rules.
-2. A guest- or service-specific rule (Release 2).
+2. A guest-specific rule: a **Charge Routing Rule** for one Stay Guest, "her spa goes to her own
+   folio" (F15). It applies to the charges that guest consumed, such as their service appointments.
 3. A stay-level **Charge Routing Rule**: "room charges go to the company's folio".
 4. A company, group, or travel-agent template copied to the booking (Release 2).
 5. The stay's default folio.
 
-Night audit (room nights, package components, levies) and policy fees resolve their folio here.
-Within tier 3 the most specific rule wins: a charge code over an item group, an item group over
+Night audit (room nights, package components, levies), policy fees, and service appointments
+resolve their folio here. Room nights and fees belong to no one guest, so only tier 3 applies to
+them. Within tiers 2 and 3 the most specific rule wins: a charge code over an item group, an item group over
 room charges, room charges over all charges. Two rules of the same rank that send a charge to
 different folios stop the posting until staff remove one, so a charge never lands on a folio
 by chance. A rule whose folio is already settled or closed is skipped.
@@ -33,6 +35,8 @@ ITEM_GROUP = "Item Group"
 CHARGE_CODE = "Charge Code"
 # A higher rank is more specific and wins.
 RANK = {ALL_CHARGES: 1, ROOM_CHARGES: 2, ITEM_GROUP: 3, CHARGE_CODE: 4}
+# A rule for one guest outranks every rule for the whole stay.
+GUEST_RANK = 10
 CLOSED_STAY_STATUSES = ("Checked Out", "Cancelled", "Expired", "No Show")
 
 
@@ -54,9 +58,11 @@ def add_rule(
 	*,
 	charge_code: str | None = None,
 	item_group: str | None = None,
+	stay_guest: str | None = None,
 	notes: str | None = None,
 ) -> str:
-	"""Send the stay's `route` charges to `target_folio` from now on. Returns the rule.
+	"""Send the stay's `route` charges to `target_folio` from now on. Returns the rule. With
+	`stay_guest`, only the charges that guest consumed.
 
 	Adding the same rule again returns the existing one. Charges already posted don't move; move
 	them with a transfer.
@@ -76,6 +82,9 @@ def add_rule(
 			frappe.throw(_("Choose a Revenue charge code to send."), RoutingError)
 	if route == ITEM_GROUP and not frappe.db.exists("Item Group", item_group):
 		frappe.throw(_("Choose the item group to send."), RoutingError)
+	stay_guest = (stay_guest or "").strip() or None
+	if stay_guest and frappe.db.get_value(folio.STAY_GUEST, stay_guest, "stay_reservation") != stay.name:
+		frappe.throw(_("Choose a guest of this stay."), RoutingError)
 
 	target = _row(
 		folio.FOLIO, target_folio, ["name", "stay_reservation", "hotel_booking", "status", "folio_label"]
@@ -91,6 +100,7 @@ def add_rule(
 		"is_active": 1,
 		"charge_code": charge_code,
 		"item_group": item_group,
+		"stay_guest": stay_guest,
 	}
 	existing = frappe.get_all(RULE, filters=same, fields=["name", "target_folio"])
 	for row in existing:
@@ -99,7 +109,7 @@ def add_rule(
 	if existing:
 		frappe.throw(
 			_("{0} already go to folio {1}. Remove that rule first.").format(
-				_describe(route, charge_code, item_group), existing[0].target_folio
+				_describe(route, charge_code, item_group, stay_guest), existing[0].target_folio
 			),
 			RoutingConflictError,
 		)
@@ -113,6 +123,7 @@ def add_rule(
 			"route": route,
 			"charge_code": charge_code,
 			"item_group": item_group,
+			"stay_guest": stay_guest,
 			"target_folio": target.name,
 			"target_label": target.folio_label,
 			"is_active": 1,
@@ -125,7 +136,11 @@ def add_rule(
 		STAY,
 		stay.name,
 		"Routing Rule Added",
-		data={"rule": doc.name, "charges": _describe(route, charge_code, item_group), "folio": target.name},
+		data={
+			"rule": doc.name,
+			"charges": _describe(route, charge_code, item_group, stay_guest),
+			"folio": target.name,
+		},
 	)
 	folio.refresh_stay_pending(stay.name)
 	return doc.name
@@ -147,17 +162,27 @@ def remove_rule(rule: str, reason: str) -> None:
 		doc.stay_reservation,
 		"Routing Rule Removed",
 		reason=reason,
-		data={"rule": doc.name, "charges": _describe(doc.route, doc.charge_code, doc.item_group)},
+		data={
+			"rule": doc.name,
+			"charges": _describe(doc.route, doc.charge_code, doc.item_group, doc.stay_guest),
+		},
 	)
 	folio.refresh_stay_pending(doc.stay_reservation)
 
 
-def _describe(route: str, charge_code: str | None, item_group: str | None) -> str:
+def _describe(
+	route: str, charge_code: str | None, item_group: str | None, stay_guest: str | None = None
+) -> str:
 	if route == CHARGE_CODE:
-		return _("{0} charges").format(charge_code)
-	if route == ITEM_GROUP:
-		return _("{0} charges").format(item_group)
-	return _(route)
+		text = _("{0} charges").format(charge_code)
+	elif route == ITEM_GROUP:
+		text = _("{0} charges").format(item_group)
+	else:
+		text = _(route)
+	if stay_guest:
+		guest = frappe.db.get_value(folio.STAY_GUEST, stay_guest, "guest_name") or stay_guest
+		return _("{0} of {1}").format(text, guest)
+	return text
 
 
 def stay_rules(stay_name: str) -> list:
@@ -170,6 +195,8 @@ def stay_rules(stay_name: str) -> list:
 			"route",
 			"charge_code",
 			"item_group",
+			"stay_guest",
+			"guest_name",
 			"target_folio",
 			"target_label",
 			"notes",
@@ -178,8 +205,8 @@ def stay_rules(stay_name: str) -> list:
 		order_by="creation asc",
 	)
 	for row in rules:
-		row["rank"] = RANK[row.route]
-		row["description"] = _describe(row.route, row.charge_code, row.item_group)
+		row["rank"] = RANK[row.route] + (GUEST_RANK if row.stay_guest else 0)
+		row["description"] = _describe(row.route, row.charge_code, row.item_group, row.stay_guest)
 		row["target_status"] = frappe.db.get_value(folio.FOLIO, row.target_folio, "status")
 	return sorted(rules, key=lambda row: -row["rank"])
 
@@ -188,11 +215,17 @@ def stay_rules(stay_name: str) -> list:
 
 
 def destination(
-	stay_name: str, charge_code: str, default: str | None = None, rules=None, codes: dict | None = None
+	stay_name: str,
+	charge_code: str,
+	default: str | None = None,
+	rules=None,
+	codes: dict | None = None,
+	stay_guest: str | None = None,
 ) -> str:
 	"""The folio a charge with `charge_code` posts to: the most specific matching rule's, else
 	`default` (the stay's default folio). To resolve many charges of one stay, pass `rules` (from
-	`stay_rules`) and one `codes` dict, so neither the rules nor the charge codes are read again."""
+	`stay_rules`) and one `codes` dict, so neither the rules nor the charge codes are read again.
+	`stay_guest` is the guest who consumed the charge: that guest's own rules come first."""
 	default = (
 		default
 		or frappe.db.get_value(STAY, stay_name, "default_folio")
@@ -208,6 +241,8 @@ def destination(
 	best_rank, targets = 0, set()
 	for rule in rules:
 		if rule["target_status"] not in folio.POSTABLE_STATUSES or not _matches(rule, code):
+			continue
+		if rule.get("stay_guest") and rule["stay_guest"] != stay_guest:
 			continue
 		if rule["rank"] > best_rank:
 			best_rank, targets = rule["rank"], {rule["target_folio"]}
