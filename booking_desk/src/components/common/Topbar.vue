@@ -194,6 +194,12 @@ const pageMeta = {
 		description: "Your shift, payments and shift reviews.",
 		tag: "Shift",
 	},
+	HousekeepingBoard: {
+		sectionLabel: "Hotel",
+		title: "Housekeeping",
+		description: "Rooms to clean and inspect, the team's tasks, and maintenance.",
+		tag: "Rooms",
+	},
 	RatesRestrictions: {
 		sectionLabel: "Hotel",
 		title: "Rates and Restrictions",

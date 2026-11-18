@@ -70,6 +70,20 @@ export const HOTEL_ENDPOINTS = {
 	setRestrictions: `${HOSPITALITY_API}.rates.set_restrictions`,
 	previewDepartureChange: `${HOSPITALITY_API}.front_desk.preview_departure_change`,
 	changeDeparture: `${HOSPITALITY_API}.front_desk.change_departure`,
+	housekeepingBoard: `${HOSPITALITY_API}.housekeeping.get_housekeeping_board`,
+	planStayovers: `${HOSPITALITY_API}.housekeeping.plan_stayovers`,
+	createHousekeepingTask: `${HOSPITALITY_API}.housekeeping.create_task`,
+	assignHousekeepingTask: `${HOSPITALITY_API}.housekeeping.assign_task`,
+	startHousekeepingTask: `${HOSPITALITY_API}.housekeeping.start_task`,
+	finishHousekeepingTask: `${HOSPITALITY_API}.housekeeping.finish_task`,
+	markDoNotDisturb: `${HOSPITALITY_API}.housekeeping.mark_do_not_disturb`,
+	inspectHousekeepingTask: `${HOSPITALITY_API}.housekeeping.inspect_task`,
+	cancelHousekeepingTask: `${HOSPITALITY_API}.housekeeping.cancel_task`,
+	reportMaintenance: `${HOSPITALITY_API}.housekeeping.report_maintenance`,
+	approveMaintenance: `${HOSPITALITY_API}.housekeeping.approve_maintenance`,
+	startMaintenance: `${HOSPITALITY_API}.housekeeping.start_maintenance`,
+	resolveMaintenance: `${HOSPITALITY_API}.housekeeping.resolve_maintenance`,
+	cancelMaintenance: `${HOSPITALITY_API}.housekeeping.cancel_maintenance`,
 	searchServiceStays: `${HOSPITALITY_API}.services.search_stays`,
 	chargeBookingToRoom: `${HOSPITALITY_API}.services.charge_booking_to_room`,
 	releaseBookingToDesk: `${HOSPITALITY_API}.services.release_booking_to_desk`,
@@ -156,8 +170,12 @@ export const setRoomLockApi = (stay, locked, reason) =>
 	request(HOTEL_ENDPOINTS.setRoomLock, { stay, locked: locked ? 1 : 0, reason });
 export const moveRoomApi = (stay, room, moveReason) =>
 	request(HOTEL_ENDPOINTS.moveRoom, { stay, room, move_reason: moveReason });
-export const checkInApi = (stay, room) =>
-	request(HOTEL_ENDPOINTS.checkIn, { stay, room: room || null });
+export const checkInApi = (stay, room, overrideReason = null) =>
+	request(HOTEL_ENDPOINTS.checkIn, {
+		stay,
+		room: room || null,
+		override_reason: overrideReason || null,
+	});
 export const checkOutApi = (stay, overrideReason = null) =>
 	request(HOTEL_ENDPOINTS.checkOut, { stay, override_reason: overrideReason });
 export const departEarlyApi = (stay) => request(HOTEL_ENDPOINTS.departEarly, { stay });
@@ -446,3 +464,63 @@ export const retryServicePostingApi = (appointment) =>
 	request(HOTEL_ENDPOINTS.retryServicePosting, { appointment });
 export const waiveServiceFeeApi = (participant, reason) =>
 	request(HOTEL_ENDPOINTS.waiveServiceFee, { participant, reason });
+
+// Housekeeping and maintenance
+export const fetchHousekeepingBoardApi = (property) =>
+	request(HOTEL_ENDPOINTS.housekeepingBoard, { property });
+export const planStayoversApi = (property) => request(HOTEL_ENDPOINTS.planStayovers, { property });
+export const createHousekeepingTaskApi = ({ room, taskType, priority, notes, assignedTo }) =>
+	request(HOTEL_ENDPOINTS.createHousekeepingTask, {
+		room,
+		task_type: taskType,
+		priority: priority || null,
+		notes: notes || null,
+		assigned_to: assignedTo || null,
+	});
+export const assignHousekeepingTaskApi = (task, employee) =>
+	request(HOTEL_ENDPOINTS.assignHousekeepingTask, { task, employee: employee || null });
+export const startHousekeepingTaskApi = (task) =>
+	request(HOTEL_ENDPOINTS.startHousekeepingTask, { task });
+export const finishHousekeepingTaskApi = (task, roomFound = null, notes = null) =>
+	request(HOTEL_ENDPOINTS.finishHousekeepingTask, {
+		task,
+		room_found: roomFound || null,
+		notes: notes || null,
+	});
+export const markDoNotDisturbApi = (task) => request(HOTEL_ENDPOINTS.markDoNotDisturb, { task });
+export const inspectHousekeepingTaskApi = (task, passed, notes = null) =>
+	request(HOTEL_ENDPOINTS.inspectHousekeepingTask, {
+		task,
+		passed: passed ? 1 : 0,
+		notes: notes || null,
+	});
+export const cancelHousekeepingTaskApi = (task, reason) =>
+	request(HOTEL_ENDPOINTS.cancelHousekeepingTask, { task, reason });
+export const reportMaintenanceApi = ({
+	property,
+	issue,
+	room,
+	severity,
+	description,
+	roomImpact,
+	outFrom,
+	backInServiceOn,
+}) =>
+	request(HOTEL_ENDPOINTS.reportMaintenance, {
+		property,
+		issue,
+		room: room || null,
+		severity: severity || "Medium",
+		description: description || null,
+		room_impact: roomImpact || "None",
+		out_from: outFrom || null,
+		back_in_service_on: backInServiceOn || null,
+	});
+export const approveMaintenanceApi = (request_) =>
+	request(HOTEL_ENDPOINTS.approveMaintenance, { request: request_ });
+export const startMaintenanceApi = (request_) =>
+	request(HOTEL_ENDPOINTS.startMaintenance, { request: request_ });
+export const resolveMaintenanceApi = (request_, resolution) =>
+	request(HOTEL_ENDPOINTS.resolveMaintenance, { request: request_, resolution });
+export const cancelMaintenanceApi = (request_, reason) =>
+	request(HOTEL_ENDPOINTS.cancelMaintenance, { request: request_, reason });

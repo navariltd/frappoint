@@ -6,8 +6,9 @@
   Room row and refuses the room if another stay holds it at overlapping *times*, including the
   property's turnover time, so early check-in and late check-out are respected. A move ends one
   segment and starts the next, so the stay's history keeps every room.
-- **Check-in** needs a ready room (housekeeping Inspected or Clean, until F17), every adult
-  registered, and the deposit paid or waived (F12). **Check-out** first posts the nights the guest
+- **Check-in** needs a room housekeeping has released (Clean or Inspected, or only Inspected
+  when the property requires inspection; a Front Desk Manager can override with a reason), every
+  adult registered, and the deposit paid or waived (F12). **Check-out** first posts the nights the guest
   used that night audit hasn't (F8), then needs every open folio at zero (F7), unless a Front Desk
   Manager overrides it with a reason. Leaving before the booked departure gives the remaining
   nights back to inventory and charges the early-departure fee (F12); `depart_early()` does that
@@ -24,11 +25,12 @@ import frappe
 from frappe import _
 from frappe.utils import add_days, cint, get_datetime, getdate, now_datetime
 
-from frappoint.vuna_hospitality.constants import FOLIO_MANAGER_ROLES
+from frappoint.vuna_hospitality.constants import FOLIO_MANAGER_ROLES, RESERVATION_MANAGER_ROLES
 from frappoint.vuna_hospitality.services import (
 	allowances,
 	deposits,
 	folio,
+	housekeeping,
 	inventory,
 	night_audit,
 	policies,
@@ -347,6 +349,7 @@ def get_assignable_rooms(stay_name: str) -> list[dict]:
 	start, end = stay_window(stay)
 	turnover = frappe.db.get_value("Hotel Property", stay.property, "turnover_minutes")
 	current = current_assignment(stay.room_occupancy)
+	ready = housekeeping.ready_conditions(stay.property)
 	rooms = frappe.get_all(
 		HOTEL_ROOM,
 		filters={"room_type": stay.room_type, "is_active": 1},
@@ -359,7 +362,7 @@ def get_assignable_rooms(stay_name: str) -> list[dict]:
 		room["is_current"] = bool(current and current.hotel_room == room.name)
 		room["available"] = not conflict and not closed
 		room["unavailable_reason"] = _(closed) if closed else (_("Taken") if conflict else None)
-		room["ready"] = room.housekeeping_condition in READY_CONDITIONS
+		room["ready"] = room.housekeeping_condition in ready
 	return rooms
 
 
@@ -473,7 +476,7 @@ def move_room(stay_name: str, new_room: str, move_reason: str, notes: str | None
 	# The stay keeps its planned check-out; read it before the current segment is closed at `now`.
 	planned_end = get_datetime(current.end_datetime)
 	info = _check_room(stay, new_room, now, planned_end, business_date, stay.departure_date)
-	if info.housekeeping_condition not in READY_CONDITIONS:
+	if info.housekeeping_condition not in housekeeping.ready_conditions(stay.property):
 		frappe.throw(
 			_("Room {0} is {1}, not ready for a guest.").format(
 				info.room_number, _(info.housekeeping_condition)
@@ -512,6 +515,7 @@ def move_room(stay_name: str, new_room: str, move_reason: str, notes: str | None
 		reason=_("Guest moved out"),
 	)
 	mark_room(new_room, occupancy_status="Occupied", reason=_("Guest moved in"))
+	housekeeping.on_room_vacated(current.hotel_room, stay.name, "Room Move")
 	log_event(
 		STAY,
 		stay.name,
@@ -525,8 +529,12 @@ def move_room(stay_name: str, new_room: str, move_reason: str, notes: str | None
 # --------------------------------------------------------------------------- check-in / check-out
 
 
-def check_in(stay_name: str, room: str | None = None) -> None:
-	"""Check the stay in: the room becomes occupied and every registered guest is checked in."""
+def check_in(stay_name: str, room: str | None = None, override_reason: str | None = None) -> None:
+	"""Check the stay in: the room becomes occupied and every registered guest is checked in.
+
+	The room must be ready (housekeeping). `override_reason` lets a Front Desk Manager put the guest
+	in a room that isn't, for example one that is being finished while they wait.
+	"""
 	stay = _lock_stay(stay_name)
 	if stay.status not in PRE_ARRIVAL_STATUSES:
 		raise CheckInRefusedError(
@@ -549,12 +557,19 @@ def check_in(stay_name: str, room: str | None = None) -> None:
 		raise CheckInRefusedError(_("Assign a room before checking in."))
 	_lock_row(HOTEL_ROOM, assignment.hotel_room)
 	condition = frappe.db.get_value(HOTEL_ROOM, assignment.hotel_room, "housekeeping_condition")
-	if condition not in READY_CONDITIONS:
-		raise CheckInRefusedError(
-			_("Room {0} is {1}. It must be Clean or Inspected before check-in.").format(
-				assignment.room_number, _(condition)
+	room_override = None
+	if condition not in housekeeping.ready_conditions(stay.property):
+		room_override = (override_reason or "").strip()
+		if not room_override:
+			raise CheckInRefusedError(
+				_("Room {0} is {1}. It must be {2} before check-in.").format(
+					assignment.room_number, _(condition), housekeeping.readiness_text(stay.property)
+				)
 			)
-		)
+		if not set(RESERVATION_MANAGER_ROLES) & set(frappe.get_roles()):
+			raise frappe.PermissionError(
+				_("Only a Front Desk Manager can check a guest into a room that isn't ready.")
+			)
 
 	guests = active_guests(stay.name)
 	unregistered = [g.guest_name for g in guests if g.age_category == ADULT and not g.registration_complete]
@@ -592,6 +607,14 @@ def check_in(stay_name: str, room: str | None = None) -> None:
 	mark_room(
 		assignment.hotel_room, occupancy_status="Occupied", reason=_("Checked in: {0}").format(stay.name)
 	)
+	if room_override:
+		log_event(
+			STAY,
+			stay.name,
+			"Checked In to Room Not Ready",
+			reason=room_override,
+			data={"room": assignment.room_number, "condition": condition},
+		)
 	refresh_booking(stay.hotel_booking)
 
 
@@ -656,6 +679,7 @@ def check_out(stay_name: str, override_reason: str | None = None) -> None:
 			housekeeping_condition="Dirty",
 			reason=_("Checked out: {0}").format(stay.name),
 		)
+		housekeeping.on_room_vacated(assignment.hotel_room, stay.name, "Check-out")
 	for guest in active_guests(stay.name):
 		if guest.status == "Checked In":
 			transition(
@@ -1015,6 +1039,7 @@ def front_desk_today(property_name: str) -> dict:
 	business_date = _business_date(property_name)
 	fields = [
 		"name",
+		"property",
 		"status",
 		"hotel_booking",
 		"lead_guest",
@@ -1082,6 +1107,7 @@ def _add_room_details(stays: list) -> None:
 			as_list=True,
 		)
 	)
+	ready_by_property = {}
 	for stay in stays:
 		assignment = assignments.get(stay.room_occupancy)
 		room = rooms.get(assignment.hotel_room) if assignment else None
@@ -1090,7 +1116,11 @@ def _add_room_details(stays: list) -> None:
 		stay["room_number"] = assignment.room_number if assignment else None
 		stay["room_locked"] = bool(assignment and assignment.do_not_move)
 		stay["room_condition"] = room.housekeeping_condition if room else None
-		stay["room_ready"] = bool(room and room.housekeeping_condition in READY_CONDITIONS)
+		ready = ready_by_property.setdefault(
+			stay.get("property"), housekeeping.ready_conditions(stay.get("property"))
+		)
+		stay["room_ready"] = bool(room and room.housekeeping_condition in ready)
+		stay["room_ready_text"] = " or ".join(ready)
 
 
 def _stay_services(stay_name: str) -> list:
@@ -1202,6 +1232,8 @@ def stay_details(stay_name: str) -> dict:
 			"can_assign": status in PRE_ARRIVAL_STATUSES,
 			"can_check_in": status in PRE_ARRIVAL_STATUSES
 			and getdate(stay.arrival_date) <= summary["business_date"] < getdate(stay.departure_date),
+			# A Front Desk Manager may check a guest into a room housekeeping hasn't released (F17).
+			"can_override_room": bool(set(RESERVATION_MANAGER_ROLES) & set(frappe.get_roles())),
 			"can_move": status in IN_HOUSE_STATUSES,
 			"can_check_out": status in IN_HOUSE_STATUSES,
 			"can_edit_guests": status in GUEST_EDITABLE_STATUSES,

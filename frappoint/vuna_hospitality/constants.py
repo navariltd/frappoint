@@ -87,6 +87,9 @@ PROPERTY_SCOPED_DOCTYPES: tuple[str, ...] = (
 	"House Account",
 	# F15 Services (appointments) to folio
 	"Service Participant",
+	# F17 Housekeeping and maintenance
+	"Housekeeping Task",
+	"Maintenance Request",
 )
 
 # Roles that post charges to a folio by hand (§23.1: front desk posts within limits).

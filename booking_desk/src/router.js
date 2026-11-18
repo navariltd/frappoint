@@ -114,6 +114,12 @@ const routes = [
 		meta: { requiresLogin: true, workspace: HOTEL },
 	},
 	{
+		name: "HousekeepingBoard",
+		path: "/hotel/housekeeping",
+		component: () => import("@/pages/hotel/HousekeepingBoard.vue"),
+		meta: { requiresLogin: true, workspace: HOTEL },
+	},
+	{
 		name: "RatesRestrictions",
 		path: "/hotel/rates",
 		component: () => import("@/pages/hotel/RatesRestrictions.vue"),
