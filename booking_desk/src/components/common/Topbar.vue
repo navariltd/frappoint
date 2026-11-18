@@ -194,6 +194,12 @@ const pageMeta = {
 		description: "Your shift, payments and shift reviews.",
 		tag: "Shift",
 	},
+	GuestHistory: {
+		sectionLabel: "Hotel",
+		title: "Guest History",
+		description: "Match guests on earlier appointments to their profiles.",
+		tag: "Guests",
+	},
 	HousekeepingBoard: {
 		sectionLabel: "Hotel",
 		title: "Housekeeping",
