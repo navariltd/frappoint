@@ -7,28 +7,9 @@ import {
 	validateCheckoutCouponApi,
 } from "@/api/checkout.api";
 import { createEmptyCheckoutSummary } from "@/types/checkout";
+import { readableError } from "@/utils/errorMessage";
 
-const parseErrorMessage = (error, fallback) => {
-	if (!error) return fallback;
-
-	if (Array.isArray(error?.messages) && error.messages.length) {
-		return error.messages.join(" ");
-	}
-
-	if (error?._server_messages) {
-		try {
-			const serverMessages = JSON.parse(error._server_messages);
-			if (Array.isArray(serverMessages) && serverMessages.length) {
-				const first = JSON.parse(serverMessages[0]);
-				if (first?.message) return first.message;
-			}
-		} catch {
-			return String(error._server_messages);
-		}
-	}
-
-	return error?.message || fallback;
-};
+const parseErrorMessage = (error, fallback) => readableError(error, fallback);
 
 export { parseErrorMessage };
 

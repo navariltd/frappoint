@@ -1,4 +1,5 @@
 import { createResource } from "frappe-ui";
+import { readableError } from "@/utils/errorMessage";
 
 const HOSPITALITY_API = "frappoint.vuna_hospitality.api";
 
@@ -114,10 +115,9 @@ async function request(url, params = {}) {
 }
 
 /** The server's message for a failed call, without the traceback. */
+// Plain words for the desk: no markup, no internal names (see utils/errorMessage.js).
 export function hotelErrorMessage(error) {
-	const messages = error?.messages?.filter(Boolean);
-	if (messages?.length) return messages.join(" ");
-	return error?.message || "Something went wrong. Please try again.";
+	return readableError(error);
 }
 
 export const fetchSessionContextApi = () => request(HOTEL_ENDPOINTS.sessionContext);
