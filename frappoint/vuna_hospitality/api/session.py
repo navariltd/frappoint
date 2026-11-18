@@ -19,7 +19,10 @@ def get_session_context() -> dict:
 	return {
 		"enabled": is_hospitality_enabled(),
 		"user": user,
-		"roles": sorted(user_roles & {*HOSPITALITY_ROLES, "System Manager"}),
+		# Maintenance staff use ERPNext's own roles (design §23.1); they work on the Housekeeping Board.
+		"roles": sorted(
+			user_roles & {*HOSPITALITY_ROLES, "System Manager", "Maintenance User", "Maintenance Manager"}
+		),
 		"properties": get_user_properties(user),
 		# Where the hotel workspace opens: Front Desk Today, Tape Chart or Reservations.
 		"default_landing_page": frappe.db.get_single_value("Hospitality Settings", "default_landing_page")
