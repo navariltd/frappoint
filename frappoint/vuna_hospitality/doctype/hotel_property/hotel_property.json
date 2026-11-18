@@ -38,6 +38,10 @@
   "max_folios_per_stay",
   "column_break_ops",
   "night_audit_block_on_open_shifts",
+  "housekeeping_section",
+  "housekeeping_department",
+  "column_break_housekeeping",
+  "require_inspection",
   "services_section",
   "service_cancellation_policy",
   "column_break_services",
@@ -253,6 +257,28 @@
    "default": "1"
   },
   {
+   "fieldname": "housekeeping_section",
+   "fieldtype": "Section Break",
+   "label": "Housekeeping"
+  },
+  {
+   "fieldname": "housekeeping_department",
+   "fieldtype": "Link",
+   "label": "Housekeeping Department",
+   "options": "Department",
+   "description": "Housekeeping tasks are assigned to active Employees of this department. Empty: any active employee of the property's company."
+  },
+  {
+   "fieldname": "column_break_housekeeping",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "require_inspection",
+   "fieldtype": "Check",
+   "label": "Require Inspection Before Check-in",
+   "description": "A cleaned room is ready for a guest only after a supervisor inspects it. Off: Clean is enough."
+  },
+  {
    "fieldname": "services_section",
    "fieldtype": "Section Break",
    "label": "Services Charged to Rooms",
@@ -346,7 +372,7 @@
    "link_fieldname": "property"
   }
  ],
- "modified": "2026-11-17 10:00:00.000000",
+ "modified": "2026-11-18 10:00:00.000000",
  "modified_by": "Administrator",
  "module": "Vuna Hospitality",
  "name": "Hotel Property",

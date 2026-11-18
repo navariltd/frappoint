@@ -108,9 +108,10 @@ def move_room(stay: str, room: str, move_reason: str, notes: str | None = None) 
 
 @frappe.whitelist(methods=["POST"])
 @require_hospitality
-def check_in(stay: str, room: str | None = None) -> dict:
+def check_in(stay: str, room: str | None = None, override_reason: str | None = None) -> dict:
+	"""Check in. A room housekeeping hasn't released needs a Front Desk Manager's `override_reason`."""
 	_check_stay(stay)
-	return _run(lambda: front_desk.check_in(stay, room), stay)
+	return _run(lambda: front_desk.check_in(stay, room, override_reason), stay)
 
 
 @frappe.whitelist(methods=["POST"])
