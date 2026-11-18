@@ -142,6 +142,22 @@ const NAVIGATION = {
 			],
 		},
 		{
+			label: "Housekeeping",
+			icon: "cleaning_services",
+			to: { name: "HousekeepingBoard" },
+			activeWhen: ["HousekeepingBoard"],
+			roles: [
+				"System Manager",
+				"Hospitality Manager",
+				"Housekeeping Supervisor",
+				"Housekeeping Attendant",
+				"Front Desk Manager",
+				"Front Desk Agent",
+				"Maintenance Manager",
+				"Maintenance User",
+			],
+		},
+		{
 			label: "Night Audit",
 			icon: "nights_stay",
 			to: { name: "NightAudit" },

@@ -144,11 +144,33 @@
 						type="button"
 						class="rounded-lg bg-primary text-on-primary px-4 py-2 text-[13px] font-semibold disabled:opacity-50"
 						:disabled="busy || checkInBlockers.length > 0"
-						@click="checkInNow"
+						@click="checkInNow()"
 					>
 						Check in
 					</button>
 				</div>
+				<form
+					v-if="canOverrideRoom"
+					class="flex flex-wrap items-end gap-2 border-t border-outline-variant pt-3"
+					@submit.prevent="checkInNow(roomOverrideReason)"
+				>
+					<label class="min-w-[240px] flex-1 text-[12px] text-on-surface-variant">
+						Check in anyway (manager): why can the guest have this room now?
+						<input
+							v-model="roomOverrideReason"
+							required
+							class="mt-1 w-full rounded-lg border border-outline-variant bg-surface-container-lowest px-3 py-2 text-[13px] text-on-surface"
+							placeholder="For example: finishing while the guest has lunch"
+						/>
+					</label>
+					<button
+						type="submit"
+						class="rounded-lg border border-error px-4 py-2 text-[13px] font-semibold text-error disabled:opacity-50"
+						:disabled="busy || !roomOverrideReason.trim()"
+					>
+						Check in anyway
+					</button>
+				</form>
 			</section>
 
 			<p
@@ -744,8 +766,8 @@ const stay = computed(() => details.value?.stay);
 const actions = computed(() => details.value?.actions || {});
 
 // Check-in readiness: the same rules the server applies, shown before anyone presses the button.
-const READY_ROOM_CONDITIONS = ["Clean", "Inspected"];
 const checkInReview = ref(false);
+const roomOverrideReason = ref("");
 
 function needsRegistration(guest) {
 	return (
@@ -766,12 +788,15 @@ const checkInBlockers = computed(() => {
 			title: "No room assigned",
 			detail: "Pick a room in the Room section.",
 		});
-	} else if (!READY_ROOM_CONDITIONS.includes(stay.value.room_condition)) {
+	} else if (!stay.value.room_ready) {
 		blockers.push({
 			key: "condition",
 			icon: "cleaning_services",
 			title: `Room ${stay.value.room_number} is ${stay.value.room_condition || "not ready"}`,
-			detail: "It must be Clean or Inspected. Ask housekeeping, or move the guest.",
+			detail: `Housekeeping must release it as ${
+				stay.value.room_ready_text || "Clean or Inspected"
+			}. Ask them, or move the guest.`,
+			overridable: true,
 		});
 	}
 	unregisteredAdults.value.forEach((guest) =>
@@ -794,9 +819,20 @@ function startCheckIn() {
 	checkInNow();
 }
 
-async function checkInNow() {
-	await run(() => checkInApi(stay.value.name));
-	if (!error.value) checkInReview.value = false;
+// Only the room stands in the way, and a manager may put the guest in it anyway.
+const canOverrideRoom = computed(
+	() =>
+		actions.value.can_override_room &&
+		checkInBlockers.value.length > 0 &&
+		checkInBlockers.value.every((blocker) => blocker.overridable)
+);
+
+async function checkInNow(overrideReason = null) {
+	await run(() => checkInApi(stay.value.name, null, overrideReason));
+	if (!error.value) {
+		checkInReview.value = false;
+		roomOverrideReason.value = "";
+	}
 }
 
 async function registerAll() {
