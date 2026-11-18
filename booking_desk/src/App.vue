@@ -9,10 +9,13 @@
 				<router-view />
 			</main>
 		</div>
+
+		<SessionExpiredDialog />
 	</div>
 </template>
 
 <script setup>
 import Sidebar from "./components/common/Sidebar.vue";
 import Topbar from "./components/common/Topbar.vue";
+import SessionExpiredDialog from "./components/common/SessionExpiredDialog.vue";
 </script>
