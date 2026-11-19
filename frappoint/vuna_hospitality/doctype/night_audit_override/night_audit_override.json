@@ -1,0 +1,80 @@
+{
+ "actions": [],
+ "creation": "2026-11-19 09:00:00.000000",
+ "description": "A blocking night-audit check someone allowed the audit to pass, with who, as what role, and why.",
+ "doctype": "DocType",
+ "editable_grid": 0,
+ "engine": "InnoDB",
+ "field_order": [
+  "check_key",
+  "check_title",
+  "found",
+  "reason",
+  "overridden_by",
+  "role",
+  "overridden_at"
+ ],
+ "fields": [
+  {
+   "fieldname": "check_key",
+   "fieldtype": "Data",
+   "label": "Check Key",
+   "read_only": 1,
+   "hidden": 1
+  },
+  {
+   "fieldname": "check_title",
+   "fieldtype": "Data",
+   "label": "Check",
+   "read_only": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "found",
+   "fieldtype": "Int",
+   "label": "Found",
+   "read_only": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "reason",
+   "fieldtype": "Small Text",
+   "label": "Reason",
+   "read_only": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "overridden_by",
+   "fieldtype": "Link",
+   "label": "Overridden By",
+   "options": "User",
+   "read_only": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "role",
+   "fieldtype": "Link",
+   "label": "As Role",
+   "options": "Role",
+   "read_only": 1
+  },
+  {
+   "fieldname": "overridden_at",
+   "fieldtype": "Datetime",
+   "label": "Overridden At",
+   "read_only": 1
+  }
+ ],
+ "index_web_pages_for_search": 0,
+ "istable": 1,
+ "modified": "2026-11-19 09:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Vuna Hospitality",
+ "name": "Night Audit Override",
+ "owner": "Administrator",
+ "permissions": [],
+ "row_format": "Dynamic",
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": []
+}
