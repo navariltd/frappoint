@@ -38,6 +38,7 @@ declare module 'vue' {
     AssignmentProgressHeader: typeof import('./src/components/booking/guest-assignment/AssignmentProgressHeader.vue')['default']
     AssignmentSummarySidebar: typeof import('./src/components/booking/guest-assignment/AssignmentSummarySidebar.vue')['default']
     AssignmentValidationBanner: typeof import('./src/components/booking/guest-assignment/AssignmentValidationBanner.vue')['default']
+    AuditReport: typeof import('./src/components/hotel/AuditReport.vue')['default']
     AvailableDatesList: typeof import('./src/components/booking/guest-assignment/AvailableDatesList.vue')['default']
     AvailableSlotsGrid: typeof import('./src/components/booking/guest-assignment/AvailableSlotsGrid.vue')['default']
     BookingAppointmentPreview: typeof import('./src/components/bookings/BookingAppointmentPreview.vue')['default']

@@ -45,6 +45,7 @@ export const HOTEL_ENDPOINTS = {
 	issueCreditNote: `${HOSPITALITY_API}.folios.issue_credit_note`,
 	nightAudit: `${HOSPITALITY_API}.night_audit.get_night_audit`,
 	startNightAudit: `${HOSPITALITY_API}.night_audit.start_night_audit`,
+	auditReport: `${HOSPITALITY_API}.night_audit.get_audit_report`,
 	cashier: `${HOSPITALITY_API}.cashiering.get_cashier`,
 	openShift: `${HOSPITALITY_API}.cashiering.open_shift`,
 	closeShift: `${HOSPITALITY_API}.cashiering.close_shift`,
@@ -288,8 +289,12 @@ export const issueCreditNoteApi = (transaction, reason) =>
 
 // Night audit (F8)
 export const fetchNightAuditApi = (property) => request(HOTEL_ENDPOINTS.nightAudit, { property });
-export const startNightAuditApi = (property) =>
-	request(HOTEL_ENDPOINTS.startNightAudit, { property });
+export const startNightAuditApi = (property, overrides = {}) =>
+	request(HOTEL_ENDPOINTS.startNightAudit, {
+		property,
+		overrides: Object.keys(overrides).length ? JSON.stringify(overrides) : null,
+	});
+export const fetchAuditReportApi = (run) => request(HOTEL_ENDPOINTS.auditReport, { run });
 
 // Payments and cashier shifts (F10)
 export const fetchCashierApi = (property) => request(HOTEL_ENDPOINTS.cashier, { property });
