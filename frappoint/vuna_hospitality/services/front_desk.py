@@ -74,6 +74,10 @@ class RoomUnavailableError(frappe.ValidationError):
 	"""The room can't be given to this stay: wrong type, closed, or taken at overlapping times."""
 
 
+class CheckOutBlockedError(frappe.ValidationError):
+	"""Something other than the balance must be resolved before the guest leaves (plan F19)."""
+
+
 class CheckInRefusedError(frappe.ValidationError):
 	"""Something check-in needs is missing: a ready room, a registered guest, or the arrival date."""
 
@@ -659,6 +663,8 @@ def check_out(stay_name: str, override_reason: str | None = None) -> None:
 	if early:
 		# The fee is part of what the guest must settle before leaving.
 		policies.post_fee(stay, policies.EARLY_DEPARTURE, from_date=leaving_on)
+	# The balance override never excuses these: it permits only the balance (scenario 37).
+	assert_no_check_out_blockers(stay)
 	assert_ready_to_check_out(stay, override_reason)
 
 	if early:
@@ -1022,6 +1028,94 @@ def assert_guarantee_satisfied(stay) -> None:
 		raise CheckInRefusedError(str(error)) from error
 
 
+def check_out_blockers(stay) -> list[dict]:
+	"""What must be resolved before the guest leaves, besides the balance (plan F19, scenario 37).
+
+	- a checked-in adult whose registration is incomplete;
+	- a service charge that failed to post to the stay;
+	- a payment to the stay's folios still in progress (an M-Pesa prompt, say);
+	- a folio whose invoice failed to submit (Settlement Pending).
+
+	No override covers these. An open balance is a separate rule a Front Desk Manager may override.
+	"""
+	stay_name = stay if isinstance(stay, str) else stay.name
+	blockers = []
+	for guest in frappe.get_all(
+		STAY_GUEST,
+		filters={
+			"stay_reservation": stay_name,
+			"status": "Checked In",
+			"age_category": ADULT,
+			"registration_complete": 0,
+		},
+		fields=["name", "guest_name"],
+	):
+		blockers.append(
+			{
+				"kind": "registration",
+				"label": _("{0}'s registration is incomplete").format(guest.guest_name or guest.name),
+				"name": guest.name,
+			}
+		)
+	for row in frappe.get_all(
+		"Service Participant",
+		filters={"stay_reservation": stay_name, "status": "Failed"},
+		fields=["name", "guest_name", "service_type"],
+	):
+		blockers.append(
+			{
+				"kind": "service_charge",
+				"label": _("{0} for {1} failed to post to the folio").format(
+					row.service_type, row.guest_name
+				),
+				"name": row.name,
+			}
+		)
+	folios = frappe.get_all(
+		folio.FOLIO, filters={"stay_reservation": stay_name}, fields=["name", "status", "folio_label"]
+	)
+	names = [row.name for row in folios]
+	if names:
+		split = frappe.qb.DocType("Folio Payment Split")
+		payment = frappe.qb.DocType("Folio Payment")
+		pending = (
+			frappe.qb.from_(split)
+			.join(payment)
+			.on(payment.name == split.parent)
+			.select(payment.name, payment.mode_of_payment)
+			.distinct()
+			.where(split.guest_folio.isin(names))
+			.where(payment.status == "Pending")
+		).run(as_dict=True)
+		blockers += [
+			{
+				"kind": "payment",
+				"label": _("Payment {0} ({1}) is still in progress").format(row.name, row.mode_of_payment),
+				"name": row.name,
+			}
+			for row in pending
+		]
+	blockers += [
+		{
+			"kind": "settlement",
+			"label": _("Folio {0} ({1}): its invoice failed to submit").format(row.folio_label, row.name),
+			"name": row.name,
+		}
+		for row in folios
+		if row.status == "Settlement Pending"
+	]
+	return blockers
+
+
+def assert_no_check_out_blockers(stay) -> None:
+	blockers = check_out_blockers(stay)
+	if blockers:
+		frappe.throw(
+			_("Resolve before check-out: {0}.").format("; ".join(row["label"] for row in blockers)),
+			CheckOutBlockedError,
+		)
+
+
 def assert_ready_to_check_out(stay, override_reason: str | None = None) -> None:
 	"""Check-out needs every open folio at zero, or a Front Desk Manager's override."""
 	folio.assert_folios_settled(stay, override_reason)
@@ -1236,6 +1330,8 @@ def stay_details(stay_name: str) -> dict:
 			"can_override_room": bool(set(RESERVATION_MANAGER_ROLES) & set(frappe.get_roles())),
 			"can_move": status in IN_HOUSE_STATUSES,
 			"can_check_out": status in IN_HOUSE_STATUSES,
+			# F19: what stops check-out besides the balance; no override covers these.
+			"check_out_blockers": check_out_blockers(stay.name) if status in IN_HOUSE_STATUSES else [],
 			"can_edit_guests": status in GUEST_EDITABLE_STATUSES,
 			"can_view_folios": bool(folios) and bool(frappe.has_permission(folio.FOLIO, "read")),
 			"can_override_check_out": is_manager,
