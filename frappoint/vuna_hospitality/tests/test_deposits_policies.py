@@ -386,7 +386,12 @@ class TestNoShows(PolicyTestCase):
 			patch.object(frappe.db, "commit"),
 			patch.object(night_audit, "is_job_enqueued", return_value=False),
 		):
-			run = night_audit.start_night_audit(self.CODE)
+			# The arrival blocks the audit until the auditor lets it become a no-show.
+			run = night_audit.start_night_audit(
+				self.CODE,
+				# The test leaves its cashier shift open (decision D-9 blocks that too).
+				{"arrivals": "Guest did not arrive", "open_shifts": "Shift continues tomorrow"},
+			)
 			self.assertEqual(night_audit.execute_run(run), "Completed")
 		self.assertEqual(frappe.db.get_value("Stay Reservation", stay.name, "status"), "No Show")
 		stage = frappe.get_all(

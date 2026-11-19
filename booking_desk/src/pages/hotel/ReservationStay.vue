@@ -71,6 +71,33 @@
 				</div>
 			</header>
 
+			<!-- What stops check-out besides the balance; no override covers these -->
+			<section
+				v-if="actions.can_check_out && checkOutBlockers.length"
+				class="rounded-xl border border-tertiary bg-tertiary-container/20 p-4 space-y-2"
+				aria-live="polite"
+			>
+				<h2 class="text-[15px] font-semibold">Before checking out</h2>
+				<p class="text-[12px] text-on-surface-variant">
+					These must be resolved before {{ stay.lead_guest_name }} can leave. A manager's
+					balance override doesn't cover them.
+				</p>
+				<ul class="space-y-1 text-[13px]">
+					<li
+						v-for="blocker in checkOutBlockers"
+						:key="`${blocker.kind}-${blocker.name}`"
+						class="flex items-start gap-2"
+					>
+						<span
+							class="material-symbols-outlined text-[18px] text-tertiary"
+							aria-hidden="true"
+							>error</span
+						>
+						{{ blocker.label }}
+					</li>
+				</ul>
+			</section>
+
 			<!-- What still stands between this stay and check-in -->
 			<section
 				v-if="checkInReview && actions.can_check_in"
@@ -1116,8 +1143,16 @@ async function waiveDeposit() {
 	}
 }
 
+const checkOutBlockers = computed(() => actions.value.check_out_blockers || []);
+
 async function checkOut() {
 	const name = stay.value.lead_guest_name;
+	if (checkOutBlockers.value.length) {
+		error.value = `Resolve before check-out: ${checkOutBlockers.value
+			.map((blocker) => blocker.label)
+			.join("; ")}.`;
+		return;
+	}
 	const fee = Number(details.value.early_departure_fee || 0);
 	if (actions.value.leaving_early && fee) {
 		// Charge the fee first, so the guest can pay it before checking out.

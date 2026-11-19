@@ -410,3 +410,36 @@ class TestOccupancyPricing(PricingTestCase):
 		components = self.quote(1, [None], nights=1).nights[0].components
 		self.assertIn(("child:Child", 150000), [(c["key"], c["amount_minor"]) for c in components])
 		self.assertEqual(getdate(self.today), self.today)
+
+
+class TestAllowanceExpiryAfterInterimSettlement(PricingTestCase):
+	def test_expiry_goes_to_an_open_folio_when_the_grants_folio_is_closed(self):
+		"""A folio settled and closed mid-stay still lets night audit expire its allowance."""
+		self.set_rate(12000)
+		self.add_breakfast_package()
+		stay = self.in_house_stay(nights=2)
+		self.audit()
+		closed = stay.default_folio
+		frappe.db.set_value("Guest Folio", closed, "status", "Closed")
+
+		name, status = self.audit()
+		self.assertEqual(
+			status,
+			"Completed",
+			frappe.get_all(
+				"Night Audit Run Stage", filters={"parent": name, "status": "Failed"}, pluck="message"
+			),
+		)
+		expired = frappe.get_all(
+			"Folio Transaction",
+			filters={"stay_reservation": stay.name, "posting_key": ["like", "exp:%"]},
+			fields=["guest_folio", "direction", "gross_amount"],
+		)
+		self.assertEqual(len(expired), 2)
+		self.assertNotIn(closed, {row.guest_folio for row in expired})
+		self.assertEqual(len({row.guest_folio for row in expired}), 1)
+		self.assertEqual(allowances.open_grants(stay.name, expiring_by=self.today), [])
+		# Tonight's room charge went to the stay's new default folio too.
+		new_default = frappe.db.get_value("Stay Reservation", stay.name, "default_folio")
+		self.assertNotEqual(new_default, closed)
+		self.assertEqual({row.guest_folio for row in expired}, {new_default})

@@ -55,38 +55,106 @@
 						</p>
 					</div>
 					<div
-						class="rounded-xl border px-4 py-3"
+						class="rounded-xl border px-4 py-3 sm:col-span-2"
 						:class="
-							data.preview.arrivals_not_checked_in
+							unresolved.length
 								? 'border-tertiary bg-tertiary-container/20'
 								: 'border-outline-variant bg-surface-container-lowest'
 						"
 					>
-						<p class="text-[11px] text-on-surface-variant">Arrivals not checked in</p>
-						<p class="text-[20px] font-semibold">
-							{{ data.preview.arrivals_not_checked_in }}
+						<p class="text-[11px] text-on-surface-variant">Before the audit</p>
+						<p class="text-[15px] font-semibold">
+							{{
+								!data.prechecks.length
+									? "Closed"
+									: unresolved.length
+									? `${unresolved.length} check${
+											unresolved.length === 1 ? "" : "s"
+									  } to resolve or override`
+									: "Ready to close the day"
+							}}
 						</p>
 						<p class="text-[12px] text-on-surface-variant">
-							Listed as no-show candidates. They are not charged tonight.
+							Blocking checks stop the audit until they are fixed, or let pass with a
+							reason by a role allowed to. Warnings are recorded in the report.
 						</p>
 					</div>
+				</section>
+
+				<!-- Pre-checks: blocking first, each with what it found and how to get past it -->
+				<section
+					v-if="data.prechecks.length && (!run || run.status === 'Failed' || !isActive)"
+					class="rounded-xl border border-outline-variant bg-surface-container-lowest divide-y divide-outline-variant"
+					aria-label="Pre-checks"
+				>
 					<div
-						class="rounded-xl border px-4 py-3"
-						:class="
-							data.preview.departures_not_checked_out
-								? 'border-tertiary bg-tertiary-container/20'
-								: 'border-outline-variant bg-surface-container-lowest'
-						"
+						v-for="check in data.prechecks"
+						:key="check.key"
+						class="px-4 py-3 space-y-2"
 					>
-						<p class="text-[11px] text-on-surface-variant">
-							Departures not checked out
-						</p>
-						<p class="text-[20px] font-semibold">
-							{{ data.preview.departures_not_checked_out }}
-						</p>
-						<p class="text-[12px] text-on-surface-variant">
-							Check them out or extend them before the audit.
-						</p>
+						<div class="flex flex-wrap items-center justify-between gap-2">
+							<p class="flex items-center gap-2 text-[13px] font-semibold">
+								<span
+									class="material-symbols-outlined text-[18px]"
+									:class="checkTone(check).icon"
+									aria-hidden="true"
+									>{{ checkTone(check).symbol }}</span
+								>
+								{{ check.title }}
+								<span
+									v-if="check.count"
+									class="rounded-full px-2 py-0.5 text-[11px]"
+									:class="checkTone(check).badge"
+									>{{ check.count }}</span
+								>
+							</p>
+							<span class="text-[11px] text-on-surface-variant">
+								{{
+									!check.count
+										? "Nothing found"
+										: check.severity === "Blocking"
+										? overridden(check)
+											? "Overridden"
+											: "Blocking"
+										: "Warning"
+								}}
+							</span>
+						</div>
+						<template v-if="check.count">
+							<p class="text-[12px] text-on-surface-variant">{{ check.hint }}</p>
+							<ul class="flex flex-wrap gap-1.5 text-[12px]">
+								<li
+									v-for="item in check.items"
+									:key="`${check.key}-${item.name}-${item.label}`"
+									class="rounded bg-surface-container px-2 py-0.5"
+								>
+									{{ item.label }}
+								</li>
+								<li
+									v-if="check.count > check.items.length"
+									class="px-1 text-on-surface-variant"
+								>
+									and {{ check.count - check.items.length }} more
+								</li>
+							</ul>
+							<template v-if="check.severity === 'Blocking' && !overridden(check)">
+								<label
+									v-if="check.can_override"
+									class="block text-[12px] text-on-surface-variant"
+								>
+									Let it pass: {{ check.override_consequence }}
+									<input
+										v-model="reasons[check.key]"
+										type="text"
+										placeholder="Reason"
+										class="mt-1 block w-full rounded-lg border border-outline-variant bg-surface-container-lowest px-3 py-1.5 text-[13px] text-on-surface"
+									/>
+								</label>
+								<p v-else class="text-[12px] text-on-surface-variant">
+									Only {{ check.override_roles.join(", ") }} can let this pass.
+								</p>
+							</template>
+						</template>
 					</div>
 				</section>
 
@@ -151,6 +219,56 @@
 							</p>
 						</li>
 					</ol>
+
+					<div v-if="run.overrides?.length" class="space-y-1">
+						<p class="text-[12px] font-semibold">Let pass</p>
+						<ul class="space-y-0.5 text-[12px] text-on-surface-variant">
+							<li v-for="row in run.overrides" :key="row.check_key">
+								<b class="text-on-surface">{{ row.check_title }}</b>
+								({{ row.found }}) by {{ row.overridden_by }} as {{ row.role }}:
+								{{ row.reason }}
+							</li>
+						</ul>
+					</div>
+
+					<!-- The books didn't agree: investigate and run again, or a manager lets it pass -->
+					<label
+						v-if="
+							run.status === 'Failed' &&
+							run.reconciliation_failed &&
+							data.can_override_reconciliation
+						"
+						class="block text-[12px] text-on-surface-variant"
+					>
+						Let the differences pass: {{ data.reconciliation_override_consequence }}
+						<input
+							v-model="reasons.reconciliation"
+							type="text"
+							placeholder="Reason (leave empty to check again after fixing)"
+							class="mt-1 block w-full rounded-lg border border-outline-variant bg-surface-container-lowest px-3 py-1.5 text-[13px] text-on-surface"
+						/>
+					</label>
+				</section>
+
+				<!-- The closed day's figures, kept on the run -->
+				<section
+					v-if="shownReport"
+					class="rounded-xl border border-outline-variant bg-surface-container-lowest p-4 space-y-3"
+				>
+					<div class="flex flex-wrap items-center justify-between gap-2">
+						<h2 class="text-[15px] font-semibold">
+							Audit report · {{ formatNight(shownReport.business_date) }}
+						</h2>
+						<button
+							v-if="viewed"
+							type="button"
+							class="text-[12px] font-semibold text-primary"
+							@click="viewed = null"
+						>
+							Close
+						</button>
+					</div>
+					<AuditReport :report="shownReport" />
 				</section>
 
 				<!-- History -->
@@ -174,9 +292,41 @@
 								<td class="py-1.5 text-right text-on-surface-variant">
 									{{ formatTimestamp(past.finished_at) }}
 								</td>
+								<td class="py-1.5 text-right">
+									<button
+										v-if="past.report_generated_at"
+										type="button"
+										class="font-semibold text-primary disabled:opacity-50"
+										:disabled="reportLoading"
+										@click="viewReport(past)"
+									>
+										Report
+									</button>
+								</td>
 							</tr>
 						</tbody>
 					</table>
+				</section>
+
+				<!-- Desk reports, opened with this property already chosen -->
+				<section
+					class="rounded-xl border border-outline-variant bg-surface-container-lowest p-4"
+				>
+					<h2 class="text-[15px] font-semibold">Reports</h2>
+					<ul class="mt-2 grid gap-1.5 sm:grid-cols-2 text-[13px]">
+						<li v-for="report in REPORTS" :key="report.name">
+							<a
+								:href="reportUrl(report.name)"
+								target="_blank"
+								rel="noopener"
+								class="font-semibold text-primary"
+								>{{ report.name }}</a
+							>
+							<span class="text-[12px] text-on-surface-variant">
+								· {{ report.about }}</span
+							>
+						</li>
+					</ul>
 				</section>
 			</template>
 		</template>
@@ -184,9 +334,15 @@
 </template>
 
 <script setup>
-import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
-import { fetchNightAuditApi, hotelErrorMessage, startNightAuditApi } from "@/api/hotel.api";
+import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from "vue";
+import {
+	fetchAuditReportApi,
+	fetchNightAuditApi,
+	hotelErrorMessage,
+	startNightAuditApi,
+} from "@/api/hotel.api";
 import ActionBanner from "@/components/hotel/ActionBanner.vue";
+import AuditReport from "@/components/hotel/AuditReport.vue";
 import HotelStatusBadge from "@/components/hotel/HotelStatusBadge.vue";
 import HotelUnavailable from "@/components/hotel/HotelUnavailable.vue";
 import LoadFailed from "@/components/hotel/LoadFailed.vue";
@@ -195,6 +351,18 @@ import { useHotelStore } from "@/stores/hotel.store";
 import { addDays, formatMoney, formatNight } from "@/utils/hotelFormat";
 
 const POLL_MS = 2000;
+// The desk reports managers run the hotel on (§24). Each opens for the current property.
+const REPORTS = [
+	{ name: "Front Desk Movements", about: "arrivals, departures, in house, no-shows" },
+	{ name: "House Position", about: "rooms available by type and night" },
+	{ name: "Occupancy and Revenue", about: "occupancy, ADR and RevPAR by night" },
+	{ name: "Guest Ledger", about: "every open folio and its balance" },
+	{ name: "Open Folio Balances", about: "what departed guests still owe" },
+	{ name: "Deposits Held", about: "deposits received and not yet applied" },
+	{ name: "Cashier Report", about: "shifts by mode: expected, counted, variance" },
+	{ name: "Charges and Adjustments", about: "lines posted, reversals, manual postings" },
+	{ name: "Settlement Pending Folios", about: "invoices that failed to submit" },
+];
 const ACTIVE = ["Queued", "Running"];
 
 const hotel = useHotelStore();
@@ -205,6 +373,11 @@ const busy = ref(false);
 const error = ref("");
 // The audit status itself failed to load (as opposed to starting a run).
 const loadError = ref("");
+// Reasons typed for letting blocking checks pass, by check key.
+const reasons = reactive({});
+// A past run's report opened from the history.
+const viewed = ref(null);
+const reportLoading = ref(false);
 let timer = null;
 
 const run = computed(() => data.value?.run || null);
@@ -215,6 +388,57 @@ const canStart = computed(
 		data.value?.can_start &&
 		(!run.value || run.value.status === "Failed" || (isActive.value && !run.value.job_active))
 );
+function overridden(check) {
+	return (run.value?.overrides || []).some((row) => row.check_key === check.key);
+}
+// Blocking checks that found something and have neither an override nor a reason typed yet.
+const unresolved = computed(() =>
+	(data.value?.prechecks || []).filter(
+		(check) =>
+			check.severity === "Blocking" &&
+			check.count &&
+			!overridden(check) &&
+			!(reasons[check.key] || "").trim()
+	)
+);
+const shownReport = computed(() => viewed.value || run.value?.audit_report || null);
+
+function checkTone(check) {
+	if (!check.count) {
+		return { symbol: "check_circle", icon: "text-primary", badge: "" };
+	}
+	if (check.severity === "Blocking" && !overridden(check)) {
+		return {
+			symbol: "block",
+			icon: "text-error",
+			badge: "bg-error-container text-on-error-container",
+		};
+	}
+	return {
+		symbol: "warning",
+		icon: "text-tertiary",
+		badge: "bg-tertiary-container text-on-tertiary-container",
+	};
+}
+
+function reportUrl(name) {
+	return `/app/query-report/${encodeURIComponent(name)}?property=${encodeURIComponent(
+		hotel.property || ""
+	)}`;
+}
+
+async function viewReport(past) {
+	reportLoading.value = true;
+	error.value = "";
+	try {
+		viewed.value = (await fetchAuditReportApi(past.name))?.report || null;
+	} catch (e) {
+		error.value = hotelErrorMessage(e);
+	} finally {
+		reportLoading.value = false;
+	}
+}
+
 const blocked = computed(() => {
 	if (hotel.error) return hotel.error;
 	if (!hotel.loaded) return "";
@@ -282,28 +506,37 @@ async function load({ quiet = false } = {}) {
 }
 
 async function start() {
-	const preview = data.value.preview;
-	const warnings = [];
-	if (preview.arrivals_not_checked_in)
-		warnings.push(`${preview.arrivals_not_checked_in} arrival(s) not checked in`);
-	if (preview.departures_not_checked_out)
-		warnings.push(`${preview.departures_not_checked_out} departure(s) not checked out`);
+	if (unresolved.value.length) {
+		error.value = `Resolve these first, or give a reason to let them pass: ${unresolved.value
+			.map((check) => check.title)
+			.join(", ")}.`;
+		return;
+	}
+	const overrides = Object.fromEntries(
+		Object.entries(reasons)
+			.map(([key, reason]) => [key, (reason || "").trim()])
+			.filter(([, reason]) => reason)
+	);
+	const passing = (data.value.prechecks || [])
+		.filter((check) => overrides[check.key] && check.count)
+		.map((check) => `${check.title} (${check.count})`);
 	const answer = await ask({
-		tone: warnings.length ? "danger" : "warning",
+		tone: passing.length ? "danger" : "warning",
 		title: `${run.value ? "Restart" : "Start"} night audit for ${formatNight(
 			data.value.business_date
 		)}?`,
 		message:
-			`It posts ${preview.room_nights} room night(s) and moves the business date to ` +
-			`${formatNight(addDays(data.value.business_date, 1))}.` +
-			(warnings.length ? ` Still open: ${warnings.join(", ")}.` : ""),
+			`It posts ${data.value.preview.room_nights} room night(s), reconciles the day and ` +
+			`moves the business date to ${formatNight(addDays(data.value.business_date, 1))}.` +
+			(passing.length ? ` Letting pass: ${passing.join(", ")}.` : ""),
 		confirmLabel: run.value ? "Restart" : "Start night audit",
 	});
 	if (!answer) return;
 	busy.value = true;
 	error.value = "";
 	try {
-		data.value = await startNightAuditApi(hotel.property);
+		data.value = await startNightAuditApi(hotel.property, overrides);
+		Object.keys(reasons).forEach((key) => delete reasons[key]);
 	} catch (e) {
 		const message = hotelErrorMessage(e);
 		await load();

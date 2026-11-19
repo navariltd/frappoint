@@ -229,6 +229,7 @@ def expire(stay_name: str, business_date, *, everything: bool = False) -> int:
 	stay = frappe.db.get_value(STAY, stay_name, ["property", "rate_plan"], as_dict=True)
 	breakage_code = frappe.db.get_value("Hotel Property", stay.property, "breakage_charge_code")
 	room_code = frappe.db.get_value("Rate Plan", stay.rate_plan, "room_charge_code")
+	postable: dict[str, str] = {}
 	for row in grants:
 		amount = from_minor(row.remaining_minor, row.currency)
 		target = room_code if row.breakage_rule == ROOM_REVENUE else breakage_code
@@ -246,8 +247,13 @@ def expire(stay_name: str, business_date, *, everything: bool = False) -> int:
 			"source_name": row.name,
 			"tax_inclusive": True,
 		}
+		# The pair below nets to zero, so it can go on any open folio of the stay. The grant's own
+		# folio may have been settled and closed mid-stay (an interim invoice).
+		line_folio = postable.setdefault(
+			row.guest_folio, folio.postable_stay_folio(stay_name, row.guest_folio)
+		)
 		credit = folio.post(
-			row.guest_folio,
+			line_folio,
 			row.allowance_charge_code,
 			amount,
 			posting_key=f"exp:{row.name}:out",
@@ -256,7 +262,7 @@ def expire(stay_name: str, business_date, *, everything: bool = False) -> int:
 			**common,
 		)
 		folio.post(
-			row.guest_folio,
+			line_folio,
 			target,
 			amount,
 			posting_key=f"exp:{row.name}:in",
@@ -267,7 +273,7 @@ def expire(stay_name: str, business_date, *, everything: bool = False) -> int:
 			{
 				"property": row.property,
 				"stay_reservation": stay_name,
-				"guest_folio": row.guest_folio,
+				"guest_folio": line_folio,
 				"entry_type": EXPIRE,
 				"grant": row.name,
 				"component_name": row.component_name,

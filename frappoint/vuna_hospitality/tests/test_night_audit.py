@@ -48,9 +48,10 @@ class NightAuditTestCase(IntegrationTestCase):
 		):
 			yield
 
-	def audit(self) -> tuple[str, str]:
+	def audit(self, **overrides) -> tuple[str, str]:
+		"""Start and run tonight's audit. `overrides`: check key → reason for a blocking pre-check."""
 		with self.job_context():
-			name = start_night_audit(self.CODE)
+			name = start_night_audit(self.CODE, overrides)
 			return name, execute_run(name)
 
 	def confirmed_stay(self, nights=2, arrival=None):
@@ -135,7 +136,8 @@ class TestNightlyPosting(NightAuditTestCase):
 
 	def test_a_stay_that_has_not_arrived_is_not_charged(self):
 		stay = self.confirmed_stay(nights=2)
-		_, status = self.audit()
+		# An arrival that never came blocks the audit until the auditor lets it become a no-show.
+		_, status = self.audit(arrivals="Guest did not arrive")
 		self.assertEqual(status, "Completed")
 		self.assertEqual(self.room_charges(stay), [])
 		# It never arrived, so the no-show stage (F12) marked it.
