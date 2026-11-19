@@ -1,0 +1,203 @@
+{
+ "actions": [],
+ "autoname": "naming_series:",
+ "creation": "2026-11-18 12:00:00.000000",
+ "description": "What staff did with a suggestion or a ranked room list: applied, saved, dismissed or overridden. History is never deleted; this only changes how suggestions rank.",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "naming_series",
+  "guest_profile",
+  "suggestion_type",
+  "suggestion_key",
+  "action",
+  "column_break_head",
+  "property",
+  "stay_reservation",
+  "acted_by",
+  "acted_on",
+  "room_section",
+  "top_ranked_room",
+  "chosen_room",
+  "column_break_room",
+  "chosen_rank",
+  "reason",
+  "evidence_section",
+  "evidence"
+ ],
+ "fields": [
+  {
+   "fieldname": "naming_series",
+   "fieldtype": "Select",
+   "label": "Series",
+   "options": "GSF-.YY.-.######",
+   "default": "GSF-.YY.-.######",
+   "hidden": 1,
+   "reqd": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "guest_profile",
+   "fieldtype": "Link",
+   "label": "Guest",
+   "options": "Guest Profile",
+   "reqd": 1,
+   "read_only": 1,
+   "in_standard_filter": 1,
+   "search_index": 1
+  },
+  {
+   "fieldname": "suggestion_type",
+   "fieldtype": "Select",
+   "label": "Suggestion Type",
+   "options": "Service\nPreference\nRoom",
+   "reqd": 1,
+   "read_only": 1,
+   "in_list_view": 1,
+   "in_standard_filter": 1
+  },
+  {
+   "fieldname": "suggestion_key",
+   "fieldtype": "Data",
+   "label": "Suggestion",
+   "reqd": 1,
+   "read_only": 1,
+   "in_list_view": 1,
+   "search_index": 1
+  },
+  {
+   "fieldname": "action",
+   "fieldtype": "Select",
+   "label": "Action",
+   "options": "Applied to stay\nSaved to profile\nDismissed\nTop-ranked chosen\nOverridden",
+   "reqd": 1,
+   "read_only": 1,
+   "in_list_view": 1,
+   "in_standard_filter": 1
+  },
+  {
+   "fieldname": "column_break_head",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "property",
+   "fieldtype": "Link",
+   "label": "Property",
+   "options": "Hotel Property",
+   "read_only": 1
+  },
+  {
+   "fieldname": "stay_reservation",
+   "fieldtype": "Link",
+   "label": "Stay",
+   "options": "Stay Reservation",
+   "read_only": 1
+  },
+  {
+   "fieldname": "acted_by",
+   "fieldtype": "Link",
+   "label": "Acted By",
+   "options": "User",
+   "read_only": 1
+  },
+  {
+   "fieldname": "acted_on",
+   "fieldtype": "Datetime",
+   "label": "Acted On",
+   "read_only": 1
+  },
+  {
+   "fieldname": "room_section",
+   "fieldtype": "Section Break",
+   "label": "Room choice"
+  },
+  {
+   "fieldname": "top_ranked_room",
+   "fieldtype": "Link",
+   "label": "Top-ranked Room",
+   "options": "Hotel Room",
+   "read_only": 1
+  },
+  {
+   "fieldname": "chosen_room",
+   "fieldtype": "Link",
+   "label": "Chosen Room",
+   "options": "Hotel Room",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_room",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "chosen_rank",
+   "fieldtype": "Int",
+   "label": "Rank of Chosen Room",
+   "read_only": 1
+  },
+  {
+   "fieldname": "reason",
+   "fieldtype": "Small Text",
+   "label": "Reason",
+   "read_only": 1
+  },
+  {
+   "fieldname": "evidence_section",
+   "fieldtype": "Section Break",
+   "label": "Evidence"
+  },
+  {
+   "fieldname": "evidence",
+   "fieldtype": "Small Text",
+   "label": "Evidence",
+   "read_only": 1,
+   "description": "What staff saw when they acted."
+  }
+ ],
+ "in_create": 1,
+ "index_web_pages_for_search": 0,
+ "links": [],
+ "modified": "2026-11-18 12:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Vuna Hospitality",
+ "name": "Guest Suggestion Feedback",
+ "naming_rule": "By \"Naming Series\" field",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "role": "System Manager",
+   "read": 1,
+   "report": 1,
+   "print": 1,
+   "export": 1
+  },
+  {
+   "role": "Hospitality Manager",
+   "read": 1,
+   "report": 1,
+   "print": 1,
+   "export": 1
+  },
+  {
+   "role": "Front Desk Manager",
+   "read": 1,
+   "report": 1,
+   "print": 1,
+   "export": 1
+  },
+  {
+   "role": "Data Protection Officer",
+   "read": 1,
+   "report": 1,
+   "print": 1,
+   "export": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "search_fields": "guest_profile,suggestion_key,action",
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": [],
+ "title_field": "suggestion_key",
+ "track_changes": 1
+}

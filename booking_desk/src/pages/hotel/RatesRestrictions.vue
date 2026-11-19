@@ -82,6 +82,13 @@
 					>
 						{{ error }}
 					</p>
+					<LoadFailed
+						v-if="loadError"
+						what="the rate grid"
+						:reason="loadError"
+						:busy="loading"
+						@retry="load"
+					/>
 					<ActionBanner
 						:banner="banner"
 						:busy="busy"
@@ -449,6 +456,7 @@ import {
 } from "@/api/hotel.api";
 import ActionBanner from "@/components/hotel/ActionBanner.vue";
 import HotelUnavailable from "@/components/hotel/HotelUnavailable.vue";
+import LoadFailed from "@/components/hotel/LoadFailed.vue";
 import { useActionBanner } from "@/composables/hotel/useActionBanner";
 import { useHotelStore } from "@/stores/hotel.store";
 import { addDays, formatMoney } from "@/utils/hotelFormat";
@@ -478,6 +486,8 @@ const data = ref(null);
 const loading = ref(false);
 const busy = ref(false);
 const error = ref("");
+// The grid itself failed to load (as opposed to a change to it).
+const loadError = ref("");
 const ratePlan = ref("");
 const start = ref("");
 const days = ref(14);
@@ -631,8 +641,9 @@ async function load() {
 			edit.from = data.value.dates[0].date;
 			edit.to = data.value.dates[0].date;
 		}
+		loadError.value = "";
 	} catch (e) {
-		error.value = hotelErrorMessage(e);
+		loadError.value = hotelErrorMessage(e);
 	} finally {
 		loading.value = false;
 	}

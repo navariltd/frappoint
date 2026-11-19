@@ -21,7 +21,8 @@
 						class="h-2 w-2 rounded-full"
 						:style="{ background: chip.color }"
 					></span>
-					{{ chip.label }} <span class="font-normal">{{ chip.count }}</span>
+					{{ chip.label }}
+					<span class="font-normal">{{ data ? chip.count : "–" }}</span>
 				</button>
 				<span class="ml-auto text-[11px] text-on-surface-variant">
 					{{ data ? formatNight(data.date) : "" }}
@@ -75,6 +76,14 @@
 			<p v-if="error" class="rounded-lg bg-error-container/40 px-4 py-3 text-[13px]">
 				{{ error }}
 			</p>
+			<!-- With an older board still on screen, its "updated" time says how old it is. -->
+			<LoadFailed
+				v-if="loadError"
+				:what="data ? 'the latest board' : 'the housekeeping board'"
+				:reason="loadError"
+				:busy="loading"
+				@retry="load()"
+			/>
 
 			<template v-if="data">
 				<!-- My tasks: the attendant's phone view -->
@@ -636,7 +645,9 @@
 					</article>
 				</section>
 			</template>
-			<p v-else-if="loading" class="text-[13px] text-on-surface-variant">Loading…</p>
+			<p v-else-if="loading && !loadError" class="text-[13px] text-on-surface-variant">
+				Loading…
+			</p>
 		</template>
 	</div>
 </template>
@@ -671,6 +682,7 @@ import {
 } from "@/api/hotel.api";
 import ActionBanner from "@/components/hotel/ActionBanner.vue";
 import HotelUnavailable from "@/components/hotel/HotelUnavailable.vue";
+import LoadFailed from "@/components/hotel/LoadFailed.vue";
 import { useActionBanner } from "@/composables/hotel/useActionBanner";
 import { useHotelStore } from "@/stores/hotel.store";
 import { formatNight } from "@/utils/hotelFormat";
@@ -688,6 +700,8 @@ const data = ref(null);
 const loading = ref(false);
 const busy = ref(false);
 const error = ref("");
+// The board itself failed to load (as opposed to an action on it).
+const loadError = ref("");
 const loadedAt = ref("");
 const tab = ref("");
 const conditionFilter = ref("");
@@ -950,9 +964,10 @@ async function load({ quiet = false } = {}) {
 			hour: "2-digit",
 			minute: "2-digit",
 		});
+		loadError.value = "";
 		if (!quiet) error.value = "";
 	} catch (failure) {
-		error.value = hotelErrorMessage(failure);
+		loadError.value = hotelErrorMessage(failure);
 	} finally {
 		loading.value = false;
 		schedule();

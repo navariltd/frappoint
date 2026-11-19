@@ -50,7 +50,7 @@
 						@click="filter = option.key"
 					>
 						{{ option.label }}
-						<span class="ml-1 opacity-80">{{ counts[option.key] }}</span>
+						<span class="ml-1 opacity-80">{{ data ? counts[option.key] : "–" }}</span>
 					</button>
 				</div>
 
@@ -60,6 +60,13 @@
 				>
 					{{ error }}
 				</p>
+				<LoadFailed
+					v-if="loadError"
+					what="house accounts"
+					:reason="loadError"
+					:busy="loading"
+					@retry="load"
+				/>
 				<p v-else-if="loading && !data" class="text-[13px] text-on-surface-variant">
 					Loading…
 				</p>
@@ -320,6 +327,7 @@ import {
 import ActionBanner from "@/components/hotel/ActionBanner.vue";
 import HotelStatusBadge from "@/components/hotel/HotelStatusBadge.vue";
 import HotelUnavailable from "@/components/hotel/HotelUnavailable.vue";
+import LoadFailed from "@/components/hotel/LoadFailed.vue";
 import { useActionBanner } from "@/composables/hotel/useActionBanner";
 import FolioWorkspace from "@/pages/hotel/FolioWorkspace.vue";
 import { useHotelStore } from "@/stores/hotel.store";
@@ -351,6 +359,8 @@ const data = ref(null);
 const loading = ref(false);
 const busy = ref(false);
 const error = ref("");
+// The list failed to load: shown instead of "0" counts and "No house accounts yet".
+const loadError = ref("");
 const search = ref("");
 const filter = ref("active");
 const creating = ref(false);
@@ -443,8 +453,9 @@ async function load() {
 	error.value = "";
 	try {
 		data.value = await fetchHouseAccountsApi(hotel.property);
+		loadError.value = "";
 	} catch (e) {
-		error.value = hotelErrorMessage(e);
+		loadError.value = hotelErrorMessage(e);
 	} finally {
 		loading.value = false;
 	}

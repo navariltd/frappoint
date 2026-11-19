@@ -90,6 +90,8 @@ PROPERTY_SCOPED_DOCTYPES: tuple[str, ...] = (
 	# F17 Housekeeping and maintenance
 	"Housekeeping Task",
 	"Maintenance Request",
+	# F18 Preference suggestions and ranked room assignment
+	"Stay Request",
 )
 
 # Roles that post charges to a folio by hand (§23.1: front desk posts within limits).
@@ -144,4 +146,14 @@ SERVICE_CHARGE_ROLES = (
 	RESERVATIONS_AGENT,
 	GUEST_SERVICES_AGENT,
 	CASHIER,
+)
+
+# Roles that see a guest's sensitive preferences (medical, accessibility, religious) and whose
+# room ranking uses them (§19.4). The same roles read a Guest Profile's sensitive details.
+SENSITIVE_PREFERENCE_ROLES = (
+	"System Manager",
+	HOSPITALITY_MANAGER,
+	FRONT_DESK_MANAGER,
+	FRONT_DESK_AGENT,
+	DATA_PROTECTION_OFFICER,
 )

@@ -1,0 +1,220 @@
+{
+ "actions": [],
+ "autoname": "naming_series:",
+ "creation": "2026-11-18 12:00:00.000000",
+ "description": "Something a guest has asked for on every stay: a quiet room, a high floor, step-free access, a therapist. Saved only on purpose, never inferred.",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "naming_series",
+  "guest_profile",
+  "guest_name",
+  "is_active",
+  "preference_section",
+  "category",
+  "value",
+  "priority",
+  "column_break_match",
+  "room_feature",
+  "reference_doctype",
+  "reference_name",
+  "source_section",
+  "source",
+  "property",
+  "last_confirmed_on",
+  "column_break_privacy",
+  "sensitivity",
+  "consent_basis",
+  "notes"
+ ],
+ "fields": [
+  {
+   "fieldname": "naming_series",
+   "fieldtype": "Select",
+   "label": "Series",
+   "options": "GPF-.#####",
+   "default": "GPF-.#####",
+   "hidden": 1,
+   "reqd": 1
+  },
+  {
+   "fieldname": "guest_profile",
+   "fieldtype": "Link",
+   "label": "Guest",
+   "options": "Guest Profile",
+   "reqd": 1,
+   "in_standard_filter": 1,
+   "search_index": 1
+  },
+  {
+   "fieldname": "guest_name",
+   "fieldtype": "Data",
+   "label": "Guest Name",
+   "fetch_from": "guest_profile.full_name",
+   "read_only": 1
+  },
+  {
+   "fieldname": "is_active",
+   "fieldtype": "Check",
+   "label": "Active",
+   "default": "1",
+   "in_standard_filter": 1
+  },
+  {
+   "fieldname": "preference_section",
+   "fieldtype": "Section Break",
+   "label": "Preference"
+  },
+  {
+   "fieldname": "category",
+   "fieldtype": "Select",
+   "label": "Category",
+   "options": "Room\nFloor\nView\nBed\nNoise\nAccessibility\nSmoking\nDietary\nService Type\nProvider\nLanguage\nOther",
+   "reqd": 1,
+   "in_list_view": 1,
+   "in_standard_filter": 1
+  },
+  {
+   "fieldname": "value",
+   "fieldtype": "Data",
+   "label": "Preference",
+   "reqd": 1,
+   "in_list_view": 1,
+   "description": "What the guest asked for, in their words: \"High floor\", \"Quiet room\", \"Step-free access\"."
+  },
+  {
+   "fieldname": "priority",
+   "fieldtype": "Select",
+   "label": "Priority",
+   "options": "Normal\nHigh\nRequired",
+   "default": "Normal",
+   "in_list_view": 1,
+   "description": "Required removes rooms that don't match when a room is assigned."
+  },
+  {
+   "fieldname": "column_break_match",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "room_feature",
+   "fieldtype": "Link",
+   "label": "Room Feature",
+   "options": "Hotel Room Feature",
+   "description": "The room feature this means. Rooms tagged with it match."
+  },
+  {
+   "fieldname": "reference_doctype",
+   "fieldtype": "Link",
+   "label": "Refers To",
+   "options": "DocType",
+   "description": "A Hotel Room, Hotel Amenity, Service Type or Service Provider."
+  },
+  {
+   "fieldname": "reference_name",
+   "fieldtype": "Dynamic Link",
+   "label": "Reference",
+   "options": "reference_doctype"
+  },
+  {
+   "fieldname": "source_section",
+   "fieldtype": "Section Break",
+   "label": "Source and privacy"
+  },
+  {
+   "fieldname": "source",
+   "fieldtype": "Select",
+   "label": "Source",
+   "options": "Guest stated\nStaff confirmed\nAccepted suggestion",
+   "default": "Guest stated"
+  },
+  {
+   "fieldname": "property",
+   "fieldtype": "Link",
+   "label": "Property",
+   "options": "Hotel Property",
+   "description": "Leave empty when it applies at every property."
+  },
+  {
+   "fieldname": "last_confirmed_on",
+   "fieldtype": "Date",
+   "label": "Last Confirmed On"
+  },
+  {
+   "fieldname": "column_break_privacy",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "sensitivity",
+   "fieldtype": "Select",
+   "label": "Sensitivity",
+   "options": "Normal\nSensitive",
+   "default": "Normal",
+   "description": "Sensitive (medical, accessibility, religious) preferences are seen, and used to rank rooms, only by roles that see a guest's sensitive details."
+  },
+  {
+   "fieldname": "consent_basis",
+   "fieldtype": "Data",
+   "label": "Consent Basis"
+  },
+  {
+   "fieldname": "notes",
+   "fieldtype": "Small Text",
+   "label": "Notes"
+  }
+ ],
+ "index_web_pages_for_search": 0,
+ "links": [],
+ "modified": "2026-11-18 12:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Vuna Hospitality",
+ "name": "Guest Preference",
+ "naming_rule": "By \"Naming Series\" field",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "role": "System Manager",
+   "read": 1,
+   "report": 1,
+   "print": 1,
+   "export": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 1
+  },
+  {
+   "role": "Hospitality Manager",
+   "read": 1,
+   "report": 1,
+   "print": 1,
+   "export": 1,
+   "write": 1,
+   "create": 1
+  },
+  {
+   "role": "Front Desk Manager",
+   "read": 1,
+   "report": 1,
+   "print": 1,
+   "export": 1,
+   "write": 1,
+   "create": 1
+  },
+  {
+   "role": "Data Protection Officer",
+   "read": 1,
+   "report": 1,
+   "print": 1,
+   "export": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "search_fields": "guest_profile,category,value",
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": [],
+ "title_field": "value",
+ "track_changes": 1
+}

@@ -158,6 +158,19 @@ const NAVIGATION = {
 			],
 		},
 		{
+			label: "Guest History",
+			icon: "manage_search",
+			to: { name: "GuestHistory" },
+			activeWhen: ["GuestHistory"],
+			roles: [
+				"System Manager",
+				"Hospitality Manager",
+				"Front Desk Manager",
+				"Guest Services Agent",
+				"Data Protection Officer",
+			],
+		},
+		{
 			label: "Night Audit",
 			icon: "nights_stay",
 			to: { name: "NightAudit" },

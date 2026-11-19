@@ -322,7 +322,79 @@
 											: "Assign a room"
 									}}
 								</p>
-								<div class="flex flex-wrap gap-1.5">
+								<!-- Ranked for this guest: best first, each saying why -->
+								<template v-if="rankedView">
+									<p class="text-[11px] text-on-surface-variant">
+										Ranked for
+										{{
+											ranking.rules.map((rule) => rule.label).join(", ") ||
+											"past stays"
+										}}.
+									</p>
+									<p
+										v-if="ranking.no_room_meets_required"
+										class="rounded-lg bg-error-container/40 px-3 py-2 text-[12px]"
+									>
+										No room meets every required preference. Change the dates
+										or room type, or pick a room below and give a reason.
+									</p>
+									<ol class="space-y-1">
+										<li v-for="room in rankedRooms" :key="room.name">
+											<button
+												type="button"
+												class="flex w-full items-start gap-3 rounded-lg border px-3 py-2 text-left disabled:opacity-40"
+												:class="
+													room.is_current
+														? 'border-primary bg-primary/10'
+														: room.eligible
+														? 'border-outline-variant hover:border-primary'
+														: 'border-dashed border-outline-variant'
+												"
+												:disabled="roomDisabled(room)"
+												@click="pickRoom(room)"
+											>
+												<span
+													class="w-5 shrink-0 text-[12px] font-semibold text-on-surface-variant"
+													>{{ room.rank || "–" }}</span
+												>
+												<span class="min-w-0 flex-1">
+													<span class="text-[13px] font-semibold">{{
+														room.room_number
+													}}</span>
+													<span
+														class="text-[11px] text-on-surface-variant"
+													>
+														· {{ room.housekeeping_condition
+														}}<template v-if="room.floor != null">
+															· floor {{ room.floor }}</template
+														><template v-if="room.is_current">
+															· current</template
+														></span
+													>
+													<span class="block text-[11px]">
+														<span
+															v-for="text in room.matched"
+															:key="`m-${text}`"
+															class="mr-2 text-primary"
+															>✓ {{ text }}</span
+														><span
+															v-for="text in room.missed"
+															:key="`x-${text}`"
+															class="mr-2 text-on-surface-variant"
+															>✗ {{ text }}</span
+														>
+													</span>
+													<span
+														v-if="room.excluded.length"
+														class="block text-[11px] text-error"
+														>{{ room.excluded.join(" · ") }}</span
+													>
+												</span>
+											</button>
+										</li>
+									</ol>
+								</template>
+								<div v-else class="flex flex-wrap gap-1.5">
 									<button
 										v-for="room in rooms"
 										:key="room.name"
@@ -614,6 +686,11 @@
 
 				<!-- Prices and history beside the stay, where there is room -->
 				<aside class="space-y-5 min-w-0">
+					<GuestPreferencesPanel
+						:stay-id="stay.name"
+						:editable="!CLOSED_STAY_STATUSES.includes(stay.status)"
+						@changed="loadRooms"
+					/>
 					<section
 						class="rounded-xl border border-outline-variant bg-surface-container-lowest p-4"
 					>
@@ -722,8 +799,8 @@ import {
 	changeDepartureApi,
 	checkOutApi,
 	departEarlyApi,
-	fetchAssignableRoomsApi,
 	fetchMoveReasonsApi,
+	fetchRankedRoomsApi,
 	fetchStayApi,
 	hotelErrorMessage,
 	moveRoomApi,
@@ -736,6 +813,7 @@ import {
 } from "@/api/hotel.api";
 import ActionBanner from "@/components/hotel/ActionBanner.vue";
 import GuestPicker from "@/components/hotel/GuestPicker.vue";
+import GuestPreferencesPanel from "@/components/hotel/GuestPreferencesPanel.vue";
 import HotelStatusBadge from "@/components/hotel/HotelStatusBadge.vue";
 import { useActionBanner } from "@/composables/hotel/useActionBanner";
 import { addDays, formatMoney, formatNight } from "@/utils/hotelFormat";
@@ -754,6 +832,8 @@ const currentStayId = computed(() => props.stayId || route.params.stayId);
 const { banner, ask, notify, confirm: confirmBanner, cancel: cancelBanner } = useActionBanner();
 const details = ref(null);
 const rooms = ref([]);
+const ranking = ref(null);
+const CLOSED_STAY_STATUSES = ["Checked Out", "Cancelled", "No Show", "Expired"];
 const moveReasons = ref([]);
 const moveReason = ref("");
 const newGuest = ref(null);
@@ -858,10 +938,42 @@ function formatTimestamp(value) {
 }
 
 async function loadRooms() {
-	rooms.value =
-		actions.value.can_assign || actions.value.can_move
-			? (await fetchAssignableRoomsApi(stay.value.name)) || []
-			: [];
+	if (!(actions.value.can_assign || actions.value.can_move)) {
+		ranking.value = null;
+		rooms.value = [];
+		return;
+	}
+	ranking.value = (await fetchRankedRoomsApi(stay.value.name)) || null;
+	rooms.value = ranking.value?.rooms || [];
+}
+
+// The ranked list shows when ranking is on and there is something to rank by: preferences,
+// requests or the guest's past rooms. Otherwise rooms stay in number order.
+const rankedView = computed(() => !!(ranking.value?.enabled && ranking.value.personalised));
+const rankedRooms = computed(() => (rankedView.value ? ranking.value.rooms : []));
+
+function roomDisabled(room) {
+	return (
+		busy.value ||
+		room.is_current ||
+		!room.available ||
+		(room.blocked || []).length > 0 ||
+		(actions.value.can_move && !room.ready)
+	);
+}
+
+// A room that misses a Required preference can still be chosen, with a reason.
+async function preferenceOverride(room) {
+	if (!room.required_missed?.length) return "";
+	const answer = await ask({
+		title: `Room ${room.room_number} has no ${room.required_missed.join(", ")}`,
+		message: "The guest requires it. Give the reason to use this room anyway.",
+		reasonLabel: "Reason",
+		reasonPlaceholder: "Guest agreed to this room",
+		confirmLabel: `Use ${room.room_number}`,
+		tone: "warning",
+	});
+	return answer ? answer.reason : null;
 }
 
 async function load() {
@@ -895,6 +1007,8 @@ async function run(command) {
 }
 
 async function pickRoom(room) {
+	const override = await preferenceOverride(room);
+	if (override === null) return;
 	if (actions.value.can_move) {
 		if (!moveReason.value) {
 			error.value = "Choose a move reason first.";
@@ -905,9 +1019,11 @@ async function pickRoom(room) {
 			message: `Reason: ${moveReason.value}. Room ${stay.value.room_number} stays in the stay's history.`,
 			confirmLabel: `Move to ${room.room_number}`,
 		});
-		if (answer) run(() => moveRoomApi(stay.value.name, room.name, moveReason.value));
+		if (answer) {
+			run(() => moveRoomApi(stay.value.name, room.name, moveReason.value, override));
+		}
 	} else {
-		run(() => assignRoomApi(stay.value.name, room.name));
+		run(() => assignRoomApi(stay.value.name, room.name, false, override));
 	}
 }
 

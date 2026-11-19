@@ -5,10 +5,13 @@ import { initSocket } from "./socket";
 import { createPinia } from "pinia";
 import { initializeBranding } from "./branding";
 
-import { frappeRequest, FrappeUI, pageMetaPlugin, setConfig } from "frappe-ui";
+import { FrappeUI, pageMetaPlugin, setConfig } from "frappe-ui";
+import { sessionAwareRequest, watchForExpiry } from "./utils/session";
 import "./index.css";
 
-setConfig("resourceFetcher", frappeRequest);
+// Every server call: an expired login opens the sign-in dialog and the call waits for it.
+setConfig("resourceFetcher", sessionAwareRequest);
+watchForExpiry();
 
 async function bootstrap() {
 	await initializeBranding();

@@ -271,6 +271,8 @@ scheduler_events = {
 		"frappoint.utils.replenish_slot_window",
 		"frappoint.vuna_hospitality.services.rooms.refresh_all_sellability",
 		"frappoint.vuna_hospitality.services.inventory.daily_inventory_maintenance",
+		# Propose Guest Profiles for guests on completed appointments; staff confirm them.
+		"frappoint.vuna_hospitality.services.guest_history.propose_matches",
 	],
 	# "weekly": [
 	# 	"frappoint.tasks.weekly"

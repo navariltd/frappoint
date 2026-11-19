@@ -1,4 +1,5 @@
 import { createResource } from "frappe-ui";
+import { readableError } from "@/utils/errorMessage";
 
 const HOSPITALITY_API = "frappoint.vuna_hospitality.api";
 
@@ -89,6 +90,20 @@ export const HOTEL_ENDPOINTS = {
 	releaseBookingToDesk: `${HOSPITALITY_API}.services.release_booking_to_desk`,
 	retryServicePosting: `${HOSPITALITY_API}.services.retry_service_posting`,
 	waiveServiceFee: `${HOSPITALITY_API}.services.waive_service_fee`,
+	rankedRooms: `${HOSPITALITY_API}.front_desk.get_ranked_rooms`,
+	guestInsights: `${HOSPITALITY_API}.preferences.get_guest_insights`,
+	preferenceOptions: `${HOSPITALITY_API}.preferences.get_preference_options`,
+	addGuestPreference: `${HOSPITALITY_API}.preferences.add_guest_preference`,
+	retireGuestPreference: `${HOSPITALITY_API}.preferences.retire_guest_preference`,
+	addStayRequest: `${HOSPITALITY_API}.preferences.add_stay_request`,
+	closeStayRequest: `${HOSPITALITY_API}.preferences.close_stay_request`,
+	copyRequestToProfile: `${HOSPITALITY_API}.preferences.copy_request_to_profile`,
+	applySuggestion: `${HOSPITALITY_API}.preferences.apply_suggestion`,
+	saveSuggestion: `${HOSPITALITY_API}.preferences.save_suggestion`,
+	dismissSuggestion: `${HOSPITALITY_API}.preferences.dismiss_suggestion`,
+	historyMatches: `${HOSPITALITY_API}.preferences.get_history_matches`,
+	findHistoryMatches: `${HOSPITALITY_API}.preferences.find_history_matches`,
+	reviewHistoryMatch: `${HOSPITALITY_API}.preferences.review_history_match`,
 };
 
 const unwrapPayload = (payload) => payload?.message ?? payload ?? null;
@@ -100,10 +115,9 @@ async function request(url, params = {}) {
 }
 
 /** The server's message for a failed call, without the traceback. */
+// Plain words for the desk: no markup, no internal names (see utils/errorMessage.js).
 export function hotelErrorMessage(error) {
-	const messages = error?.messages?.filter(Boolean);
-	if (messages?.length) return messages.join(" ");
-	return error?.message || "Something went wrong. Please try again.";
+	return readableError(error);
 }
 
 export const fetchSessionContextApi = () => request(HOTEL_ENDPOINTS.sessionContext);
@@ -162,14 +176,24 @@ export const fetchStayApi = (stay) => request(HOTEL_ENDPOINTS.stay, { stay });
 export const fetchAssignableRoomsApi = (stay) =>
 	request(HOTEL_ENDPOINTS.assignableRooms, { stay });
 export const fetchMoveReasonsApi = () => request(HOTEL_ENDPOINTS.moveReasons);
-export const assignRoomApi = (stay, room, lock = false) =>
-	request(HOTEL_ENDPOINTS.assignRoom, { stay, room, lock: lock ? 1 : 0 });
+export const assignRoomApi = (stay, room, lock = false, preferenceOverrideReason = null) =>
+	request(HOTEL_ENDPOINTS.assignRoom, {
+		stay,
+		room,
+		lock: lock ? 1 : 0,
+		preference_override_reason: preferenceOverrideReason || null,
+	});
 export const unassignRoomApi = (stay, reason) =>
 	request(HOTEL_ENDPOINTS.unassignRoom, { stay, reason });
 export const setRoomLockApi = (stay, locked, reason) =>
 	request(HOTEL_ENDPOINTS.setRoomLock, { stay, locked: locked ? 1 : 0, reason });
-export const moveRoomApi = (stay, room, moveReason) =>
-	request(HOTEL_ENDPOINTS.moveRoom, { stay, room, move_reason: moveReason });
+export const moveRoomApi = (stay, room, moveReason, preferenceOverrideReason = null) =>
+	request(HOTEL_ENDPOINTS.moveRoom, {
+		stay,
+		room,
+		move_reason: moveReason,
+		preference_override_reason: preferenceOverrideReason || null,
+	});
 export const checkInApi = (stay, room, overrideReason = null) =>
 	request(HOTEL_ENDPOINTS.checkIn, {
 		stay,
@@ -524,3 +548,49 @@ export const resolveMaintenanceApi = (request_, resolution) =>
 	request(HOTEL_ENDPOINTS.resolveMaintenance, { request: request_, resolution });
 export const cancelMaintenanceApi = (request_, reason) =>
 	request(HOTEL_ENDPOINTS.cancelMaintenance, { request: request_, reason });
+
+// Preferences, suggestions and ranked rooms (F18)
+export const fetchRankedRoomsApi = (stay) => request(HOTEL_ENDPOINTS.rankedRooms, { stay });
+export const fetchGuestInsightsApi = (stay, guestProfile = null) =>
+	request(HOTEL_ENDPOINTS.guestInsights, { stay, guest_profile: guestProfile || null });
+export const fetchPreferenceOptionsApi = () => request(HOTEL_ENDPOINTS.preferenceOptions);
+export const addGuestPreferenceApi = (guestProfile, stay, fields) =>
+	request(HOTEL_ENDPOINTS.addGuestPreference, {
+		guest_profile: guestProfile,
+		stay,
+		category: fields.category,
+		value: fields.value || null,
+		priority: fields.priority,
+		room_feature: fields.roomFeature || null,
+		sensitive: fields.sensitive ? 1 : 0,
+		this_property_only: fields.thisPropertyOnly ? 1 : 0,
+	});
+export const retireGuestPreferenceApi = (preference, stay, reason = null) =>
+	request(HOTEL_ENDPOINTS.retireGuestPreference, { preference, stay, reason });
+export const addStayRequestApi = (stay, fields) =>
+	request(HOTEL_ENDPOINTS.addStayRequest, {
+		stay,
+		category: fields.category,
+		value: fields.value || null,
+		priority: fields.priority,
+		room_feature: fields.roomFeature || null,
+	});
+export const closeStayRequestApi = (request_, status, notes = null) =>
+	request(HOTEL_ENDPOINTS.closeStayRequest, { request: request_, status, notes });
+export const copyRequestToProfileApi = (request_) =>
+	request(HOTEL_ENDPOINTS.copyRequestToProfile, { request: request_ });
+export const applySuggestionApi = (stay, key, evidence) =>
+	request(HOTEL_ENDPOINTS.applySuggestion, { stay, key, evidence });
+export const saveSuggestionApi = (guestProfile, key, evidence, stay) =>
+	request(HOTEL_ENDPOINTS.saveSuggestion, { guest_profile: guestProfile, key, evidence, stay });
+export const dismissSuggestionApi = (guestProfile, key, evidence, stay) =>
+	request(HOTEL_ENDPOINTS.dismissSuggestion, {
+		guest_profile: guestProfile,
+		key,
+		evidence,
+		stay,
+	});
+export const fetchHistoryMatchesApi = () => request(HOTEL_ENDPOINTS.historyMatches);
+export const findHistoryMatchesApi = () => request(HOTEL_ENDPOINTS.findHistoryMatches);
+export const reviewHistoryMatchApi = (match, confirm) =>
+	request(HOTEL_ENDPOINTS.reviewHistoryMatch, { match, confirm: confirm ? 1 : 0 });

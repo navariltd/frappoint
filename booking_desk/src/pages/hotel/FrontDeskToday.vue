@@ -26,7 +26,7 @@
 						@click="activeTab = tab.key"
 					>
 						<span class="block text-[18px] font-semibold leading-tight">{{
-							today?.[tab.key]?.length || 0
+							today ? today[tab.key]?.length || 0 : "–"
 						}}</span>
 						<span class="block text-[11px] font-semibold">{{ tab.label }}</span>
 					</button>
@@ -71,7 +71,14 @@
 					@confirm="confirmBanner"
 					@cancel="cancelBanner"
 				/>
-				<p v-if="loading && !today" class="text-[13px] text-on-surface-variant">
+				<LoadFailed
+					v-if="loadError"
+					what="today's stays"
+					:reason="loadError"
+					:busy="loading"
+					@retry="load"
+				/>
+				<p v-else-if="loading && !today" class="text-[13px] text-on-surface-variant">
 					Loading…
 				</p>
 				<p v-else-if="today && !rows.length" class="text-[13px] text-on-surface-variant">
@@ -203,6 +210,7 @@ import {
 import ActionBanner from "@/components/hotel/ActionBanner.vue";
 import HotelStatusBadge from "@/components/hotel/HotelStatusBadge.vue";
 import HotelUnavailable from "@/components/hotel/HotelUnavailable.vue";
+import LoadFailed from "@/components/hotel/LoadFailed.vue";
 import { useActionBanner } from "@/composables/hotel/useActionBanner";
 import ReservationStay from "@/pages/hotel/ReservationStay.vue";
 import { useHotelStore } from "@/stores/hotel.store";
@@ -216,6 +224,8 @@ const activeTab = ref("arrivals");
 const loading = ref(false);
 const busy = ref("");
 const error = ref("");
+// The list itself failed to load: shown instead of counts and "No arrivals" (which would be untrue).
+const loadError = ref("");
 const search = ref("");
 // Bumped when a list action (check in, check out) changes the selected stay, to reload its pane.
 const refreshKey = ref(0);
@@ -276,9 +286,10 @@ async function load() {
 	error.value = "";
 	try {
 		today.value = await fetchFrontDeskTodayApi(propertyName.value);
+		loadError.value = "";
 		followSelected();
 	} catch (e) {
-		error.value = hotelErrorMessage(e);
+		loadError.value = hotelErrorMessage(e);
 	} finally {
 		loading.value = false;
 	}

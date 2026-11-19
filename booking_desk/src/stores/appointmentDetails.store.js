@@ -7,6 +7,7 @@ import {
 	performAppointmentAction,
 } from "@/services/appointmentDetails.service";
 import { CACHE_TAGS, invalidateMemoryCacheByTag } from "@/utils/cachePolicy";
+import { readableError } from "@/utils/errorMessage";
 
 const createEmptyBookingContext = () => ({
 	bookingId: "",
@@ -24,33 +25,7 @@ const createEmptyBookingContext = () => ({
 	items: [],
 });
 
-const getErrorMessage = (error, fallback) => {
-	if (Array.isArray(error?.messages) && error.messages.length) {
-		return error.messages.join(" ");
-	}
-
-	if (error?._server_messages) {
-		try {
-			const serverMessages = JSON.parse(error._server_messages);
-			const messages = serverMessages
-				.map((message) => {
-					try {
-						return JSON.parse(message)?.message || message;
-					} catch {
-						return message;
-					}
-				})
-				.filter(Boolean);
-			if (messages.length) {
-				return messages.join(" ");
-			}
-		} catch {
-			return String(error._server_messages);
-		}
-	}
-
-	return error?.message || fallback;
-};
+const getErrorMessage = (error, fallback) => readableError(error, fallback);
 
 export const useAppointmentDetailsStore = defineStore("appointmentDetails", {
 	state: () => ({
