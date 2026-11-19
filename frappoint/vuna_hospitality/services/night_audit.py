@@ -1,9 +1,14 @@
-"""Night audit, minimal (design §21, §28.6; feature F8).
+"""Night audit (design §21, §28.6; features F8 and F19).
 
 Night audit closes a property's business day. A Night Auditor starts it, never a scheduler. It runs
 as a background job on the `long` queue, as one **Night Audit Run** per property and business
 date, in these stages:
 
+0. **Pre-checks** (F19). Arrivals not checked in, departures not checked out, open cashier shifts
+   and posting exceptions block the audit until they are fixed or overridden, with a reason, by a
+   role allowed to (audit_checks.py). Room discrepancies and folios in Settlement Pending are
+   warnings. The checks run when the audit is started, so the auditor sees them first, and again
+   as the job's first stage.
 1. **Post room charges.** Every in-house stay's Stay Rate Night for the day is posted, carrying the
    business date being closed: the room line (key `night:<stay>:<date>:room`), extra-adult, child
    and package lines, and the property's nightly levies (F9). Each line goes to the stay's default
@@ -16,9 +21,14 @@ date, in these stages:
    policy says so.
 5. **Close post-stay folios** (F12). Folios whose post-stay window ends are settled or closed;
    those that still owe are listed for follow-up.
-6. **Roll statuses.** Stays arriving on the next business date become Due In, and stays leaving
+6. **Reconcile** (F19). Postings, folio totals, payments, cashier shifts, deposits and room
+   counters must agree (reconciliation.py). A difference fails the stage and keeps the checkpoint;
+   a manager can let it pass with a reason.
+7. **Generate reports** (F19). Occupancy, ADR and RevPAR, revenue by charge code, payments, the
+   guest ledger's control totals and the night's exceptions are kept on the run as they were.
+8. **Roll statuses.** Stays arriving on the next business date become Due In, and stays leaving
    by then become Due Out.
-7. **Advance the business date**, as the last step and in its own transaction.
+9. **Advance the business date**, as the last step and in its own transaction.
 
 A failed run is started again from the Night Audit page: completed stages are skipped and the
 unfinished stage runs again. Posting keys make the repeat safe, so no night is charged twice. A run
@@ -39,7 +49,7 @@ from frappoint.vuna_hospitality.doctype.hospitality_settings.hospitality_setting
 	is_hospitality_enabled,
 )
 from frappoint.vuna_hospitality.doctype.hotel_property.hotel_property import BUSINESS_DATE_FLAG
-from frappoint.vuna_hospitality.services import folio
+from frappoint.vuna_hospitality.services import audit_checks, folio, hotel_reports, reconciliation
 from frappoint.vuna_hospitality.services.event_log import log_event
 from frappoint.vuna_hospitality.services.inventory import InventoryConflictError
 from frappoint.vuna_hospitality.services.money import from_minor, to_minor
@@ -59,15 +69,21 @@ POST_ROOM_CHARGES = "Post Room Charges"
 EXPIRE_ALLOWANCES = "Expire Allowances"
 ROLL_STATUSES = "Roll Statuses"
 ADVANCE_BUSINESS_DATE = "Advance Business Date"
+PRE_CHECKS = "Pre-checks"
+RECONCILE = "Reconcile"
+GENERATE_REPORTS = "Generate Reports"
 MARK_NO_SHOWS = "Mark No-Shows"
 RELEASE_UNPAID_DEPOSITS = "Release Unpaid Deposits"
 CLOSE_POST_STAY_FOLIOS = "Close Post-Stay Folios"
 STAGES = (
+	PRE_CHECKS,
 	POST_ROOM_CHARGES,
 	EXPIRE_ALLOWANCES,
 	MARK_NO_SHOWS,
 	RELEASE_UNPAID_DEPOSITS,
 	CLOSE_POST_STAY_FOLIOS,
+	RECONCILE,
+	GENERATE_REPORTS,
 	ROLL_STATUSES,
 	ADVANCE_BUSINESS_DATE,
 )
@@ -93,6 +109,10 @@ class NightAuditError(frappe.ValidationError):
 
 class NightAuditRunningError(NightAuditError):
 	"""A run for this property and business date is already queued or running."""
+
+
+class NightAuditBlockedError(NightAuditError):
+	"""A blocking pre-check found something, and nobody allowed to has overridden it."""
 
 
 def run_name(property_name: str, business_date) -> str:
@@ -259,11 +279,13 @@ def post_due_nights(stay_name: str, before, business_date=None) -> list[dict]:
 # --------------------------------------------------------------------------- starting a run
 
 
-def start_night_audit(property_name: str) -> str:
+def start_night_audit(property_name: str, overrides: dict | None = None) -> str:
 	"""Queue night audit for the property's current business date. Returns the run name.
 
-	A failed run, or one whose worker died, is queued again to finish its remaining stages. A run
-	that is still queued or running is refused.
+	Blocking pre-checks that found something must be overridden: `overrides` maps a check's key to
+	the reason, and the user must hold a role allowed to override it. Overrides given on an earlier
+	start of the same run still count. A failed run, or one whose worker died, is queued again to
+	finish its remaining stages. A run that is still queued or running is refused.
 	"""
 	_lock_row(PROPERTY, property_name)
 	prop = _row(PROPERTY, property_name, ["name", "business_date", "is_active"])
@@ -271,9 +293,9 @@ def start_night_audit(property_name: str) -> str:
 		frappe.throw(_("Hotel Property {0} is inactive.").format(property_name), NightAuditError)
 	business_date = getdate(prop.business_date)
 	name = run_name(property_name, business_date)
-
-	if frappe.db.exists(RUN, name):
-		run = frappe.get_doc(RUN, name)
+	run = frappe.get_doc(RUN, name) if frappe.db.exists(RUN, name) else None
+	lost_worker = False
+	if run:
 		if run.status == COMPLETED:
 			frappe.throw(
 				_("Night audit for {0} already closed {1}.").format(
@@ -287,6 +309,13 @@ def start_night_audit(property_name: str) -> str:
 					_("Night audit for {0} is already {1}.").format(property_name, _(run.status.lower())),
 					NightAuditRunningError,
 				)
+			lost_worker = True
+
+	# Nothing is created or changed until every blocking check is fixed or overridden.
+	new_overrides = _new_overrides(run, property_name, business_date, overrides or {})
+
+	if run:
+		if lost_worker:
 			# The worker died (or the job was lost) before the run finished.
 			transition(
 				run,
@@ -296,6 +325,8 @@ def start_night_audit(property_name: str) -> str:
 				event_type="Night Audit Failed",
 				ignore_permissions=True,
 			)
+		run.extend("overrides", new_overrides)
+		_current_stages(run)
 		for stage in run.stages:
 			if stage.status != COMPLETED:
 				stage.status = PENDING
@@ -315,11 +346,21 @@ def start_night_audit(property_name: str) -> str:
 				"status": QUEUED,
 				"started_by": frappe.session.user,
 				"stages": [{"stage": stage, "status": PENDING} for stage in STAGES],
+				"overrides": new_overrides,
 			}
 		)
 		run.flags[SERVICE_FLAG] = True
 		run.insert(ignore_permissions=True)
 		log_event(RUN, run.name, "Night Audit Queued", to_status=QUEUED, property_name=property_name)
+	for row in new_overrides:
+		log_event(
+			RUN,
+			run.name,
+			"Night Audit Check Overridden",
+			reason=row["reason"],
+			data={"check": row["check_key"], "found": row["found"], "role": row["role"]},
+			property_name=property_name,
+		)
 
 	run.db_set("job_id", f"night-audit-{run.name}", update_modified=False)
 	frappe.enqueue(
@@ -332,6 +373,50 @@ def start_night_audit(property_name: str) -> str:
 		run_name=run.name,
 	)
 	return run.name
+
+
+def _overridden(run) -> dict:
+	"""{check key: reason} for the checks this run has already let pass."""
+	return {row.check_key: row.reason for row in (run.overrides if run else [])}
+
+
+def _new_overrides(run, property_name: str, business_date, given: dict) -> list[dict]:
+	"""Override rows for what `given` lets pass. Refuses the start while a blocking check that found
+	something has no override, from this start or an earlier one."""
+	given = {key: (reason or "").strip() for key, reason in (given or {}).items() if (reason or "").strip()}
+	done = _overridden(run)
+	checks = audit_checks.precheck(property_name, business_date)
+	reconcile_stage = next((stage for stage in (run.stages if run else []) if stage.stage == RECONCILE), None)
+	if given.get(audit_checks.RECONCILIATION) and reconcile_stage and reconcile_stage.status == FAILED:
+		checks.append(
+			audit_checks.reconciliation_check(reconciliation.reconcile(property_name, business_date))
+		)
+	rows = []
+	for check in checks:
+		key = check["key"]
+		if key in given and key not in done and check["count"] and check["severity"] == audit_checks.BLOCKING:
+			rows.append(audit_checks.override_row(check, given[key]))
+	still_blocked = audit_checks.blocking(checks, {**done, **{row["check_key"]: True for row in rows}})
+	if still_blocked:
+		frappe.throw(
+			_("Night audit can't start yet. Resolve or override: {0}.").format(
+				"; ".join(_("{0} ({1})").format(check["title"], check["count"]) for check in still_blocked)
+			),
+			NightAuditBlockedError,
+		)
+	return rows
+
+
+def _current_stages(run) -> None:
+	"""Give a run started before stages were added every stage, in order, keeping what it did."""
+	have = {stage.stage: stage for stage in run.stages}
+	if list(have) == list(STAGES):
+		return
+	ordered = []
+	for name in STAGES:
+		row = have.get(name)
+		ordered.append(row.as_dict() if row else {"stage": name, "status": PENDING})
+	run.set("stages", ordered)
 
 
 # --------------------------------------------------------------------------- running a run
@@ -701,12 +786,120 @@ def _advance_business_date(run, stage) -> tuple[dict, str | None]:
 	)
 
 
+def _pre_checks(run, stage) -> tuple[dict, str | None]:
+	"""Stage 0 (F19): the pre-checks again, as the job starts. Anything blocking and not overridden
+	fails the run; warnings are only reported."""
+	checks = audit_checks.precheck(run.property, run.business_date)
+	blocked = audit_checks.blocking(checks, _overridden(run))
+	warnings = [check for check in checks if check["severity"] == audit_checks.WARNING and check["count"]]
+	parts = []
+	if blocked:
+		parts.append(
+			_("Blocked: {0}.").format(
+				"; ".join(_("{0} ({1})").format(check["title"], check["count"]) for check in blocked)
+			)
+		)
+	overridden = [row.check_title for row in run.overrides if row.check_key != audit_checks.RECONCILIATION]
+	if overridden:
+		parts.append(_("Overridden: {0}.").format(", ".join(overridden)))
+	if warnings:
+		parts.append(
+			_("Warnings: {0}.").format(
+				"; ".join(_("{0} ({1})").format(check["title"], check["count"]) for check in warnings)
+			)
+		)
+	counts = {"processed": len(checks), "posted": len(checks) - len(blocked), "failed": len(blocked)}
+	return counts, " ".join(parts) or _("Nothing to resolve.")
+
+
+def _reconcile(run, stage) -> tuple[dict, str | None]:
+	"""Stage 6 (F19): the books must agree before the day closes (reconciliation.py)."""
+	problems = reconciliation.reconcile(run.property, run.business_date)
+	checked = len(reconciliation.CHECKS)
+	if not problems:
+		return {"processed": checked, "posted": checked}, _(
+			"Postings, folios, payments, shifts, deposits and room counters agree."
+		)
+	listed = "; ".join(row["label"] for row in problems[:LISTED_FAILURES])
+	override = _overridden(run).get(audit_checks.RECONCILIATION)
+	if override:
+		return (
+			{"processed": checked, "posted": checked, "skipped": len(problems)},
+			_("{0} difference(s) let pass: {1}. Reason: {2}").format(len(problems), listed, override),
+		)
+	return (
+		{"processed": checked, "failed": len(problems)},
+		_("{0} difference(s): {1}").format(len(problems), listed),
+	)
+
+
+def _generate_reports(run, stage) -> tuple[dict, str | None]:
+	"""Stage 7 (F19): keep the closed day's figures on the run, as they were tonight."""
+	report = build_audit_report(run)
+	frappe.db.set_value(
+		RUN,
+		run.name,
+		{"audit_report": frappe.as_json(report), "report_generated_at": now_datetime()},
+		update_modified=False,
+	)
+	day = report["rooms"]
+	return {"processed": 1, "posted": 1}, _("Occupancy {0}%, ADR {1}, RevPAR {2}, room revenue {3}.").format(
+		day["occupancy"],
+		frappe.format(day["adr"], {"fieldtype": "Currency", "options": report["currency"]}),
+		frappe.format(day["revpar"], {"fieldtype": "Currency", "options": report["currency"]}),
+		frappe.format(day["room_revenue"], {"fieldtype": "Currency", "options": report["currency"]}),
+	)
+
+
+def build_audit_report(run) -> dict:
+	"""The night's figures: rooms, revenue, payments, the guest ledger, deposits and exceptions."""
+	day = getdate(run.business_date)
+	money = hotel_reports.currency(run.property)
+	checks = audit_checks.precheck(run.property, day)
+	return {
+		"business_date": str(day),
+		"currency": money,
+		"rooms": {
+			**hotel_reports.occupancy(run.property, day, day)[0],
+			**hotel_reports.movements(run.property, day),
+			"date": str(day),
+		},
+		"revenue": hotel_reports.revenue_by_charge_code(run.property, day, day),
+		"payments": hotel_reports.payments_by_charge_code(run.property, day, day),
+		"ledger": hotel_reports.ledger_control(run.property),
+		"deposits": hotel_reports.deposits_held(run.property),
+		"overrides": [
+			{
+				"check": row.check_title,
+				"found": row.found,
+				"reason": row.reason,
+				"by": row.overridden_by,
+				"role": row.role,
+			}
+			for row in run.overrides
+		],
+		"warnings": [
+			{
+				"check": check["title"],
+				"count": check["count"],
+				"items": [item["label"] for item in check["items"]],
+			}
+			for check in checks
+			if check["severity"] == audit_checks.WARNING and check["count"]
+		],
+		"differences": [row["label"] for row in reconciliation.reconcile(run.property, day)],
+	}
+
+
 STAGE_RUNNERS = {
+	PRE_CHECKS: _pre_checks,
 	POST_ROOM_CHARGES: _post_room_charges,
 	EXPIRE_ALLOWANCES: _expire_allowances,
 	MARK_NO_SHOWS: _mark_no_shows,
 	RELEASE_UNPAID_DEPOSITS: _release_unpaid_deposits,
 	CLOSE_POST_STAY_FOLIOS: _close_post_stay_folios,
+	RECONCILE: _reconcile,
+	GENERATE_REPORTS: _generate_reports,
 	ROLL_STATUSES: _roll_statuses,
 	ADVANCE_BUSINESS_DATE: _advance_business_date,
 }
@@ -744,6 +937,24 @@ def night_audit_overview(property_name: str) -> dict:
 		current["job_active"] = bool(
 			run.status in ACTIVE_STATUSES and run.job_id and is_job_enqueued(run.job_id)
 		)
+		current["overrides"] = [
+			{
+				field: row.get(field)
+				for field in (
+					"check_key",
+					"check_title",
+					"found",
+					"reason",
+					"overridden_by",
+					"role",
+					"overridden_at",
+				)
+			}
+			for row in run.overrides
+		]
+		current["audit_report"] = frappe.parse_json(run.audit_report) if run.audit_report else None
+		reconcile_stage = next((stage for stage in run.stages if stage.stage == RECONCILE), None)
+		current["reconciliation_failed"] = bool(reconcile_stage and reconcile_stage.status == FAILED)
 
 	night = frappe.qb.DocType(RATE_NIGHT)
 	stay = frappe.qb.DocType(STAY)
@@ -758,11 +969,14 @@ def night_audit_overview(property_name: str) -> dict:
 		.where(stay.status.isin(IN_HOUSE_STATUSES))
 	).run(pluck=True)
 	currency = frappe.db.get_value(PROPERTY, property_name, "currency")
+	closed = bool(current and current["status"] == COMPLETED)
 	return {
 		"property": property_name,
 		"business_date": business_date,
 		"currency": currency,
 		"run": current,
+		# What stands between tonight and closing the day; nothing once it has closed.
+		"prechecks": [] if closed else audit_checks.precheck(property_name, business_date),
 		"preview": {
 			"room_nights": len(tonight),
 			"room_charges": from_minor(sum(to_minor(total, currency) for total in tonight), currency),
@@ -786,8 +1000,30 @@ def night_audit_overview(property_name: str) -> dict:
 		"recent_runs": frappe.get_all(
 			RUN,
 			filters={"property": property_name},
-			fields=["name", "business_date", "status", "started_by", "started_at", "finished_at", "attempts"],
+			fields=[
+				"name",
+				"business_date",
+				"status",
+				"started_by",
+				"started_at",
+				"finished_at",
+				"attempts",
+				"report_generated_at",
+			],
 			order_by="business_date desc",
 			limit=7,
 		),
+	}
+
+
+def audit_report(name: str) -> dict:
+	"""A run's stored report, with the run's own details."""
+	run = frappe.get_doc(RUN, name)
+	return {
+		"name": run.name,
+		"property": run.property,
+		"business_date": run.business_date,
+		"status": run.status,
+		"report_generated_at": run.report_generated_at,
+		"report": frappe.parse_json(run.audit_report) if run.audit_report else None,
 	}
