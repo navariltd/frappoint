@@ -154,7 +154,9 @@ def post_room_night(night_name: str, business_date=None) -> dict | None:
 
 	from frappoint.vuna_hospitality.services import routing
 
-	folio_name = stay.default_folio or folio.ensure_default_folio(stay.name)
+	folio_name = (
+		folio.postable_stay_folio(stay.name) if stay.default_folio else folio.ensure_default_folio(stay.name)
+	)
 	rules, codes = routing.stay_rules(stay.name), {}
 
 	def target(charge_code: str) -> str:

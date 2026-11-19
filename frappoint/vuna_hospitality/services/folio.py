@@ -228,6 +228,25 @@ def ensure_default_folio(stay_name: str) -> str:
 	return folio.name
 
 
+def postable_stay_folio(stay_name: str, preferred: str | None = None) -> str:
+	"""A folio of the stay that still takes postings: `preferred` (or the default) if it does,
+	else another open folio of the stay, else a new default one.
+
+	A folio settled mid-stay (an interim invoice) is closed, but the guest is still here: tonight's
+	charges go on an open folio instead of failing.
+	"""
+	preferred = preferred or frappe.db.get_value(STAY, stay_name, "default_folio")
+	if preferred and frappe.db.get_value(FOLIO, preferred, "status") in POSTABLE_STATUSES:
+		return preferred
+	open_folios = stay_folios(stay_name, POSTABLE_STATUSES)
+	if open_folios:
+		return open_folios[0]
+	new = create_folio(STAY, stay_name, is_default=True)
+	frappe.db.set_value(STAY, stay_name, "default_folio", new.name, update_modified=False)
+	log_event(STAY, stay_name, "Default Folio Replaced", data={"closed": preferred, "new": new.name})
+	return new.name
+
+
 def stay_folios(stay_name: str, statuses=None) -> list[str]:
 	filters = {"stay_reservation": stay_name}
 	if statuses:
