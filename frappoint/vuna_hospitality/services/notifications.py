@@ -375,9 +375,10 @@ def _deliver(rule, address: str, context: dict, recipient, stay, booking) -> str
 	reference = (STAY, stay.name) if stay else (BOOKING, booking.name)
 	if rule.channel == EMAIL:
 		template = frappe.get_doc("Email Template", rule.email_template)
-		subject = frappe.render_template(
+		# Email Templates and notification rules are written only by System and Hospitality Managers.
+		subject = frappe.render_template(  # nosemgrep - templates are set up by managers
 			template.subject, context
-		)  # nosemgrep - templates are set up by managers
+		)
 		body = frappe.render_template(  # nosemgrep - templates are set up by managers
 			template.response_html if template.use_html else template.response, context
 		)
@@ -393,9 +394,9 @@ def _deliver(rule, address: str, context: dict, recipient, stay, booking) -> str
 			communication_medium="Email",
 		)["name"]
 	else:
-		text = frappe.render_template(
+		text = frappe.render_template(  # nosemgrep - templates are set up by managers
 			rule.sms_message, context
-		)  # nosemgrep - templates are set up by managers
+		)
 		from frappe.core.doctype.sms_settings.sms_settings import send_sms
 
 		send_sms([address], text)
