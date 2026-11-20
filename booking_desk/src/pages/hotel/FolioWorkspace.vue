@@ -678,6 +678,15 @@
 						>
 							Check balance
 						</button>
+						<button
+							type="button"
+							class="block text-[11px] font-semibold text-primary disabled:opacity-50"
+							:disabled="busy || !entry.folio.payee_name"
+							title="Email the folio to its payee"
+							@click="emailFolio(entry.folio)"
+						>
+							Email folio
+						</button>
 					</div>
 				</div>
 
@@ -1048,6 +1057,7 @@ import {
 	issueCreditNoteApi,
 	releaseSettlementApi,
 	settleFolioApi,
+	emailFolioApi,
 	transferChargeApi,
 	fetchFolioItemRateApi,
 	fetchStayFoliosApi,
@@ -1734,6 +1744,28 @@ async function rebuild(folio) {
 onMounted(load);
 onBeforeUnmount(() => clearTimeout(waitTimer));
 watch(() => [route.params.stayId, route.params.accountId], load);
+
+// F20: send the folio to its payee through the property's Folio Emailed rule.
+async function emailFolio(folio) {
+	busy.value = true;
+	error.value = "";
+	try {
+		const result = await emailFolioApi(folio.name);
+		const sent = (result?.logs || []).filter((row) => row.status === "Sent");
+		const other = (result?.logs || []).find((row) => row.status !== "Sent");
+		notify({
+			title: sent.length
+				? `Folio emailed to ${sent.map((row) => row.recipient).join(", ")}`
+				: "Folio not emailed",
+			message: other ? other.error || other.status : "",
+			tone: sent.length ? "info" : "warning",
+		});
+	} catch (e) {
+		error.value = hotelErrorMessage(e);
+	} finally {
+		busy.value = false;
+	}
+}
 </script>
 
 <style scoped>
