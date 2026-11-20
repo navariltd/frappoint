@@ -25,14 +25,21 @@ import frappe
 from frappe import _
 from frappe.utils import add_days, cint, get_datetime, getdate, now_datetime
 
-from frappoint.vuna_hospitality.constants import FOLIO_MANAGER_ROLES, RESERVATION_MANAGER_ROLES
+from frappoint.vuna_hospitality.constants import (
+	FOLIO_MANAGER_ROLES,
+	PERSONAL_DATA_ROLES,
+	RESERVATION_MANAGER_ROLES,
+)
 from frappoint.vuna_hospitality.services import (
 	allowances,
 	deposits,
 	folio,
+	guest_messages,
+	guest_register,
 	housekeeping,
 	inventory,
 	night_audit,
+	notifications,
 	policies,
 	post_stay,
 	reservations,
@@ -171,8 +178,17 @@ def set_primary_guest(stay_guest: str, reason: str | None = None) -> None:
 	)
 
 
-def register_guest(stay_guest: str) -> None:
-	"""Complete a guest's registration: a real (not provisional) profile, captured as registered."""
+def register_guest(
+	stay_guest: str,
+	arrived_from: str | None = None,
+	next_destination: str | None = None,
+	acceptance_reference: str | None = None,
+) -> None:
+	"""Complete a guest's registration: a real (not provisional) profile, captured as registered.
+
+	`arrived_from`, `next_destination` and `acceptance_reference` (the signed registration card)
+	are kept for the guest register (F20); given ones replace what was there.
+	"""
 	guest = frappe.get_doc(STAY_GUEST, stay_guest)
 	if guest.status not in ("Expected", "Registered"):
 		frappe.throw(_("{0} is {1} and can't be registered.").format(guest.guest_name, _(guest.status)))
@@ -181,6 +197,15 @@ def register_guest(stay_guest: str) -> None:
 		STAY_GUEST_PROFILE, guest.guest_profile, ["full_name", "email", "mobile_no", "nationality"]
 	)
 	updates = {
+		field: value.strip()
+		for field, value in (
+			("arrived_from", arrived_from),
+			("next_destination", next_destination),
+			("acceptance_reference", acceptance_reference),
+		)
+		if value and value.strip()
+	}
+	updates |= {
 		"registration_complete": 1,
 		"registered_at": now_datetime(),
 		"name_snapshot": profile.full_name,
@@ -582,6 +607,8 @@ def check_in(stay_name: str, room: str | None = None, override_reason: str | Non
 			_("Register every adult before check-in: {0}.").format(", ".join(unregistered))
 		)
 	assert_guarantee_satisfied(stay)
+	# F20: the statutory guest register needs its details before anyone is checked in.
+	guest_register.assert_complete([guest.name for guest in guests])
 	# Stays confirmed before folios existed get theirs here, so every in-house stay has one.
 	folio.ensure_default_folio(stay.name)
 
@@ -619,7 +646,10 @@ def check_in(stay_name: str, room: str | None = None, override_reason: str | Non
 			reason=room_override,
 			data={"room": assignment.room_number, "condition": condition},
 		)
+	for guest in guests:
+		guest_register.capture(guest.name)
 	refresh_booking(stay.hotel_booking)
+	notifications.notify(notifications.CHECK_IN, stay=stay.name)
 
 
 def check_in_guest(stay_guest: str) -> None:
@@ -631,6 +661,7 @@ def check_in_guest(stay_guest: str) -> None:
 	guest.reload()
 	if guest.age_category == ADULT and not guest.registration_complete:
 		frappe.throw(_("Register {0} before checking them in.").format(guest.guest_name))
+	guest_register.assert_complete([guest.name])
 	transition(
 		guest,
 		"Checked In",
@@ -638,6 +669,7 @@ def check_in_guest(stay_guest: str) -> None:
 		event_type="Guest Checked In",
 		ignore_permissions=True,
 	)
+	guest_register.capture(guest.name)
 
 
 def check_out(stay_name: str, override_reason: str | None = None) -> None:
@@ -706,6 +738,7 @@ def check_out(stay_name: str, override_reason: str | None = None) -> None:
 	folio.close_idle_folios(stay.name, reason=_("Checked out with nothing to invoice"))
 	post_stay.open_after_check_out(stay.name)
 	refresh_booking(stay.hotel_booking)
+	notifications.notify(notifications.CHECK_OUT, stay=stay.name)
 
 
 def depart_early(stay_name: str) -> dict | None:
@@ -932,6 +965,8 @@ def change_departure(stay_name: str, new_departure, override_reason: str | None 
 		_record_override(stay, plan.restrictions, override_reason)
 	_roll_after_change(stay)
 	refresh_booking(stay.hotel_booking)
+	# A new departure is a new occurrence: the amended-booking message goes out again.
+	notifications.notify(notifications.BOOKING_AMENDED, stay=stay.name, occurrence=f"to:{new_departure}")
 	return {
 		"stay": stay.name,
 		"from": str(old),
@@ -1166,9 +1201,15 @@ def front_desk_today(property_name: str) -> dict:
 	)
 	departures = [stay for stay in in_house if getdate(stay.departure_date) <= business_date]
 	_add_room_details([*arrivals, *in_house])
+	# F20: pending messages and open traces, so the desk sees them in the list.
+	pending = guest_messages.pending_counts([stay.name for stay in (*arrivals, *in_house)])
+	for stay in (*arrivals, *in_house):
+		stay["pending_messages"] = pending[stay.name]["messages"]
+		stay["open_traces"] = pending[stay.name]["traces"]
 	return {
 		"property": property_name,
 		"business_date": business_date,
+		"traces_due": guest_messages.traces_due(property_name, business_date),
 		"arrivals": arrivals,
 		"in_house": in_house,
 		"departures": departures,
@@ -1221,6 +1262,11 @@ def _stay_services(stay_name: str) -> list:
 	from frappoint.vuna_hospitality.services.service_charges import stay_services
 
 	return stay_services(stay_name)
+
+
+def can_view_personal(user: str | None = None) -> bool:
+	"""Whether `user` may see a stay's folios and each occupant's personal services (F20)."""
+	return bool(set(PERSONAL_DATA_ROLES) & set(frappe.get_roles(user)))
 
 
 def stay_details(stay_name: str) -> dict:
@@ -1307,19 +1353,32 @@ def stay_details(stay_name: str) -> dict:
 		else None
 	)
 	is_manager = bool(set(FOLIO_MANAGER_ROLES) & set(frappe.get_roles()))
+	# F20: what the guest register still needs from each adult before check-in.
+	register_on = guest_register.is_required(stay.property)
+	for guest in guests:
+		guest["register_missing"] = (
+			guest_register.missing(guest.name)
+			if register_on and guest.status in ("Expected", "Registered")
+			else []
+		)
+	# F20: occupants' folios and personal services are for the roles that handle them; anyone who
+	# can open the stay still sees who is in it.
+	personal = can_view_personal()
 	return {
 		"stay": summary,
 		"guests": guests,
 		"assignments": assignments,
 		"nights": nights,
 		"events": events,
-		"folios": folios,
-		"open_balance": owing,
+		"folios": folios if personal else [],
+		"open_balance": owing if personal else None,
 		# F12: the deposit, the booked policies, and what leaving early would cost today.
 		"deposit": deposits.deposit_details(stay.name),
 		"policies": policies.stay_policies(stay),
 		# F15: spa and salon appointments charged to this stay's guests.
-		"services": _stay_services(stay.name),
+		"services": _stay_services(stay.name) if personal else [],
+		# F20: messages taken for the guests, and departments' follow-ups.
+		**guest_messages.stay_messages(stay.name),
 		"early_departure_fee": early_fee.amount if early_fee else 0,
 		"post_stay_until": post_stay.window_end(stay.name) if status == "Checked Out" else None,
 		"actions": {
@@ -1333,7 +1392,10 @@ def stay_details(stay_name: str) -> dict:
 			# F19: what stops check-out besides the balance; no override covers these.
 			"check_out_blockers": check_out_blockers(stay.name) if status in IN_HOUSE_STATUSES else [],
 			"can_edit_guests": status in GUEST_EDITABLE_STATUSES,
-			"can_view_folios": bool(folios) and bool(frappe.has_permission(folio.FOLIO, "read")),
+			"can_view_folios": personal and bool(folios) and bool(frappe.has_permission(folio.FOLIO, "read")),
+			"can_view_personal": personal,
+			"guest_register": register_on,
+			"can_message": bool(set(guest_messages.MESSAGE_ROLES) & set(frappe.get_roles())),
 			"can_override_check_out": is_manager,
 			"leaving_early": leaving_early,
 			"can_waive_deposit": is_manager,

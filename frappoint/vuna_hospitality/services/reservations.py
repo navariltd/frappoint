@@ -479,6 +479,13 @@ def _policy_snapshot(policy: str | None) -> str | None:
 # --------------------------------------------------------------------------- confirm / cancel / expire
 
 
+def _notify(event: str, stay_name: str, occurrence: str | None = None) -> None:
+	"""Queue the guest messages for this event (F20); they go out after the request commits."""
+	from frappoint.vuna_hospitality.services import notifications
+
+	notifications.notify(event, stay=stay_name, occurrence=occurrence)
+
+
 def confirm(stay_name: str) -> dict:
 	"""Confirm a held stay: its rooms move from held to sold. Confirming twice changes nothing."""
 	stay = _lock_stay(stay_name)
@@ -521,6 +528,7 @@ def confirm(stay_name: str) -> dict:
 	# The deposit the policy asks for (F12), on the default folio.
 	create_for_stay(stay.name)
 	refresh_booking(stay.hotel_booking)
+	_notify("Booking Confirmed", stay.name)
 	return booking_summary(stay.hotel_booking)
 
 
@@ -584,6 +592,7 @@ def cancel(
 	_settle_deposit(stay.name, reason)
 	close_idle_folios(stay.name, reason=reason)
 	refresh_booking(stay.hotel_booking)
+	_notify("Booking Cancelled", stay.name)
 	return booking_summary(stay.hotel_booking)
 
 
