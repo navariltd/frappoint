@@ -207,10 +207,19 @@ def set_primary_guest(stay_guest: str, reason: str | None = None) -> dict:
 
 @frappe.whitelist(methods=["POST"])
 @require_hospitality
-def register_guest(stay_guest: str) -> dict:
+def register_guest(
+	stay_guest: str,
+	arrived_from: str | None = None,
+	next_destination: str | None = None,
+	acceptance_reference: str | None = None,
+) -> dict:
+	"""Register a guest. The optional details are kept for the guest register (F20)."""
 	stay = _stay_of_guest(stay_guest)
 	_check_stay(stay)
-	return _run(lambda: front_desk.register_guest(stay_guest), stay)
+	return _run(
+		lambda: front_desk.register_guest(stay_guest, arrived_from, next_destination, acceptance_reference),
+		stay,
+	)
 
 
 @frappe.whitelist(methods=["POST"])
