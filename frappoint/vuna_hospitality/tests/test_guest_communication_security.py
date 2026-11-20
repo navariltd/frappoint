@@ -155,8 +155,10 @@ class TestNotifications(GuestCareTestCase):
 		before = self.rule(notifications.BEFORE_ARRIVAL, offset=2)
 		amended = self.rule(notifications.BOOKING_AMENDED)
 		stay = self.confirmed_stay(nights=2, arrival=self.today + timedelta(days=2))
-		self.assertEqual(notifications.send_timed(), 1)
-		self.assertEqual(notifications.send_timed(), 0)
+		# The job covers every property's rules; count only this rule's sends.
+		notifications.send_timed()
+		self.assertEqual(len(self.logs(rule=before)), 1)
+		notifications.send_timed()
 		self.assertEqual(len(self.logs(rule=before)), 1)
 
 		change_departure(stay.name, add_days(stay.departure_date, 1))
