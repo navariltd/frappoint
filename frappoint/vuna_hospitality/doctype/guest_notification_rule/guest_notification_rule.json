@@ -1,0 +1,228 @@
+{
+ "actions": [],
+ "autoname": "naming_series:",
+ "creation": "2026-11-20 09:00:00.000000",
+ "description": "Sends guests an email or SMS when something happens to their booking or stay: confirmed, amended, cancelled, before arrival, at check-in, before departure, at check-out, a folio emailed, or after the stay.",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "naming_series",
+  "property",
+  "rule_name",
+  "enabled",
+  "column_break_head",
+  "event",
+  "offset",
+  "channel",
+  "recipients_section",
+  "recipient_role",
+  "purpose",
+  "column_break_recipients",
+  "language",
+  "message_section",
+  "email_template",
+  "sms_message",
+  "conditions_section",
+  "rate_plan",
+  "booking_source",
+  "column_break_conditions",
+  "vip_only",
+  "stay_type"
+ ],
+ "fields": [
+  {
+   "fieldname": "naming_series",
+   "fieldtype": "Select",
+   "label": "Series",
+   "options": "GNR-.property.-.####",
+   "default": "GNR-.property.-.####",
+   "hidden": 1,
+   "reqd": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "property",
+   "fieldtype": "Link",
+   "label": "Property",
+   "options": "Hotel Property",
+   "reqd": 1,
+   "in_standard_filter": 1,
+   "read_only": 0
+  },
+  {
+   "fieldname": "rule_name",
+   "fieldtype": "Data",
+   "label": "Rule Name",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "enabled",
+   "fieldtype": "Check",
+   "label": "Enabled",
+   "default": "1",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "column_break_head",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "event",
+   "fieldtype": "Select",
+   "label": "When",
+   "options": "Booking Confirmed\nBooking Amended\nBooking Cancelled\nBefore Arrival\nCheck-in\nBefore Departure\nCheck-out\nFolio Emailed\nAfter Stay",
+   "reqd": 1,
+   "in_list_view": 1,
+   "in_standard_filter": 1
+  },
+  {
+   "fieldname": "offset",
+   "fieldtype": "Int",
+   "label": "Offset",
+   "default": "1",
+   "depends_on": "eval:['Before Arrival','Before Departure','After Stay'].includes(doc.event)",
+   "description": "Days before arrival, hours before departure, or days after the stay."
+  },
+  {
+   "fieldname": "channel",
+   "fieldtype": "Select",
+   "label": "Channel",
+   "options": "Email\nSMS",
+   "default": "Email",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "recipients_section",
+   "fieldtype": "Section Break",
+   "label": "Who receives it"
+  },
+  {
+   "fieldname": "recipient_role",
+   "fieldtype": "Select",
+   "label": "Send To",
+   "options": "Primary Guest\nAll Adult Guests\nBooker\nPayee",
+   "default": "Primary Guest",
+   "reqd": 1
+  },
+  {
+   "fieldname": "purpose",
+   "fieldtype": "Select",
+   "label": "Purpose",
+   "options": "Transactional\nMarketing",
+   "default": "Transactional",
+   "description": "Marketing messages go only to guests who agreed to receive them."
+  },
+  {
+   "fieldname": "column_break_recipients",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "language",
+   "fieldtype": "Link",
+   "label": "Language",
+   "options": "Language",
+   "description": "Only for guests with this language. Leave empty for everyone else (the property default)."
+  },
+  {
+   "fieldname": "message_section",
+   "fieldtype": "Section Break",
+   "label": "Message"
+  },
+  {
+   "fieldname": "email_template",
+   "fieldtype": "Link",
+   "label": "Email Template",
+   "options": "Email Template",
+   "depends_on": "eval:doc.channel=='Email'",
+   "mandatory_depends_on": "eval:doc.channel=='Email'",
+   "description": "Jinja fields: guest, stay, booking, property, and folio for the folio's payee."
+  },
+  {
+   "fieldname": "sms_message",
+   "fieldtype": "Small Text",
+   "label": "SMS Message",
+   "depends_on": "eval:doc.channel=='SMS'",
+   "mandatory_depends_on": "eval:doc.channel=='SMS'",
+   "description": "Jinja, for example: Dear {{ guest.first_name }}, see you on {{ stay.arrival_date }}."
+  },
+  {
+   "fieldname": "conditions_section",
+   "fieldtype": "Section Break",
+   "label": "Only when",
+   "collapsible": 1
+  },
+  {
+   "fieldname": "rate_plan",
+   "fieldtype": "Link",
+   "label": "Rate Plan",
+   "options": "Rate Plan"
+  },
+  {
+   "fieldname": "booking_source",
+   "fieldtype": "Link",
+   "label": "Booking Source",
+   "options": "UTM Source"
+  },
+  {
+   "fieldname": "column_break_conditions",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "vip_only",
+   "fieldtype": "Check",
+   "label": "VIP Guests Only"
+  },
+  {
+   "fieldname": "stay_type",
+   "fieldtype": "Select",
+   "label": "Stay Type",
+   "options": "\nOvernight\nDay Use"
+  }
+ ],
+ "index_web_pages_for_search": 0,
+ "links": [],
+ "modified": "2026-11-20 09:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Vuna Hospitality",
+ "name": "Guest Notification Rule",
+ "naming_rule": "By \"Naming Series\" field",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "role": "System Manager",
+   "read": 1,
+   "report": 1,
+   "print": 1,
+   "export": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 1
+  },
+  {
+   "role": "Hospitality Manager",
+   "read": 1,
+   "report": 1,
+   "print": 1,
+   "export": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 1
+  },
+  {
+   "role": "Front Desk Manager",
+   "read": 1,
+   "report": 1,
+   "print": 1,
+   "export": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "search_fields": "rule_name,event,channel",
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": [],
+ "title_field": "rule_name",
+ "track_changes": 1
+}
