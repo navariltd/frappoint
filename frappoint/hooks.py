@@ -1,4 +1,5 @@
 from frappoint.vuna_hospitality.constants import HOSPITALITY_ROLES as _HOSPITALITY_ROLES
+from frappoint.vuna_hospitality.constants import OPTIONAL_PROPERTY_DOCTYPES as _OPTIONAL_PROPERTY_DOCTYPES
 from frappoint.vuna_hospitality.constants import PROPERTY_SCOPED_DOCTYPES as _PROPERTY_SCOPED_DOCTYPES
 
 app_name = "frappoint"
@@ -199,13 +200,25 @@ after_migrate = [
 # Hotel data is filtered by Hotel Property. Each hospitality feature adds its
 # DocTypes to PROPERTY_SCOPED_DOCTYPES in vuna_hospitality/constants.py.
 permission_query_conditions = {
-	doctype: "frappoint.vuna_hospitality.services.property_scope.get_permission_query_conditions"
-	for doctype in _PROPERTY_SCOPED_DOCTYPES
+	**{
+		doctype: "frappoint.vuna_hospitality.services.property_scope.get_permission_query_conditions"
+		for doctype in _PROPERTY_SCOPED_DOCTYPES
+	},
+	**{
+		doctype: "frappoint.vuna_hospitality.services.property_scope.get_optional_permission_query_conditions"
+		for doctype in _OPTIONAL_PROPERTY_DOCTYPES
+	},
 }
 
 has_permission = {
-	doctype: "frappoint.vuna_hospitality.services.property_scope.has_permission"
-	for doctype in _PROPERTY_SCOPED_DOCTYPES
+	**{
+		doctype: "frappoint.vuna_hospitality.services.property_scope.has_permission"
+		for doctype in _PROPERTY_SCOPED_DOCTYPES
+	},
+	**{
+		doctype: "frappoint.vuna_hospitality.services.property_scope.has_optional_permission"
+		for doctype in _OPTIONAL_PROPERTY_DOCTYPES
+	},
 }
 
 # DocType Class
@@ -265,6 +278,8 @@ scheduler_events = {
 	},
 	"hourly": [
 		"frappoint.frappoint.scheduler.refresh_availability_counters.execute",
+		# Guest reminders before arrival and departure, and follow-ups after the stay.
+		"frappoint.vuna_hospitality.services.notifications.send_timed",
 	],
 	"daily": [
 		"frappoint.utils.purge_old_slots",
@@ -273,6 +288,8 @@ scheduler_events = {
 		"frappoint.vuna_hospitality.services.inventory.daily_inventory_maintenance",
 		# Propose Guest Profiles for guests on completed appointments; staff confirm them.
 		"frappoint.vuna_hospitality.services.guest_history.propose_matches",
+		# Remove ID documents whose retention period ended.
+		"frappoint.vuna_hospitality.services.data_retention.purge_expired_id_documents",
 	],
 	# "weekly": [
 	# 	"frappoint.tasks.weekly"

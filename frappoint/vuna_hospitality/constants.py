@@ -92,6 +92,22 @@ PROPERTY_SCOPED_DOCTYPES: tuple[str, ...] = (
 	"Maintenance Request",
 	# F18 Preference suggestions and ranked room assignment
 	"Stay Request",
+	# F13 Rate operations and restrictions (scoped late, in the F20 security review)
+	"Rate Restriction Day",
+	# F20 Guest communication, guest register, and security
+	"Guest Notification Rule",
+	"Guest Notification Log",
+	"Guest Message",
+	"Guest Trace",
+	"Guest Register Entry",
+)
+
+# DocTypes whose `property` may be empty, meaning "every property": a restricted user sees the
+# rows of their properties and the rows with none (F20 security review).
+OPTIONAL_PROPERTY_DOCTYPES: tuple[str, ...] = (
+	"Hospitality Event Log",
+	"Guest Preference",
+	"Guest Suggestion Feedback",
 )
 
 # Roles that post charges to a folio by hand (§23.1: front desk posts within limits).
@@ -156,4 +172,17 @@ SENSITIVE_PREFERENCE_ROLES = (
 	FRONT_DESK_MANAGER,
 	FRONT_DESK_AGENT,
 	DATA_PROTECTION_OFFICER,
+)
+
+# Roles that see a stay's folios and each occupant's personal services (F20, design §23.2): the
+# people who take payments, post charges and book services. Others who can open a stay, such as
+# reservations or housekeeping, see only who is in it.
+PERSONAL_DATA_ROLES = (
+	"System Manager",
+	HOSPITALITY_MANAGER,
+	FRONT_DESK_MANAGER,
+	FRONT_DESK_AGENT,
+	CASHIER,
+	HOTEL_ACCOUNTANT,
+	GUEST_SERVICES_AGENT,
 )

@@ -12,6 +12,7 @@ import frappe
 from frappe import _
 from frappe.utils import cint
 
+from frappoint.vuna_hospitality.constants import PERSONAL_DATA_ROLES
 from frappoint.vuna_hospitality.services import service_charges
 from frappoint.vuna_hospitality.services.feature_flag import is_hospitality_enabled, require_hospitality
 from frappoint.vuna_hospitality.services.inventory import run_with_inventory_retry
@@ -96,4 +97,6 @@ def get_stay_services(stay: str) -> list[dict]:
 		raise frappe.DoesNotExistError(_("Stay Reservation {0} does not exist.").format(stay))
 	assert_property_access(property_name)
 	frappe.has_permission("Stay Reservation", "read", stay, throw=True)
+	# Each occupant's personal services are for the roles that handle them (F20).
+	frappe.only_for(PERSONAL_DATA_ROLES)
 	return service_charges.stay_services(stay)
