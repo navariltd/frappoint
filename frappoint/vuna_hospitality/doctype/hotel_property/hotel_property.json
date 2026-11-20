@@ -52,7 +52,10 @@
   "column_break_taxes",
   "breakage_charge_code",
   "policy_fee_charge_code",
-  "nightly_levies"
+  "nightly_levies",
+  "guest_register_section",
+  "guest_register_required",
+  "register_requirements"
  ],
  "fields": [
   {
@@ -352,6 +355,26 @@
    "default": "8",
    "non_negative": 1,
    "description": "The most folios one stay can have, the default folio included."
+  },
+  {
+   "fieldname": "guest_register_section",
+   "fieldtype": "Section Break",
+   "label": "Guest Register",
+   "collapsible": 1
+  },
+  {
+   "fieldname": "guest_register_required",
+   "fieldtype": "Check",
+   "label": "Keep a Guest Register",
+   "description": "Snapshot each registering guest's statutory details at check-in. Check-in is refused while a required detail is missing."
+  },
+  {
+   "fieldname": "register_requirements",
+   "fieldtype": "Table",
+   "label": "Required Details",
+   "options": "Guest Register Requirement",
+   "depends_on": "eval:doc.guest_register_required",
+   "description": "Collect only what the law asks for. Residents share the company's country; everyone else is foreign. With none listed: nationality and ID for everyone, and where foreign guests came from and go next."
   }
  ],
  "index_web_pages_for_search": 0,
