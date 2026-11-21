@@ -80,6 +80,7 @@ declare module 'vue' {
     EmptyAppointmentsState: typeof import('./src/components/bookings/appointments/EmptyAppointmentsState.vue')['default']
     GuestAssignmentRow: typeof import('./src/components/booking/guest-assignment/GuestAssignmentRow.vue')['default']
     GuestAssignmentSection: typeof import('./src/components/booking/guest-assignment/GuestAssignmentSection.vue')['default']
+    GuestMessagesPanel: typeof import('./src/components/hotel/GuestMessagesPanel.vue')['default']
     GuestPicker: typeof import('./src/components/hotel/GuestPicker.vue')['default']
     GuestPreferencesPanel: typeof import('./src/components/hotel/GuestPreferencesPanel.vue')['default']
     GuestQuickCreate: typeof import('./src/components/booking/guest-assignment/GuestQuickCreate.vue')['default']

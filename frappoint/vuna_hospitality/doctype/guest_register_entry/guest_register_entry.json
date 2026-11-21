@@ -1,0 +1,288 @@
+{
+ "actions": [],
+ "autoname": "naming_series:",
+ "creation": "2026-11-20 09:00:00.000000",
+ "description": "The statutory guest register: a snapshot taken at check-in of each registering guest. It is kept for the statutory period even if the guest's profile is later anonymized.",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "naming_series",
+  "property",
+  "stay_reservation",
+  "stay_guest",
+  "guest_profile",
+  "column_break_head",
+  "full_name",
+  "nationality",
+  "nationality_class",
+  "identity_section",
+  "id_document_type",
+  "id_document_hint",
+  "column_break_identity",
+  "id_document_number",
+  "date_of_birth",
+  "stay_section",
+  "arrival_date",
+  "departure_date",
+  "room_number",
+  "column_break_stay",
+  "arrived_from",
+  "next_destination",
+  "acceptance_reference",
+  "capture_section",
+  "checked_in_at",
+  "column_break_capture",
+  "captured_by"
+ ],
+ "fields": [
+  {
+   "fieldname": "naming_series",
+   "fieldtype": "Select",
+   "label": "Series",
+   "options": "GRE-.property.-.YY.-.######",
+   "default": "GRE-.property.-.YY.-.######",
+   "hidden": 1,
+   "reqd": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "property",
+   "fieldtype": "Link",
+   "label": "Property",
+   "options": "Hotel Property",
+   "reqd": 1,
+   "in_standard_filter": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "stay_reservation",
+   "fieldtype": "Link",
+   "label": "Stay",
+   "options": "Stay Reservation",
+   "reqd": 1,
+   "read_only": 1,
+   "search_index": 1
+  },
+  {
+   "fieldname": "stay_guest",
+   "fieldtype": "Link",
+   "label": "Stay Guest",
+   "options": "Stay Guest",
+   "reqd": 1,
+   "unique": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "guest_profile",
+   "fieldtype": "Link",
+   "label": "Guest Profile",
+   "options": "Guest Profile",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_head",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "full_name",
+   "fieldtype": "Data",
+   "label": "Name",
+   "read_only": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "nationality",
+   "fieldtype": "Link",
+   "label": "Nationality",
+   "options": "Country",
+   "read_only": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "nationality_class",
+   "fieldtype": "Select",
+   "label": "Class",
+   "options": "Resident\nForeign",
+   "read_only": 1,
+   "in_standard_filter": 1
+  },
+  {
+   "fieldname": "identity_section",
+   "fieldtype": "Section Break",
+   "label": "Identity"
+  },
+  {
+   "fieldname": "id_document_type",
+   "fieldtype": "Data",
+   "label": "Document Type",
+   "read_only": 1
+  },
+  {
+   "fieldname": "id_document_hint",
+   "fieldtype": "Data",
+   "label": "Document Number",
+   "read_only": 1,
+   "description": "Masked. Authorized roles reveal the full number from the guest register, and each reveal is recorded."
+  },
+  {
+   "fieldname": "column_break_identity",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "id_document_number",
+   "fieldtype": "Password",
+   "label": "Full Document Number",
+   "read_only": 1,
+   "permlevel": 1,
+   "hidden": 1
+  },
+  {
+   "fieldname": "date_of_birth",
+   "fieldtype": "Date",
+   "label": "Date of Birth",
+   "read_only": 1,
+   "permlevel": 1
+  },
+  {
+   "fieldname": "stay_section",
+   "fieldtype": "Section Break",
+   "label": "Stay"
+  },
+  {
+   "fieldname": "arrival_date",
+   "fieldtype": "Date",
+   "label": "Arrival",
+   "read_only": 1,
+   "in_list_view": 1,
+   "in_standard_filter": 1
+  },
+  {
+   "fieldname": "departure_date",
+   "fieldtype": "Date",
+   "label": "Departure",
+   "read_only": 1
+  },
+  {
+   "fieldname": "room_number",
+   "fieldtype": "Data",
+   "label": "Room",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_stay",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "arrived_from",
+   "fieldtype": "Data",
+   "label": "Arrived From",
+   "read_only": 1
+  },
+  {
+   "fieldname": "next_destination",
+   "fieldtype": "Data",
+   "label": "Next Destination",
+   "read_only": 1
+  },
+  {
+   "fieldname": "acceptance_reference",
+   "fieldtype": "Data",
+   "label": "Acceptance Reference",
+   "read_only": 1,
+   "description": "The signed registration card or e-signature reference."
+  },
+  {
+   "fieldname": "capture_section",
+   "fieldtype": "Section Break",
+   "label": "Captured"
+  },
+  {
+   "fieldname": "checked_in_at",
+   "fieldtype": "Datetime",
+   "label": "Checked In At",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_capture",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "captured_by",
+   "fieldtype": "Link",
+   "label": "Captured By",
+   "options": "User",
+   "read_only": 1
+  }
+ ],
+ "in_create": 1,
+ "index_web_pages_for_search": 0,
+ "links": [],
+ "modified": "2026-11-20 09:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Vuna Hospitality",
+ "name": "Guest Register Entry",
+ "naming_rule": "By \"Naming Series\" field",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "role": "System Manager",
+   "read": 1,
+   "report": 1,
+   "print": 1,
+   "export": 1
+  },
+  {
+   "role": "Hospitality Manager",
+   "read": 1,
+   "report": 1,
+   "print": 1,
+   "export": 1
+  },
+  {
+   "role": "Front Desk Manager",
+   "read": 1,
+   "report": 1,
+   "print": 1,
+   "export": 1
+  },
+  {
+   "role": "Data Protection Officer",
+   "read": 1,
+   "report": 1,
+   "print": 1,
+   "export": 1
+  },
+  {
+   "role": "Front Desk Agent",
+   "read": 1,
+   "report": 1,
+   "print": 1
+  },
+  {
+   "role": "System Manager",
+   "read": 1,
+   "permlevel": 1
+  },
+  {
+   "role": "Hospitality Manager",
+   "read": 1,
+   "permlevel": 1
+  },
+  {
+   "role": "Front Desk Manager",
+   "read": 1,
+   "permlevel": 1
+  },
+  {
+   "role": "Data Protection Officer",
+   "read": 1,
+   "permlevel": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": [],
+ "title_field": "full_name",
+ "track_changes": 1
+}

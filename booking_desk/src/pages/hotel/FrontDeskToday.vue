@@ -71,6 +71,32 @@
 					@confirm="confirmBanner"
 					@cancel="cancelBanner"
 				/>
+				<!-- Departments' follow-ups due today (and overdue) -->
+				<details
+					v-if="today?.traces_due?.length"
+					class="rounded-xl border border-tertiary bg-tertiary-container/20 px-4 py-2"
+				>
+					<summary class="cursor-pointer text-[13px] font-semibold">
+						{{ today.traces_due.length }} trace{{
+							today.traces_due.length === 1 ? "" : "s"
+						}}
+						due
+					</summary>
+					<ul class="mt-2 space-y-1 text-[12px]">
+						<li v-for="trace in today.traces_due" :key="trace.name">
+							<RouterLink
+								:to="{
+									name: 'FrontDeskStay',
+									params: { stayId: trace.stay_reservation },
+								}"
+								class="font-semibold text-primary"
+								>{{ trace.guest_name }}</RouterLink
+							>
+							· {{ trace.department }} · {{ formatNight(trace.due_date) }}:
+							{{ trace.text }}
+						</li>
+					</ul>
+				</details>
 				<LoadFailed
 					v-if="loadError"
 					what="today's stays"
@@ -116,6 +142,34 @@
 								<span v-if="stay.eta">
 									· ETA {{ String(stay.eta).slice(0, 5) }}</span
 								>
+							</span>
+							<span
+								v-if="stay.pending_messages || stay.open_traces"
+								class="mt-1 flex gap-2 text-[11px] font-semibold text-tertiary"
+							>
+								<span
+									v-if="stay.pending_messages"
+									class="flex items-center gap-0.5"
+								>
+									<span
+										class="material-symbols-outlined text-[14px]"
+										aria-hidden="true"
+										>mail</span
+									>
+									{{ stay.pending_messages }} message{{
+										stay.pending_messages === 1 ? "" : "s"
+									}}
+								</span>
+								<span v-if="stay.open_traces" class="flex items-center gap-0.5">
+									<span
+										class="material-symbols-outlined text-[14px]"
+										aria-hidden="true"
+										>task_alt</span
+									>
+									{{ stay.open_traces }} trace{{
+										stay.open_traces === 1 ? "" : "s"
+									}}
+								</span>
 							</span>
 						</RouterLink>
 						<div class="flex items-center justify-between gap-2 px-4 pb-3 pt-2">

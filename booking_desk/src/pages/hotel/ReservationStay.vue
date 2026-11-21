@@ -512,6 +512,48 @@
 												Not registered
 											</span>
 										</span>
+										<!-- What the statutory guest register still needs from this guest -->
+										<span
+											v-if="guest.register_missing?.length"
+											class="mt-1 block space-y-1 text-[11px]"
+										>
+											<span class="block text-tertiary">
+												Guest register needs:
+												{{ guest.register_missing.join(", ") }}
+												<a
+													v-if="profileGaps(guest).length"
+													:href="`/app/guest-profile/${guest.guest_profile}`"
+													target="_blank"
+													rel="noopener"
+													class="font-semibold text-primary"
+													>· add to profile</a
+												>
+											</span>
+											<span
+												v-if="
+													stayGaps(guest).length &&
+													actions.can_edit_guests
+												"
+												class="flex flex-wrap items-end gap-1.5"
+											>
+												<input
+													v-for="field in stayGaps(guest)"
+													:key="field"
+													v-model="registerForm(guest)[field]"
+													type="text"
+													:placeholder="field"
+													class="w-36 rounded border border-outline-variant px-2 py-1 text-[12px]"
+												/>
+												<button
+													type="button"
+													class="rounded border border-outline-variant px-2 py-1 font-semibold text-primary disabled:opacity-50"
+													:disabled="busy"
+													@click="saveRegisterDetails(guest)"
+												>
+													Save
+												</button>
+											</span>
+										</span>
 									</span>
 									<span
 										v-if="actions.can_edit_guests"
@@ -713,6 +755,14 @@
 
 				<!-- Prices and history beside the stay, where there is room -->
 				<aside class="space-y-5 min-w-0">
+					<GuestMessagesPanel
+						:stay-id="stay.name"
+						:guests="(details.guests || []).filter(isActive)"
+						:business-date="stay.business_date"
+						:editable="
+							actions.can_message && !CLOSED_STAY_STATUSES.includes(stay.status)
+						"
+					/>
 					<GuestPreferencesPanel
 						:stay-id="stay.name"
 						:editable="!CLOSED_STAY_STATUSES.includes(stay.status)"
@@ -840,6 +890,7 @@ import {
 } from "@/api/hotel.api";
 import ActionBanner from "@/components/hotel/ActionBanner.vue";
 import GuestPicker from "@/components/hotel/GuestPicker.vue";
+import GuestMessagesPanel from "@/components/hotel/GuestMessagesPanel.vue";
 import GuestPreferencesPanel from "@/components/hotel/GuestPreferencesPanel.vue";
 import HotelStatusBadge from "@/components/hotel/HotelStatusBadge.vue";
 import { useActionBanner } from "@/composables/hotel/useActionBanner";
@@ -875,6 +926,34 @@ const actions = computed(() => details.value?.actions || {});
 // Check-in readiness: the same rules the server applies, shown before anyone presses the button.
 const checkInReview = ref(false);
 const roomOverrideReason = ref("");
+
+// Guest register details asked at registration; the others live on the guest's profile.
+const REGISTRATION_DETAILS = {
+	"Arrived From": "arrivedFrom",
+	"Next Destination": "nextDestination",
+	"Acceptance Reference": "acceptanceReference",
+};
+const registerForms = reactive({});
+function registerForm(guest) {
+	registerForms[guest.name] ||= {};
+	return registerForms[guest.name];
+}
+const stayGaps = (guest) =>
+	(guest.register_missing || []).filter((field) => REGISTRATION_DETAILS[field]);
+const profileGaps = (guest) =>
+	(guest.register_missing || []).filter((field) => !REGISTRATION_DETAILS[field]);
+
+async function saveRegisterDetails(guest) {
+	const form = registerForm(guest);
+	const details = Object.fromEntries(
+		Object.entries(REGISTRATION_DETAILS).map(([field, key]) => [
+			key,
+			(form[field] || "").trim() || null,
+		])
+	);
+	await run(() => registerGuestApi(guest.name, details));
+	delete registerForms[guest.name];
+}
 
 function needsRegistration(guest) {
 	return (
@@ -915,6 +994,18 @@ const checkInBlockers = computed(() => {
 			guest: guest.name,
 		})
 	);
+	(details.value?.guests || [])
+		.filter((guest) => guest.register_missing?.length)
+		.forEach((guest) =>
+			blockers.push({
+				key: `register-${guest.name}`,
+				icon: "assignment_ind",
+				title: `The guest register needs ${guest.register_missing.join(", ")} for ${
+					guest.guest_name
+				}`,
+				detail: "Add them in the Guests section, or on the guest's profile.",
+			})
+		);
 	return blockers;
 });
 

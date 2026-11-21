@@ -10,13 +10,18 @@ System Manager and Administrator are never restricted.
 
 Frappe already filters list views and link fields by User Permission. These helpers cover what it
 does not: raw SQL in services, whitelisted APIs, and the `permission_query_conditions` /
-`has_permission` hooks that hooks.py wires for every DocType in PROPERTY_SCOPED_DOCTYPES.
+`has_permission` hooks that hooks.py wires for every DocType in PROPERTY_SCOPED_DOCTYPES, and
+for OPTIONAL_PROPERTY_DOCTYPES, whose rows without a property belong to every property.
 """
 
 import frappe
 from frappe import _
 
-from frappoint.vuna_hospitality.constants import PROPERTY_DOCTYPE, PROPERTY_FIELD, UNRESTRICTED_ROLES
+from frappoint.vuna_hospitality.constants import (
+	PROPERTY_DOCTYPE,
+	PROPERTY_FIELD,
+	UNRESTRICTED_ROLES,
+)
 
 
 def get_user_properties(user: str | None = None) -> list[str] | None:
@@ -78,3 +83,20 @@ def has_permission(doc, ptype: str | None = None, user: str | None = None) -> bo
 		# A new document without a property yet; the required-field check rejects it on save.
 		return True
 	return can_access_property(property_name, user)
+
+
+def get_optional_permission_query_conditions(user: str | None = None, doctype: str | None = None) -> str:
+	"""`permission_query_conditions` for DocTypes whose property may be empty (every property)."""
+	condition = get_permission_query_conditions(user, doctype)
+	if not condition or not doctype:
+		return condition
+	field = f"`tab{doctype}`.`{PROPERTY_FIELD}`"
+	if condition == "1=0":
+		return f"ifnull({field}, '') = ''"
+	return f"({condition} or ifnull({field}, '') = '')"
+
+
+def has_optional_permission(doc, ptype: str | None = None, user: str | None = None) -> bool:
+	"""`has_permission` for DocTypes whose property may be empty: empty means every property."""
+	property_name = doc.get(PROPERTY_FIELD)
+	return not property_name or can_access_property(property_name, user)

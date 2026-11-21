@@ -28,7 +28,12 @@
   "removed_reason",
   "snapshot_section",
   "name_snapshot",
-  "contact_snapshot"
+  "contact_snapshot",
+  "register_section",
+  "arrived_from",
+  "next_destination",
+  "column_break_register",
+  "acceptance_reference"
  ],
  "fields": [
   {
@@ -197,6 +202,34 @@
    "fieldname": "contact_snapshot",
    "fieldtype": "JSON",
    "label": "Contact (as registered)",
+   "read_only": 1
+  },
+  {
+   "fieldname": "register_section",
+   "fieldtype": "Section Break",
+   "label": "Guest Register",
+   "collapsible": 1
+  },
+  {
+   "fieldname": "arrived_from",
+   "fieldtype": "Data",
+   "label": "Arrived From",
+   "read_only": 1
+  },
+  {
+   "fieldname": "next_destination",
+   "fieldtype": "Data",
+   "label": "Next Destination",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_register",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "acceptance_reference",
+   "fieldtype": "Data",
+   "label": "Acceptance Reference",
    "read_only": 1
   }
  ],

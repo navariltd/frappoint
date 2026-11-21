@@ -284,7 +284,7 @@
    "hidden": 0,
    "is_query_report": 0,
    "label": "Guests",
-   "link_count": 6,
+   "link_count": 11,
    "link_type": "DocType",
    "onboard": 0,
    "type": "Card Break"
@@ -347,6 +347,56 @@
    "link_to": "Guest History Match",
    "link_type": "DocType",
    "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Guest Message",
+   "link_count": 0,
+   "link_to": "Guest Message",
+   "link_type": "DocType",
+   "onboard": 1,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Guest Trace",
+   "link_count": 0,
+   "link_to": "Guest Trace",
+   "link_type": "DocType",
+   "onboard": 1,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Guest Notification Rule",
+   "link_count": 0,
+   "link_to": "Guest Notification Rule",
+   "link_type": "DocType",
+   "onboard": 1,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Guest Notification Log",
+   "link_count": 0,
+   "link_to": "Guest Notification Log",
+   "link_type": "DocType",
+   "onboard": 1,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Guest Register Entry",
+   "link_count": 0,
+   "link_to": "Guest Register Entry",
+   "link_type": "DocType",
+   "onboard": 1,
    "type": "Link"
   },
   {
@@ -529,7 +579,7 @@
    "hidden": 0,
    "is_query_report": 0,
    "label": "Reports",
-   "link_count": 8,
+   "link_count": 9,
    "link_type": "DocType",
    "onboard": 0,
    "type": "Card Break"
@@ -618,6 +668,17 @@
    "label": "Settlement Pending Folios",
    "link_count": 0,
    "link_to": "Settlement Pending Folios",
+   "link_type": "Report",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 1,
+   "label": "Guest Register",
+   "link_count": 0,
+   "link_to": "Guest Register",
    "link_type": "Report",
    "onboard": 0,
    "type": "Link"

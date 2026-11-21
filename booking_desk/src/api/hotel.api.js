@@ -105,6 +105,12 @@ export const HOTEL_ENDPOINTS = {
 	historyMatches: `${HOSPITALITY_API}.preferences.get_history_matches`,
 	findHistoryMatches: `${HOSPITALITY_API}.preferences.find_history_matches`,
 	reviewHistoryMatch: `${HOSPITALITY_API}.preferences.review_history_match`,
+	guestMessages: `${HOSPITALITY_API}.guest_communication.get_guest_messages`,
+	takeMessage: `${HOSPITALITY_API}.guest_communication.take_message`,
+	closeMessage: `${HOSPITALITY_API}.guest_communication.close_message`,
+	addTrace: `${HOSPITALITY_API}.guest_communication.add_trace`,
+	closeTrace: `${HOSPITALITY_API}.guest_communication.close_trace`,
+	emailFolio: `${HOSPITALITY_API}.guest_communication.email_folio`,
 };
 
 const unwrapPayload = (payload) => payload?.message ?? payload ?? null;
@@ -214,8 +220,13 @@ export const removeStayGuestApi = (stayGuest, reason) =>
 	request(HOTEL_ENDPOINTS.removeStayGuest, { stay_guest: stayGuest, reason });
 export const setPrimaryGuestApi = (stayGuest) =>
 	request(HOTEL_ENDPOINTS.setPrimaryGuest, { stay_guest: stayGuest });
-export const registerGuestApi = (stayGuest) =>
-	request(HOTEL_ENDPOINTS.registerGuest, { stay_guest: stayGuest });
+export const registerGuestApi = (stayGuest, details = {}) =>
+	request(HOTEL_ENDPOINTS.registerGuest, {
+		stay_guest: stayGuest,
+		arrived_from: details.arrivedFrom || null,
+		next_destination: details.nextDestination || null,
+		acceptance_reference: details.acceptanceReference || null,
+	});
 export const checkInGuestApi = (stayGuest) =>
 	request(HOTEL_ENDPOINTS.checkInGuest, { stay_guest: stayGuest });
 
@@ -599,3 +610,26 @@ export const fetchHistoryMatchesApi = () => request(HOTEL_ENDPOINTS.historyMatch
 export const findHistoryMatchesApi = () => request(HOTEL_ENDPOINTS.findHistoryMatches);
 export const reviewHistoryMatchApi = (match, confirm) =>
 	request(HOTEL_ENDPOINTS.reviewHistoryMatch, { match, confirm: confirm ? 1 : 0 });
+
+// Guest messages, traces and folio emails (F20)
+export const fetchGuestMessagesApi = (stay) => request(HOTEL_ENDPOINTS.guestMessages, { stay });
+export const takeMessageApi = (stay, message, sender = null, stayGuest = null) =>
+	request(HOTEL_ENDPOINTS.takeMessage, { stay, message, sender, stay_guest: stayGuest });
+export const closeMessageApi = (message, delivered, channel = "In Person", notes = null) =>
+	request(HOTEL_ENDPOINTS.closeMessage, {
+		message,
+		delivered: delivered ? 1 : 0,
+		channel,
+		notes,
+	});
+export const addTraceApi = (stay, { department, dueDate, dueTime, text }) =>
+	request(HOTEL_ENDPOINTS.addTrace, {
+		stay,
+		department,
+		due_date: dueDate,
+		due_time: dueTime || null,
+		text,
+	});
+export const closeTraceApi = (trace, resolved, notes = null) =>
+	request(HOTEL_ENDPOINTS.closeTrace, { trace, resolved: resolved ? 1 : 0, notes });
+export const emailFolioApi = (folio) => request(HOTEL_ENDPOINTS.emailFolio, { folio });
