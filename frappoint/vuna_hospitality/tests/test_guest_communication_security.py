@@ -5,6 +5,7 @@ from datetime import timedelta
 from unittest.mock import patch
 
 import frappe
+from frappe.email.doctype.email_account.email_account import EmailAccount
 from frappe.utils import add_days, getdate, now_datetime
 
 from frappoint.vuna_hospitality.api import folios as folio_api
@@ -66,6 +67,9 @@ class GuestCareTestCase(FolioTestCase):
 		super().setUp()
 		self._hospitality = hospitality_enabled(True)
 		self._hospitality.__enter__()
+		# Email is only queued, but queuing needs an outgoing account; a fresh test site has none.
+		self._outgoing = patch.object(EmailAccount, "find_outgoing", return_value=EmailAccount.create_dummy())
+		self._outgoing.start()
 		frappe.db.set_value(
 			"Guest Profile",
 			self.guest.name,
@@ -74,6 +78,7 @@ class GuestCareTestCase(FolioTestCase):
 
 	def tearDown(self):
 		frappe.set_user("Administrator")
+		self._outgoing.stop()
 		self._hospitality.__exit__(None, None, None)
 		super().tearDown()
 
