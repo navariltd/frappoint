@@ -288,6 +288,25 @@ def rank_rooms(stay_name: str) -> dict:
 # --------------------------------------------------------------------------- choosing
 
 
+def preference_fit(stay_name: str, room: str) -> dict | None:
+	"""How `room` ranks for the stay's guests: its rank, what it matches and misses, and any
+	Required preference it misses (which needs a reason to use it). None when ranking is off or
+	there is nothing to rank by."""
+	ranking = rank_rooms(stay_name) if enabled() else None
+	entry = _entry(ranking, room)
+	if not entry or not ranking["personalised"]:
+		return None
+	top = next((row for row in ranking["rooms"] if row["name"] == ranking["top_room"]), None)
+	return {
+		"rank": entry.get("rank"),
+		"matched": entry.get("matched", []),
+		"missed": entry.get("missed", []),
+		"required_missed": entry.get("required_missed", []),
+		"top_room": top["room_number"] if top else None,
+		"is_top": room == ranking["top_room"],
+	}
+
+
 def _entry(ranking: dict | None, room: str) -> dict | None:
 	if not ranking or not ranking["enabled"]:
 		return None
@@ -341,11 +360,17 @@ def _record_choice(stay_name: str, room: str, ranking: dict | None, override_rea
 		)
 
 
-def assign_ranked(stay_name: str, room: str, lock: bool = False, override_reason: str | None = None) -> str:
+def assign_ranked(
+	stay_name: str,
+	room: str,
+	lock: bool = False,
+	override_reason: str | None = None,
+	notes: str | None = None,
+) -> str:
 	"""Assign a room the way the ranked list offers it, and log how the choice compared."""
 	ranking = rank_rooms(stay_name) if enabled() else None
 	_check_choice(ranking, room, override_reason)
-	assignment = front_desk.assign_room(stay_name, room, lock=lock)
+	assignment = front_desk.assign_room(stay_name, room, lock=lock, notes=notes)
 	_record_choice(stay_name, room, ranking, override_reason)
 	return assignment
 

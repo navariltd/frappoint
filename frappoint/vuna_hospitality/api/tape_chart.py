@@ -39,11 +39,18 @@ def check_drop(stay: str, room: str | None = None) -> dict:
 @frappe.whitelist(methods=["POST"])
 @require_hospitality
 def drop_stay(
-	stay: str, room: str | None = None, move_reason: str | None = None, notes: str | None = None
+	stay: str,
+	room: str | None = None,
+	move_reason: str | None = None,
+	notes: str | None = None,
+	preference_override_reason: str | None = None,
 ) -> dict:
-	"""Assign the stay to `room`, move it there now, or (no room) take its room off."""
+	"""Assign the stay to `room`, move it there now, or (no room) take its room off. A room that
+	misses a Required preference needs `preference_override_reason`."""
 	_check_stay(stay, roles=FRONT_DESK_ROLES)
-	result = run_with_inventory_retry(lambda: tape_chart.drop(stay, room or None, move_reason, notes))
+	result = run_with_inventory_retry(
+		lambda: tape_chart.drop(stay, room or None, move_reason, notes, preference_override_reason or None)
+	)
 	result["room_number"] = frappe.db.get_value("Hotel Room", room, "room_number") if room else None
 	result["stay"] = stay
 	result["guest"] = frappe.db.get_value(STAY, stay, "lead_guest_name")

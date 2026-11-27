@@ -8,14 +8,17 @@ One windowed read gives the board everything it draws:
 - **outages**: submitted Room State Periods (Out of Order, Out of Service);
 - **unassigned**: held and confirmed stays in the window that have no room yet.
 
-Dropping a stay on a room goes through the same commands as the stay page (services/front_desk.py),
-so the same locks, overlap and turnover checks, and audit apply:
+Dropping a stay on a room goes through the same commands as the stay page (services/front_desk.py,
+through room_ranking.py), so the same locks, overlap and turnover checks, readiness rule, guest
+preferences and audit apply:
 
 - a confirmed stay that hasn't arrived is **assigned** the room (its old assignment is cancelled);
 - an in-house stay is **moved** now, with a reason: the current segment ends and a new one starts;
 - dropping a confirmed stay on the unassigned lane **unassigns** it.
 
-`check_drop` runs the same checks without writing, so the board warns before anything changes.
+`check_drop` runs the same checks without writing, so the board warns before anything changes,
+including how the room fits the guest's preferences. A room that misses a Required preference
+needs a reason, exactly as on the stay page.
 """
 
 from datetime import timedelta
@@ -24,13 +27,12 @@ import frappe
 from frappe import _
 from frappe.utils import add_days, cint, get_datetime, getdate, now_datetime
 
-from frappoint.vuna_hospitality.services import front_desk
+from frappoint.vuna_hospitality.services import front_desk, housekeeping, room_ranking
 from frappoint.vuna_hospitality.services.front_desk import (
 	ASSIGNMENT,
 	HOTEL_ROOM,
 	IN_HOUSE_STATUSES,
 	PRE_ARRIVAL_STATUSES,
-	READY_CONDITIONS,
 	current_assignment,
 	stay_window,
 )
@@ -231,6 +233,9 @@ def board(property_name: str, start=None, days=None, room_type: str | None = Non
 	return {
 		"property": property_name,
 		"business_date": business_date,
+		# The conditions a room must be in to take a guest now (the property may require
+		# inspection), so the board's drag hint agrees with the server.
+		"ready_conditions": list(housekeeping.ready_conditions(property_name)),
 		"start": first,
 		"end": end,
 		"days": [
@@ -293,9 +298,19 @@ def drop_action(stay, room: str | None) -> str:
 
 def check_drop(stay_name: str, room: str | None) -> dict:
 	"""What dropping the stay on `room` would do, and whether it may: {allowed, action, reason,
-	warnings, needs_reason}. Writes nothing."""
+	warnings, needs_reason, preference}. `preference` says how the room fits the guests'
+	preferences; `needs_override` is set when it misses a Required one. Writes nothing."""
 	stay = frappe.get_doc(STAY, stay_name)
-	result = {"allowed": False, "action": None, "reason": None, "warnings": [], "needs_reason": False}
+	result = {
+		"allowed": False,
+		"action": None,
+		"reason": None,
+		"warnings": [],
+		"needs_reason": False,
+		"preference": None,
+		"needs_override": False,
+	}
+	ready = housekeeping.ready_conditions(stay.property)
 	try:
 		action = drop_action(stay, room)
 		result["action"] = action
@@ -324,10 +339,12 @@ def check_drop(stay_name: str, room: str | None) -> dict:
 		if action == ASSIGN:
 			start, end = stay_window(stay)
 			info = front_desk._check_room(stay, room, start, end, stay.arrival_date, stay.departure_date)
-			if info.housekeeping_condition not in READY_CONDITIONS:
+			if info.housekeeping_condition not in ready:
 				result["warnings"].append(
-					_("Room {0} is {1} now; it must be Clean or Inspected by check-in.").format(
-						info.room_number, _(info.housekeeping_condition)
+					_("Room {0} is {1} now; it must be {2} by check-in.").format(
+						info.room_number,
+						_(info.housekeeping_condition),
+						housekeeping.readiness_text(stay.property),
 					)
 				)
 		else:
@@ -336,7 +353,7 @@ def check_drop(stay_name: str, room: str | None) -> dict:
 			info = front_desk._check_room(
 				stay, room, now_datetime(), planned_end, business_date, stay.departure_date
 			)
-			if info.housekeeping_condition not in READY_CONDITIONS:
+			if info.housekeeping_condition not in ready:
 				frappe.throw(
 					_("Room {0} is {1}, not ready for a guest.").format(
 						info.room_number, _(info.housekeeping_condition)
@@ -344,21 +361,45 @@ def check_drop(stay_name: str, room: str | None) -> dict:
 					DropRefusedError,
 				)
 			result["needs_reason"] = True
+		fit = room_ranking.preference_fit(stay.name, room)
+		if fit:
+			result["preference"] = fit
+			result["needs_override"] = bool(fit["required_missed"])
+			if not fit["is_top"] and fit["top_room"]:
+				result["warnings"].append(
+					_("Room {0} fits the guest's preferences better.").format(fit["top_room"])
+				)
 		result["allowed"] = True
 	except frappe.ValidationError as error:
 		result["reason"] = str(error)
 	return result
 
 
-def drop(stay_name: str, room: str | None, move_reason: str | None = None, notes: str | None = None) -> dict:
-	"""Assign, move or unassign the stay, through the front-desk commands. Returns what was done."""
+def drop(
+	stay_name: str,
+	room: str | None,
+	move_reason: str | None = None,
+	notes: str | None = None,
+	preference_override_reason: str | None = None,
+) -> dict:
+	"""Assign, move or unassign the stay, through the front-desk commands. Returns what was done.
+
+	A room that misses a Required preference needs `preference_override_reason`; the choice is
+	logged against the top-ranked room as on the stay page.
+	"""
 	stay = frappe.get_doc(STAY, stay_name)
 	action = drop_action(stay, room)
 	if action == UNASSIGN:
 		front_desk.unassign_room(stay.name, notes or _("Unassigned on the tape chart"))
 		return {"action": action, "assignment": None}
 	if action == ASSIGN:
-		return {"action": action, "assignment": front_desk.assign_room(stay.name, room, notes=notes)}
+		assignment = room_ranking.assign_ranked(
+			stay.name, room, override_reason=preference_override_reason, notes=notes
+		)
+		return {"action": action, "assignment": assignment}
 	if not move_reason:
 		frappe.throw(_("Choose why the guest is moving."), DropRefusedError)
-	return {"action": action, "assignment": front_desk.move_room(stay.name, room, move_reason, notes)}
+	assignment = room_ranking.move_ranked(
+		stay.name, room, move_reason, notes, override_reason=preference_override_reason
+	)
+	return {"action": action, "assignment": assignment}
