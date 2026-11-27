@@ -195,6 +195,12 @@ def plan_stayovers(property_name: str) -> list[str]:
 	"""A stayover task for every occupied room whose guest isn't leaving today. Running it again
 	adds only what is missing."""
 	_require(SUPERVISOR_ROLES, _("plan housekeeping"))
+	return stayover_tasks(property_name)
+
+
+def stayover_tasks(property_name: str) -> list[str]:
+	"""The stayover tasks for the property's business date, without the role check: night audit
+	plans the new day's work once it has moved the date (F19)."""
 	today = _business_date(property_name)
 	rows = frappe.get_all(
 		"Room Assignment",

@@ -364,3 +364,17 @@ class TestDeskReports(FullAuditTestCase):
 		self.assertEqual([row["stay"] for row in in_house], [self.stay.name])
 		ledger = self.run_report("guest_ledger")[1]
 		self.assertEqual(ledger[-1]["balance"], flt(self.balance()))
+
+
+class TestAfterTheDateMoves(FullAuditTestCase):
+	def test_the_new_days_stayovers_are_planned(self):
+		name, status = self.audit()
+		self.assertEqual(status, "Completed")
+		new_day = self.business_date()
+		tasks = frappe.get_all(
+			"Housekeeping Task",
+			filters={"hotel_room": f"{self.CODE}-101", "task_date": new_day, "task_type": "Stayover"},
+			pluck="name",
+		)
+		self.assertEqual(len(tasks), 1)
+		self.assertEqual(self.stage(name, night_audit.PLAN_HOUSEKEEPING).status, "Completed")
