@@ -400,5 +400,6 @@
    "report": 1,
    "print": 1
   }
- ]
+ ],
+ "default_print_format": "Information Folio"
 }

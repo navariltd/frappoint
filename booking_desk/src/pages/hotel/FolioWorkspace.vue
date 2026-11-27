@@ -687,6 +687,23 @@
 						>
 							Email folio
 						</button>
+						<!-- Frappe's print view and PDF of the Information Folio print format -->
+						<span class="flex justify-end gap-2 text-[11px] font-semibold">
+							<a
+								:href="folioPrintUrl(entry.folio.name)"
+								target="_blank"
+								rel="noopener"
+								class="text-primary"
+								title="Print the information folio (not a tax invoice)"
+								>Print</a
+							>
+							<a
+								:href="folioPdfUrl(entry.folio.name)"
+								class="text-primary"
+								title="Download the information folio as a PDF"
+								>PDF</a
+							>
+						</span>
 					</div>
 				</div>
 
@@ -1744,6 +1761,15 @@ async function rebuild(folio) {
 onMounted(load);
 onBeforeUnmount(() => clearTimeout(waitTimer));
 watch(() => [route.params.stayId, route.params.accountId], load);
+
+// The Information Folio print format, through Frappe's own print view and PDF download.
+const INFORMATION_FOLIO = "Information Folio";
+function printQuery(folio) {
+	return new URLSearchParams({ doctype: "Guest Folio", name: folio, format: INFORMATION_FOLIO });
+}
+const folioPrintUrl = (folio) => `/printview?${printQuery(folio)}&trigger_print=1`;
+const folioPdfUrl = (folio) =>
+	`/api/method/frappe.utils.print_format.download_pdf?${printQuery(folio)}`;
 
 // F20: send the folio to its payee through the property's Folio Emailed rule.
 async function emailFolio(folio) {

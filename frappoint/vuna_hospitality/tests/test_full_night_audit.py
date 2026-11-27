@@ -378,3 +378,11 @@ class TestAfterTheDateMoves(FullAuditTestCase):
 		)
 		self.assertEqual(len(tasks), 1)
 		self.assertEqual(self.stage(name, night_audit.PLAN_HOUSEKEEPING).status, "Completed")
+
+
+class TestInformationFolio(FullAuditTestCase):
+	def test_the_folio_prints_as_an_information_folio(self):
+		html = frappe.get_print("Guest Folio", self.folio, "Information Folio")
+		self.assertIn("This is not a tax invoice", html)
+		self.assertIn(self.folio, html)
+		self.assertEqual(frappe.get_meta("Guest Folio").default_print_format, "Information Folio")
