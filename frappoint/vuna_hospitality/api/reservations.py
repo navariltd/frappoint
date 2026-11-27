@@ -132,6 +132,41 @@ def reinstate_stay(stay: str, reason: str) -> dict:
 	return run_with_inventory_retry(lambda: reservations.reinstate(stay, reason))
 
 
+@frappe.whitelist(methods=["POST"])
+@require_hospitality
+def amend_stay(
+	stay: str,
+	arrival: str | None = None,
+	departure: str | None = None,
+	room_type: str | None = None,
+	rate_plan: str | None = None,
+	adults: int | None = None,
+	children: int | None = None,
+	child_ages: str | list | None = None,
+	restriction_override_reason: str | None = None,
+) -> dict:
+	"""Change a stay that hasn't arrived: dates, room type, rate plan or guests. It is priced again
+	at the current rates; a full night or a broken restriction refuses it."""
+	_check_stay(stay)
+	from frappoint.vuna_hospitality.services import amendments
+
+	result = run_with_inventory_retry(
+		lambda: amendments.amend_stay(
+			stay,
+			arrival or None,
+			departure or None,
+			room_type or None,
+			rate_plan or None,
+			adults,
+			children,
+			_parse(child_ages) if child_ages not in (None, "") else None,
+			restriction_override_reason or None,
+		)
+	)
+	booking = frappe.db.get_value("Stay Reservation", stay, "hotel_booking")
+	return {**reservations.booking_summary(booking), "amendment": result}
+
+
 @frappe.whitelist()
 @require_hospitality
 def get_booking(booking: str) -> dict:

@@ -29,6 +29,7 @@ from frappoint.vuna_hospitality.constants import (
 	FOLIO_MANAGER_ROLES,
 	PERSONAL_DATA_ROLES,
 	RESERVATION_MANAGER_ROLES,
+	RESERVATION_ROLES,
 )
 from frappoint.vuna_hospitality.services import (
 	allowances,
@@ -1401,6 +1402,9 @@ def stay_details(stay_name: str) -> dict:
 			"can_waive_deposit": is_manager,
 			# F13: extend or shorten, and book against a restriction.
 			"can_change_dates": status in AMENDABLE_STATUSES,
+			# Before arrival: new dates, room type, rate plan or guests (services/amendments.py).
+			"can_amend": status in ("Held", "Confirmed", "Due In")
+			and bool(set(RESERVATION_ROLES) & set(frappe.get_roles())),
 			"can_override_restrictions": bool(
 				set(("System Manager", "Hospitality Manager", "Revenue Manager", "Front Desk Manager"))
 				& set(frappe.get_roles())
