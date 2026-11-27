@@ -7,7 +7,7 @@ from frappe.tests import IntegrationTestCase
 from frappe.utils import getdate
 
 from frappoint.vuna_hospitality.api import tape_chart as tape_chart_api
-from frappoint.vuna_hospitality.services import tape_chart
+from frappoint.vuna_hospitality.services import preferences, room_ranking, tape_chart
 from frappoint.vuna_hospitality.services.front_desk import (
 	RoomUnavailableError,
 	assign_room,
@@ -20,6 +20,7 @@ from frappoint.vuna_hospitality.services.reservations import confirm, hold
 from frappoint.vuna_hospitality.services.tape_chart import DropRefusedError
 from frappoint.vuna_hospitality.tests.test_folio import make_user
 from frappoint.vuna_hospitality.tests.test_reservations import make_booking_fixtures, stay_request
+from frappoint.vuna_hospitality.tests.utils import hospitality_enabled
 
 
 class TapeChartTestCase(IntegrationTestCase):
@@ -27,6 +28,9 @@ class TapeChartTestCase(IntegrationTestCase):
 
 	def setUp(self):
 		frappe.db.savepoint("tape_chart_test")
+		# The endpoints are hospitality commands; CI's test site has the module off.
+		self._hospitality = hospitality_enabled(True)
+		self._hospitality.__enter__()
 		self.prop, self.plan, self.guest = make_booking_fixtures(self.CODE, rooms=3)
 		self.today = getdate(self.prop.business_date)
 		install_default_move_reasons()
@@ -35,6 +39,7 @@ class TapeChartTestCase(IntegrationTestCase):
 
 	def tearDown(self):
 		frappe.set_user("Administrator")
+		self._hospitality.__exit__(None, None, None)
 		frappe.db.rollback(save_point="tape_chart_test")
 
 	def rooms(self):
@@ -203,3 +208,63 @@ class TestDragAndDrop(TapeChartTestCase):
 		with self.assertRaises(frappe.PermissionError):
 			tape_chart_api.drop_stay(stay.name, f"{self.CODE}-101")
 		self.assertFalse(tape_chart_api.get_tape_chart(self.CODE)["can_move"])
+
+	def test_readiness_follows_the_propertys_inspection_rule(self):
+		"""A property that requires inspection doesn't take a guest into a room that is only Clean."""
+		self.assertEqual(tape_chart.board(self.CODE)["ready_conditions"], ["Inspected", "Clean"])
+		frappe.db.set_value("Hotel Property", self.CODE, "require_inspection", 1)
+		# The board sends the rule, so its drag hint agrees with the server.
+		self.assertEqual(tape_chart.board(self.CODE)["ready_conditions"], ["Inspected"])
+		guest = self.in_house_inspected(f"{self.CODE}-101")
+		check = tape_chart.check_drop(guest.name, f"{self.CODE}-102")
+		self.assertFalse(check["allowed"])
+		self.assertIn("not ready", check["reason"])
+		frappe.db.set_value("Hotel Room", f"{self.CODE}-102", "housekeeping_condition", "Inspected")
+		self.assertTrue(tape_chart.check_drop(guest.name, f"{self.CODE}-102")["allowed"])
+
+		arriving = self.stay()
+		warnings = tape_chart.check_drop(arriving.name, f"{self.CODE}-103")["warnings"]
+		self.assertTrue(any("must be Inspected" in text for text in warnings))
+
+	def in_house_inspected(self, room):
+		frappe.db.set_value("Hotel Room", room, "housekeeping_condition", "Inspected")
+		return self.in_house(room)
+
+	def test_a_drop_respects_the_guests_preferences(self):
+		"""The board ranks the room for the guest; a room missing a Required preference needs a
+		reason, and the choice is logged as on the stay page."""
+		frappe.db.set_single_value("Hospitality Settings", "enable_preference_room_ranking", 1)
+		if not frappe.db.exists("Hotel Room Feature", "HSP Test Tape Step-free"):
+			frappe.get_doc(
+				{
+					"doctype": "Hotel Room Feature",
+					"feature_name": "HSP Test Tape Step-free",
+					"category": "Accessibility",
+				}
+			).insert(ignore_permissions=True)
+		room = frappe.get_doc("Hotel Room", f"{self.CODE}-101")
+		room.set("features", [{"feature": "HSP Test Tape Step-free"}])
+		room.save(ignore_permissions=True)
+		preferences.add_preference(
+			self.guest.name,
+			"Accessibility",
+			"Step-free access",
+			priority="Required",
+			room_feature="HSP Test Tape Step-free",
+		)
+		stay = self.stay()
+
+		good = tape_chart.check_drop(stay.name, f"{self.CODE}-101")
+		self.assertEqual((good["preference"]["rank"], good["needs_override"]), (1, False))
+		bad = tape_chart.check_drop(stay.name, f"{self.CODE}-102")
+		self.assertTrue(bad["needs_override"])
+		self.assertEqual(bad["preference"]["required_missed"], ["Step-free access"])
+
+		with self.assertRaises(room_ranking.PreferenceRequiredError):
+			tape_chart.drop(stay.name, f"{self.CODE}-102")
+		tape_chart.drop(stay.name, f"{self.CODE}-102", preference_override_reason="Guest asked for it")
+		self.assertEqual(self.assignments(stay)[-1].hotel_room, f"{self.CODE}-102")
+		feedback = frappe.get_value(
+			"Guest Suggestion Feedback", {"stay_reservation": stay.name}, ["action", "reason"], as_dict=True
+		)
+		self.assertEqual((feedback.action, feedback.reason), ("Overridden", "Guest asked for it"))
