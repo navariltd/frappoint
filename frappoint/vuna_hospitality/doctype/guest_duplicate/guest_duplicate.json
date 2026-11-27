@@ -1,0 +1,192 @@
+{
+ "actions": [],
+ "autoname": "hash",
+ "creation": "2026-11-27 09:00:00.000000",
+ "description": "Two Guest Profiles that may be the same person, waiting for someone to merge them or say they are different people. Profiles are never merged automatically.",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "status",
+  "strength",
+  "basis",
+  "pair_key",
+  "column_break_head",
+  "merge",
+  "reviewed_by",
+  "reviewed_on",
+  "profiles_section",
+  "guest_profile",
+  "profile_name",
+  "column_break_profiles",
+  "duplicate_profile",
+  "duplicate_name",
+  "notes_section",
+  "notes"
+ ],
+ "fields": [
+  {
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "label": "Status",
+   "options": "Open\nMerged\nNot Duplicate\nSuperseded",
+   "default": "Open",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "strength",
+   "fieldtype": "Select",
+   "label": "Match",
+   "options": "Strong\nPossible",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "description": "Strong: the same email, phone, or name with date of birth or nationality. Possible: the same name only.",
+   "read_only": 1
+  },
+  {
+   "fieldname": "basis",
+   "fieldtype": "Select",
+   "label": "Matched On",
+   "options": "Email\nPhone\nName and Date of Birth\nName and Nationality\nName Only",
+   "in_list_view": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "pair_key",
+   "fieldtype": "Data",
+   "label": "Pair",
+   "unique": 1,
+   "hidden": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_head",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "merge",
+   "fieldtype": "Link",
+   "label": "Merge",
+   "options": "Guest Profile Merge",
+   "read_only": 1
+  },
+  {
+   "fieldname": "reviewed_by",
+   "fieldtype": "Link",
+   "label": "Reviewed By",
+   "options": "User",
+   "read_only": 1
+  },
+  {
+   "fieldname": "reviewed_on",
+   "fieldtype": "Datetime",
+   "label": "Reviewed On",
+   "read_only": 1
+  },
+  {
+   "fieldname": "profiles_section",
+   "fieldtype": "Section Break",
+   "label": "Profiles"
+  },
+  {
+   "fieldname": "guest_profile",
+   "fieldtype": "Link",
+   "label": "Profile",
+   "options": "Guest Profile",
+   "reqd": 1,
+   "search_index": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "profile_name",
+   "fieldtype": "Data",
+   "label": "Name",
+   "fetch_from": "guest_profile.full_name",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_profiles",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "duplicate_profile",
+   "fieldtype": "Link",
+   "label": "Possible Duplicate",
+   "options": "Guest Profile",
+   "reqd": 1,
+   "search_index": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "duplicate_name",
+   "fieldtype": "Data",
+   "label": "Name",
+   "fetch_from": "duplicate_profile.full_name",
+   "read_only": 1
+  },
+  {
+   "fieldname": "notes_section",
+   "fieldtype": "Section Break",
+   "label": "Notes"
+  },
+  {
+   "fieldname": "notes",
+   "fieldtype": "Small Text",
+   "label": "Notes",
+   "read_only": 1
+  }
+ ],
+ "in_create": 1,
+ "index_web_pages_for_search": 0,
+ "links": [],
+ "modified": "2026-11-27 09:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Vuna Hospitality",
+ "name": "Guest Duplicate",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "role": "System Manager",
+   "read": 1,
+   "report": 1,
+   "print": 1,
+   "export": 1
+  },
+  {
+   "role": "Hospitality Manager",
+   "read": 1,
+   "report": 1,
+   "print": 1,
+   "export": 1
+  },
+  {
+   "role": "Front Desk Manager",
+   "read": 1,
+   "report": 1,
+   "print": 1,
+   "export": 1
+  },
+  {
+   "role": "Guest Services Agent",
+   "read": 1,
+   "report": 1,
+   "print": 1,
+   "export": 1
+  },
+  {
+   "role": "Data Protection Officer",
+   "read": 1,
+   "report": 1,
+   "print": 1,
+   "export": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "search_fields": "guest_profile,duplicate_profile,status",
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": [],
+ "title_field": "profile_name",
+ "track_changes": 1
+}
