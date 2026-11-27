@@ -647,10 +647,11 @@ export const fetchTapeChartApi = ({ property, start, days, roomType }) =>
 	});
 export const checkDropApi = (stay, room) =>
 	request(HOTEL_ENDPOINTS.checkDrop, { stay, room: room || null });
-export const dropStayApi = ({ stay, room, moveReason, notes }) =>
+export const dropStayApi = ({ stay, room, moveReason, notes, preferenceOverrideReason }) =>
 	request(HOTEL_ENDPOINTS.dropStay, {
 		stay,
 		room: room || null,
 		move_reason: moveReason || null,
 		notes: notes || null,
+		preference_override_reason: preferenceOverrideReason || null,
 	});

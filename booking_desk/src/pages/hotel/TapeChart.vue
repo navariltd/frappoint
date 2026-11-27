@@ -110,10 +110,14 @@
 					<span class="h-2 w-2 rounded-full bg-[#f9a825] ml-2"></span> Pickup
 					<span class="h-2 w-2 rounded-full bg-[#c62828] ml-2"></span> Dirty
 				</span>
-				<span v-if="data?.can_move">Drag a stay onto a room to assign or move it.</span>
+				<span v-if="data?.can_move"
+					>Drag a stay onto a room to assign or move it, or tap it to pick a room.</span
+				>
 			</div>
 
+			<!-- With the side panel open, its questions show in the panel instead. -->
 			<ActionBanner
+				v-if="!selected"
 				:banner="banner"
 				:busy="busy"
 				@confirm="confirmBanner"
@@ -143,7 +147,8 @@
 						>
 					</h2>
 					<p class="text-[11px] text-on-surface-variant">
-						Drop an assigned stay here to take its room off.
+						Drag a stay onto a room, or tap it to pick one. Drop an assigned stay here
+						to take its room off.
 					</p>
 				</div>
 				<p
@@ -171,12 +176,15 @@
 						@dragstart="onDragStart($event, unassignedDrag(stay))"
 						@dragend="onDragEnd"
 					>
-						<RouterLink
-							:to="{ name: 'HotelStay', params: { stayId: stay.stay } }"
+						<button
+							type="button"
 							class="font-semibold hover:underline"
 							draggable="false"
-							>{{ stay.guest || stay.stay }}</RouterLink
+							:aria-label="`Pick a room for ${stay.guest || stay.stay}`"
+							@click="select(unassignedDrag(stay))"
 						>
+							{{ stay.guest || stay.stay }}
+						</button>
 						<span class="text-on-surface-variant">
 							· {{ stay.room_type_name }} · {{ shortDate(stay.arrival) }}–{{
 								shortDate(stay.departure)
@@ -301,6 +309,9 @@
 										? 'cursor-grab'
 										: 'cursor-pointer',
 									dragging?.stay === bar.stay ? 'opacity-40' : '',
+									selected?.assignment === bar.assignment
+										? 'ring-2 ring-secondary'
+										: '',
 								]"
 								:style="spanStyle(bar.start, bar.end, true)"
 								:draggable="bar.draggable && data.can_move"
@@ -310,8 +321,9 @@
 								:title="barLabel(bar)"
 								@dragstart="onDragStart($event, barDrag(bar))"
 								@dragend="onDragEnd"
-								@click="openStay(bar.stay)"
-								@keydown.enter="openStay(bar.stay)"
+								@click="select(barDrag(bar))"
+								@keydown.enter="select(barDrag(bar))"
+								@keydown.space.prevent="select(barDrag(bar))"
 							>
 								<span
 									v-if="bar.locked"
@@ -335,6 +347,21 @@
 				</div>
 			</section>
 			<p v-else-if="loading" class="text-[13px] text-on-surface-variant">Loading…</p>
+
+			<!-- Tap a stay: its rooms, ranked, with Assign, Move or Unassign -->
+			<TapeChartStayPanel
+				v-if="selected && data"
+				:target="selected"
+				:can-move="data.can_move"
+				:busy="busy"
+				:banner="banner"
+				@confirm="confirmBanner"
+				@cancel="cancelBanner"
+				@choose="(room) => attempt(selected, room)"
+				@unassign="attempt(selected, null)"
+				@open="openStay(selected.stay)"
+				@close="selected = null"
+			/>
 		</template>
 	</div>
 </template>
@@ -344,6 +371,7 @@ import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { useRouter } from "vue-router";
 import { checkDropApi, dropStayApi, fetchTapeChartApi, hotelErrorMessage } from "@/api/hotel.api";
 import ActionBanner from "@/components/hotel/ActionBanner.vue";
+import TapeChartStayPanel from "@/components/hotel/TapeChartStayPanel.vue";
 import HotelUnavailable from "@/components/hotel/HotelUnavailable.vue";
 import { useActionBanner } from "@/composables/hotel/useActionBanner";
 import { useHotelStore } from "@/stores/hotel.store";
@@ -352,7 +380,6 @@ import { addDays } from "@/utils/hotelFormat";
 const LABEL_WIDTH = 150;
 const ROW_HEIGHT = 40;
 const UNASSIGNED = "__unassigned__";
-const READY = ["Clean", "Inspected"];
 
 const hotel = useHotelStore();
 const router = useRouter();
@@ -369,6 +396,10 @@ const roomType = ref("");
 const dragging = ref(null);
 const dropTarget = ref(null);
 const dropOk = ref(false);
+// The stay opened in the side panel (tapped, or chosen with the keyboard).
+const selected = ref(null);
+// Conditions a room must be in to take a guest now, per the property (it may require inspection).
+const ready = computed(() => data.value?.ready_conditions || ["Clean", "Inspected"]);
 let timer = null;
 
 const blocked = computed(() => {
@@ -498,11 +529,19 @@ function barDrag(bar) {
 	const moving = bar.status === "Occupied";
 	return {
 		stay: bar.stay,
+		assignment: bar.assignment,
 		guest: bar.guest,
 		room: bar.room,
 		roomNumber: room?.room_number,
 		roomType: room?.room_type,
 		action: moving ? "move" : "assign",
+		arrival: bar.arrival,
+		canChange: bar.draggable,
+		why: bar.locked
+			? "The room is locked to this stay (Do Not Move). Unlock it on the stay page first."
+			: bar.status === "Released"
+			? "An earlier room of this stay. Open the stay to see its rooms."
+			: "This stay can't change rooms now.",
 		// A move takes the new room from today; an assignment for the whole stay.
 		from: moving ? data.value.business_date : bar.arrival,
 		to: bar.departure,
@@ -516,6 +555,9 @@ function unassignedDrag(stay) {
 		room: null,
 		roomType: stay.room_type,
 		action: "assign",
+		arrival: stay.arrival,
+		canChange: stay.draggable,
+		why: "Confirm the hold before giving it a room.",
 		from: stay.arrival,
 		to: stay.departure,
 	};
@@ -534,12 +576,11 @@ function onDragEnd() {
 }
 
 /** A quick look on the client, for the colour of the row; the server decides on drop. */
-function localProblem(room) {
-	const drag = dragging.value;
+function localProblem(room, drag = dragging.value) {
 	if (!room) return drag.room ? "" : "This stay has no room yet.";
 	if (room.name === drag.room) return "Already in this room.";
 	if (room.room_type !== drag.roomType) return "A different room type.";
-	if (drag.action === "move" && !READY.includes(room.housekeeping_condition)) {
+	if (drag.action === "move" && !ready.value.includes(room.housekeeping_condition)) {
 		return `Room ${room.room_number} is ${room.housekeeping_condition}.`;
 	}
 	const overlaps = (from, to) => from < drag.to && to > drag.from;
@@ -578,6 +619,20 @@ async function onDrop(event, room) {
 		notify({ title: "That room can't take this stay", message: problem, tone: "danger" });
 		return;
 	}
+	await attempt(drag, room);
+}
+
+function select(payload) {
+	if (dragging.value) return;
+	selected.value = payload;
+}
+
+/**
+ * Assign, move or unassign: from a drop or from the side panel. The server checks the room, a
+ * Required preference it misses asks for a reason, the user confirms, then the same front-desk
+ * command as the stay page runs.
+ */
+async function attempt(drag, room) {
 	busy.value = true;
 	error.value = "";
 	let check;
@@ -594,7 +649,32 @@ async function onDrop(event, room) {
 		return;
 	}
 	const who = drag.guest || drag.stay;
-	const warnings = (check.warnings || []).join(" ");
+	// How the room fits the guest's preferences (ranked as on the stay page).
+	const fit = check.preference;
+	const fitText = fit
+		? [
+				fit.rank ? `Ranked ${fit.rank} for the guest.` : "",
+				fit.matched.length ? `Matches ${fit.matched.join(", ")}.` : "",
+				fit.missed.length ? `Misses ${fit.missed.join(", ")}.` : "",
+		  ]
+				.filter(Boolean)
+				.join(" ")
+		: "";
+	const warnings = [fitText, ...(check.warnings || [])].filter(Boolean).join(" ");
+	// A room that misses a Required preference needs a reason first, as on the stay page.
+	let preferenceOverrideReason = null;
+	if (check.needs_override) {
+		const override = await ask({
+			title: `Room ${room.room_number} has no ${fit.required_missed.join(", ")}`,
+			message: "The guest requires it. Give the reason to use this room anyway.",
+			reasonLabel: "Reason",
+			reasonPlaceholder: "Guest agreed to this room",
+			confirmLabel: `Use ${room.room_number}`,
+			tone: "warning",
+		});
+		if (!override) return;
+		preferenceOverrideReason = override.reason;
+	}
 	const question =
 		check.action === "unassign"
 			? {
@@ -625,7 +705,9 @@ async function onDrop(event, room) {
 			stay: drag.stay,
 			room: room?.name,
 			moveReason: check.action === "move" ? answer.reason : null,
+			preferenceOverrideReason,
 		});
+		selected.value = null;
 		await load({ quiet: true });
 		notify({
 			title:
