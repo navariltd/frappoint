@@ -624,6 +624,8 @@ async function onDrop(event, room) {
 
 function select(payload) {
 	if (dragging.value) return;
+	// A notice from the last change belongs to that stay, not the one being opened.
+	if (banner.value?.kind === "notice") cancelBanner();
 	selected.value = payload;
 }
 
