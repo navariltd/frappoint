@@ -77,6 +77,7 @@ declare module 'vue' {
     CouponCodeSection: typeof import('./src/components/booking/checkout/CouponCodeSection.vue')['default']
     DashboardMetricsCards: typeof import('./src/components/dashboard/DashboardMetricsCards.vue')['default']
     DateSelectionSection: typeof import('./src/components/booking/guest-assignment/DateSelectionSection.vue')['default']
+    DuplicateGuests: typeof import('./src/components/hotel/DuplicateGuests.vue')['default']
     EmptyAppointmentsState: typeof import('./src/components/bookings/appointments/EmptyAppointmentsState.vue')['default']
     GuestAssignmentRow: typeof import('./src/components/booking/guest-assignment/GuestAssignmentRow.vue')['default']
     GuestAssignmentSection: typeof import('./src/components/booking/guest-assignment/GuestAssignmentSection.vue')['default']
