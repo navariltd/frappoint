@@ -129,9 +129,11 @@ def board(property_name: str, start=None, days=None, room_type: str | None = Non
 			"end_datetime",
 			"move_reason",
 			"previous_assignment",
+			"room_occupancy",
 		],
 		order_by="start_datetime asc",
 	)
+	sharers = _sharers({row.room_occupancy for row in assignments})
 	stays = {
 		row.name: row
 		for row in frappe.get_all(
@@ -151,7 +153,9 @@ def board(property_name: str, start=None, days=None, room_type: str | None = Non
 				"assignment": row.name,
 				"room": row.hotel_room,
 				"stay": stay.name,
-				"guest": stay.lead_guest_name,
+				# A room shared by independent stays (R2-1) names every sharer.
+				"guest": " & ".join(sharers.get(row.room_occupancy) or [stay.lead_guest_name]),
+				"shared": len(sharers.get(row.room_occupancy) or []) > 1,
 				"stay_status": stay.status,
 				"status": row.status,
 				"start": row.start_date,
@@ -203,9 +207,12 @@ def board(property_name: str, start=None, days=None, room_type: str | None = Non
 		)
 	)
 	type_names = {row.name: row.room_type_name for row in room_types}
+	listed = set()
 	for stay in candidates:
-		if stay.room_occupancy in assigned_occupancies:
+		if stay.room_occupancy in assigned_occupancies or stay.room_occupancy in listed:
 			continue
+		# Sharers waiting for a room are one room to assign.
+		listed.add(stay.room_occupancy)
 		unassigned.append(
 			{
 				"stay": stay.name,
@@ -397,3 +404,18 @@ def drop(
 		stay.name, room, move_reason, notes, override_reason=preference_override_reason
 	)
 	return {"action": action, "assignment": assignment}
+
+
+def _sharers(occupancies: set) -> dict:
+	"""{occupancy: [lead guest names]} for rooms shared by independent stays."""
+	from frappoint.vuna_hospitality.services import room_share
+
+	shared = frappe.get_all(
+		"Room Occupancy",
+		filters={"name": ["in", list(occupancies) or [""]], "share_mode": room_share.SHARED},
+		pluck="name",
+	)
+	return {
+		occupancy: [row.stay.lead_guest_name for row in room_share.members(occupancy, departed=True)]
+		for occupancy in shared
+	}

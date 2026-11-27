@@ -73,18 +73,45 @@ def rooms_available(property_name: str, from_date, to_date) -> dict:
 
 
 def rooms_sold(property_name: str, from_date, to_date) -> dict:
-	"""{date: {"paid": n, "comp": n}} from the nights posted (or waived as complimentary)."""
+	"""{date: {"paid": n, "comp": n}} from the nights posted (or waived as complimentary).
+
+	A room shared by independent stays (R2-1) is one room sold: its sharers' nights count once, as
+	paid if any of them was charged.
+	"""
 	result = defaultdict(lambda: {"paid": 0, "comp": 0})
-	for row in frappe.get_all(
+	rows = frappe.get_all(
 		NIGHT,
 		filters={
 			"property": property_name,
 			"night_date": ["between", [getdate(from_date), getdate(to_date)]],
 			"posting_state": ["in", ("Posted", "Waived")],
 		},
-		fields=["night_date", "posting_state"],
-	):
-		result[getdate(row.night_date)]["paid" if row.posting_state == "Posted" else "comp"] += 1
+		fields=["night_date", "posting_state", "stay_reservation", "share_distribution"],
+	)
+	shared_stays = {row.stay_reservation for row in rows if row.share_distribution}
+	room_of = (
+		dict(
+			frappe.get_all(
+				STAY,
+				filters={"name": ["in", list(shared_stays)]},
+				fields=["name", "room_occupancy"],
+				as_list=True,
+			)
+		)
+		if shared_stays
+		else {}
+	)
+	shared_nights: dict = {}
+	for row in rows:
+		night = getdate(row.night_date)
+		if row.share_distribution:
+			key = (night, room_of.get(row.stay_reservation) or row.stay_reservation)
+			if shared_nights.get(key) != "Posted":
+				shared_nights[key] = row.posting_state
+			continue
+		result[night]["paid" if row.posting_state == "Posted" else "comp"] += 1
+	for (night, _room), state in shared_nights.items():
+		result[night]["paid" if state == "Posted" else "comp"] += 1
 	return result
 
 

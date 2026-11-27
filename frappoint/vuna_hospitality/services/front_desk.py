@@ -44,6 +44,7 @@ from frappoint.vuna_hospitality.services import (
 	policies,
 	post_stay,
 	reservations,
+	room_share,
 )
 from frappoint.vuna_hospitality.services.event_log import log_event
 from frappoint.vuna_hospitality.services.guests import assert_registrable
@@ -263,8 +264,10 @@ def _check_capacity(stay, extra_adults: int = 0, extra_children: int = 0) -> Non
 		"Room Type", stay.room_type, ["room_type_name", "max_adults", "max_children", "max_occupancy"]
 	)
 	guests = active_guests(stay.name)
-	adults = sum(g.age_category == ADULT for g in guests) + extra_adults
-	children = len(guests) - sum(g.age_category == ADULT for g in guests) + extra_children
+	# Other stays sharing the room (R2-1) sleep in it too.
+	shared_adults, shared_children = room_share.guests_of_others(stay)
+	adults = sum(g.age_category == ADULT for g in guests) + extra_adults + shared_adults
+	children = len(guests) - sum(g.age_category == ADULT for g in guests) + extra_children + shared_children
 	if (
 		adults > cint(room_type.max_adults)
 		or children > cint(room_type.max_children)
@@ -416,8 +419,14 @@ def assign_room(stay_name: str, room: str, lock: bool = False, notes: str | None
 		)
 
 	_lock_row(HOTEL_ROOM, room)
-	start, end = stay_window(stay)
-	info = _check_room(stay, room, start, end, stay.arrival_date, stay.departure_date)
+	# A shared room is held from the first sharer's arrival to the last one's departure.
+	start_date, end_date = (
+		frappe.db.get_value(OCCUPANCY, stay.room_occupancy, ["start_date", "end_date"])
+		if room_share.is_shared(stay.room_occupancy)
+		else (stay.arrival_date, stay.departure_date)
+	)
+	start, end = stay_window(stay, start_date, end_date)
+	info = _check_room(stay, room, start, end, start_date, end_date)
 	if current:
 		transition(current, "Cancelled", event_type="Room Unassigned", ignore_permissions=True)
 	assignment = _new(
@@ -429,8 +438,8 @@ def assign_room(stay_name: str, room: str, lock: bool = False, notes: str | None
 			"hotel_room": room,
 			"status": "Assigned",
 			"do_not_move": cint(lock),
-			"start_date": stay.arrival_date,
-			"end_date": stay.departure_date,
+			"start_date": start_date,
+			"end_date": end_date,
 			"start_datetime": start,
 			"end_datetime": end,
 			"notes": notes,
@@ -588,7 +597,9 @@ def check_in(stay_name: str, room: str | None = None, override_reason: str | Non
 	_lock_row(HOTEL_ROOM, assignment.hotel_room)
 	condition = frappe.db.get_value(HOTEL_ROOM, assignment.hotel_room, "housekeeping_condition")
 	room_override = None
-	if condition not in housekeeping.ready_conditions(stay.property):
+	# A sharer arriving in a room another sharer already uses (R2-1) moves into it as it is.
+	joining_occupied_room = assignment.status == "Occupied"
+	if not joining_occupied_room and condition not in housekeeping.ready_conditions(stay.property):
 		room_override = (override_reason or "").strip()
 		if not room_override:
 			raise CheckInRefusedError(
@@ -622,13 +633,14 @@ def check_in(stay_name: str, room: str | None = None, override_reason: str | Non
 			event_type="Guest Checked In",
 			ignore_permissions=True,
 		)
-	transition(
-		assignment,
-		"Occupied",
-		updates={"start_datetime": min(now, get_datetime(assignment.start_datetime))},
-		event_type="Room Occupied",
-		ignore_permissions=True,
-	)
+	if not joining_occupied_room:
+		transition(
+			assignment,
+			"Occupied",
+			updates={"start_datetime": min(now, get_datetime(assignment.start_datetime))},
+			event_type="Room Occupied",
+			ignore_permissions=True,
+		)
 	transition(
 		stay,
 		"In House",
@@ -704,6 +716,9 @@ def check_out(stay_name: str, override_reason: str | None = None) -> None:
 		_shorten_stay(stay, getdate(leaving_on))
 
 	assignment = current_assignment(stay.room_occupancy)
+	if assignment and room_share.others_in_house(stay):
+		# Another sharer is still in the room (R2-1): it stays occupied for them.
+		assignment = None
 	if assignment:
 		transition(
 			assignment,
@@ -769,7 +784,10 @@ def _shorten_stay(
 	"""Early departure, or a shortened stay: release the remaining nights and stop pricing them.
 	A fee is posted by the caller first, from these nights (F12)."""
 	occupancy = frappe.get_doc(OCCUPANCY, stay.room_occupancy)
-	inventory.release(occupancy.room_type, new_departure, stay.departure_date, kind=inventory.SOLD)
+	# A shared room (R2-1) gives back only the nights no other sharer needs, below.
+	shared = room_share.is_shared(occupancy.name)
+	if not shared:
+		inventory.release(occupancy.room_type, new_departure, stay.departure_date, kind=inventory.SOLD)
 	table = frappe.qb.DocType(RATE_NIGHT)
 	(
 		frappe.qb.update(table)
@@ -787,13 +805,14 @@ def _shorten_stay(
 	total_minor = sum(to_minor(amount, stay.currency) for amount in kept)
 	nights = len(inventory.nights_between(stay.arrival_date, new_departure))
 	booked_departure = stay.departure_date
-	frappe.db.set_value(OCCUPANCY, occupancy.name, "end_date", new_departure)
-	frappe.db.set_value(
-		MEMBERSHIP,
-		{"room_occupancy": occupancy.name, "stay_reservation": stay.name},
-		"end_date",
-		new_departure,
-	)
+	if not shared:
+		frappe.db.set_value(OCCUPANCY, occupancy.name, "end_date", new_departure)
+		frappe.db.set_value(
+			MEMBERSHIP,
+			{"room_occupancy": occupancy.name, "stay_reservation": stay.name},
+			"end_date",
+			new_departure,
+		)
 	stay.update(
 		{
 			"departure_date": new_departure,
@@ -804,7 +823,10 @@ def _shorten_stay(
 	)
 	stay.flags[reservations.SERVICE_FLAG] = True
 	stay.save(ignore_permissions=True)
-	_move_assignment_end(stay, new_departure)
+	if shared:
+		room_share.departure_moved(stay, new_departure)
+	else:
+		_move_assignment_end(stay, new_departure)
 	folio.refresh_stay_pending(stay.name)
 	log_event(
 		STAY,
@@ -980,16 +1002,23 @@ def change_departure(stay_name: str, new_departure, override_reason: str | None 
 
 def _extend_stay(stay, plan) -> None:
 	q = plan.quote
-	# Take the rooms first, under lock: this fails before anything is written if a night is full.
-	inventory.acquire(stay.room_type, plan.old_departure, plan.new_departure, kind=inventory.SOLD)
-	reservations.create_rate_nights(stay.property, stay.name, q)
-	frappe.db.set_value(OCCUPANCY, stay.room_occupancy, "end_date", plan.new_departure)
-	frappe.db.set_value(
-		MEMBERSHIP,
-		{"room_occupancy": stay.room_occupancy, "stay_reservation": stay.name},
-		"end_date",
-		plan.new_departure,
-	)
+	shared = room_share.is_shared(stay.room_occupancy)
+	if shared:
+		# A shared room (R2-1) takes only the nights it doesn't hold for another sharer already;
+		# a full night refuses it and the request rolls back.
+		reservations.create_rate_nights(stay.property, stay.name, q)
+		room_share.departure_moved(stay, plan.new_departure)
+	else:
+		# Take the rooms first, under lock: this fails before anything is written if a night is full.
+		inventory.acquire(stay.room_type, plan.old_departure, plan.new_departure, kind=inventory.SOLD)
+		reservations.create_rate_nights(stay.property, stay.name, q)
+		frappe.db.set_value(OCCUPANCY, stay.room_occupancy, "end_date", plan.new_departure)
+		frappe.db.set_value(
+			MEMBERSHIP,
+			{"room_occupancy": stay.room_occupancy, "stay_reservation": stay.name},
+			"end_date",
+			plan.new_departure,
+		)
 	kept = frappe.get_all(
 		RATE_NIGHT,
 		filters={"stay_reservation": stay.name, "posting_state": ["!=", "Cancelled"]},
@@ -1007,7 +1036,8 @@ def _extend_stay(stay, plan) -> None:
 	)
 	stay.flags[reservations.SERVICE_FLAG] = True
 	stay.save(ignore_permissions=True)
-	_move_assignment_end(stay, plan.new_departure)
+	if not shared:
+		_move_assignment_end(stay, plan.new_departure)
 	folio.refresh_stay_pending(stay.name)
 	log_event(
 		STAY,
@@ -1224,7 +1254,7 @@ def _add_room_details(stays: list) -> None:
 		for row in frappe.get_all(
 			ASSIGNMENT,
 			filters={"room_occupancy": ["in", occupancies or [""]], "status": ["in", ACTIVE_ASSIGNMENTS]},
-			fields=["room_occupancy", "hotel_room", "room_number", "do_not_move"],
+			fields=["room_occupancy", "hotel_room", "room_number", "do_not_move", "status"],
 		)
 	}
 	rooms = {
@@ -1255,7 +1285,10 @@ def _add_room_details(stays: list) -> None:
 		ready = ready_by_property.setdefault(
 			stay.get("property"), housekeeping.ready_conditions(stay.get("property"))
 		)
-		stay["room_ready"] = bool(room and room.housekeeping_condition in ready)
+		# A sharer arriving in a room another sharer already uses (R2-1) moves into it as it is.
+		stay["room_ready"] = bool(
+			room and (room.housekeeping_condition in ready or assignment.status == "Occupied")
+		)
 		stay["room_ready_text"] = " or ".join(ready)
 
 
@@ -1404,7 +1437,10 @@ def stay_details(stay_name: str) -> dict:
 			"can_change_dates": status in AMENDABLE_STATUSES,
 			# Before arrival: new dates, room type, rate plan or guests (services/amendments.py).
 			"can_amend": status in ("Held", "Confirmed", "Due In")
-			and bool(set(RESERVATION_ROLES) & set(frappe.get_roles())),
+			and bool(set(RESERVATION_ROLES) & set(frappe.get_roles()))
+			and not room_share.others_in_room(stay),
+			# R2-1: independent sharers, when Hospitality Settings allows them or the room is shared.
+			"room_share": room_share.enabled() or room_share.is_shared(stay.room_occupancy),
 			"can_override_restrictions": bool(
 				set(("System Manager", "Hospitality Manager", "Revenue Manager", "Front Desk Manager"))
 				& set(frappe.get_roles())

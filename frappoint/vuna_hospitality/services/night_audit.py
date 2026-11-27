@@ -150,6 +150,7 @@ def post_room_night(night_name: str, business_date=None) -> dict | None:
 			"total",
 			"tax_inclusive",
 			"components",
+			"share_distribution",
 			"posting_state",
 			"posting_key",
 		],
@@ -169,8 +170,9 @@ def post_room_night(night_name: str, business_date=None) -> dict | None:
 	)
 	night_date = getdate(night.night_date)
 	prefix = f"night:{stay.name}:{night_date}"
-	if not to_minor(night.total, stay.currency):
-		# A complimentary night has nothing to charge.
+	if not to_minor(night.total, stay.currency) and not night.share_distribution:
+		# A complimentary night has nothing to charge. A sharer whose part of the room is nothing
+		# (R2-1) still owes its own per-person levies, below.
 		frappe.db.set_value(
 			RATE_NIGHT, night.name, {"posting_state": "Waived", "override_reason": _("Zero rate")}
 		)
@@ -205,19 +207,36 @@ def post_room_night(night_name: str, business_date=None) -> dict | None:
 		"source_name": night.name,
 		"stay_guest": primary_guest,
 	}
+	from frappoint.vuna_hospitality.services.room_share import room_tax
+
 	room_result, created = None, False
 	for component in components:
 		if not to_minor(component["amount"], stay.currency):
 			continue
 		line_folio = target(component["charge_code"])
+		amount, tax = component["amount"], {}
+		if component["key"] == "room" and night.share_distribution:
+			# A shared room's tax is split with its charge, so the parts add up exactly (R2-1).
+			shared = room_tax(
+				night,
+				stay.name,
+				stay.property,
+				component["charge_code"],
+				bool(night.tax_inclusive),
+				business_date,
+			)
+			if shared:
+				amount = shared["amount"]
+				tax = {"tax_amount": shared["tax_amount"], "tax_breakdown": shared["tax_breakdown"]}
 		result = folio.post(
 			line_folio,
 			component["charge_code"],
-			component["amount"],
+			amount,
 			posting_key=f"{prefix}:{component['key']}",
 			description=None if component["key"] == "room" else component.get("label"),
 			source_line=component["key"],
 			tax_inclusive=bool(night.tax_inclusive),
+			**tax,
 			**common,
 		)
 		created = created or result["created"]
@@ -226,7 +245,12 @@ def post_room_night(night_name: str, business_date=None) -> dict | None:
 		if component.get("allowance"):
 			allowances.grant(stay.name, line_folio, night, component, result["name"])
 
+	from frappoint.vuna_hospitality.services.room_share import skip_room_levy
+
 	for levy in _nightly_levies(stay.property):
+		if levy.basis == "Per Room" and skip_room_levy(night, stay.name):
+			# A shared room's levy is charged once, to the stay the split names.
+			continue
 		count = {"Per Adult": stay.adults, "Per Person": stay.adults + stay.children}.get(levy.basis, 1)
 		amount_minor = to_minor(levy.amount, stay.currency) * cint(count)
 		if amount_minor <= 0:
