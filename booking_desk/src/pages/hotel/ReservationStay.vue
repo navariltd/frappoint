@@ -51,6 +51,15 @@
 						Change dates
 					</button>
 					<button
+						v-if="actions.can_amend && !amending"
+						type="button"
+						class="rounded-lg border border-outline-variant px-4 py-2 text-[13px] font-semibold disabled:opacity-50"
+						:disabled="busy"
+						@click="amending = true"
+					>
+						Amend
+					</button>
+					<button
 						v-if="actions.can_check_in"
 						type="button"
 						class="rounded-lg bg-primary text-on-primary px-4 py-2 text-[13px] font-semibold disabled:opacity-50"
@@ -207,6 +216,16 @@
 				Booked against {{ stay.overridden_restrictions }}, by
 				{{ stay.restriction_override_by }}: {{ stay.restriction_override_reason }}
 			</p>
+
+			<!-- Before arrival: new dates, room type, rate plan or guests -->
+			<StayAmendPanel
+				v-if="amending"
+				:stay="stay"
+				:business-date="stay.business_date"
+				:can-override-restrictions="actions.can_override_restrictions"
+				@close="amending = false"
+				@done="onAmended"
+			/>
 
 			<!-- Extend or shorten (F13) -->
 			<section
@@ -891,6 +910,7 @@ import {
 import ActionBanner from "@/components/hotel/ActionBanner.vue";
 import GuestPicker from "@/components/hotel/GuestPicker.vue";
 import GuestMessagesPanel from "@/components/hotel/GuestMessagesPanel.vue";
+import StayAmendPanel from "@/components/hotel/StayAmendPanel.vue";
 import GuestPreferencesPanel from "@/components/hotel/GuestPreferencesPanel.vue";
 import HotelStatusBadge from "@/components/hotel/HotelStatusBadge.vue";
 import { useActionBanner } from "@/composables/hotel/useActionBanner";
@@ -911,6 +931,8 @@ const { banner, ask, notify, confirm: confirmBanner, cancel: cancelBanner } = us
 const details = ref(null);
 const rooms = ref([]);
 const ranking = ref(null);
+// The amendment panel (before arrival).
+const amending = ref(false);
 const CLOSED_STAY_STATUSES = ["Checked Out", "Cancelled", "No Show", "Expired"];
 const moveReasons = ref([]);
 const moveReason = ref("");
@@ -1312,4 +1334,15 @@ onMounted(async () => {
 		: moveReasons.value[0] || "";
 });
 watch(currentStayId, load);
+
+async function onAmended(result) {
+	amending.value = false;
+	await load();
+	emit("changed");
+	notify({
+		title: "Stay amended",
+		message: result?.room_kept ? "It keeps its room." : "Assign a room for the new details.",
+		tone: "info",
+	});
+}
 </script>

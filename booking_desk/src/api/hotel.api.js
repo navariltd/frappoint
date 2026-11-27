@@ -114,6 +114,7 @@ export const HOTEL_ENDPOINTS = {
 	mergeGuests: `${HOSPITALITY_API}.guests.merge_guests`,
 	markNotDuplicate: `${HOSPITALITY_API}.guests.mark_not_duplicate`,
 	unmergeGuests: `${HOSPITALITY_API}.guests.unmerge_guests`,
+	amendStay: `${HOSPITALITY_API}.reservations.amend_stay`,
 	guestMessages: `${HOSPITALITY_API}.guest_communication.get_guest_messages`,
 	takeMessage: `${HOSPITALITY_API}.guest_communication.take_message`,
 	closeMessage: `${HOSPITALITY_API}.guest_communication.close_message`,
@@ -673,3 +674,19 @@ export const markNotDuplicateApi = (duplicate, reason = null) =>
 	request(HOTEL_ENDPOINTS.markNotDuplicate, { duplicate, reason });
 export const unmergeGuestsApi = (merge, reason) =>
 	request(HOTEL_ENDPOINTS.unmergeGuests, { merge, reason });
+
+// Amending a stay before arrival
+export const amendStayApi = (
+	stay,
+	{ arrival, departure, roomType, ratePlan, adults, children, overrideReason }
+) =>
+	request(HOTEL_ENDPOINTS.amendStay, {
+		stay,
+		arrival,
+		departure,
+		room_type: roomType,
+		rate_plan: ratePlan,
+		adults,
+		children,
+		restriction_override_reason: overrideReason || null,
+	});
