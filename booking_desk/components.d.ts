@@ -113,6 +113,7 @@ declare module 'vue' {
     ResourceTimeline: typeof import('./src/components/dashboard/ResourceTimeline.vue')['default']
     RoomChargePanel: typeof import('./src/components/booking/RoomChargePanel.vue')['default']
     RoomOccupancy: typeof import('./src/components/dashboard/RoomOccupancy.vue')['default']
+    RoomSharePanel: typeof import('./src/components/hotel/RoomSharePanel.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']
     Search: typeof import('./src/components/common/Search.vue')['default']

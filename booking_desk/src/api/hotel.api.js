@@ -115,6 +115,11 @@ export const HOTEL_ENDPOINTS = {
 	markNotDuplicate: `${HOSPITALITY_API}.guests.mark_not_duplicate`,
 	unmergeGuests: `${HOSPITALITY_API}.guests.unmerge_guests`,
 	amendStay: `${HOSPITALITY_API}.reservations.amend_stay`,
+	roomShare: `${HOSPITALITY_API}.reservations.get_room_share`,
+	shareCandidates: `${HOSPITALITY_API}.reservations.get_share_candidates`,
+	shareRoom: `${HOSPITALITY_API}.reservations.share_room`,
+	setRoomShareMethod: `${HOSPITALITY_API}.reservations.set_room_share_method`,
+	separateRoomShare: `${HOSPITALITY_API}.reservations.separate_room_share`,
 	guestMessages: `${HOSPITALITY_API}.guest_communication.get_guest_messages`,
 	takeMessage: `${HOSPITALITY_API}.guest_communication.take_message`,
 	closeMessage: `${HOSPITALITY_API}.guest_communication.close_message`,
@@ -690,3 +695,25 @@ export const amendStayApi = (
 		children,
 		restriction_override_reason: overrideReason || null,
 	});
+
+// Independent sharers: stays sharing one room, each with its own bill (R2-1).
+export const fetchRoomShareApi = (stay) => request(HOTEL_ENDPOINTS.roomShare, { stay });
+export const fetchShareCandidatesApi = (stay) =>
+	request(HOTEL_ENDPOINTS.shareCandidates, { stay });
+export const shareRoomApi = (stay, { withStay, method, percent, payer }) =>
+	request(HOTEL_ENDPOINTS.shareRoom, {
+		stay,
+		with_stay: withStay,
+		method,
+		percent: percent ?? null,
+		payer: payer || null,
+	});
+export const setRoomShareMethodApi = (stay, { method, percent, payer }) =>
+	request(HOTEL_ENDPOINTS.setRoomShareMethod, {
+		stay,
+		method,
+		percent: percent ?? null,
+		payer: payer || null,
+	});
+export const separateRoomShareApi = (stay, reason) =>
+	request(HOTEL_ENDPOINTS.separateRoomShare, { stay, reason });

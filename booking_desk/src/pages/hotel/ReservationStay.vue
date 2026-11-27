@@ -227,6 +227,9 @@
 				@done="onAmended"
 			/>
 
+			<!-- Independent sharers: stays sharing one room, each with its own bill (R2-1) -->
+			<RoomSharePanel v-if="actions.room_share" :stay="stay" @changed="onShareChanged" />
+
 			<!-- Extend or shorten (F13) -->
 			<section
 				v-if="dates.open"
@@ -911,6 +914,7 @@ import ActionBanner from "@/components/hotel/ActionBanner.vue";
 import GuestPicker from "@/components/hotel/GuestPicker.vue";
 import GuestMessagesPanel from "@/components/hotel/GuestMessagesPanel.vue";
 import StayAmendPanel from "@/components/hotel/StayAmendPanel.vue";
+import RoomSharePanel from "@/components/hotel/RoomSharePanel.vue";
 import GuestPreferencesPanel from "@/components/hotel/GuestPreferencesPanel.vue";
 import HotelStatusBadge from "@/components/hotel/HotelStatusBadge.vue";
 import { useActionBanner } from "@/composables/hotel/useActionBanner";
@@ -1334,6 +1338,11 @@ onMounted(async () => {
 		: moveReasons.value[0] || "";
 });
 watch(currentStayId, load);
+
+async function onShareChanged() {
+	await load();
+	emit("changed");
+}
 
 async function onAmended(result) {
 	amending.value = false;
