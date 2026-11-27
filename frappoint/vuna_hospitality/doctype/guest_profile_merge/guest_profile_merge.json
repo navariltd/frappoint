@@ -1,0 +1,244 @@
+{
+ "actions": [],
+ "autoname": "naming_series:",
+ "creation": "2026-11-27 09:00:00.000000",
+ "description": "One profile merged into another: who did it, why, on what evidence, and exactly which records moved, so it can be undone.",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "naming_series",
+  "status",
+  "basis",
+  "column_break_head",
+  "merged_by",
+  "merged_on",
+  "profiles_section",
+  "target_profile",
+  "target_name",
+  "column_break_profiles",
+  "source_profile",
+  "source_name",
+  "why_section",
+  "reason",
+  "evidence",
+  "moved_section",
+  "moved_count",
+  "moved_references",
+  "copied_fields",
+  "unmerge_section",
+  "unmerged_by",
+  "unmerged_on",
+  "column_break_unmerge",
+  "unmerge_reason"
+ ],
+ "fields": [
+  {
+   "fieldname": "naming_series",
+   "fieldtype": "Select",
+   "label": "Series",
+   "options": "GPM-.YY.-.#####",
+   "default": "GPM-.YY.-.#####",
+   "hidden": 1,
+   "reqd": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "label": "Status",
+   "options": "Merged\nUnmerged",
+   "default": "Merged",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "basis",
+   "fieldtype": "Data",
+   "label": "Matched On",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_head",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "merged_by",
+   "fieldtype": "Link",
+   "label": "Merged By",
+   "options": "User",
+   "read_only": 1
+  },
+  {
+   "fieldname": "merged_on",
+   "fieldtype": "Datetime",
+   "label": "Merged On",
+   "read_only": 1
+  },
+  {
+   "fieldname": "profiles_section",
+   "fieldtype": "Section Break",
+   "label": "Profiles"
+  },
+  {
+   "fieldname": "target_profile",
+   "fieldtype": "Link",
+   "label": "Kept",
+   "options": "Guest Profile",
+   "reqd": 1,
+   "in_list_view": 1,
+   "search_index": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "target_name",
+   "fieldtype": "Data",
+   "label": "Kept Name",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_profiles",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "source_profile",
+   "fieldtype": "Link",
+   "label": "Merged Away",
+   "options": "Guest Profile",
+   "reqd": 1,
+   "in_list_view": 1,
+   "search_index": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "source_name",
+   "fieldtype": "Data",
+   "label": "Merged Away Name",
+   "read_only": 1
+  },
+  {
+   "fieldname": "why_section",
+   "fieldtype": "Section Break",
+   "label": "Why"
+  },
+  {
+   "fieldname": "reason",
+   "fieldtype": "Small Text",
+   "label": "Reason",
+   "reqd": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "evidence",
+   "fieldtype": "Small Text",
+   "label": "Evidence",
+   "read_only": 1
+  },
+  {
+   "fieldname": "moved_section",
+   "fieldtype": "Section Break",
+   "label": "What moved"
+  },
+  {
+   "fieldname": "moved_count",
+   "fieldtype": "Int",
+   "label": "Records Moved",
+   "read_only": 1
+  },
+  {
+   "fieldname": "moved_references",
+   "fieldtype": "JSON",
+   "label": "Moved Records",
+   "description": "Each record that pointed at the merged-away profile: DocType, name and field. Unmerging moves exactly these back.",
+   "read_only": 1
+  },
+  {
+   "fieldname": "copied_fields",
+   "fieldtype": "JSON",
+   "label": "Details Filled In",
+   "description": "Details the kept profile lacked and took from the other one.",
+   "read_only": 1
+  },
+  {
+   "fieldname": "unmerge_section",
+   "fieldtype": "Section Break",
+   "label": "Unmerged"
+  },
+  {
+   "fieldname": "unmerged_by",
+   "fieldtype": "Link",
+   "label": "Unmerged By",
+   "options": "User",
+   "read_only": 1
+  },
+  {
+   "fieldname": "unmerged_on",
+   "fieldtype": "Datetime",
+   "label": "Unmerged On",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_unmerge",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "unmerge_reason",
+   "fieldtype": "Small Text",
+   "label": "Unmerge Reason",
+   "read_only": 1
+  }
+ ],
+ "in_create": 1,
+ "index_web_pages_for_search": 0,
+ "links": [],
+ "modified": "2026-11-27 09:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Vuna Hospitality",
+ "name": "Guest Profile Merge",
+ "naming_rule": "By \"Naming Series\" field",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "role": "System Manager",
+   "read": 1,
+   "report": 1,
+   "print": 1,
+   "export": 1
+  },
+  {
+   "role": "Hospitality Manager",
+   "read": 1,
+   "report": 1,
+   "print": 1,
+   "export": 1
+  },
+  {
+   "role": "Front Desk Manager",
+   "read": 1,
+   "report": 1,
+   "print": 1,
+   "export": 1
+  },
+  {
+   "role": "Guest Services Agent",
+   "read": 1,
+   "report": 1,
+   "print": 1,
+   "export": 1
+  },
+  {
+   "role": "Data Protection Officer",
+   "read": 1,
+   "report": 1,
+   "print": 1,
+   "export": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "search_fields": "source_profile,target_profile,status",
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": [],
+ "title_field": "target_name",
+ "track_changes": 1
+}

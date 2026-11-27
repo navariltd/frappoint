@@ -347,10 +347,15 @@ import HotelStatusBadge from "@/components/hotel/HotelStatusBadge.vue";
 import HotelUnavailable from "@/components/hotel/HotelUnavailable.vue";
 import LoadFailed from "@/components/hotel/LoadFailed.vue";
 import { useActionBanner } from "@/composables/hotel/useActionBanner";
+import { useSocket } from "@/socket";
 import { useHotelStore } from "@/stores/hotel.store";
 import { addDays, formatMoney, formatNight } from "@/utils/hotelFormat";
 
 const POLL_MS = 2000;
+// With live updates, polling only catches what the socket missed.
+const FALLBACK_POLL_MS = 15000;
+const RUN_DOCTYPE = "Night Audit Run";
+const PROGRESS_EVENT = "hospitality_night_audit";
 // The desk reports managers run the hotel on (§24). Each opens for the current property.
 const REPORTS = [
 	{ name: "Front Desk Movements", about: "arrivals, departures, in house, no-shows" },
@@ -471,7 +476,23 @@ function schedulePoll() {
 	clearTimeout(timer);
 	// Keep following an active run even when its job looks lost: a worker that picks it up a
 	// moment later, or finishes it, clears the warning without a reload.
-	if (isActive.value) timer = setTimeout(poll, POLL_MS);
+	if (isActive.value) timer = setTimeout(poll, socket?.connected ? FALLBACK_POLL_MS : POLL_MS);
+}
+
+// Live progress: Frappe's realtime room for the run (the server checks the user may read it).
+// The audit publishes there at every stage, so the page reloads when something happens.
+const socket = useSocket();
+let followed = null;
+
+function follow(runName) {
+	if (!socket || followed === runName) return;
+	if (followed) socket.emit("doc_unsubscribe", RUN_DOCTYPE, followed);
+	followed = runName || null;
+	if (followed) socket.emit("doc_subscribe", RUN_DOCTYPE, followed);
+}
+
+function onProgress(message) {
+	if (message?.run && message.run === followed) poll();
 }
 
 async function poll() {
@@ -495,6 +516,7 @@ async function load({ quiet = false } = {}) {
 	if (!quiet) loading.value = true;
 	try {
 		data.value = await fetchNightAuditApi(hotel.property);
+		follow(data.value?.run?.name);
 		loadError.value = "";
 		if (!quiet) error.value = "";
 	} catch (e) {
@@ -536,6 +558,7 @@ async function start() {
 	error.value = "";
 	try {
 		data.value = await startNightAuditApi(hotel.property, overrides);
+		follow(data.value?.run?.name);
 		Object.keys(reasons).forEach((key) => delete reasons[key]);
 	} catch (e) {
 		const message = hotelErrorMessage(e);
@@ -551,7 +574,12 @@ onMounted(async () => {
 	await hotel.load();
 	load();
 });
-onBeforeUnmount(() => clearTimeout(timer));
+socket?.on(PROGRESS_EVENT, onProgress);
+onBeforeUnmount(() => {
+	clearTimeout(timer);
+	socket?.off(PROGRESS_EVENT, onProgress);
+	follow(null);
+});
 watch(
 	() => hotel.property,
 	() => load()

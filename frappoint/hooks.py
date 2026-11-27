@@ -288,6 +288,8 @@ scheduler_events = {
 		"frappoint.vuna_hospitality.services.inventory.daily_inventory_maintenance",
 		# Propose Guest Profiles for guests on completed appointments; staff confirm them.
 		"frappoint.vuna_hospitality.services.guest_history.propose_matches",
+		# Propose look-alike Guest Profiles for review; nothing is merged automatically.
+		"frappoint.vuna_hospitality.services.guest_dedup.propose_duplicates",
 		# Remove ID documents whose retention period ended.
 		"frappoint.vuna_hospitality.services.data_retention.purge_expired_id_documents",
 	],

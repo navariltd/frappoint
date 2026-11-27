@@ -364,3 +364,25 @@ class TestDeskReports(FullAuditTestCase):
 		self.assertEqual([row["stay"] for row in in_house], [self.stay.name])
 		ledger = self.run_report("guest_ledger")[1]
 		self.assertEqual(ledger[-1]["balance"], flt(self.balance()))
+
+
+class TestAfterTheDateMoves(FullAuditTestCase):
+	def test_the_new_days_stayovers_are_planned(self):
+		name, status = self.audit()
+		self.assertEqual(status, "Completed")
+		new_day = self.business_date()
+		tasks = frappe.get_all(
+			"Housekeeping Task",
+			filters={"hotel_room": f"{self.CODE}-101", "task_date": new_day, "task_type": "Stayover"},
+			pluck="name",
+		)
+		self.assertEqual(len(tasks), 1)
+		self.assertEqual(self.stage(name, night_audit.PLAN_HOUSEKEEPING).status, "Completed")
+
+
+class TestInformationFolio(FullAuditTestCase):
+	def test_the_folio_prints_as_an_information_folio(self):
+		html = frappe.get_print("Guest Folio", self.folio, "Information Folio")
+		self.assertIn("This is not a tax invoice", html)
+		self.assertIn(self.folio, html)
+		self.assertEqual(frappe.get_meta("Guest Folio").default_print_format, "Information Folio")

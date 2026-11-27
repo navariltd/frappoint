@@ -28,7 +28,9 @@ date, in these stages:
    guest ledger's control totals and the night's exceptions are kept on the run as they were.
 8. **Roll statuses.** Stays arriving on the next business date become Due In, and stays leaving
    by then become Due Out.
-9. **Advance the business date**, as the last step and in its own transaction.
+9. **Advance the business date**, in its own transaction.
+10. **Plan housekeeping** for the new day: a stayover task for every occupied room whose guest
+    stays on. Departure cleans already come from check-outs. Running it again adds nothing.
 
 A failed run is started again from the Night Audit page: completed stages are skipped and the
 unfinished stage runs again. Posting keys make the repeat safe, so no night is charged twice. A run
@@ -72,6 +74,7 @@ ADVANCE_BUSINESS_DATE = "Advance Business Date"
 PRE_CHECKS = "Pre-checks"
 RECONCILE = "Reconcile"
 GENERATE_REPORTS = "Generate Reports"
+PLAN_HOUSEKEEPING = "Plan Housekeeping"
 MARK_NO_SHOWS = "Mark No-Shows"
 RELEASE_UNPAID_DEPOSITS = "Release Unpaid Deposits"
 CLOSE_POST_STAY_FOLIOS = "Close Post-Stay Folios"
@@ -86,6 +89,7 @@ STAGES = (
 	GENERATE_REPORTS,
 	ROLL_STATUSES,
 	ADVANCE_BUSINESS_DATE,
+	PLAN_HOUSEKEEPING,
 )
 
 IN_HOUSE_STATUSES = ("In House", "Due Out")
@@ -891,6 +895,19 @@ def build_audit_report(run) -> dict:
 	}
 
 
+def _plan_housekeeping(run, stage) -> tuple[dict, str | None]:
+	"""After the date moves: the new day's stayover tasks, so the board is ready in the morning."""
+	from frappoint.vuna_hospitality.services import housekeeping
+
+	before = frappe.db.count(housekeeping.TASK, {"property": run.property})
+	tasks = housekeeping.stayover_tasks(run.property)
+	created = frappe.db.count(housekeeping.TASK, {"property": run.property}) - before
+	return (
+		{"processed": len(tasks), "posted": created, "skipped": len(tasks) - created},
+		_("{0} stayover task(s) planned.").format(created) if created else None,
+	)
+
+
 STAGE_RUNNERS = {
 	PRE_CHECKS: _pre_checks,
 	POST_ROOM_CHARGES: _post_room_charges,
@@ -902,6 +919,7 @@ STAGE_RUNNERS = {
 	GENERATE_REPORTS: _generate_reports,
 	ROLL_STATUSES: _roll_statuses,
 	ADVANCE_BUSINESS_DATE: _advance_business_date,
+	PLAN_HOUSEKEEPING: _plan_housekeeping,
 }
 
 

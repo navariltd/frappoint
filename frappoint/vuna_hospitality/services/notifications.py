@@ -371,8 +371,17 @@ def _send(rule, event: str, key: str, recipient, stay, booking, folio) -> str | 
 	return _log({**base, "status": SENT, "recipient": address, "communication": communication})
 
 
+INFORMATION_FOLIO = "Information Folio"
+
+
 def _deliver(rule, address: str, context: dict, recipient, stay, booking) -> str:
 	reference = (STAY, stay.name) if stay else (BOOKING, booking.name)
+	# A folio going to its payee: the email belongs to the folio, and Frappe attaches the folio's
+	# Information Folio print (a PDF, "not a tax invoice").
+	folio = (context.get("folio") or {}).get("name")
+	print_format = None
+	if folio:
+		reference, print_format = (FOLIO, folio), INFORMATION_FOLIO
 	if rule.channel == EMAIL:
 		template = frappe.get_doc("Email Template", rule.email_template)
 		# Email Templates and notification rules are written only by System and Hospitality Managers.
@@ -392,6 +401,7 @@ def _deliver(rule, address: str, context: dict, recipient, stay, booking) -> str
 			name=reference[1],
 			send_email=True,
 			communication_medium="Email",
+			print_format=print_format,
 		)["name"]
 	else:
 		text = frappe.render_template(  # nosemgrep - templates are set up by managers
@@ -414,9 +424,13 @@ def _deliver(rule, address: str, context: dict, recipient, stay, booking) -> str
 			}
 		).insert(ignore_permissions=True)
 		name = comm.name
-	if recipient.guest_profile:
+	links = [(PROFILE, recipient.guest_profile)] if recipient.guest_profile else []
+	if stay and reference[0] != STAY:
+		links.append((STAY, stay.name))
+	if links:
 		comm = frappe.get_doc("Communication", name)
-		comm.add_link(PROFILE, recipient.guest_profile)
+		for doctype, link_name in links:
+			comm.add_link(doctype, link_name)
 		comm.save(ignore_permissions=True)
 	return name
 

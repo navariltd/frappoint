@@ -179,6 +179,13 @@ class TestNotifications(GuestCareTestCase):
 		notifications.email_folio(folio)
 		logs = self.logs(rule=rule)
 		self.assertEqual([row.status for row in logs], ["Sent"])
+		# The email belongs to the folio and carries its Information Folio print as a PDF.
+		comm = frappe.get_doc("Communication", logs[0].communication)
+		self.assertEqual((comm.reference_doctype, comm.reference_name), ("Guest Folio", folio))
+		self.assertIn(stay.name, [link.link_name for link in comm.timeline_links])
+		queue = frappe.get_doc("Email Queue", {"communication": comm.name})
+		attachments = frappe.parse_json(queue.attachments or "[]")
+		self.assertEqual([item.get("print_format") for item in attachments], ["Information Folio"])
 
 		companion = frappe._dict(key="x", guest_profile="someone-else", first_name="Amani", full_name="Amani")
 		stay_row = notifications._stay(stay.name)

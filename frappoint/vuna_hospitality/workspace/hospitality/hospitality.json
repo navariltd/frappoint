@@ -284,7 +284,7 @@
    "hidden": 0,
    "is_query_report": 0,
    "label": "Guests",
-   "link_count": 11,
+   "link_count": 13,
    "link_type": "DocType",
    "onboard": 0,
    "type": "Card Break"
@@ -395,6 +395,26 @@
    "label": "Guest Register Entry",
    "link_count": 0,
    "link_to": "Guest Register Entry",
+   "link_type": "DocType",
+   "onboard": 1,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Guest Duplicate",
+   "link_count": 0,
+   "link_to": "Guest Duplicate",
+   "link_type": "DocType",
+   "onboard": 1,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Guest Profile Merge",
+   "link_count": 0,
+   "link_to": "Guest Profile Merge",
    "link_type": "DocType",
    "onboard": 1,
    "type": "Link"

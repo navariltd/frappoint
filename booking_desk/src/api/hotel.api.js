@@ -108,6 +108,13 @@ export const HOTEL_ENDPOINTS = {
 	historyMatches: `${HOSPITALITY_API}.preferences.get_history_matches`,
 	findHistoryMatches: `${HOSPITALITY_API}.preferences.find_history_matches`,
 	reviewHistoryMatch: `${HOSPITALITY_API}.preferences.review_history_match`,
+	duplicateGuests: `${HOSPITALITY_API}.guests.get_duplicate_guests`,
+	findDuplicateGuests: `${HOSPITALITY_API}.guests.find_duplicate_guests`,
+	compareDuplicateGuests: `${HOSPITALITY_API}.guests.compare_duplicate_guests`,
+	mergeGuests: `${HOSPITALITY_API}.guests.merge_guests`,
+	markNotDuplicate: `${HOSPITALITY_API}.guests.mark_not_duplicate`,
+	unmergeGuests: `${HOSPITALITY_API}.guests.unmerge_guests`,
+	amendStay: `${HOSPITALITY_API}.reservations.amend_stay`,
 	guestMessages: `${HOSPITALITY_API}.guest_communication.get_guest_messages`,
 	takeMessage: `${HOSPITALITY_API}.guest_communication.take_message`,
 	closeMessage: `${HOSPITALITY_API}.guest_communication.close_message`,
@@ -654,4 +661,32 @@ export const dropStayApi = ({ stay, room, moveReason, notes, preferenceOverrideR
 		move_reason: moveReason || null,
 		notes: notes || null,
 		preference_override_reason: preferenceOverrideReason || null,
+	});
+
+// Duplicate guest profiles: review, merge and unmerge
+export const fetchDuplicateGuestsApi = () => request(HOTEL_ENDPOINTS.duplicateGuests);
+export const findDuplicateGuestsApi = () => request(HOTEL_ENDPOINTS.findDuplicateGuests);
+export const compareDuplicateGuestsApi = (duplicate) =>
+	request(HOTEL_ENDPOINTS.compareDuplicateGuests, { duplicate });
+export const mergeGuestsApi = (duplicate, keep, reason) =>
+	request(HOTEL_ENDPOINTS.mergeGuests, { duplicate, keep, reason });
+export const markNotDuplicateApi = (duplicate, reason = null) =>
+	request(HOTEL_ENDPOINTS.markNotDuplicate, { duplicate, reason });
+export const unmergeGuestsApi = (merge, reason) =>
+	request(HOTEL_ENDPOINTS.unmergeGuests, { merge, reason });
+
+// Amending a stay before arrival
+export const amendStayApi = (
+	stay,
+	{ arrival, departure, roomType, ratePlan, adults, children, overrideReason }
+) =>
+	request(HOTEL_ENDPOINTS.amendStay, {
+		stay,
+		arrival,
+		departure,
+		room_type: roomType,
+		rate_plan: ratePlan,
+		adults,
+		children,
+		restriction_override_reason: overrideReason || null,
 	});

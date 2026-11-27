@@ -188,7 +188,9 @@ def _limits():
 	)
 
 
-def _prepare_stay(property_name: str, prop, limits, stay: dict):
+def _prepare_stay(property_name: str, prop, limits, stay: dict, amendment: bool = False):
+	"""Check and quote one stay to hold. An `amendment` (an existing stay changed) isn't
+	held to the booking lead time."""
 	stay = frappe._dict(stay)
 	for field in ("room_type", "rate_plan", "arrival", "departure", "lead_guest"):
 		if not stay.get(field):
@@ -228,6 +230,7 @@ def _prepare_stay(property_name: str, prop, limits, stay: dict):
 		cint(stay.get("children")),
 		stay.get("child_ages"),
 		override_restrictions=bool(override_reason),
+		amendment=amendment,
 	)
 	sold_out = next((night for night in stay_quote.nights if night.reason == SOLD_OUT), None)
 	if sold_out:

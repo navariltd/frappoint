@@ -6,7 +6,7 @@ Profiles are shared by every property, so a returning guest is recognized at any
 
 This module holds the rules that other features call: contact normalization, search, quick
 creation from the booking screen, linking a Customer, relationships, and the provisional-guest
-check that registration (F6) runs. Deterministic matching, duplicate review and merging come in F14.
+check that registration (F6) runs. Duplicate review, merging and unmerging are in guest_dedup.py.
 """
 
 import re
