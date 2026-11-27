@@ -69,6 +69,13 @@ def amend_stay(
 			).format(stay.name, _(stay.status)),
 			AmendmentError,
 		)
+	from frappoint.vuna_hospitality.services.room_share import others_in_room
+
+	if others_in_room(stay):
+		frappe.throw(
+			_("Stay {0} shares its room. Separate it from the share first, then amend it.").format(stay.name),
+			AmendmentError,
+		)
 	wanted = frappe._dict(
 		arrival=getdate(arrival or stay.arrival_date),
 		departure=getdate(departure or stay.departure_date),

@@ -572,8 +572,7 @@ def cancel(
 	if charge_fee and stay.status != HELD:
 		# Worked out from the nights given up, so before they are cancelled.
 		policies.post_fee(stay, policies.CANCELLATION, waive=waive_fee, waive_reason=waive_reason)
-	_release_occupancy(stay.room_occupancy, CANCELLED)
-	_cancel_room_assignment(stay)
+	_give_room_back(stay, CANCELLED)
 	transition(
 		stay,
 		CANCELLED,
@@ -633,8 +632,7 @@ def mark_no_show(stay_name: str, business_date) -> bool:
 
 	reason = _("Did not arrive on {0}").format(frappe.format(stay.arrival_date, "Date"))
 	policies.post_fee(stay, policies.NO_SHOW, business_date=business_date)
-	_release_occupancy(stay.room_occupancy, RELEASED)
-	_cancel_room_assignment(stay)
+	_give_room_back(stay, RELEASED)
 	transition(stay, "No Show", reason=reason, event_type="No Show", ignore_permissions=True)
 	_cancel_pending_nights(stay.name)
 	from frappoint.vuna_hospitality.services.folio import close_idle_folios, refresh_stay_pending
@@ -701,6 +699,10 @@ def reinstate(stay_name: str, reason: str) -> dict:
 		},
 	)
 	_restore_nights(stay.name, arrival, departure)
+	# A stay that left a shared room comes back alone, at its own rate.
+	from frappoint.vuna_hospitality.services.room_share import _restore_own_rate
+
+	_restore_own_rate(stay.name)
 	nights = frappe.get_all(
 		RATE_NIGHT, filters={"stay_reservation": stay.name, "posting_state": "Pending"}, pluck="total"
 	)
@@ -787,7 +789,7 @@ def expire_hold(stay_name: str) -> bool:
 	if stay.status != HELD or not _hold_has_expired(stay):
 		return False
 
-	_release_occupancy(stay.room_occupancy, RELEASED)
+	_give_room_back(stay, RELEASED, assignment=False)
 	transition(
 		stay,
 		EXPIRED,
@@ -842,6 +844,18 @@ def _lock_stay(stay_name: str):
 
 def _hold_has_expired(stay) -> bool:
 	return bool(stay.hold_expires_at) and get_datetime(stay.hold_expires_at) <= now_datetime()
+
+
+def _give_room_back(stay, to_state: str, assignment: bool = True) -> None:
+	"""The stay gives its rooms up. A stay sharing its room only leaves the share; the room stays
+	with the other sharers (R2-1)."""
+	from frappoint.vuna_hospitality.services import room_share
+
+	if room_share.release_member(stay, to_state):
+		return
+	_release_occupancy(stay.room_occupancy, to_state)
+	if assignment:
+		_cancel_room_assignment(stay)
 
 
 def _release_occupancy(occupancy_name: str, to_state: str) -> None:

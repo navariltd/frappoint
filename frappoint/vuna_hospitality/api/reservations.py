@@ -167,6 +167,77 @@ def amend_stay(
 	return {**reservations.booking_summary(booking), "amendment": result}
 
 
+# --------------------------------------------------------------------------- room sharing (R2-1)
+
+
+@frappe.whitelist()
+@require_hospitality
+def get_room_share(stay: str) -> dict:
+	"""Who shares the stay's room and how its charge is split, and what the user may change."""
+	from frappoint.vuna_hospitality.services import room_share
+
+	_check_stay_read(stay)
+	return room_share.summary(stay)
+
+
+@frappe.whitelist()
+@require_hospitality
+def get_share_candidates(stay: str) -> list[dict]:
+	"""Stays this one could share a room with: same room type, at least one night together."""
+	from frappoint.vuna_hospitality.services import room_share
+
+	_check_stay(stay)
+	return room_share.candidates(stay)
+
+
+@frappe.whitelist(methods=["POST"])
+@require_hospitality
+def share_room(
+	stay: str, with_stay: str, method: str, percent: float | None = None, payer: str | None = None
+) -> dict:
+	"""Put the stay (not arrived yet) in the room of `with_stay`; each keeps its own bill."""
+	from frappoint.vuna_hospitality.services import room_share
+
+	_check_stay(stay)
+	_check_stay(with_stay)
+	run_with_inventory_retry(lambda: room_share.join(stay, with_stay, method, percent, payer or None))
+	return room_share.summary(stay)
+
+
+@frappe.whitelist(methods=["POST"])
+@require_hospitality
+def set_room_share_method(
+	stay: str, method: str, percent: float | None = None, payer: str | None = None
+) -> dict:
+	"""Change how the shared room's charge is split; only nights not yet charged change."""
+	from frappoint.vuna_hospitality.services import room_share
+
+	_check_stay(stay)
+	occupancy = frappe.db.get_value(reservations.STAY, stay, "room_occupancy")
+	room_share.set_method(occupancy, method, percent, payer or None)
+	return room_share.summary(stay)
+
+
+@frappe.whitelist(methods=["POST"])
+@require_hospitality
+def separate_room_share(stay: str, reason: str) -> dict:
+	"""A sharer who hasn't arrived takes a room of their own again."""
+	from frappoint.vuna_hospitality.services import room_share
+
+	_check_stay(stay)
+	run_with_inventory_retry(lambda: room_share.separate(stay, reason))
+	return room_share.summary(stay)
+
+
+def _check_stay_read(stay: str) -> None:
+	property_name = frappe.db.get_value(reservations.STAY, stay, "property")
+	if not property_name:
+		raise frappe.DoesNotExistError(_("Stay Reservation {0} does not exist.").format(stay))
+	assert_property_access(property_name)
+	if not frappe.has_permission(reservations.STAY, "read", doc=stay):
+		raise frappe.PermissionError(_("You are not allowed to read stay {0}.").format(stay))
+
+
 @frappe.whitelist()
 @require_hospitality
 def get_booking(booking: str) -> dict:
