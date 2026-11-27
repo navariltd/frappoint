@@ -126,6 +126,12 @@ const routes = [
 		meta: { requiresLogin: true, workspace: HOTEL },
 	},
 	{
+		name: "TapeChart",
+		path: "/hotel/tape-chart",
+		component: () => import("@/pages/hotel/TapeChart.vue"),
+		meta: { requiresLogin: true, workspace: HOTEL },
+	},
+	{
 		name: "RatesRestrictions",
 		path: "/hotel/rates",
 		component: () => import("@/pages/hotel/RatesRestrictions.vue"),

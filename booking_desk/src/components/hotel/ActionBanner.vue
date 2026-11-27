@@ -34,7 +34,25 @@
 						class="min-w-[220px] flex-1 text-[12px] text-on-surface-variant"
 					>
 						{{ banner.reasonLabel }}
+						<!-- With reasonOptions, the reason is picked from a list (a move reason). -->
+						<select
+							v-if="banner.reasonOptions?.length"
+							ref="reasonInput"
+							v-model="reason"
+							required
+							class="mt-1 w-full rounded-lg border border-outline-variant bg-surface-container-lowest px-3 py-2 text-[13px] text-on-surface"
+						>
+							<option value="" disabled>Choose…</option>
+							<option
+								v-for="option in banner.reasonOptions"
+								:key="option"
+								:value="option"
+							>
+								{{ option }}
+							</option>
+						</select>
 						<input
+							v-else
 							ref="reasonInput"
 							v-model="reason"
 							required

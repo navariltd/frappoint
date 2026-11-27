@@ -86,6 +86,9 @@ export const HOTEL_ENDPOINTS = {
 	startMaintenance: `${HOSPITALITY_API}.housekeeping.start_maintenance`,
 	resolveMaintenance: `${HOSPITALITY_API}.housekeeping.resolve_maintenance`,
 	cancelMaintenance: `${HOSPITALITY_API}.housekeeping.cancel_maintenance`,
+	tapeChart: `${HOSPITALITY_API}.tape_chart.get_tape_chart`,
+	checkDrop: `${HOSPITALITY_API}.tape_chart.check_drop`,
+	dropStay: `${HOSPITALITY_API}.tape_chart.drop_stay`,
 	searchServiceStays: `${HOSPITALITY_API}.services.search_stays`,
 	chargeBookingToRoom: `${HOSPITALITY_API}.services.charge_booking_to_room`,
 	releaseBookingToDesk: `${HOSPITALITY_API}.services.release_booking_to_desk`,
@@ -633,3 +636,22 @@ export const addTraceApi = (stay, { department, dueDate, dueTime, text }) =>
 export const closeTraceApi = (trace, resolved, notes = null) =>
 	request(HOTEL_ENDPOINTS.closeTrace, { trace, resolved: resolved ? 1 : 0, notes });
 export const emailFolioApi = (folio) => request(HOTEL_ENDPOINTS.emailFolio, { folio });
+
+// Tape chart
+export const fetchTapeChartApi = ({ property, start, days, roomType }) =>
+	request(HOTEL_ENDPOINTS.tapeChart, {
+		property,
+		start: start || null,
+		days: days || null,
+		room_type: roomType || null,
+	});
+export const checkDropApi = (stay, room) =>
+	request(HOTEL_ENDPOINTS.checkDrop, { stay, room: room || null });
+export const dropStayApi = ({ stay, room, moveReason, notes, preferenceOverrideReason }) =>
+	request(HOTEL_ENDPOINTS.dropStay, {
+		stay,
+		room: room || null,
+		move_reason: moveReason || null,
+		notes: notes || null,
+		preference_override_reason: preferenceOverrideReason || null,
+	});

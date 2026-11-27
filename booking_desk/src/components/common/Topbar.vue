@@ -206,6 +206,12 @@ const pageMeta = {
 		description: "Rooms to clean and inspect, the team's tasks, and maintenance.",
 		tag: "Rooms",
 	},
+	TapeChart: {
+		sectionLabel: "Hotel",
+		title: "Tape Chart",
+		description: "Every room against the coming days. Drag a stay to assign or move it.",
+		tag: "Rooms",
+	},
 	RatesRestrictions: {
 		sectionLabel: "Hotel",
 		title: "Rates and Restrictions",
