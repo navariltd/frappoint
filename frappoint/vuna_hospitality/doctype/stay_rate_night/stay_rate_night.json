@@ -22,6 +22,7 @@
   "package_amount",
   "total",
   "components",
+  "share_distribution",
   "posting_section",
   "posting_key",
   "override_reason"
@@ -155,6 +156,13 @@
    "label": "Components",
    "read_only": 1,
    "description": "The night's price split by charge code, as quoted. Night audit posts these lines; they sum to the total."
+  },
+  {
+   "fieldname": "share_distribution",
+   "fieldtype": "JSON",
+   "label": "Share Distribution",
+   "read_only": 1,
+   "description": "For a shared room: how the night's room charge is split between the stays, and the night's own components before the split."
   },
   {
    "fieldname": "posting_section",

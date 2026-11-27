@@ -15,6 +15,10 @@
   "end_date",
   "occupancy_type",
   "share_mode",
+  "share_primary",
+  "share_method",
+  "share_percent",
+  "share_payer",
   "adults",
   "children"
  ],
@@ -111,6 +115,38 @@
    "default": "Single Account",
    "reqd": 1,
    "read_only": 1
+  },
+  {
+   "fieldname": "share_primary",
+   "fieldtype": "Link",
+   "label": "Primary Stay",
+   "options": "Stay Reservation",
+   "read_only": 1,
+   "depends_on": "eval:doc.share_mode=='Shared'",
+   "description": "The stay whose room rate is the room charge that is split."
+  },
+  {
+   "fieldname": "share_method",
+   "fieldtype": "Select",
+   "label": "Room Charge Split",
+   "options": "Own Rate\nEqual Split\nPercentage\nEntire to One",
+   "read_only": 1,
+   "depends_on": "eval:doc.share_mode=='Shared'"
+  },
+  {
+   "fieldname": "share_percent",
+   "fieldtype": "Percent",
+   "label": "Primary Stay's Share",
+   "read_only": 1,
+   "depends_on": "eval:doc.share_method=='Percentage'"
+  },
+  {
+   "fieldname": "share_payer",
+   "fieldtype": "Link",
+   "label": "Pays the Room",
+   "options": "Stay Reservation",
+   "read_only": 1,
+   "depends_on": "eval:doc.share_method=='Entire to One'"
   },
   {
    "fieldname": "adults",

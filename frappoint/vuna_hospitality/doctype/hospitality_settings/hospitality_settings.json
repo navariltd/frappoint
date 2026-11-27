@@ -30,6 +30,7 @@
   "max_stay_nights",
   "column_break_resv",
   "allow_walk_ins",
+  "allow_independent_room_share",
   "booking_sources_section",
   "booking_sources",
   "guests_tab",
@@ -216,6 +217,13 @@
    "fieldtype": "Check",
    "label": "Allow Walk-ins",
    "description": "Allow stays that are created and checked in on the same day without a prior reservation."
+  },
+  {
+   "fieldname": "allow_independent_room_share",
+   "fieldtype": "Check",
+   "label": "Allow Independent Room Share",
+   "default": "0",
+   "description": "Let two stays share one room while each keeps its own dates, rate plan, folio, invoice and check-in and check-out (for example, friends who leave on different days, or a couple who want separate bills). The room is counted once in inventory, and the room charge of the nights they share is split by the method chosen on the share: each pays their own rate, an equal split, a percentage, or all to one guest. Leave this off when guests sharing a room always share one bill: add them as companions on one stay instead. Turning it off stops new shares; existing shares carry on."
   },
   {
    "fieldname": "booking_sources_section",
