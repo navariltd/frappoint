@@ -64,14 +64,8 @@ class DropRefusedError(frappe.ValidationError):
 
 
 def settings() -> frappe._dict:
-	values = frappe.db.get_value(
-		"Hospitality Settings",
-		"Hospitality Settings",
-		["tape_chart_days", "board_refresh_seconds"],
-		as_dict=True,
-	)
-	days = cint(values.tape_chart_days) or DEFAULT_DAYS
-	refresh = cint(values.board_refresh_seconds)
+	days = cint(frappe.db.get_single_value("Hospitality Settings", "tape_chart_days")) or DEFAULT_DAYS
+	refresh = cint(frappe.db.get_single_value("Hospitality Settings", "board_refresh_seconds"))
 	return frappe._dict(
 		days=max(MIN_DAYS, min(days, MAX_DAYS)),
 		refresh_seconds=max(refresh, MIN_REFRESH_SECONDS) if refresh > 0 else 0,
